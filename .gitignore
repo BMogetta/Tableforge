@@ -26,6 +26,5 @@ docker-compose.override.yml
 .DS_Store
 
 # ── Telemetry / infra (local generated files) ────────────────────────────────
-infra/grafana/provisioning/dashboards/*.json
 prometheus_data/
 grafana_data/

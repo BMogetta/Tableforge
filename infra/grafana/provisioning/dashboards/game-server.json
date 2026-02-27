@@ -1,0 +1,163 @@
+{
+  "uid": "tableforge-game-server",
+  "title": "Tableforge — Game Server",
+  "tags": ["tableforge", "backend"],
+  "timezone": "browser",
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job='game-server'}[1m])) by (http_route)",
+          "legendFormat": "{{http_route}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (5xx, per route)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 7 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20 },
+          "color": { "fixedColor": "red", "mode": "fixed" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job='game-server', http_response_status_code=~'5..'}[1m])) by (http_route)",
+          "legendFormat": "{{http_route}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latency p50 / p95 / p99",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 7, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, http_route))",
+          "legendFormat": "p50 {{http_route}}"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, http_route))",
+          "legendFormat": "p95 {{http_route}}"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, http_route))",
+          "legendFormat": "p99 {{http_route}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Active WebSocket connections",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 15, "w": 6, "h": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 200 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "tableforge_ws_connections_active",
+          "legendFormat": "Active connections"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Active game sessions",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 15, "w": 6, "h": 5 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "tableforge_sessions_active",
+          "legendFormat": "Active sessions"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Moves recorded (per minute)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 15, "w": 12, "h": 5 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(tableforge_moves_total[1m])) by (game_id)",
+          "legendFormat": "{{game_id}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Go runtime — goroutines",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 20, "w": 8, "h": 6 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "go_goroutines{job='game-server'}",
+          "legendFormat": "goroutines"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Go runtime — heap in use",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 20, "w": 8, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "go_memstats_heap_inuse_bytes{job='game-server'}",
+          "legendFormat": "heap in use"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Go runtime — GC pause (p99)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 20, "w": 8, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum(rate(go_gc_duration_seconds_bucket{job='game-server'}[5m])) by (le))",
+          "legendFormat": "p99 GC pause"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38
+}

@@ -12,10 +12,26 @@ import (
 type Player struct {
 	ID        uuid.UUID  `json:"id"`
 	Username  string     `json:"username"`
+	Role      PlayerRole `json:"role"`
 	AvatarURL *string    `json:"avatar_url,omitempty"`
 	CreatedAt time.Time  `json:"created_at"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
+
+type PlayerRole string
+
+const (
+	RolePlayer  PlayerRole = "player"
+	RoleManager PlayerRole = "manager"
+	RoleOwner   PlayerRole = "owner"
+)
+
+type AddAllowedEmailParams struct {
+	Email     string
+	Role      PlayerRole
+	InvitedBy *uuid.UUID
+}
+
 type RoomStatus string
 
 const (
@@ -81,6 +97,7 @@ type OAuthIdentity struct {
 
 type AllowedEmail struct {
 	Email     string     `json:"email"`
+	Role      PlayerRole `json:"role"`
 	Note      *string    `json:"note,omitempty"`
 	InvitedBy *uuid.UUID `json:"invited_by,omitempty"`
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
@@ -130,6 +147,14 @@ type Store interface {
 	UpdatePlayerAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error
 	SoftDeletePlayer(ctx context.Context, id uuid.UUID) error
 
+	// Admin — allowed emails
+	ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error)
+	AddAllowedEmail(ctx context.Context, params AddAllowedEmailParams) (AllowedEmail, error)
+	RemoveAllowedEmail(ctx context.Context, email string) error
+	// Admin — players
+	ListPlayers(ctx context.Context) ([]Player, error)
+	SetPlayerRole(ctx context.Context, playerID uuid.UUID, role PlayerRole) error
+
 	// Rooms
 	CreateRoom(ctx context.Context, params CreateRoomParams) (Room, error)
 	GetRoom(ctx context.Context, id uuid.UUID) (Room, error)
@@ -162,6 +187,7 @@ type Store interface {
 	// OAuth
 	UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthParams) (OAuthIdentity, error)
 	GetOAuthIdentity(ctx context.Context, provider, providerID string) (OAuthIdentity, error)
+	GetOAuthIdentityByEmail(ctx context.Context, email string) (OAuthIdentity, error)
 	IsEmailAllowed(ctx context.Context, email string) (bool, error)
 
 	// Results & leaderboard

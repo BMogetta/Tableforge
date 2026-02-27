@@ -44,7 +44,7 @@ func (s *PGStore) CreatePlayer(ctx context.Context, username string) (Player, er
 	row := s.pool.QueryRow(ctx,
 		`INSERT INTO players (username)
 		 VALUES ($1)
-		 RETURNING id, username, avatar_url, created_at, deleted_at`,
+		 RETURNING id, username, avatar_url, role, created_at, deleted_at`,
 		username,
 	)
 	return scanPlayer(row)
@@ -52,7 +52,7 @@ func (s *PGStore) CreatePlayer(ctx context.Context, username string) (Player, er
 
 func (s *PGStore) GetPlayer(ctx context.Context, id uuid.UUID) (Player, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, username, avatar_url, created_at, deleted_at
+		`SELECT id, username, avatar_url, role, created_at, deleted_at
 		 FROM players WHERE id = $1 AND deleted_at IS NULL`,
 		id,
 	)
@@ -61,7 +61,7 @@ func (s *PGStore) GetPlayer(ctx context.Context, id uuid.UUID) (Player, error) {
 
 func (s *PGStore) GetPlayerByUsername(ctx context.Context, username string) (Player, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, username, avatar_url, created_at, deleted_at
+		`SELECT id, username, avatar_url, role, created_at, deleted_at
 		 FROM players WHERE username = $1 AND deleted_at IS NULL`,
 		username,
 	)
@@ -83,6 +83,116 @@ func (s *PGStore) SoftDeletePlayer(ctx context.Context, id uuid.UUID) error {
 	)
 	if err != nil {
 		return fmt.Errorf("SoftDeletePlayer: %w", err)
+	}
+	return nil
+}
+
+// ListAllowedEmails returns all entries in the whitelist.
+func (s *PGStore) ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT email, role, note, invited_by, expires_at, created_at
+		 FROM allowed_emails
+		 ORDER BY created_at DESC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ListAllowedEmails: %w", err)
+	}
+	defer rows.Close()
+
+	entries := []AllowedEmail{}
+	for rows.Next() {
+		var e AllowedEmail
+		if err := rows.Scan(&e.Email, &e.Role, &e.Note, &e.InvitedBy, &e.ExpiresAt, &e.CreatedAt); err != nil {
+			return nil, fmt.Errorf("ListAllowedEmails scan: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
+}
+
+// AddAllowedEmail inserts an email into the whitelist.
+func (s *PGStore) AddAllowedEmail(ctx context.Context, params AddAllowedEmailParams) (AllowedEmail, error) {
+	row := s.pool.QueryRow(ctx,
+		`INSERT INTO allowed_emails (email, role, invited_by)
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (email) DO UPDATE
+		   SET role       = EXCLUDED.role,
+		       invited_by = EXCLUDED.invited_by
+		 RETURNING email, role, note, invited_by, expires_at, created_at`,
+		params.Email, params.Role, params.InvitedBy,
+	)
+	var e AllowedEmail
+	if err := row.Scan(&e.Email, &e.Role, &e.Note, &e.InvitedBy, &e.ExpiresAt, &e.CreatedAt); err != nil {
+		return AllowedEmail{}, fmt.Errorf("AddAllowedEmail: %w", err)
+	}
+	return e, nil
+}
+
+// RemoveAllowedEmail deletes an email from the whitelist.
+func (s *PGStore) RemoveAllowedEmail(ctx context.Context, email string) error {
+	tag, err := s.pool.Exec(ctx,
+		`DELETE FROM allowed_emails WHERE email = $1`,
+		email,
+	)
+	if err != nil {
+		return fmt.Errorf("RemoveAllowedEmail: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("RemoveAllowedEmail: email not found")
+	}
+	return nil
+}
+
+// ListPlayers returns all non-deleted players.
+func (s *PGStore) ListPlayers(ctx context.Context) ([]Player, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, username, avatar_url, role, created_at, deleted_at
+		 FROM players
+		 WHERE deleted_at IS NULL
+		 ORDER BY created_at DESC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ListPlayers: %w", err)
+	}
+	defer rows.Close()
+
+	players := []Player{}
+	for rows.Next() {
+		p, err := scanPlayer(rows)
+		if err != nil {
+			return nil, err
+		}
+		players = append(players, p)
+	}
+	return players, rows.Err()
+}
+
+// SetPlayerRole updates the role of a player.
+// Returns an error if the target player is an owner (owners can only be
+// changed by directly editing the DB or via the seeder).
+func (s *PGStore) SetPlayerRole(ctx context.Context, playerID uuid.UUID, role PlayerRole) error {
+	// Prevent demoting an existing owner via the API.
+	var currentRole PlayerRole
+	err := s.pool.QueryRow(ctx,
+		`SELECT role FROM players WHERE id = $1 AND deleted_at IS NULL`,
+		playerID,
+	).Scan(&currentRole)
+	if err != nil {
+		return fmt.Errorf("SetPlayerRole get current: %w", err)
+	}
+	if currentRole == RoleOwner && role != RoleOwner {
+		return fmt.Errorf("SetPlayerRole: cannot demote an owner")
+	}
+
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE players SET role = $1 WHERE id = $2 AND deleted_at IS NULL`,
+		role, playerID,
+	)
+	if err != nil {
+		return fmt.Errorf("SetPlayerRole: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("SetPlayerRole: player not found")
 	}
 	return nil
 }
@@ -144,7 +254,7 @@ func (s *PGStore) ListWaitingRooms(ctx context.Context) ([]Room, error) {
 	}
 	defer rows.Close()
 
-	var rooms []Room
+	rooms := []Room{}
 	for rows.Next() {
 		r, err := scanRoom(rows)
 		if err != nil {
@@ -201,7 +311,7 @@ func (s *PGStore) ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]Room
 	}
 	defer rows.Close()
 
-	var players []RoomPlayer
+	players := []RoomPlayer{}
 	for rows.Next() {
 		var rp RoomPlayer
 		if err := rows.Scan(&rp.RoomID, &rp.PlayerID, &rp.Seat, &rp.JoinedAt); err != nil {
@@ -400,7 +510,7 @@ func (s *PGStore) UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthPar
 		 VALUES ($1, $2)
 		 ON CONFLICT (username) DO UPDATE
 		   SET avatar_url = EXCLUDED.avatar_url
-		 RETURNING id, username, avatar_url, created_at, deleted_at`,
+		 RETURNING id, username, avatar_url, role, created_at, deleted_at`,
 		params.Username, params.AvatarURL,
 	)
 	player, err := scanPlayer(row)
@@ -434,6 +544,19 @@ func (s *PGStore) GetOAuthIdentity(ctx context.Context, provider, providerID str
 	var oi OAuthIdentity
 	if err := row.Scan(&oi.ID, &oi.PlayerID, &oi.Provider, &oi.ProviderID, &oi.Email, &oi.AvatarURL, &oi.CreatedAt); err != nil {
 		return OAuthIdentity{}, fmt.Errorf("GetOAuthIdentity: %w", err)
+	}
+	return oi, nil
+}
+
+func (s *PGStore) GetOAuthIdentityByEmail(ctx context.Context, email string) (OAuthIdentity, error) {
+	row := s.pool.QueryRow(ctx,
+		`SELECT id, player_id, provider, provider_id, email, avatar_url, created_at
+		 FROM oauth_identities WHERE email = $1 LIMIT 1`,
+		email,
+	)
+	var oi OAuthIdentity
+	if err := row.Scan(&oi.ID, &oi.PlayerID, &oi.Provider, &oi.ProviderID, &oi.Email, &oi.AvatarURL, &oi.CreatedAt); err != nil {
+		return OAuthIdentity{}, fmt.Errorf("GetOAuthIdentityByEmail: %w", err)
 	}
 	return oi, nil
 }
@@ -673,7 +796,7 @@ type scanner interface {
 
 func scanPlayer(row scanner) (Player, error) {
 	var p Player
-	if err := row.Scan(&p.ID, &p.Username, &p.AvatarURL, &p.CreatedAt, &p.DeletedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.Username, &p.AvatarURL, &p.Role, &p.CreatedAt, &p.DeletedAt); err != nil {
 		return Player{}, fmt.Errorf("scanPlayer: %w", err)
 	}
 	return p, nil

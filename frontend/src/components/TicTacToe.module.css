@@ -1,0 +1,77 @@
+.board {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: default;
+  transition: background var(--transition);
+}
+
+.cellHoverable {
+  cursor: pointer;
+}
+
+.cellHoverable:hover {
+  background: var(--amber-glow);
+}
+
+.symbol {
+  font-family: var(--font-display);
+  font-size: 52px;
+  line-height: 1;
+  animation: symbolIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes symbolIn {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.symbolX { color: var(--amber); }
+.symbolO { color: var(--text-secondary); }
+
+.hoverSymbol {
+  font-family: var(--font-display);
+  font-size: 52px;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.cellHoverable:hover .hoverSymbol {
+  opacity: 0.4;
+}
+
+.gridLines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vLine {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 1px;
+  background: var(--border-bright);
+}
+
+.hLine {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: var(--border-bright);
+}

@@ -79,7 +79,7 @@ func main() {
 	)
 
 	// HTTP server
-	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler)
+	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter)
 	addr := getEnv("ADDR", ":8080")
 	srv := &http.Server{
 		Addr:    addr,

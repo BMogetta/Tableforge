@@ -127,6 +127,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SERVER_ROOT_URL=http://localhost/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana

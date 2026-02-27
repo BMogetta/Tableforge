@@ -5,6 +5,12 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost"
+            - "http://localhost:3000"
+          allowed_headers:
+            - "*"
 
 processors:
   batch:
@@ -36,3 +42,8 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [prometheus, debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]

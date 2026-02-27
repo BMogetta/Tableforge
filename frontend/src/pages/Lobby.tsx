@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store'
-import { rooms, auth, leaderboard, type RoomView, type LeaderboardEntry } from '../api'
+import { rooms, auth, leaderboard, gameRegistry, type RoomView, type LeaderboardEntry, type GameInfo } from '../api'
 import styles from './Lobby.module.css'
 
 export default function Lobby() {
@@ -11,23 +11,31 @@ export default function Lobby() {
 
   const [roomList, setRoomList] = useState<RoomView[]>([])
   const [board, setBoard] = useState<LeaderboardEntry[]>([])
+  const [gameList, setGameList] = useState<GameInfo[]>([])
+  const [selectedGame, setSelectedGame] = useState<string>('')
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    Promise.all([rooms.list(), leaderboard.get()])
-      .then(([r, l]) => { setRoomList(r); setBoard(l) })
+    Promise.all([rooms.list(), leaderboard.get(), gameRegistry.list()])
+      .then(([r, l, g]) => {
+        setRoomList(r ?? [])
+        setBoard(l ?? [])
+        setGameList(g ?? [])
+        if (g && g.length > 0) setSelectedGame(g[0].id)
+      })
       .catch(() => setError('Failed to load lobby'))
       .finally(() => setLoading(false))
   }, [])
 
   async function handleCreate() {
+    if (!selectedGame) return
     setCreating(true)
     setError('')
     try {
-      const view = await rooms.create('tictactoe', player.id)
+      const view = await rooms.create(selectedGame, player.id)
       navigate(`/rooms/${view.room.id}`)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to create room')
@@ -64,6 +72,11 @@ export default function Lobby() {
             <img src={player.avatar_url} alt="" className={styles.avatar} />
           )}
           <span className={styles.username}>{player.username}</span>
+          {(player.role === 'manager' || player.role === 'owner') && (
+            <Link to="/admin" className="btn btn-ghost" style={{ padding: '6px 12px' }}>
+              Admin
+            </Link>
+          )}
           <button className="btn btn-ghost" onClick={handleLogout} style={{ padding: '6px 12px' }}>
             Logout
           </button>
@@ -76,7 +89,24 @@ export default function Lobby() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>New Game</h2>
             <div className={styles.actionGrid}>
-              <button className="btn btn-primary" onClick={handleCreate} disabled={creating}>
+              {gameList.length > 1 && (
+                <div>
+                  <label className="label">Game</label>
+                  <div className={styles.gameSelector}>
+                    {gameList.map(g => (
+                      <button
+                        key={g.id}
+                        className={`${styles.gameOption} ${selectedGame === g.id ? styles.gameOptionActive : ''}`}
+                        onClick={() => setSelectedGame(g.id)}
+                      >
+                        {g.name}
+                        <span className={styles.gamePlayerCount}>{g.min_players}–{g.max_players}p</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <button className="btn btn-primary" onClick={handleCreate} disabled={creating || !selectedGame}>
                 {creating ? 'Creating...' : '+ Create Room'}
               </button>
               <div className={styles.joinRow}>
@@ -99,7 +129,7 @@ export default function Lobby() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>
               Open Rooms
-              <span className={styles.count}>{roomList.length}</span>
+              <span className={styles.count}>{roomList.length ?? 0}</span>
             </h2>
             {loading ? (
               <p className={styles.empty}>Loading...</p>
@@ -151,7 +181,7 @@ function RoomCard({ view, onJoin }: { view: RoomView; onJoin: () => void }) {
 }
 
 function LeaderboardTable({ entries }: { entries: LeaderboardEntry[] }) {
-  if (entries.length === 0) {
+  if (!entries || entries.length === 0) {
     return <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No games played yet.</p>
   }
   return (

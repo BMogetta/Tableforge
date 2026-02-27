@@ -3,18 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { sessions, type GameSession } from '../api'
 import { RoomSocket } from '../ws'
+import TicTacToeBoard, { type TicTacToeState } from '../components/TicTacToe'
 import styles from './Game.module.css'
 
-interface TicTacToeState {
-  board: (string | null)[]
+// GameData is the shape of the state returned by the backend for any game.
+interface GameData {
   current_player_id: string
-  winner_id?: string
-  is_draw?: boolean
+  data: unknown
 }
 
+// MoveResult mirrors the backend response for POST /sessions/:id/move.
 interface MoveResult {
   session: GameSession
-  state: { current_player_id: string; data: TicTacToeState }
+  state: GameData
   is_over: boolean
 }
 
@@ -24,19 +25,18 @@ export default function Game() {
   const navigate = useNavigate()
 
   const [session, setSession] = useState<GameSession | null>(null)
-  const [state, setState] = useState<TicTacToeState | null>(null)
+  const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOver, setIsOver] = useState(false)
+  const [winnerId, setWinnerId] = useState<string | null>(null)
+  const [isDraw, setIsDraw] = useState(false)
   const [error, setError] = useState('')
   const [moving, setMoving] = useState(false)
-  const [roomId, setRoomId] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
       const res = await sessions.get(sessionId!)
       setSession(res.session)
-      setRoomId(res.session.room_id)
-      const data = res.state as { current_player_id: string; data: TicTacToeState }
-      setState(data.data)
+      setGameData(res.state)
     } catch {
       setError('Failed to load game')
     }
@@ -46,33 +46,46 @@ export default function Game() {
     refresh()
   }, [refresh])
 
+  // Subscribe to WebSocket events once we know the room ID.
   useEffect(() => {
-    if (!roomId) return
-    const socket = new RoomSocket(roomId)
+    if (!session?.room_id) return
+    const socket = new RoomSocket(session.room_id)
     socket.connect()
+
     const off = socket.on((event) => {
-      if (event.type === 'move_applied' || event.type === 'game_over') {
+      if (event.type === 'move_applied') {
         const payload = event.payload as MoveResult
         setSession(payload.session)
-        setState(payload.state.data as TicTacToeState)
-        if (event.type === 'game_over') setIsOver(true)
+        setGameData(payload.state)
+      }
+      if (event.type === 'game_over') {
+        const payload = event.payload as MoveResult & {
+          result?: { winner_id?: string; status?: string }
+        }
+        setSession(payload.session)
+        setGameData(payload.state)
+        setIsOver(true)
+        if (payload.result?.winner_id) {
+          setWinnerId(payload.result.winner_id)
+        } else if (payload.result?.status === 'draw') {
+          setIsDraw(true)
+        }
       }
     })
-    return () => { off(); socket.close() }
-  }, [roomId])
 
-  async function handleMove(position: number) {
-    if (!state || moving || isOver) return
-    if (state.current_player_id !== player.id) return
-    if (state.board[position] !== null) return
+    return () => { off(); socket.close() }
+  }, [session?.room_id])
+
+  async function handleMove(payload: Record<string, unknown>) {
+    if (!gameData || moving || isOver) return
+    if (gameData.current_player_id !== player.id) return
 
     setMoving(true)
     setError('')
     try {
-      const res = await sessions.move(sessionId!, player.id, { position })
+      const res = await sessions.move(sessionId!, player.id, payload)
       setSession(res.session)
-      const gameState = res.state.data as TicTacToeState
-      setState(gameState)
+      setGameData(res.state)
       if (res.is_over) setIsOver(true)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Invalid move')
@@ -81,7 +94,7 @@ export default function Game() {
     }
   }
 
-  if (!session || !state) {
+  if (!session || !gameData) {
     return (
       <div className={styles.centered}>
         <p className="pulse" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Loading game...</p>
@@ -89,13 +102,11 @@ export default function Game() {
     )
   }
 
-  const isMyTurn = state.current_player_id === player.id && !isOver
-  const winner = state.winner_id
-  const isDraw = state.is_draw
+  const isMyTurn = gameData.current_player_id === player.id && !isOver
 
   let statusText = ''
-  if (winner) {
-    statusText = winner === player.id ? 'You won!' : 'You lost.'
+  if (winnerId) {
+    statusText = winnerId === player.id ? 'You won!' : 'You lost.'
   } else if (isDraw) {
     statusText = 'Draw!'
   } else if (isMyTurn) {
@@ -119,18 +130,19 @@ export default function Game() {
 
         <div className={styles.status}>
           <div className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver ? styles.dotOver : ''}`} />
-          <span className={`${styles.statusText} ${winner === player.id ? styles.win : ''} ${winner && winner !== player.id ? styles.lose : ''}`}>
+          <span className={`${styles.statusText} ${winnerId === player.id ? styles.win : ''} ${winnerId && winnerId !== player.id ? styles.lose : ''}`}>
             {statusText}
           </span>
         </div>
 
         <div className={styles.boardWrapper}>
-          <TicTacToeBoard
-            board={state.board}
-            playerId={player.id}
-            currentPlayerId={state.current_player_id}
+          <GameRenderer
+            gameId={session.game_id}
+            gameData={gameData}
+            localPlayerId={player.id}
             onMove={handleMove}
             disabled={!isMyTurn || moving}
+            isOver={isOver}
           />
         </div>
 
@@ -148,52 +160,38 @@ export default function Game() {
   )
 }
 
-function TicTacToeBoard({
-  board,
-  playerId,
-  currentPlayerId,
+// GameRenderer routes to the correct board component based on game_id.
+// Add new games here as they are implemented.
+function GameRenderer({
+  gameId,
+  gameData,
+  localPlayerId,
   onMove,
   disabled,
 }: {
-  board: (string | null)[]
-  playerId: string
-  currentPlayerId: string
-  onMove: (i: number) => void
+  gameId: string
+  gameData: GameData
+  localPlayerId: string
+  onMove: (payload: Record<string, unknown>) => void
   disabled: boolean
+  isOver: boolean
 }) {
-  // Determine symbol for current player (X if first to move, O if second)
-  // We use a simple heuristic: count non-null cells
-  const xCount = board.filter(Boolean).length
-  // Player is X if it's their first move opportunity (they go first)
-  // We'll just display X/O based on which cells are theirs vs opponent's
-  // Since we don't have player assignment in state, use position parity
-  const getSymbol = (cellPlayerId: string) =>
-    cellPlayerId === playerId ? 'X' : 'O'
-
-  return (
-    <div className={styles.board}>
-      {board.map((cell, i) => (
-        <button
-          key={i}
-          className={`${styles.cell} ${cell ? styles.cellFilled : ''} ${!cell && !disabled ? styles.cellHoverable : ''}`}
-          onClick={() => onMove(i)}
-          disabled={disabled || !!cell}
-        >
-          {cell && (
-            <span className={`${styles.symbol} ${getSymbol(cell) === 'X' ? styles.symbolX : styles.symbolO}`}>
-              {getSymbol(cell)}
-            </span>
-          )}
-          {!cell && !disabled && <span className={styles.hoverSymbol}>·</span>}
-        </button>
-      ))}
-      {/* Grid lines */}
-      <div className={styles.gridLines}>
-        <div className={styles.vLine} style={{ left: '33.33%' }} />
-        <div className={styles.vLine} style={{ left: '66.66%' }} />
-        <div className={styles.hLine} style={{ top: '33.33%' }} />
-        <div className={styles.hLine} style={{ top: '66.66%' }} />
-      </div>
-    </div>
-  )
+  switch (gameId) {
+    case 'tictactoe':
+      return (
+        <TicTacToeBoard
+          state={gameData.data as TicTacToeState}
+          currentPlayerId={gameData.current_player_id}
+          localPlayerId={localPlayerId}
+          onMove={(cell) => onMove({ cell })}
+          disabled={disabled}
+        />
+      )
+    default:
+      return (
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          No renderer available for game: {gameId}
+        </p>
+      )
+  }
 }

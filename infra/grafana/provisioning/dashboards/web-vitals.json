@@ -1,0 +1,222 @@
+{
+  "uid": "tableforge-web-vitals",
+  "title": "Tableforge — Web Vitals",
+  "tags": ["tableforge", "frontend"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "LCP — Largest Contentful Paint",
+      "type": "gauge",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 4000,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2500 },
+              { "color": "red", "value": 4000 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='LCP'}[5m])) by (le))",
+          "legendFormat": "p75 LCP"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "CLS — Cumulative Layout Shift",
+      "type": "gauge",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 250,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 250 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='CLS'}[5m])) by (le))",
+          "legendFormat": "p75 CLS"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "INP — Interaction to Next Paint",
+      "type": "gauge",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 500,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 200 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='INP'}[5m])) by (le))",
+          "legendFormat": "p75 INP"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "TTFB — Time to First Byte",
+      "type": "gauge",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 1800,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 800 },
+              { "color": "red", "value": 1800 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='TTFB'}[5m])) by (le))",
+          "legendFormat": "p75 TTFB"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "FCP — First Contentful Paint",
+      "type": "gauge",
+      "gridPos": { "x": 0, "y": 6, "w": 6, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 3000,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1800 },
+              { "color": "red", "value": 3000 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='FCP'}[5m])) by (le))",
+          "legendFormat": "p75 FCP"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Vitals over time (p75)",
+      "type": "timeseries",
+      "gridPos": { "x": 6, "y": 6, "w": 18, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='LCP'}[5m])) by (le))",
+          "legendFormat": "LCP"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='FCP'}[5m])) by (le))",
+          "legendFormat": "FCP"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='TTFB'}[5m])) by (le))",
+          "legendFormat": "TTFB"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.75, sum(rate(web_vitals_bucket{vital_name='INP'}[5m])) by (le))",
+          "legendFormat": "INP"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Rating distribution",
+      "type": "piechart",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(increase(web_vitals_count{vital_rating='good'}[1h]))",
+          "legendFormat": "Good"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(increase(web_vitals_count{vital_rating='needs-improvement'}[1h]))",
+          "legendFormat": "Needs improvement"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(increase(web_vitals_count{vital_rating='poor'}[1h]))",
+          "legendFormat": "Poor"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "legendDisplayMode": "table"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Measurement volume (per vital, per minute)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(web_vitals_count[1m])) by (vital_name)",
+          "legendFormat": "{{vital_name}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38
+}

@@ -14,13 +14,26 @@ import (
 // Limiter holds the Redis client and policy settings.
 type Limiter struct {
 	rdb      *redis.Client
-	limit    int           // max requests
-	window   time.Duration // sliding window size
+	limit    int
+	window   time.Duration
 	keyspace string
 }
 
+// New creates a Limiter with the given policy.
+// keyspace is used to namespace Redis keys — use distinct values for each policy.
 func New(rdb *redis.Client, limit int, window time.Duration) *Limiter {
 	return &Limiter{rdb: rdb, limit: limit, window: window, keyspace: "rl"}
+}
+
+// WithKeyspace returns a new Limiter with a different keyspace and policy.
+// Use this to create per-route limiters from a shared Redis client.
+func (l *Limiter) WithKeyspace(keyspace string, limit int, window time.Duration) *Limiter {
+	return &Limiter{
+		rdb:      l.rdb,
+		limit:    limit,
+		window:   window,
+		keyspace: keyspace,
+	}
 }
 
 // Middleware returns an http.Handler that enforces the rate limit.
@@ -33,7 +46,7 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 
 		allowed, remaining, reset, err := l.allow(r.Context(), ip)
 		if err != nil {
-			// Redis down — fail open to avoid blocking all traffic
+			// Redis down — fail open to avoid blocking all traffic.
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -52,13 +65,13 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 }
 
 // allow implements a Redis sorted-set sliding window.
-// Key: "rl:{ip}", members are request timestamps (nanoseconds as score+member).
+// Key: "{keyspace}:{ip}", members are request timestamps (nanoseconds as score+member).
 func (l *Limiter) allow(ctx context.Context, ip string) (allowed bool, remaining int, resetAt int64, err error) {
 	key := fmt.Sprintf("%s:%s", l.keyspace, ip)
 	now := time.Now()
 	windowStart := now.Add(-l.window)
 
-	// Lua script: atomic remove-expired + count + conditional add
+	// Lua script: atomic remove-expired + count + conditional add.
 	script := redis.NewScript(`
 		local key    = KEYS[1]
 		local now    = tonumber(ARGV[1])
@@ -82,7 +95,7 @@ func (l *Limiter) allow(ctx context.Context, ip string) (allowed bool, remaining
 	nowNs := now.UnixNano()
 	winNs := windowStart.UnixNano()
 	ttlMs := l.window.Milliseconds()
-	member := strconv.FormatInt(nowNs, 10) // unique per request
+	member := strconv.FormatInt(nowNs, 10)
 
 	res, err := script.Run(ctx, l.rdb, []string{key},
 		nowNs, winNs, l.limit, ttlMs, member,

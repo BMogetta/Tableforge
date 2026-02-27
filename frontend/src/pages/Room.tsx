@@ -5,6 +5,8 @@ import { rooms, type RoomView } from '../api'
 import { RoomSocket } from '../ws'
 import styles from './Room.module.css'
 
+type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
+
 export default function Room() {
   const { roomId } = useParams<{ roomId: string }>()
   const player = useAppStore((s) => s.player)!
@@ -13,6 +15,7 @@ export default function Room() {
   const [view, setView] = useState<RoomView | null>(null)
   const [error, setError] = useState('')
   const [starting, setStarting] = useState(false)
+  const [socketStatus, setSocketStatus] = useState<SocketStatus>('connecting')
 
   const refresh = useCallback(() => {
     rooms.get(roomId!).then(setView).catch(() => setError('Room not found'))
@@ -24,6 +27,10 @@ export default function Room() {
     socket.connect()
 
     const off = socket.on((event) => {
+      if (event.type === 'ws_connected')    setSocketStatus('connected')
+      if (event.type === 'ws_reconnecting') setSocketStatus('reconnecting')
+      if (event.type === 'ws_disconnected') setSocketStatus('disconnected')
+
       if (event.type === 'player_joined' || event.type === 'player_left') {
         refresh()
       }
@@ -60,6 +67,8 @@ export default function Room() {
 
   return (
     <div className={`${styles.root} page-enter`}>
+      <ConnectionBanner status={socketStatus} />
+
       <div className={styles.panel}>
         <header className={styles.header}>
           <div>
@@ -130,6 +139,29 @@ export default function Room() {
     </div>
   )
 }
+
+// --- Connection banner -------------------------------------------------------
+
+function ConnectionBanner({ status }: { status: SocketStatus }) {
+  if (status === 'connected') return null
+
+  const config: Record<Exclude<SocketStatus, 'connected'>, { text: string; className: string }> = {
+    connecting:   { text: 'Connecting...',                          className: styles.bannerConnecting },
+    reconnecting: { text: 'Connection lost — reconnecting...',      className: styles.bannerReconnecting },
+    disconnected: { text: 'Disconnected. Please refresh the page.', className: styles.bannerDisconnected },
+  }
+
+  const { text, className } = config[status]
+
+  return (
+    <div className={`${styles.banner} ${className}`}>
+      {status !== 'disconnected' && <span className={styles.bannerDot} />}
+      {text}
+    </div>
+  )
+}
+
+// --- Loading screen ----------------------------------------------------------
 
 function LoadingScreen() {
   return (

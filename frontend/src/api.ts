@@ -1,9 +1,22 @@
 // All types mirror the Go store models.
 
+import { tracer } from './telemetry'
+import { SpanStatusCode, context, propagation } from '@opentelemetry/api'
+
 export interface Player {
   id: string
   username: string
+  role: 'player' | 'manager' | 'owner'
   avatar_url?: string
+  created_at: string
+}
+
+export interface AllowedEmail {
+  email: string
+  role: 'player' | 'manager' | 'owner'
+  note?: string
+  invited_by?: string
+  expires_at?: string
   created_at: string
 }
 
@@ -64,18 +77,51 @@ export interface LeaderboardEntry {
 const BASE = '/api/v1'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-    credentials: 'include',
-    ...init,
+  const method = (init?.method ?? 'GET').toUpperCase()
+  const url = BASE + path
+
+  return tracer.startActiveSpan(`${method} ${url}`, async (span) => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(init?.headers as Record<string, string>),
+    }
+    propagation.inject(context.active(), headers)
+
+    try {
+      const res = await fetch(url, {
+        ...init,
+        headers,
+        credentials: 'include',
+      })
+
+      span.setAttributes({
+        'http.method': method,
+        'http.url': url,
+        'http.status_code': res.status,
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        span.setStatus({ code: SpanStatusCode.ERROR, message: `HTTP ${res.status}` })
+        span.end()
+        throw new ApiError(res.status, body.error ?? res.statusText)
+      }
+
+      span.setStatus({ code: SpanStatusCode.OK })
+      span.end()
+      return res.json() as Promise<T>
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: err instanceof Error ? err.message : 'fetch failed',
+        })
+        span.recordException(err as Error)
+        span.end()
+      }
+      throw err
+    }
   })
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body.error ?? res.statusText)
-  }
-
-  return res.json()
 }
 
 export class ApiError extends Error {
@@ -87,7 +133,13 @@ export class ApiError extends Error {
 // --- Auth --------------------------------------------------------------------
 
 export const auth = {
-  me: () => request<Player>('/../../auth/me'),
+  me: () => fetch('/auth/me', { credentials: 'include' }).then(async res => {
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new ApiError(res.status, body.error ?? res.statusText)
+    }
+    return res.json() as Promise<Player>
+  }),
   logout: () => fetch('/auth/logout', { method: 'POST', credentials: 'include' }),
   loginUrl: '/auth/github',
 }
@@ -129,16 +181,20 @@ export const rooms = {
 // --- Sessions ----------------------------------------------------------------
 
 export const sessions = {
-  get: (id: string) => request<{ session: GameSession; state: { current_player_id: string; data: unknown } }>(`/sessions/${id}`),
+  get: (id: string) =>
+    request<{ session: GameSession; state: { current_player_id: string; data: unknown } }>(
+      `/sessions/${id}`
+    ),
   history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
   move: (sessionId: string, playerId: string, payload: unknown) =>
-  request<{ session: GameSession; state: { current_player_id: string; data: unknown }; is_over: boolean }>(
-    `/sessions/${sessionId}/move`,
-    {
+    request<{
+      session: GameSession
+      state: { current_player_id: string; data: unknown }
+      is_over: boolean
+    }>(`/sessions/${sessionId}/move`, {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, payload }),
-    }
-  ),
+    }),
 }
 
 // --- Leaderboard -------------------------------------------------------------
@@ -149,4 +205,46 @@ export const leaderboard = {
     if (gameId) params.set('game_id', gameId)
     return request<LeaderboardEntry[]>(`/leaderboard?${params}`)
   },
+}
+
+// --- Game Registry -----------------------------------------------------------
+
+export interface GameInfo {
+  id: string
+  name: string
+  min_players: number
+  max_players: number
+}
+
+export const gameRegistry = {
+  list: () => request<GameInfo[]>('/games'),
+}
+
+// --- Admin -------------------------------------------------------------------
+
+export const admin = {
+  // Allowed emails
+  listEmails: () =>
+    request<AllowedEmail[]>('/admin/allowed-emails'),
+
+  addEmail: (email: string, role: 'player' | 'manager' = 'player') =>
+    request<AllowedEmail>('/admin/allowed-emails', {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    }),
+
+  removeEmail: (email: string) =>
+    request<void>(`/admin/allowed-emails/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    }),
+
+  // Players
+  listPlayers: () =>
+    request<Player[]>('/admin/players'),
+
+  setRole: (playerId: string, role: 'player' | 'manager' | 'owner') =>
+    request<void>(`/admin/players/${playerId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    }),
 }

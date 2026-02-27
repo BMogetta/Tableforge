@@ -1,57 +1,69 @@
-// cmd/seed/main.go
-// Runs once: if allowed_emails is empty, inserts OWNER_EMAIL.
-// Safe to run on every deploy — no-ops if the table already has rows.
 package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tableforge/server/internal/store"
+)
+
+const (
+	waitTimeout  = 10 * time.Minute
+	waitInterval = 5 * time.Second
 )
 
 func main() {
+	ctx := context.Background()
+
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
+
 	ownerEmail := os.Getenv("OWNER_EMAIL")
 	if ownerEmail == "" {
-		log.Fatal("OWNER_EMAIL is not set")
+		log.Fatal("OWNER_EMAIL is required")
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		log.Fatal("DATABASE_URL is not set")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	pool, err := pgxpool.New(ctx, dbURL)
+	st, err := store.New(ctx, databaseURL)
 	if err != nil {
-		log.Fatalf("connect: %v", err)
+		log.Fatalf("connect db: %v", err)
 	}
-	defer pool.Close()
+	defer st.Close()
 
-	// Check if the table already has any rows.
-	var count int
-	err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM allowed_emails`).Scan(&count)
+	// Add owner email to whitelist with owner role.
+	_, err = st.AddAllowedEmail(ctx, store.AddAllowedEmailParams{
+		Email: ownerEmail,
+		Role:  store.RoleOwner,
+	})
 	if err != nil {
-		log.Fatalf("query: %v", err)
+		log.Fatalf("add allowed email: %v", err)
+	}
+	fmt.Printf("seeder: added %s to allowed_emails as owner\n", ownerEmail)
+
+	// Wait for the owner to log in and their player record to be created,
+	// then promote them. Exits automatically once done.
+	fmt.Printf("seeder: waiting for %s to log in (timeout: %s)...\n", ownerEmail, waitTimeout)
+
+	deadline := time.Now().Add(waitTimeout)
+	for time.Now().Before(deadline) {
+		identity, err := st.GetOAuthIdentityByEmail(ctx, ownerEmail)
+		if err == nil {
+			// Player exists — promote to owner.
+			if err := st.SetPlayerRole(ctx, identity.PlayerID, store.RoleOwner); err != nil {
+				log.Fatalf("seeder: set owner role: %v", err)
+			}
+			fmt.Printf("seeder: promoted player %s to owner\n", identity.PlayerID)
+			fmt.Println("seeder: done")
+			return
+		}
+
+		fmt.Printf("seeder: player not found yet, retrying in %s...\n", waitInterval)
+		time.Sleep(waitInterval)
 	}
 
-	if count > 0 {
-		log.Printf("allowed_emails already has %d row(s), skipping seed", count)
-		return
-	}
-
-	_, err = pool.Exec(ctx,
-		`INSERT INTO allowed_emails (email, note) VALUES ($1, $2)
-		 ON CONFLICT (email) DO NOTHING`,
-		ownerEmail, "owner — seeded automatically",
-	)
-	if err != nil {
-		log.Fatalf("insert: %v", err)
-	}
-
-	log.Printf("seeded owner email: %s", ownerEmail)
+	log.Fatalf("seeder: timed out after %s waiting for %s to log in", waitTimeout, ownerEmail)
 }

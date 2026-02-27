@@ -1,0 +1,85 @@
+{
+  "uid": "tableforge-js-errors",
+  "title": "Tableforge — JS Errors",
+  "tags": ["tableforge", "frontend", "errors"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Error rate (per minute)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 16, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "fillOpacity": 15 },
+          "color": { "fixedColor": "red", "mode": "fixed" }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(otelcol_receiver_accepted_log_records_total{receiver='otlp'}[1m]))",
+          "legendFormat": "JS errors/min"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Total errors (last 1h)",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(increase(otelcol_receiver_accepted_log_records_total{receiver='otlp'}[1h]))",
+          "legendFormat": "Errors (1h)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Traces — explore in Jaeger",
+      "type": "text",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 3 },
+      "options": {
+        "mode": "markdown",
+        "content": "## Trace inspection\nFor detailed error traces including stack traces and request context, open **[Jaeger UI](http://localhost:16686)** and filter by service `tableforge-frontend`. Each JS error emits a log record linked to the active trace span, so you can correlate errors with the exact API call that triggered them."
+      }
+    },
+    {
+      "id": 4,
+      "title": "OTel collector — accepted vs refused records",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 11, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "rate(otelcol_receiver_accepted_log_records_total[1m])",
+          "legendFormat": "accepted"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "rate(otelcol_receiver_refused_log_records_total[1m])",
+          "legendFormat": "refused"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38
+}

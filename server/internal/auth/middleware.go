@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/tableforge/server/internal/store"
 )
 
 type contextKey int
@@ -12,6 +13,7 @@ type contextKey int
 const (
 	keyPlayerID contextKey = iota
 	keyUsername
+	keyRole
 )
 
 // Middleware returns a chi-compatible middleware that requires a valid session
@@ -30,10 +32,22 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
+		player, err := h.store.GetPlayer(r.Context(), c.PlayerID)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), keyPlayerID, c.PlayerID)
 		ctx = context.WithValue(ctx, keyUsername, c.Username)
+		ctx = context.WithValue(ctx, keyRole, player.Role)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func RoleFromContext(ctx context.Context) (store.PlayerRole, bool) {
+	role, ok := ctx.Value(keyRole).(store.PlayerRole)
+	return role, ok
 }
 
 // PlayerIDFromContext extracts the authenticated player's ID.

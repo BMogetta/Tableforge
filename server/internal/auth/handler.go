@@ -129,6 +129,7 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 		AvatarURL:  &avatarURL,
 		Username:   sanitizeUsername(ghUser.Login),
 	})
+
 	if err != nil {
 		log.Printf("auth: upsert identity: %v", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)

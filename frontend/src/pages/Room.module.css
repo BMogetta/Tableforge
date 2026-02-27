@@ -123,3 +123,56 @@
   font-size: 12px;
   color: var(--danger);
 }
+
+.banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+.bannerConnecting {
+  background: rgba(255, 180, 0, 0.15);
+  color: var(--amber, #ffb400);
+  border-bottom: 1px solid rgba(255, 180, 0, 0.2);
+}
+
+.bannerReconnecting {
+  background: rgba(255, 120, 0, 0.15);
+  color: #ff9040;
+  border-bottom: 1px solid rgba(255, 120, 0, 0.2);
+}
+
+.bannerDisconnected {
+  background: rgba(220, 50, 50, 0.15);
+  color: var(--danger, #dc3545);
+  border-bottom: 1px solid rgba(220, 50, 50, 0.2);
+}
+
+.bannerDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}

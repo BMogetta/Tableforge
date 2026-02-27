@@ -50,7 +50,6 @@
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 320px;
-  gap: 0;
   max-width: 1100px;
   width: 100%;
   margin: 0 auto;
@@ -63,8 +62,6 @@
   flex-direction: column;
   gap: 32px;
 }
-
-.section {}
 
 .sectionTitle {
   font-family: var(--font-display);
@@ -94,14 +91,56 @@
   gap: 10px;
 }
 
+/* Game selector */
+.gameSelector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.gameOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.gameOption:hover {
+  border-color: var(--border-bright);
+  color: var(--text-primary);
+}
+
+.gameOptionActive {
+  border-color: var(--amber-dim);
+  background: var(--amber-glow);
+  color: var(--amber);
+}
+
+.gamePlayerCount {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.gameOptionActive .gamePlayerCount {
+  color: var(--amber-dim);
+}
+
 .joinRow {
   display: flex;
   gap: 8px;
 }
 
-.joinRow .input {
-  flex: 1;
-}
+.joinRow .input { flex: 1; }
 
 .error {
   margin-top: 8px;
@@ -192,13 +231,8 @@
   color: var(--text-secondary);
 }
 
-.table tr:last-child td {
-  border-bottom: none;
-}
-
-.table tr:hover td {
-  background: var(--bg-elevated);
-}
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: var(--bg-elevated); }
 
 .rank {
   color: var(--text-muted) !important;

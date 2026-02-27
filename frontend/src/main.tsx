@@ -1,10 +1,16 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+// Telemetry must be imported before React and the app so the providers
+// are registered before any fetch calls or renders happen.
+import { initWebVitals, initErrorHandler } from './telemetry'
+initErrorHandler()
+initWebVitals()
+
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles/global.css'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+      <App />
+  </StrictMode>,
 )
