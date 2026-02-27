@@ -318,7 +318,7 @@ func (s *PGStore) ListActiveSessions(ctx context.Context, playerID uuid.UUID) ([
 	}
 	defer rows.Close()
 
-	var sessions []GameSession
+	sessions := []GameSession{}
 	for rows.Next() {
 		gs, err := scanSession(rows)
 		if err != nil {
@@ -367,7 +367,7 @@ func (s *PGStore) ListSessionMoves(ctx context.Context, sessionID uuid.UUID) ([]
 	}
 	defer rows.Close()
 
-	var moves []Move
+	moves := []Move{}
 	for rows.Next() {
 		var m Move
 		if err := rows.Scan(&m.ID, &m.SessionID, &m.PlayerID, &m.Payload, &m.StateAfter, &m.MoveNumber, &m.AppliedAt); err != nil {
@@ -543,7 +543,7 @@ func (s *PGStore) GetLeaderboard(ctx context.Context, gameID string, limit int) 
 	}
 	defer rows.Close()
 
-	var entries []LeaderboardEntry
+	entries := []LeaderboardEntry{}
 	for rows.Next() {
 		var e LeaderboardEntry
 		if err := rows.Scan(&e.PlayerID, &e.Username, &e.AvatarURL, &e.Wins, &e.Losses, &e.Draws); err != nil {
@@ -570,7 +570,7 @@ func (s *PGStore) ListPlayerHistory(ctx context.Context, playerID uuid.UUID, lim
 	}
 	defer rows.Close()
 
-	var results []GameResult
+	results := []GameResult{}
 	for rows.Next() {
 		var gr GameResult
 		if err := rows.Scan(&gr.ID, &gr.SessionID, &gr.GameID, &gr.WinnerID, &gr.IsDraw, &gr.EndedBy, &gr.DurationSecs, &gr.CreatedAt); err != nil {
@@ -643,7 +643,7 @@ func (s *PGStore) ListRematchVotes(ctx context.Context, sessionID uuid.UUID) ([]
 	}
 	defer rows.Close()
 
-	var votes []RematchVote
+	votes := []RematchVote{}
 	for rows.Next() {
 		var v RematchVote
 		if err := rows.Scan(&v.SessionID, &v.PlayerID, &v.VotedAt); err != nil {

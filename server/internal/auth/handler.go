@@ -112,11 +112,11 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 	allowed, err := h.store.IsEmailAllowed(ctx, email)
 	if err != nil {
 		log.Printf("auth: check email: %v", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Redirect(w, r, "/?error=internal_error", http.StatusTemporaryRedirect)
 		return
 	}
 	if !allowed {
-		http.Error(w, "email not allowed", http.StatusForbidden)
+		http.Redirect(w, r, "/?error=email_not_allowed", http.StatusTemporaryRedirect)
 		return
 	}
 

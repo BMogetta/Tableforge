@@ -1,0 +1,183 @@
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.panel {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gameInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.gameId {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+}
+
+.moveCount {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Status */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.dotActive {
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber-glow);
+  animation: pulse 2s ease infinite;
+}
+
+.dotOver {
+  background: var(--text-muted);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.statusText {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.win { color: var(--amber) !important; font-weight: 500; }
+.lose { color: var(--danger) !important; }
+
+/* Board */
+.boardWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.board {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.cellHoverable:hover {
+  background: var(--amber-glow);
+}
+
+.cellFilled {
+  cursor: default;
+}
+
+.symbol {
+  font-family: var(--font-display);
+  font-size: 52px;
+  line-height: 1;
+  animation: symbolIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes symbolIn {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.symbolX { color: var(--amber); }
+.symbolO { color: var(--text-secondary); }
+
+.hoverSymbol {
+  font-size: 32px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.cellHoverable:hover .hoverSymbol { opacity: 1; }
+
+/* Grid lines */
+.gridLines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vLine {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 1px;
+  background: var(--border-bright);
+}
+
+.hLine {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: var(--border-bright);
+}
+
+.error {
+  font-size: 12px;
+  color: var(--danger);
+  text-align: center;
+}
+
+.gameOver {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}

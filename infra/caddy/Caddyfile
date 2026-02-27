@@ -1,0 +1,19 @@
+{
+    admin off
+}
+
+# Cloudflare Tunnel terminates TLS upstream — Caddy listens on plain HTTP internally.
+:80 {
+    # API and auth routes → game-server
+    reverse_proxy /api/* game-server:8080
+    reverse_proxy /auth/* game-server:8080
+
+    # WebSocket → game-server
+    reverse_proxy /ws/* game-server:8080 {
+        header_up Upgrade {http.request.header.Upgrade}
+        header_up Connection {http.request.header.Connection}
+    }
+
+    # Everything else → frontend
+    reverse_proxy * frontend:3000
+}

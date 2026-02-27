@@ -1,0 +1,125 @@
+.root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.panel {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.gameLabel {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.code {
+  font-family: var(--font-display);
+  font-size: 32px;
+  letter-spacing: 0.25em;
+  color: var(--amber);
+}
+
+.playersSection { margin: 4px 0; }
+
+.playerList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.playerRow.empty {
+  border-style: dashed;
+  opacity: 0.5;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.emptySlot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: 1px dashed var(--border-bright);
+}
+
+.playerName {
+  flex: 1;
+  font-size: 13px;
+}
+
+.waitingText {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.shareSection { margin: 4px 0; }
+
+.codeBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 8px;
+}
+
+.codeDisplay {
+  font-size: 20px;
+  letter-spacing: 0.25em;
+  color: var(--amber);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.waitingHost {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.error {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--danger);
+}

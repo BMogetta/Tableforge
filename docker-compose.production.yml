@@ -1,21 +1,19 @@
 services:
   # ── Application ────────────────────────────────────────────────────────────
   game-server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+    image: ghcr.io/${GITHUB_OWNER}/tableforge-server:latest
+    expose:
+      - "8080"
     environment:
       - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=game-server
-      - ENV=development
+      - ENV=production
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
       - JWT_SECRET=${JWT_SECRET}
-      - FRONTEND_URL=http://localhost
+      - FRONTEND_URL=https://${DOMAIN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,19 +24,16 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    image: ghcr.io/${GITHUB_OWNER}/tableforge-frontend:latest
+    expose:
+      - "3000"
     depends_on:
       - game-server
     restart: unless-stopped
 
   seeder:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_OWNER}/tableforge-server:latest
+    # Override default entrypoint to run the seed binary instead of the server
     entrypoint: ["/bin/seeder"]
     environment:
       - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
@@ -48,15 +43,41 @@ services:
         condition: service_healthy
     restart: "no"
 
+  # ── Reverse proxy ──────────────────────────────────────────────────────────
   caddy:
     image: caddy:2-alpine
-    ports:
-      - "80:80"
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - game-server
       - frontend
+    restart: unless-stopped
+
+  # ── Cloudflare Tunnel ──────────────────────────────────────────────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - caddy
+    restart: unless-stopped
+
+  # ── Auto-updater ───────────────────────────────────────────────────────────
+  # Polls GHCR every 5 minutes and restarts containers when a new image is pushed.
+  # Only watches game-server and frontend — infrastructure containers are excluded.
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Docker credentials to pull from private GHCR registry
+      - /root/.docker/config.json:/config.json
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+    command: game-server frontend
     restart: unless-stopped
 
   # ── Database ───────────────────────────────────────────────────────────────
@@ -97,9 +118,9 @@ services:
     command: ["--config=/etc/otel/config.yaml"]
     volumes:
       - ./infra/otel/config.yaml:/etc/otel/config.yaml
-    ports:
-      - "4317:4317"
-      - "4318:4318"
+    expose:
+      - "4317"
+      - "4318"
     depends_on:
       - jaeger
       - prometheus
@@ -108,8 +129,9 @@ services:
   jaeger:
     image: jaegertracing/jaeger:2.4.0
     ports:
-      - "16686:16686"
-      - "4319:4317"
+      - "127.0.0.1:16686:16686"
+    expose:
+      - "4317"
     restart: unless-stopped
 
   prometheus:
@@ -118,7 +140,7 @@ services:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     restart: unless-stopped
 
   grafana:
@@ -131,7 +153,7 @@ services:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     depends_on:
       - prometheus
       - jaeger
@@ -142,3 +164,5 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  caddy_data:
+  caddy_config:

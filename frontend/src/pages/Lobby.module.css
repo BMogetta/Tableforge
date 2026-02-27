@@ -1,0 +1,211 @@
+.root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoIcon { font-size: 20px; }
+
+.logoText {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.2em;
+  color: var(--amber);
+}
+
+.playerInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-bright);
+}
+
+.username {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 0;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px;
+  gap: 32px;
+}
+
+.left, .right {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.section {}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--amber-glow);
+  color: var(--amber);
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 168, 83, 0.2);
+}
+
+.actionGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.joinRow {
+  display: flex;
+  gap: 8px;
+}
+
+.joinRow .input {
+  flex: 1;
+}
+
+.error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 24px 0;
+}
+
+.roomList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roomCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.roomCard:hover {
+  border-color: var(--border-bright);
+  background: var(--bg-elevated);
+}
+
+.roomInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roomCode {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--amber);
+}
+
+.roomGame {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.roomMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.roomPlayers {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Leaderboard table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background: var(--bg-elevated);
+}
+
+.rank {
+  color: var(--text-muted) !important;
+  font-size: 11px;
+  width: 24px;
+}
+
+.table tr:nth-child(1) .rank { color: var(--amber) !important; }
+.table tr:nth-child(2) .rank { color: var(--text-secondary) !important; }
+.table tr:nth-child(3) .rank { color: #8b6914 !important; }

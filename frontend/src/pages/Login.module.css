@@ -1,0 +1,130 @@
+.root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated chessboard background */
+.board {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  opacity: 0.06;
+}
+
+.cell {
+  border: 1px solid var(--amber);
+  animation: cellPulse 4s ease infinite;
+}
+
+@keyframes cellPulse {
+  0%, 100% { opacity: 0.3; background: transparent; }
+  50% { opacity: 1; background: var(--amber-glow); }
+}
+
+/* Panel */
+.panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 40px;
+  animation: fadeIn 400ms ease forwards;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8), 0 0 20px var(--amber-glow);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.emblem {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--amber);
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.actions {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.loginBtn {
+  width: 100%;
+  justify-content: center;
+  font-size: 13px;
+  padding: 12px 20px;
+}
+
+/* Error state */
+.errorBlock {
+  margin: 4px 0 20px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(212, 168, 83, 0.12);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.errorCode {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+
+.errorDesc {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 24px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
