@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -67,6 +68,12 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 
 		r.Post("/sessions/{sessionID}/move", handleMove(rt, hub))
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
+		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
+
+		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
+		r.Get("/players/{playerID}/stats", handleGetPlayerStats(st))
+
+		r.Get("/leaderboard", handleGetLeaderboard(st))
 	})
 
 	// WebSocket — protected in production, open when authHandler is nil (tests)
@@ -112,6 +119,45 @@ func handleCreatePlayer(st store.Store) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusCreated, player)
+	}
+}
+
+// GET /api/v1/players/{playerID}/sessions
+// Returns active (unfinished) sessions for a player.
+func handleListPlayerSessions(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		sessions, err := st.ListActiveSessions(r.Context(), playerID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list sessions")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, sessions)
+	}
+}
+
+// GET /api/v1/players/{playerID}/stats
+func handleGetPlayerStats(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		stats, err := st.GetPlayerStats(r.Context(), playerID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get stats")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, stats)
 	}
 }
 
@@ -272,39 +318,6 @@ func handleStartGame(svc *lobby.Service) http.HandlerFunc {
 	}
 }
 
-// --- Helpers -----------------------------------------------------------------
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
-}
-
-func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
-}
-
-func writeLobbyError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, lobby.ErrRoomNotFound):
-		writeError(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, lobby.ErrGameNotFound):
-		writeError(w, http.StatusNotFound, err.Error())
-	case errors.Is(err, lobby.ErrRoomFull):
-		writeError(w, http.StatusConflict, err.Error())
-	case errors.Is(err, lobby.ErrAlreadyInRoom):
-		writeError(w, http.StatusConflict, err.Error())
-	case errors.Is(err, lobby.ErrRoomNotWaiting):
-		writeError(w, http.StatusConflict, err.Error())
-	case errors.Is(err, lobby.ErrNotOwner):
-		writeError(w, http.StatusForbidden, err.Error())
-	case errors.Is(err, lobby.ErrNotEnoughPlayer):
-		writeError(w, http.StatusBadRequest, err.Error())
-	default:
-		writeError(w, http.StatusInternalServerError, "internal error")
-	}
-}
-
 // --- Sessions ----------------------------------------------------------------
 
 type moveRequest struct {
@@ -371,6 +384,83 @@ func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, state)
+	}
+}
+
+// GET /api/v1/sessions/{sessionID}/history
+// Returns all moves for a session in order.
+func handleGetSessionHistory(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+
+		moves, err := st.ListSessionMoves(r.Context(), sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get history")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, moves)
+	}
+}
+
+// --- Leaderboard -------------------------------------------------------------
+
+// GET /api/v1/leaderboard?game_id=chess&limit=20
+func handleGetLeaderboard(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gameID := r.URL.Query().Get("game_id") // empty = all games
+
+		limit := 20
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 100 {
+				limit = parsed
+			}
+		}
+
+		entries, err := st.GetLeaderboard(r.Context(), gameID, limit)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get leaderboard")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, entries)
+	}
+}
+
+// --- Helpers -----------------------------------------------------------------
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
+
+func writeError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+func writeLobbyError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, lobby.ErrRoomNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+	case errors.Is(err, lobby.ErrGameNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+	case errors.Is(err, lobby.ErrRoomFull):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, lobby.ErrAlreadyInRoom):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, lobby.ErrRoomNotWaiting):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, lobby.ErrNotOwner):
+		writeError(w, http.StatusForbidden, err.Error())
+	case errors.Is(err, lobby.ErrNotEnoughPlayer):
+		writeError(w, http.StatusBadRequest, err.Error())
+	default:
+		writeError(w, http.StatusInternalServerError, "internal error")
 	}
 }
 

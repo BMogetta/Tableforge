@@ -290,11 +290,11 @@ func (f *FakeStore) GetPlayerStats(_ context.Context, playerID uuid.UUID) (store
 }
 
 func (f *FakeStore) GetLeaderboard(_ context.Context, _ string, _ int) ([]store.LeaderboardEntry, error) {
-	return nil, nil
+	return []store.LeaderboardEntry{}, nil
 }
 
 func (f *FakeStore) ListPlayerHistory(_ context.Context, _ uuid.UUID, _, _ int) ([]store.GameResult, error) {
-	return nil, nil
+	return []store.GameResult{}, nil
 }
 
 // --- Spectators --------------------------------------------------------------
@@ -312,7 +312,7 @@ func (f *FakeStore) GetSpectatorLink(_ context.Context, _ string) (store.Spectat
 func (f *FakeStore) UpsertRematchVote(_ context.Context, _ uuid.UUID, _ uuid.UUID) error { return nil }
 
 func (f *FakeStore) ListRematchVotes(_ context.Context, _ uuid.UUID) ([]store.RematchVote, error) {
-	return nil, nil
+	return []store.RematchVote{}, nil
 }
 
 func (f *FakeStore) DeleteRematchVotes(_ context.Context, _ uuid.UUID) error { return nil }

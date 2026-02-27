@@ -217,3 +217,164 @@ func TestStartGame(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestListPlayerSessions_Empty(t *testing.T) {
+	router, s := newTestRouter(t)
+	player, _ := s.CreatePlayer(context.Background(), "alice")
+
+	w := getJSON(t, router, "/api/v1/players/"+player.ID.String()+"/sessions")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var sessions []store.GameSession
+	json.NewDecoder(w.Body).Decode(&sessions)
+	if len(sessions) != 0 {
+		t.Errorf("expected 0 sessions, got %d", len(sessions))
+	}
+}
+
+func TestListPlayerSessions_WithActive(t *testing.T) {
+	router, s := newTestRouter(t)
+	owner, _ := s.CreatePlayer(context.Background(), "alice")
+	guest, _ := s.CreatePlayer(context.Background(), "bob")
+
+	// Create and start a game so a session exists.
+	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
+		"game_id":   "chess",
+		"player_id": owner.ID.String(),
+	})
+	var view lobby.RoomView
+	json.NewDecoder(createResp.Body).Decode(&view)
+
+	postJSON(t, router, "/api/v1/rooms/join", map[string]string{
+		"code":      view.Room.Code,
+		"player_id": guest.ID.String(),
+	})
+	postJSON(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", map[string]string{
+		"player_id": owner.ID.String(),
+	})
+
+	w := getJSON(t, router, "/api/v1/players/"+owner.ID.String()+"/sessions")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var sessions []store.GameSession
+	json.NewDecoder(w.Body).Decode(&sessions)
+	if len(sessions) != 1 {
+		t.Errorf("expected 1 session, got %d", len(sessions))
+	}
+}
+
+func TestListPlayerSessions_InvalidID(t *testing.T) {
+	router, _ := newTestRouter(t)
+
+	w := getJSON(t, router, "/api/v1/players/not-a-uuid/sessions")
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestGetPlayerStats(t *testing.T) {
+	router, s := newTestRouter(t)
+	player, _ := s.CreatePlayer(context.Background(), "alice")
+
+	w := getJSON(t, router, "/api/v1/players/"+player.ID.String()+"/stats")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var stats store.PlayerStats
+	json.NewDecoder(w.Body).Decode(&stats)
+	if stats.PlayerID != player.ID {
+		t.Errorf("expected player ID %s, got %s", player.ID, stats.PlayerID)
+	}
+}
+
+func TestGetPlayerStats_InvalidID(t *testing.T) {
+	router, _ := newTestRouter(t)
+
+	w := getJSON(t, router, "/api/v1/players/not-a-uuid/stats")
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestGetSessionHistory_Empty(t *testing.T) {
+	router, s := newTestRouter(t)
+	owner, _ := s.CreatePlayer(context.Background(), "alice")
+	guest, _ := s.CreatePlayer(context.Background(), "bob")
+
+	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
+		"game_id":   "chess",
+		"player_id": owner.ID.String(),
+	})
+	var view lobby.RoomView
+	json.NewDecoder(createResp.Body).Decode(&view)
+
+	postJSON(t, router, "/api/v1/rooms/join", map[string]string{
+		"code":      view.Room.Code,
+		"player_id": guest.ID.String(),
+	})
+	startResp := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", map[string]string{
+		"player_id": owner.ID.String(),
+	})
+
+	var session store.GameSession
+	json.NewDecoder(startResp.Body).Decode(&session)
+
+	w := getJSON(t, router, "/api/v1/sessions/"+session.ID.String()+"/history")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var moves []store.Move
+	json.NewDecoder(w.Body).Decode(&moves)
+	if len(moves) != 0 {
+		t.Errorf("expected 0 moves, got %d", len(moves))
+	}
+}
+
+func TestGetSessionHistory_InvalidID(t *testing.T) {
+	router, _ := newTestRouter(t)
+
+	w := getJSON(t, router, "/api/v1/sessions/not-a-uuid/history")
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestGetLeaderboard(t *testing.T) {
+	router, _ := newTestRouter(t)
+
+	w := getJSON(t, router, "/api/v1/leaderboard")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var entries []store.LeaderboardEntry
+	json.NewDecoder(w.Body).Decode(&entries)
+	// FakeStore returns empty slice — just verify the shape is correct.
+	if entries == nil {
+		t.Error("expected non-nil slice")
+	}
+}
+
+func TestGetLeaderboard_WithGameID(t *testing.T) {
+	router, _ := newTestRouter(t)
+
+	w := getJSON(t, router, "/api/v1/leaderboard?game_id=chess&limit=5")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
