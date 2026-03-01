@@ -1,5 +1,4 @@
-# Tableforge — Session Handoff Prompt
-
+# Tableforge — Session Handoff
 ## Critical Rules (always apply)
 - All code, comments, and documentation **must be in English**
 - CSS modules for all component styles
@@ -7,242 +6,198 @@
 - `.env.example` always shown as markdown, never as a file download
 - `expose:` not `ports:` for internal services in prod compose
 - No bullet points in prose responses
-
----
-
 ## Project Overview
 
-Multiplayer board game platform. Go backend + React/TypeScript frontend.
-
-**Architecture:** plugin-based game engine, PostgreSQL, Redis, WebSocket real-time, OpenTelemetry tracing, Prometheus metrics.
-
-**Deployment:** Raspberry Pi 5 16GB. Docker Compose prod. Cloudflare Tunnel → Caddy → services. GitHub Actions builds arm64 images to ghcr.io. Watchtower auto-updates on new image push.
-
----
-
-## Repository Structure
-
-```
-tableforge/
-├── server/
-│   ├── cmd/server/main.go
-│   ├── cmd/seed/main.go           # seeds OWNER_EMAIL as owner into allowed_emails + promotes player
-│   ├── internal/
-│   │   ├── api/api.go             # HTTP router + all handlers (including admin)
-│   │   ├── auth/                  # GitHub OAuth + JWT middleware (injects playerID, username, role into context)
-│   │   ├── engine/                # Game interface + types
-│   │   ├── lobby/                 # Room management
-│   │   ├── ratelimit/             # Redis sliding window
-│   │   ├── runtime/               # Session lifecycle
-│   │   ├── store/                 # PostgreSQL store (pgx) — store.go interface + pg_store.go implementation
-│   │   ├── telemetry/             # OpenTelemetry setup
-│   │   ├── testutil/              # FakeStore for tests
-│   │   └── ws/                    # WebSocket hub + Redis pub/sub
-│   ├── games/
-│   │   ├── registry.go            # games.Register(), games.All()
-│   │   └── tictactoe/             # TicTacToe plugin
-│   ├── db/migrations/             # SQL migrations (run via initdb.d)
-│   │   ├── 001_initial.sql
-│   │   └── 002_roles.sql          # Adds player_role enum + role column to players and allowed_emails
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── telemetry.ts           # OTel SDK init, Web Vitals, JS error handler
-│   │   ├── api.ts                 # fetch wrapper with OTel trace spans + all types
-│   │   ├── ws.ts                  # WebSocket client with auto-reconnect
-│   │   ├── store.ts               # Zustand global state (player)
-│   │   ├── App.tsx                # Router + auth bootstrap + RequireAuth + RequireRole guards
-│   │   ├── pages/
-│   │   │   ├── Login.tsx          # GitHub OAuth + AccessDenied screen
-│   │   │   ├── Lobby.tsx          # Room list + game selector + leaderboard + Admin link (manager/owner only)
-│   │   │   ├── Room.tsx           # Waiting room + WebSocket
-│   │   │   ├── Game.tsx           # Game page + GameRenderer router
-│   │   │   └── Admin.tsx          # Admin panel: email whitelist, player roles, observability iframes
-│   │   └── components/
-│   │       ├── TicTacToe.tsx
-│   │       └── TicTacToe.module.css
-│   └── Dockerfile
-├── infra/
-│   ├── caddy/Caddyfile            # reverse proxy + security headers + /otlp proxy
-│   ├── otel/config.yaml           # OTLP receiver (grpc+http), traces→jaeger, metrics→prometheus, logs pipeline, CORS for browser
-│   ├── prometheus/prometheus.yml  # scrapes game-server:8080/metrics and otel-collector:8889
-│   └── grafana/provisioning/
-│       ├── datasources/datasources.yaml   # Prometheus + Jaeger datasources
-│       └── dashboards/
-│           ├── dashboards.yaml
-│           ├── web-vitals.json     # CLS, LCP, INP, FCP, TTFB gauges + timeseries + rating donut
-│           ├── game-server.json    # req rate, error rate, latency p50/p95/p99, goroutines, heap
-│           └── js-errors.json      # JS error rate, collector accepted/refused records
-├── docker-compose.yml
-└── docker-compose.prod.yml
-```
+Tableforge is a multiplayer board game platform. Monorepo structure:
+- `server/` — Go backend (chi router, pgx, JWT auth, WebSocket hub)
+- `frontend/` — React + TypeScript + Vite + CSS Modules + Zustand + TanStack Query
+- `infra/` — Caddy reverse proxy, Docker Compose
 
 ---
 
-## Auth & Roles
+## Stack
 
-- GitHub OAuth → JWT in HttpOnly cookie (`tf_session`). JWT TTL: 7 days.
-- Email whitelist (`allowed_emails` table). Redirect to `/?error=email_not_allowed` on deny.
-- **Player roles:** `player`, `manager`, `owner` — stored in `players.role` (type `player_role` enum).
-- Role is loaded from DB on every authenticated request (always fresh, no stale JWT role).
-- `requireRole(minimum)` middleware in `api.go` enforces hierarchy: player < manager < owner.
-- Owner cannot demote themselves (enforced in both backend handler and `SetPlayerRole`).
-- Managers can only invite players (not managers or owners).
-- Seeder (`cmd/seed/main.go`) inserts `OWNER_EMAIL` into `allowed_emails` with `owner` role, then promotes the player if they have already logged in. Run it again after first login to complete the promotion.
+**Backend:** Go 1.23, chi, pgx/v5, golang-jwt, Redis (rate limiting), Docker  
+**Frontend:** React 18, TypeScript, Vite, CSS Modules, Zustand, TanStack Query v5, React Router v6  
+**Testing:** Playwright (E2E), test auth bypass via `TEST_MODE=true`  
+**Infra:** Caddy, Docker Compose, Prometheus + Grafana + Jaeger
 
 ---
 
-## Store Interface — Key Methods
+## Architecture Notes
 
-```go
-// Players
-CreatePlayer, GetPlayer, GetPlayerByUsername, UpdatePlayerAvatar, SoftDeletePlayer
-ListPlayers(ctx) ([]Player, error)
-SetPlayerRole(ctx, playerID, role) error
+### Auth
+- GitHub OAuth → JWT cookie → middleware loads player from DB on every request
+- Role hierarchy: `player < manager < owner`
+- `RequireRole` guard in `App.tsx` for frontend route protection
+- **Test bypass:** `GET /auth/test-login?player_id=<uuid>` — only active when `TEST_MODE=true`
 
-// Rooms
-CreateRoom, GetRoom, GetRoomByCode, UpdateRoomStatus
-ListWaitingRooms(ctx) ([]Room, error)
-SoftDeleteRoom
+### WebSocket
+- `RoomSocket` in `frontend/src/ws.ts` handles connection, reconnect, and status events
+- Emits: `ws_connected`, `ws_reconnecting`, `ws_disconnected` (internal), plus game events
+- `Room.tsx` shows a connection status banner based on socket state
 
-// Room players
-AddPlayerToRoom, RemovePlayerFromRoom, ListRoomPlayers
+### Rate Limiting
+- Redis sliding window, per-IP
+- Global: 100 req/min | Auth: 10 req/min | Moves: 60 req/min | Admin: 30 req/min
+- Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- Fail-open on Redis errors
 
-// Game sessions
-CreateGameSession, GetGameSession, GetActiveSessionByRoom
-UpdateSessionState, FinishSession, SuspendSession, ResumeSession
-ListActiveSessions, SoftDeleteSession
+### Turn Timer
+- `TurnTimer` in `server/internal/runtime/turn_timer.go`
+- Started when a game session is created, reset after every move
+- Penalty configured per game in `game_configs` table: `lose_turn` or `lose_game`
+- Broadcasts `game_over` or `move_applied` via WebSocket on timeout
 
-// Moves
-RecordMove, ListSessionMoves, GetMoveAt
-
-// OAuth
-UpsertOAuthIdentity, GetOAuthIdentity, GetOAuthIdentityByEmail, IsEmailAllowed
-
-// Admin — allowed emails
-ListAllowedEmails(ctx) ([]AllowedEmail, error)
-AddAllowedEmail(ctx, AddAllowedEmailParams) (AllowedEmail, error)
-RemoveAllowedEmail(ctx, email) error
-
-// Results & leaderboard
-CreateGameResult, GetPlayerStats, GetLeaderboard, ListPlayerHistory
-
-// Spectators
-CreateSpectatorLink, GetSpectatorLink
-
-// Rematch
-UpsertRematchVote, ListRematchVotes, DeleteRematchVotes
-```
-
-All list methods use `x := []Type{}` (never `var x []Type`) to avoid JSON `null`.
+### React Query
+- `QueryClient` in `frontend/src/queryClient.ts`
+- Key factory: `keys.rooms()`, `keys.session(id)`, `keys.leaderboard()`, etc.
+- WebSocket events update cache directly via `qc.setQueryData` — no refetch
+- Zustand retained only for authenticated player global state
 
 ---
 
-## API Routes
+## Database Migrations
 
+| File | Description |
+|------|-------------|
+| `001_initial.sql` | Core tables: players, rooms, room_players, game_sessions, moves |
+| `002_roles.sql` | `player_role` enum, roles on players and allowed_emails |
+| `003_turn_timeout.sql` | `game_configs` table, `turn_timeout_secs` + `last_move_at` on game_sessions |
+
+---
+
+## Key Files
+
+### Backend
+| File | Purpose |
+|------|---------|
+| `internal/store/store.go` | All models and Store interface |
+| `internal/store/pg_store.go` | PostgreSQL implementation |
+| `internal/auth/middleware.go` | JWT validation, role injection into context |
+| `internal/auth/test_auth.go` | Test-only login bypass |
+| `internal/api/api.go` | All HTTP routes and handlers |
+| `internal/lobby/lobby.go` | Room lifecycle: create, join, leave, start |
+| `internal/runtime/runtime.go` | Move validation, application, game-over detection |
+| `internal/runtime/turn_timer.go` | Per-session turn countdown, timeout penalty |
+| `internal/ratelimit/ratelimit.go` | Redis sliding window rate limiter |
+| `internal/ws/hub.go` | WebSocket hub, broadcast by room |
+| `cmd/seed/main.go` | Owner bootstrap — waits for first login then promotes |
+| `cmd/seed-test/main.go` | Creates two test players, prints JSON with IDs |
+
+### Frontend
+| File | Purpose |
+|------|---------|
+| `src/main.tsx` | App entry, `QueryClientProvider` wrapper |
+| `src/queryClient.ts` | Shared `QueryClient` + key factory |
+| `src/store.ts` | Zustand — authenticated player only |
+| `src/api.ts` | All API functions, typed responses |
+| `src/ws.ts` | `RoomSocket` with connection status events |
+| `src/App.tsx` | Routes, `RequireAuth`, `RequireRole`, `ErrorBoundary` |
+| `src/pages/Lobby.tsx` | Room list, create/join — uses React Query |
+| `src/pages/Room.tsx` | Waiting room, WS connection banner |
+| `src/pages/Game.tsx` | Game board, moves — uses React Query + WS |
+| `src/pages/Admin.tsx` | Email whitelist + player role management + observability iframes |
+
+### Infra
+| File | Purpose |
+|------|---------|
+| `infra/caddy/Caddyfile` | Reverse proxy, security headers, WS upgrade |
+| `docker-compose.yml` | All services: server, frontend, postgres, redis, caddy, grafana, jaeger, prometheus |
+
+### Testing
+| File | Purpose |
+|------|---------|
+| `frontend/playwright.config.ts` | Playwright config, setup project for auth |
+| `frontend/tests/e2e/auth.setup.ts` | Creates `.auth/player1.json` and `.auth/player2.json` |
+| `frontend/tests/e2e/lobby.spec.ts` | Lobby: load, create room, two players join |
+| `frontend/tests/e2e/game.spec.ts` | Full TicTacToe game + timeout test |
+
+---
+
+## Makefile Commands
+
+```bash
+make up           # start in dev mode
+make up-test      # start with TEST_MODE=true (required for Playwright)
+make down         # stop containers
+make seed         # bootstrap owner (OWNER_EMAIL=... make seed)
+make seed-test    # create test players → frontend/tests/e2e/.players.json
+make test         # run Playwright tests
+make test-ui      # Playwright UI mode
+make clean-test   # remove test fixtures and auth state
+make clean        # stop containers and wipe DB volumes
 ```
-GET  /health
-GET  /metrics                         (Prometheus)
-GET  /auth/github
-GET  /auth/github/callback
-POST /auth/logout
-GET  /auth/me
 
-POST /api/v1/players
-GET  /api/v1/games
-GET  /api/v1/rooms
-POST /api/v1/rooms
-GET  /api/v1/rooms/{roomID}
-POST /api/v1/rooms/join
-POST /api/v1/rooms/{roomID}/leave
-POST /api/v1/rooms/{roomID}/start
-POST /api/v1/sessions/{sessionID}/move
-GET  /api/v1/sessions/{sessionID}
-GET  /api/v1/sessions/{sessionID}/history
-GET  /api/v1/players/{playerID}/sessions
-GET  /api/v1/players/{playerID}/stats
-GET  /api/v1/leaderboard
-
-GET    /api/v1/admin/allowed-emails         (manager+)
-POST   /api/v1/admin/allowed-emails         (manager+)
-DELETE /api/v1/admin/allowed-emails/{email} (manager+)
-GET    /api/v1/admin/players                (manager+)
-PUT    /api/v1/admin/players/{playerID}/role (owner only)
-
-GET /ws/rooms/{roomID}
+### Full test workflow
+```bash
+make up-test
+make seed-test
+make test
 ```
 
 ---
 
-## Frontend Telemetry
+## Pending Work
 
-- `telemetry.ts` initializes OTel SDK before React mounts (imported first in `main.tsx`)
-- Traces: every `request()` call in `api.ts` is wrapped in a span with `traceparent` header injected
-- Metrics: Web Vitals (CLS, FCP, LCP, TTFB, INP) pushed as `web_vitals` histogram to `/otlp/v1/metrics`
-- Logs: `window.onerror` + `unhandledrejection` → OTLP log records to `/otlp/v1/logs`
-- Caddy proxies `/otlp/*` → `otel-collector:4318` (strips prefix)
-- Collector exports: traces → Jaeger, metrics → Prometheus (port 8889), logs → debug
+### From original backlog
+- [ ] **Rematch flow** — backend ready (`UpsertRematchVote`, `ListRematchVotes`), no frontend UI
+- [ ] **Spectator mode** — store methods exist, no endpoints or UI
+- [ ] **JWT session revocation** — no way to invalidate active sessions on logout
+- [ ] **sessionStorage cache for player** — avoid `/auth/me` round-trip on every refresh
 
----
+### Production hardening
+- [ ] DB backups
+- [ ] Watchtower rollback strategy
+- [ ] Health check endpoints
+- [ ] Observability iframes — Grafana works via subpath; Jaeger v2 has limited subpath support, recommend external links
 
-## TicTacToe State Shape
+### Testing
+- [ ] Playwright tests not yet verified running end-to-end (setup complete, needs first run)
+- [ ] Turn timeout Playwright test requires `default_timeout_secs=10` in `game_configs` for tictactoe
+- [ ] No backend unit tests yet
 
-```json
-{
-  "current_player_id": "<uuid>",
-  "data": {
-    "board": ["", "X", "", "O", "", "", "", "", ""],
-    "marks": { "<playerID>": "X", "<playerID2>": "O" },
-    "players": ["<playerID>", "<playerID2>"]
-  }
-}
-```
-Move payload: `{ "cell": 0-8 }`
-
----
-
-## Infra Notes
-
-- Dev: single origin via Caddy on port 80. `FRONTEND_URL=http://localhost`
-- otel-collector HTTP endpoint has CORS configured for `http://localhost` and `http://localhost:3000`
-- Grafana runs with anonymous admin access (`GF_AUTH_ANONYMOUS_ENABLED=true`)
-- Jaeger v2 (2.4.0) — UI on port 16686, gRPC on 16685
-- In WSL2, Jaeger and Prometheus ports may not bind to host — use `docker inspect` to verify `PortBindings`
+### Nice to have
+- [ ] Turn countdown timer UI (show remaining seconds to player)
+- [ ] `turn_timeout_secs` field exposed in room creation UI (frontend form)
+- [ ] `gameConfig.get()` called in Lobby to show timeout info per game
 
 ---
 
-## Pending Work (priority order)
+## Seeder Behavior
 
-### 1. Rate limiting on admin routes
-`internal/ratelimit` exists but verify it's wired to routes. Admin endpoints have no rate limiting.
+`cmd/seed/main.go` — blocking, waits up to 10 minutes for owner to log in:
+1. Adds `OWNER_EMAIL` to `allowed_emails` with `role = owner`
+2. Polls every 5s for the player record (created on first GitHub login)
+3. Once found, promotes to owner and exits
 
-### 2. WebSocket disconnect feedback
-No UI indicator when WS drops. User doesn't know they're disconnected. Add a reconnecting/disconnected banner in `Room.tsx`.
+In `docker-compose.yml` set `restart: "no"` for the seeder service.
 
-### 3. Generic error boundary
-No error boundary in React — unhandled render errors show a blank screen. Add a top-level `ErrorBoundary` component in `App.tsx`.
+---
 
-### 4. Turn timeout
-`turn_timeout_secs` exists in the `Room` model but is never enforced. Needs a ticker in `runtime/` that auto-forfeits on timeout and broadcasts via WebSocket.
+## Turn Timeout Flow
 
-### 5. Rematch flow
-Backend has `rematch_votes` table and store methods. Frontend has no UI for it. Needs a post-game screen in `Game.tsx` with a rematch button and vote state.
+1. Room created with optional `turn_timeout_secs`
+2. `lobby.StartGame` resolves effective timeout: room value → clamped to game config min/max → game default
+3. `runtime.Service.StartSession(session)` called from `handleStartGame` → schedules `TurnTimer`
+4. After every move: `TurnTimer.Schedule(session)` resets the timer
+5. On timeout: `TurnTimer.onTimeout` fires, reads `game_configs.timeout_penalty`
+   - `lose_game`: calls `FinishSession`, creates `GameResult` with `ended_by = timeout`, broadcasts `game_over`
+   - `lose_turn`: advances `CurrentPlayerID` to next player, broadcasts `move_applied`, reschedules timer
+6. Normal game end: `TurnTimer.Cancel(sessionID)` called before `FinishSession`
 
-### 6. Spectator mode
-`spectator_links` is in the store but no endpoint or UI exists. Needs: `POST /api/v1/rooms/{roomID}/spectate` to generate a link, and a read-only game view.
+---
 
-### 7. JWT session revocation
-No way to invalidate active sessions without rotating `JWT_SECRET`. Consider a `session_revocations` table or Redis set for revoked JTIs.
+## Error Boundary
 
-### 8. Observability iframes in admin panel
-Grafana iframe works after adding `GF_SERVER_ROOT_URL` and `GF_SERVER_SERVE_FROM_SUB_PATH=true` + Caddy `/grafana/*` proxy. Jaeger v2 subpath support is limited — may need to open in new tab instead.
+`App.tsx` wraps all routes in `ErrorBoundary` (class component).  
+On render error: shows game-themed error screen with "Try Again" (resets boundary) and "Go to Lobby" (hard redirect).
 
-### 9. sessionStorage cache for player
-`useAppStore` reloads player from `/auth/me` on every page refresh. Could cache in `sessionStorage` to avoid the flash.
+---
 
-### 10. Production hardening (do last)
-- PostgreSQL backup (pg_dump via cron or a sidecar container, push to S3-compatible storage)
-- Watchtower rollback strategy — pin image tags or add a health check before Watchtower promotes
-- Frontend container health check
-- Rotate JWT_SECRET procedure documented
-- `docker-compose.prod.yml` review: confirm all internal services use `expose:` not `ports:`
+## Notes for Next Session
+
+- `game_configs` is seeded with tictactoe defaults in migration `003`. For new games, insert a row in `game_configs` matching the `game.ID()` return value.
+- `GameRenderer` in `Game.tsx` is a switch on `game_id` — add new cases there for new game renderers.
+- `ws.ts` event types include `ws_connected/ws_reconnecting/ws_disconnected` — these are client-only and not sent by the server.
+- The `TurnTimer` has no persistence — if the server restarts mid-game, active timers are lost. On restart, sessions with `finished_at = NULL` and a configured timeout should reschedule. This is not yet implemented.

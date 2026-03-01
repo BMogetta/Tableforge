@@ -324,33 +324,56 @@ func (s *PGStore) ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]Room
 
 // --- Game sessions -----------------------------------------------------------
 
-func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte) (GameSession, error) {
+func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
-		`INSERT INTO game_sessions (room_id, game_id, state)
-		 VALUES ($1, $2, $3)
-		 RETURNING id, room_id, game_id, name, state, move_count,
-		           suspend_count, suspended_at, suspended_reason,
-		           started_at, finished_at, deleted_at`,
-		roomID, gameID, initialState,
+		`INSERT INTO game_sessions (room_id, game_id, state, turn_timeout_secs)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, room_id, game_id, state, move_count, suspend_count,
+                   suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
+                   started_at, finished_at, deleted_at`,
+		roomID, gameID, initialState, turnTimeoutSecs,
 	)
-	return scanSession(row)
+	return scanGameSession(row)
 }
 
 func (s *PGStore) GetGameSession(ctx context.Context, id uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, room_id, game_id, name, state, move_count,
-		        suspend_count, suspended_at, suspended_reason,
+		`SELECT id, room_id, game_id, state, move_count,
+		        suspend_count, suspended_at, suspended_reason,  turn_timeout_secs, last_move_at,
 		        started_at, finished_at, deleted_at
 		 FROM game_sessions WHERE id = $1 AND deleted_at IS NULL`,
 		id,
 	)
-	return scanSession(row)
+	return scanGameSession(row)
+}
+
+func scanGameSession(row scanner) (GameSession, error) {
+	var s GameSession
+	err := row.Scan(
+		&s.ID, &s.RoomID, &s.GameID, &s.State, &s.MoveCount, &s.SuspendCount,
+		&s.SuspendedAt, &s.SuspendedReason, &s.TurnTimeoutSecs, &s.LastMoveAt,
+		&s.StartedAt, &s.FinishedAt, &s.DeletedAt,
+	)
+	return s, err
+}
+
+func (s *PGStore) GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameResult, error) {
+	var r GameResult
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, session_id, game_id, winner_id, is_draw, ended_by, created_at
+         FROM game_results WHERE session_id = $1`,
+		sessionID,
+	).Scan(&r.ID, &r.SessionID, &r.GameID, &r.WinnerID, &r.IsDraw, &r.EndedBy, &r.CreatedAt)
+	if err != nil {
+		return GameResult{}, err
+	}
+	return r, nil
 }
 
 func (s *PGStore) GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, room_id, game_id, name, state, move_count,
-		        suspend_count, suspended_at, suspended_reason,
+		        suspend_count, suspended_at, suspended_reason,  turn_timeout_secs, last_move_at,
 		        started_at, finished_at, deleted_at
 		 FROM game_sessions
 		 WHERE room_id = $1 AND finished_at IS NULL AND deleted_at IS NULL
@@ -413,7 +436,7 @@ func (s *PGStore) ResumeSession(ctx context.Context, id uuid.UUID) error {
 func (s *PGStore) ListActiveSessions(ctx context.Context, playerID uuid.UUID) ([]GameSession, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT gs.id, gs.room_id, gs.game_id, gs.name, gs.state, gs.move_count,
-		        gs.suspend_count, gs.suspended_at, gs.suspended_reason,
+		        gs.suspend_count, gs.suspended_at, gs.suspended_reason, gs.turn_timeout_secs, gs.last_move_at,
 		        gs.started_at, gs.finished_at, gs.deleted_at
 		 FROM game_sessions gs
 		 JOIN room_players rp ON rp.room_id = gs.room_id
@@ -448,6 +471,38 @@ func (s *PGStore) SoftDeleteSession(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("SoftDeleteSession: %w", err)
 	}
 	return nil
+}
+
+// GetGameConfig loads the configuration for a game from game_configs.
+// Returns a default config if the game has no entry.
+func (s *PGStore) GetGameConfig(ctx context.Context, gameID string) (GameConfig, error) {
+	row := s.pool.QueryRow(ctx,
+		`SELECT game_id, default_timeout_secs, min_timeout_secs, max_timeout_secs, timeout_penalty
+		 FROM game_configs WHERE game_id = $1`,
+		gameID,
+	)
+	var c GameConfig
+	if err := row.Scan(&c.GameID, &c.DefaultTimeoutSecs, &c.MinTimeoutSecs, &c.MaxTimeoutSecs, &c.TimeoutPenalty); err != nil {
+		// No config found — return a safe default.
+		return GameConfig{
+			GameID:             gameID,
+			DefaultTimeoutSecs: 60,
+			MinTimeoutSecs:     30,
+			MaxTimeoutSecs:     600,
+			TimeoutPenalty:     PenaltyLoseTurn,
+		}, nil
+	}
+	return c, nil
+}
+
+// TouchLastMoveAt updates last_move_at to now for the given session.
+// Called after every move to reset the turn timer.
+func (s *PGStore) TouchLastMoveAt(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE game_sessions SET last_move_at = NOW() WHERE id = $1`,
+		sessionID,
+	)
+	return err
 }
 
 // --- Moves -------------------------------------------------------------------

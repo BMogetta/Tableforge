@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { rooms, type RoomView } from '../api'
-import { RoomSocket } from '../ws'
 import styles from './Room.module.css'
 
 type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
@@ -10,6 +9,8 @@ type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 export default function Room() {
   const { roomId } = useParams<{ roomId: string }>()
   const player = useAppStore((s) => s.player)!
+  const joinRoom = useAppStore((s) => s.joinRoom)
+  const socket = useAppStore((s) => s.socket)
   const navigate = useNavigate()
 
   const [view, setView] = useState<RoomView | null>(null)
@@ -21,10 +22,16 @@ export default function Room() {
     rooms.get(roomId!).then(setView).catch(() => setError('Room not found'))
   }, [roomId])
 
+  // Connect the global socket when entering the room.
+  // Do NOT close on unmount — Game.tsx reuses the same socket instance.
   useEffect(() => {
+    joinRoom(roomId!)
+  }, [roomId, joinRoom])
+
+  // Subscribe to socket events for real-time room state updates.
+  useEffect(() => {
+    if (!socket) return
     refresh()
-    const socket = new RoomSocket(roomId!)
-    socket.connect()
 
     const off = socket.on((event) => {
       if (event.type === 'ws_connected')    setSocketStatus('connected')
@@ -36,12 +43,15 @@ export default function Room() {
       }
       if (event.type === 'game_started') {
         const payload = event.payload as { session: { id: string } }
-        navigate(`/game/${payload.session.id}`)
+        if (!starting) {
+          // Non-owners navigate via WS event; the owner navigates via HTTP response.
+          navigate(`/game/${payload.session.id}`)
+        }
       }
     })
 
-    return () => { off(); socket.close() }
-  }, [roomId, refresh, navigate])
+    return () => off() // Unsubscribe only — do not close the socket here.
+  }, [socket, refresh, navigate, starting])
 
   async function handleStart() {
     setStarting(true)
@@ -73,7 +83,7 @@ export default function Room() {
         <header className={styles.header}>
           <div>
             <p className={styles.gameLabel}>{room.game_id}</p>
-            <h1 className={styles.code}>{room.code}</h1>
+            <h1 data-testid="room-code" className={styles.code}>{room.code}</h1>
           </div>
           <span className="badge badge-amber">Waiting</span>
         </header>
@@ -81,7 +91,9 @@ export default function Room() {
         <hr className="divider" />
 
         <section className={styles.playersSection}>
-          <p className="label">Players ({view.players.length}/{room.max_players})</p>
+          <p className="label" data-testid="player-count">
+            Players ({view.players.length}/{room.max_players})
+          </p>
           <div className={styles.playerList}>
             {view.players.map((p) => (
               <div key={p.id} className={styles.playerRow}>
@@ -121,6 +133,8 @@ export default function Room() {
         <div className={styles.actions}>
           {isOwner ? (
             <button
+              data-testid="start-game-btn"
+              data-can-start={canStart}
               className="btn btn-primary"
               onClick={handleStart}
               disabled={!canStart || starting}

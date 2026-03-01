@@ -28,6 +28,7 @@ export default function TicTacToeBoard({ state, currentPlayerId, localPlayerId, 
         return (
           <button
             key={i}
+            data-cell={i}
             className={`${styles.cell} ${!isEmpty ? styles.cellFilled : ''} ${isClickable ? styles.cellHoverable : ''}`}
             onClick={() => isClickable && onMove(i)}
             disabled={!isClickable}

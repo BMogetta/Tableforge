@@ -1,103 +1,116 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store'
 import { sessions, type GameSession } from '../api'
-import { RoomSocket } from '../ws'
+import { keys } from '../queryClient'
 import TicTacToeBoard, { type TicTacToeState } from '../components/TicTacToe'
 import styles from './Game.module.css'
 
-// GameData is the shape of the state returned by the backend for any game.
 interface GameData {
   current_player_id: string
   data: unknown
 }
 
-// MoveResult mirrors the backend response for POST /sessions/:id/move.
 interface MoveResult {
   session: GameSession
   state: GameData
   is_over: boolean
+  result?: { winner_id?: string; is_draw?: boolean }
 }
 
 export default function Game() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const player = useAppStore((s) => s.player)!
+  const socket = useAppStore((s) => s.socket)
   const navigate = useNavigate()
+  const qc = useQueryClient()
 
-  const [session, setSession] = useState<GameSession | null>(null)
-  const [gameData, setGameData] = useState<GameData | null>(null)
   const [isOver, setIsOver] = useState(false)
   const [winnerId, setWinnerId] = useState<string | null>(null)
   const [isDraw, setIsDraw] = useState(false)
-  const [error, setError] = useState('')
-  const [moving, setMoving] = useState(false)
 
-  const refresh = useCallback(async () => {
-    try {
-      const res = await sessions.get(sessionId!)
-      setSession(res.session)
-      setGameData(res.state)
-    } catch {
-      setError('Failed to load game')
-    }
-  }, [sessionId])
+  // Fetch session state on mount. Poll every 3s as a fallback for missed WS events.
+  // Polling stops once finished_at is set.
+  const { data, error: loadError } = useQuery({
+    queryKey: keys.session(sessionId!),
+    queryFn: () => sessions.get(sessionId!),
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const d = query.state.data as { session?: { finished_at?: string } } | undefined
+      console.log('refetchInterval check, finished_at:', d?.session?.finished_at)
+      return d?.session?.finished_at ? false : 3_000
+    },
+  })
 
+  const session = data?.session ?? null
+  const gameData = data?.state ?? null
+
+  // Sync game-over state from fetch (covers page refresh and missed WS events).
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    console.log('sync effect, finished_at:', data?.session?.finished_at)
+    if (!data?.session?.finished_at) return
+    setIsOver(true)
+    const result = (data as any).result as { winner_id?: string; is_draw?: boolean } | null
+    if (result?.winner_id) setWinnerId(result.winner_id)
+    else if (result?.is_draw) setIsDraw(true)
+  }, [data?.session?.finished_at, (data as any)?.result])
 
-  // Subscribe to WebSocket events once we know the room ID.
-  useEffect(() => {
-    if (!session?.room_id) return
-    const socket = new RoomSocket(session.room_id)
-    socket.connect()
+  // Subscribe to the global socket for real-time game events.
+  // The socket was opened in Room.tsx and survives the Room→Game navigation.
+  useEffect((): (() => void) | void => {
+    if (!socket) return
 
     const off = socket.on((event) => {
+      // On reconnect, refetch to catch any events missed during the gap.
+      if (event.type === 'ws_connected') {
+        qc.invalidateQueries({ queryKey: keys.session(sessionId!) })
+      }
       if (event.type === 'move_applied') {
         const payload = event.payload as MoveResult
-        setSession(payload.session)
-        setGameData(payload.state)
+        qc.setQueryData(keys.session(sessionId!), {
+          session: payload.session,
+          state: payload.state,
+          is_over: false,
+        })
       }
       if (event.type === 'game_over') {
-        const payload = event.payload as MoveResult & {
-          result?: { winner_id?: string; status?: string }
-        }
-        setSession(payload.session)
-        setGameData(payload.state)
+        const payload = event.payload as MoveResult
+        qc.setQueryData(keys.session(sessionId!), {
+          session: payload.session,
+          state: payload.state,
+          is_over: true,
+        })
         setIsOver(true)
-        if (payload.result?.winner_id) {
-          setWinnerId(payload.result.winner_id)
-        } else if (payload.result?.status === 'draw') {
-          setIsDraw(true)
-        }
+        if (payload.result?.winner_id) setWinnerId(payload.result.winner_id)
+        else if (payload.result?.is_draw) setIsDraw(true)
       }
     })
 
-    return () => { off(); socket.close() }
-  }, [session?.room_id])
+    return () => off // Unsubscribe only — do not close the socket here.
+  }, [socket, sessionId, qc])
 
-  async function handleMove(payload: Record<string, unknown>) {
-    if (!gameData || moving || isOver) return
-    if (gameData.current_player_id !== player.id) return
-
-    setMoving(true)
-    setError('')
-    try {
-      const res = await sessions.move(sessionId!, player.id, payload)
-      setSession(res.session)
-      setGameData(res.state)
+  const move = useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      sessions.move(sessionId!, player.id, payload),
+    onSuccess: (res) => {
+      qc.setQueryData(keys.session(sessionId!), {
+        session: res.session,
+        state: res.state,
+        is_over: res.is_over,
+      })
       if (res.is_over) setIsOver(true)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Invalid move')
-    } finally {
-      setMoving(false)
-    }
-  }
+    },
+  })
 
   if (!session || !gameData) {
     return (
       <div className={styles.centered}>
-        <p className="pulse" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Loading game...</p>
+        {loadError
+          ? <p style={{ color: 'var(--danger)', fontSize: 13 }}>Failed to load game.</p>
+          : <p className="pulse" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Loading game...</p>
+        }
       </div>
     )
   }
@@ -130,7 +143,10 @@ export default function Game() {
 
         <div className={styles.status}>
           <div className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver ? styles.dotOver : ''}`} />
-          <span className={`${styles.statusText} ${winnerId === player.id ? styles.win : ''} ${winnerId && winnerId !== player.id ? styles.lose : ''}`}>
+          <span
+            data-testid="game-status"
+            className={`${styles.statusText} ${winnerId === player.id ? styles.win : ''} ${winnerId && winnerId !== player.id ? styles.lose : ''}`}
+          >
             {statusText}
           </span>
         </div>
@@ -140,13 +156,17 @@ export default function Game() {
             gameId={session.game_id}
             gameData={gameData}
             localPlayerId={player.id}
-            onMove={handleMove}
-            disabled={!isMyTurn || moving}
+            onMove={(payload) => move.mutate(payload)}
+            disabled={!isMyTurn || move.isPending}
             isOver={isOver}
           />
         </div>
 
-        {error && <p className={styles.error}>{error}</p>}
+        {move.error && (
+          <p className={styles.error}>
+            {move.error instanceof Error ? move.error.message : 'Invalid move'}
+          </p>
+        )}
 
         {isOver && (
           <div className={styles.gameOver}>
@@ -160,8 +180,6 @@ export default function Game() {
   )
 }
 
-// GameRenderer routes to the correct board component based on game_id.
-// Add new games here as they are implemented.
 function GameRenderer({
   gameId,
   gameData,

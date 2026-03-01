@@ -58,9 +58,9 @@ export class RoomSocket {
     }
   }
 
-  on(handler: Handler) {
+  on(handler: Handler): () => void {
     this.handlers.add(handler)
-    return () => this.handlers.delete(handler)
+    return () => { this.handlers.delete(handler) }
   }
 
   close() {

@@ -66,6 +66,9 @@ func main() {
 	runtimeService := runtime.New(st, reg)
 	hub := ws.NewHubWithRedis(rdb)
 
+	turnTimer := runtime.NewTurnTimer(runtimeService, hub, st)
+	runtimeService.SetTimer(turnTimer)
+
 	// Rate limiter: 100 req/min per IP
 	limiter := ratelimit.New(rdb, 100, time.Minute)
 

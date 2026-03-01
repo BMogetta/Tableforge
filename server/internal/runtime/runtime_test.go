@@ -274,9 +274,9 @@ func TestGetState(t *testing.T) {
 
 	gs, _ := seedSession(t, s, game)
 
-	state, err := svc.GetState(context.Background(), gs.ID)
+	state, err := svc.GetSessionAndState(context.Background(), gs.ID)
 	if err != nil {
-		t.Fatalf("GetState: %v", err)
+		t.Fatalf("GetSessionAndState: %v", err)
 	}
 
 	if state.CurrentPlayerID == "" {

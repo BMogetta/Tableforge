@@ -1,64 +1,69 @@
-import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store'
 import { rooms, auth, leaderboard, gameRegistry, type RoomView, type LeaderboardEntry, type GameInfo } from '../api'
+import { keys } from '../queryClient'
+import { useState } from 'react'
 import styles from './Lobby.module.css'
 
 export default function Lobby() {
   const player = useAppStore((s) => s.player)!
   const setPlayer = useAppStore((s) => s.setPlayer)
   const navigate = useNavigate()
+  const qc = useQueryClient()
 
-  const [roomList, setRoomList] = useState<RoomView[]>([])
-  const [board, setBoard] = useState<LeaderboardEntry[]>([])
-  const [gameList, setGameList] = useState<GameInfo[]>([])
-  const [selectedGame, setSelectedGame] = useState<string>('')
   const [joinCode, setJoinCode] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [creating, setCreating] = useState(false)
+  const [selectedGame, setSelectedGame] = useState<string>('')
 
-  useEffect(() => {
-    Promise.all([rooms.list(), leaderboard.get(), gameRegistry.list()])
-      .then(([r, l, g]) => {
-        setRoomList(r ?? [])
-        setBoard(l ?? [])
-        setGameList(g ?? [])
-        if (g && g.length > 0) setSelectedGame(g[0].id)
-      })
-      .catch(() => setError('Failed to load lobby'))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data: roomList = [], isLoading: roomsLoading } = useQuery({
+    queryKey: keys.rooms(),
+    queryFn: rooms.list,
+    refetchInterval: 10_000, // poll every 10s so open rooms stay current
+  })
 
-  async function handleCreate() {
-    if (!selectedGame) return
-    setCreating(true)
-    setError('')
-    try {
-      const view = await rooms.create(selectedGame, player.id)
+  const { data: board = [] } = useQuery({
+    queryKey: keys.leaderboard(),
+    queryFn: () => leaderboard.get(),
+  })
+
+  const { data: gameList = [] } = useQuery({
+    queryKey: keys.games(),
+    queryFn: gameRegistry.list,
+    select: (data) => data,
+  })
+
+  // Set selectedGame once games load.
+  const { data: games = [] } = useQuery({
+    queryKey: keys.games(),
+    queryFn: gameRegistry.list,
+    enabled: !selectedGame,
+    select: (data) => data,
+  })
+
+  // Use the first game as default if none selected.
+  const effectiveGame = selectedGame || games[0]?.id || gameList[0]?.id || ''
+
+  const createRoom = useMutation({
+    mutationFn: () => rooms.create(effectiveGame, player.id),
+    onSuccess: (view) => {
+      qc.invalidateQueries({ queryKey: keys.rooms() })
       navigate(`/rooms/${view.room.id}`)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create room')
-    } finally {
-      setCreating(false)
-    }
-  }
+    },
+  })
 
-  async function handleJoin() {
-    if (!joinCode.trim()) return
-    setError('')
-    try {
-      const view = await rooms.join(joinCode.trim().toUpperCase(), player.id)
+  const joinRoom = useMutation({
+    mutationFn: () => rooms.join(joinCode.trim().toUpperCase(), player.id),
+    onSuccess: (view) => {
       navigate(`/rooms/${view.room.id}`)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Room not found')
-    }
-  }
+    },
+  })
 
   async function handleLogout() {
     await auth.logout()
     setPlayer(null)
   }
+
+  const error = createRoom.error?.message || joinRoom.error?.message || ''
 
   return (
     <div className={`${styles.root} page-enter`}>
@@ -85,7 +90,6 @@ export default function Lobby() {
 
       <main className={styles.main}>
         <div className={styles.left}>
-          {/* Actions */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>New Game</h2>
             <div className={styles.actionGrid}>
@@ -93,10 +97,10 @@ export default function Lobby() {
                 <div>
                   <label className="label">Game</label>
                   <div className={styles.gameSelector}>
-                    {gameList.map(g => (
+                    {gameList.map((g: GameInfo) => (
                       <button
                         key={g.id}
-                        className={`${styles.gameOption} ${selectedGame === g.id ? styles.gameOptionActive : ''}`}
+                        className={`${styles.gameOption} ${effectiveGame === g.id ? styles.gameOptionActive : ''}`}
                         onClick={() => setSelectedGame(g.id)}
                       >
                         {g.name}
@@ -106,38 +110,50 @@ export default function Lobby() {
                   </div>
                 </div>
               )}
-              <button className="btn btn-primary" onClick={handleCreate} disabled={creating || !selectedGame}>
-                {creating ? 'Creating...' : '+ Create Room'}
+              <button
+                data-testid="create-room-btn"
+                className="btn btn-primary"
+                onClick={() => createRoom.mutate()}
+                disabled={createRoom.isPending || !effectiveGame}
+              >
+                {createRoom.isPending ? 'Creating...' : '+ Create Room'}
               </button>
               <div className={styles.joinRow}>
                 <input
+                  data-testid="join-code-input"
                   className="input"
                   placeholder="Room code"
                   value={joinCode}
                   onChange={e => setJoinCode(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleJoin()}
+                  onKeyDown={e => e.key === 'Enter' && joinRoom.mutate()}
                   maxLength={6}
                   style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
                 />
-                <button className="btn btn-ghost" onClick={handleJoin}>Join</button>
+                <button
+                  data-testid="join-btn"
+                  className="btn btn-ghost"
+                  onClick={() => joinRoom.mutate()}
+                  disabled={joinRoom.isPending}
+                >
+                  Join
+                </button>
               </div>
             </div>
             {error && <p className={styles.error}>{error}</p>}
           </section>
 
-          {/* Waiting rooms */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>
               Open Rooms
-              <span className={styles.count}>{roomList.length ?? 0}</span>
+              <span className={styles.count}>{roomList.length}</span>
             </h2>
-            {loading ? (
+            {roomsLoading ? (
               <p className={styles.empty}>Loading...</p>
             ) : roomList.length === 0 ? (
               <p className={styles.empty}>No open rooms. Create one to get started.</p>
             ) : (
               <div className={styles.roomList}>
-                {roomList.map(view => (
+                {roomList.map((view: RoomView) => (
                   <RoomCard
                     key={view.room.id}
                     view={view}
@@ -196,7 +212,7 @@ function LeaderboardTable({ entries }: { entries: LeaderboardEntry[] }) {
         </tr>
       </thead>
       <tbody>
-        {entries.map((e, i) => (
+        {entries.map((e: LeaderboardEntry, i: number) => (
           <tr key={e.player_id}>
             <td className={styles.rank}>{i + 1}</td>
             <td>

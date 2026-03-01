@@ -1,5 +1,3 @@
-// Package lobby handles room lifecycle: creating, joining, and starting games.
-// It sits between the HTTP/WebSocket layer and the store, enforcing business rules.
 package lobby
 
 import (
@@ -49,7 +47,7 @@ func New(s store.Store, registry GameRegistry) *Service {
 }
 
 // CreateRoom creates a new room and adds the owner as the first player.
-func (svc *Service) CreateRoom(ctx context.Context, gameID string, ownerID uuid.UUID) (RoomView, error) {
+func (svc *Service) CreateRoom(ctx context.Context, gameID string, ownerID uuid.UUID, turnTimeoutSecs *int) (RoomView, error) {
 	game, err := svc.registry.Get(gameID)
 	if err != nil {
 		return RoomView{}, ErrGameNotFound
@@ -61,10 +59,11 @@ func (svc *Service) CreateRoom(ctx context.Context, gameID string, ownerID uuid.
 	}
 
 	room, err := svc.store.CreateRoom(ctx, store.CreateRoomParams{
-		Code:       code,
-		GameID:     gameID,
-		OwnerID:    ownerID,
-		MaxPlayers: game.MaxPlayers(),
+		Code:            code,
+		GameID:          gameID,
+		OwnerID:         ownerID,
+		MaxPlayers:      game.MaxPlayers(),
+		TurnTimeoutSecs: turnTimeoutSecs,
 	})
 	if err != nil {
 		return RoomView{}, fmt.Errorf("CreateRoom: %w", err)
@@ -127,6 +126,7 @@ func (svc *Service) LeaveRoom(ctx context.Context, roomID, playerID uuid.UUID) e
 
 // StartGame transitions the room to in_progress and creates a game session.
 // Only the room owner can start, and the minimum player count must be met.
+// The effective turn timeout is resolved from: request value → game default → no timeout.
 func (svc *Service) StartGame(ctx context.Context, roomID, requesterID uuid.UUID) (store.GameSession, error) {
 	room, err := svc.store.GetRoom(ctx, roomID)
 	if err != nil {
@@ -155,6 +155,15 @@ func (svc *Service) StartGame(ctx context.Context, roomID, requesterID uuid.UUID
 		return store.GameSession{}, ErrNotEnoughPlayer
 	}
 
+	// Resolve effective turn timeout:
+	// 1. Use value set on room (chosen when room was created).
+	// 2. Clamp it to the game's configured min/max.
+	// 3. If room has no timeout, use the game's default.
+	effectiveTimeout, err := svc.resolveTimeout(ctx, room)
+	if err != nil {
+		return store.GameSession{}, fmt.Errorf("StartGame: resolve timeout: %w", err)
+	}
+
 	enginePlayers := make([]engine.Player, len(roomPlayers))
 	for _, rp := range roomPlayers {
 		p, err := svc.store.GetPlayer(ctx, rp.PlayerID)
@@ -177,7 +186,7 @@ func (svc *Service) StartGame(ctx context.Context, roomID, requesterID uuid.UUID
 		return store.GameSession{}, fmt.Errorf("StartGame: marshal state: %w", err)
 	}
 
-	session, err := svc.store.CreateGameSession(ctx, roomID, room.GameID, stateJSON)
+	session, err := svc.store.CreateGameSession(ctx, roomID, room.GameID, stateJSON, effectiveTimeout)
 	if err != nil {
 		return store.GameSession{}, fmt.Errorf("StartGame: create session: %w", err)
 	}
@@ -187,6 +196,25 @@ func (svc *Service) StartGame(ctx context.Context, roomID, requesterID uuid.UUID
 	}
 
 	return session, nil
+}
+
+// resolveTimeout returns the effective turn timeout for a session.
+// If the room has a timeout set, it is clamped to the game's min/max.
+// If the room has no timeout, the game's default is used.
+func (svc *Service) resolveTimeout(ctx context.Context, room store.Room) (*int, error) {
+	cfg, err := svc.store.GetGameConfig(ctx, room.GameID)
+	if err != nil {
+		return nil, err
+	}
+
+	var secs int
+	if room.TurnTimeoutSecs != nil {
+		secs = clamp(*room.TurnTimeoutSecs, cfg.MinTimeoutSecs, cfg.MaxTimeoutSecs)
+	} else {
+		secs = cfg.DefaultTimeoutSecs
+	}
+
+	return &secs, nil
 }
 
 // GetRoom returns the full view of a room by ID.
@@ -239,4 +267,14 @@ func generateRoomCode() (string, error) {
 		b[i] = roomCodeChars[n.Int64()]
 	}
 	return string(b), nil
+}
+
+func clamp(val, min, max int) int {
+	if val < min {
+		return min
+	}
+	if val > max {
+		return max
+	}
+	return val
 }

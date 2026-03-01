@@ -76,6 +76,10 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 			r.Get("/github/callback", authHandler.HandleGitHubCallback)
 			r.Post("/logout", authHandler.HandleLogout)
 			r.With(authHandler.Middleware).Get("/me", authHandler.HandleMe)
+
+			// Test-only: bypasses OAuth for Playwright tests.
+			// Returns 404 unless TEST_MODE=true.
+			r.Get("/test-login", authHandler.HandleTestLogin)
 		})
 	}
 
@@ -93,9 +97,9 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 		r.Post("/rooms", handleCreateRoom(lobbyService))
 		r.Get("/rooms", handleListRooms(lobbyService))
 		r.Get("/rooms/{roomID}", handleGetRoom(lobbyService))
-		r.Post("/rooms/join", handleJoinRoom(lobbyService))
-		r.Post("/rooms/{roomID}/leave", handleLeaveRoom(lobbyService))
-		r.Post("/rooms/{roomID}/start", handleStartGame(lobbyService))
+		r.Post("/rooms/join", handleJoinRoom(lobbyService, hub))
+		r.Post("/rooms/{roomID}/leave", handleLeaveRoom(lobbyService, hub))
+		r.Post("/rooms/{roomID}/start", handleStartGame(lobbyService, rt, hub))
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
@@ -378,8 +382,9 @@ func handleGetPlayerStats(st store.Store) http.HandlerFunc {
 // --- Rooms -------------------------------------------------------------------
 
 type createRoomRequest struct {
-	GameID   string `json:"game_id"`
-	PlayerID string `json:"player_id"`
+	GameID          string `json:"game_id"`
+	PlayerID        string `json:"player_id"`
+	TurnTimeoutSecs *int   `json:"turn_timeout_secs,omitempty"`
 }
 
 func handleCreateRoom(svc *lobby.Service) http.HandlerFunc {
@@ -389,16 +394,19 @@ func handleCreateRoom(svc *lobby.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+
 		ownerID, err := uuid.Parse(req.PlayerID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid player_id")
 			return
 		}
-		view, err := svc.CreateRoom(r.Context(), req.GameID, ownerID)
+
+		view, err := svc.CreateRoom(r.Context(), req.GameID, ownerID, req.TurnTimeoutSecs)
 		if err != nil {
 			writeLobbyError(w, err)
 			return
 		}
+
 		writeJSON(w, http.StatusCreated, view)
 	}
 }
@@ -435,7 +443,7 @@ type joinRoomRequest struct {
 	PlayerID string `json:"player_id"`
 }
 
-func handleJoinRoom(svc *lobby.Service) http.HandlerFunc {
+func handleJoinRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req joinRoomRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -452,6 +460,12 @@ func handleJoinRoom(svc *lobby.Service) http.HandlerFunc {
 			writeLobbyError(w, err)
 			return
 		}
+
+		hub.Broadcast(view.Room.ID, ws.Event{
+			Type:    ws.EventPlayerJoined,
+			Payload: view,
+		})
+
 		writeJSON(w, http.StatusOK, view)
 	}
 }
@@ -460,7 +474,7 @@ type leaveRoomRequest struct {
 	PlayerID string `json:"player_id"`
 }
 
-func handleLeaveRoom(svc *lobby.Service) http.HandlerFunc {
+func handleLeaveRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
 		if err != nil {
@@ -481,6 +495,12 @@ func handleLeaveRoom(svc *lobby.Service) http.HandlerFunc {
 			writeLobbyError(w, err)
 			return
 		}
+
+		hub.Broadcast(roomID, ws.Event{
+			Type:    ws.EventPlayerLeft,
+			Payload: map[string]string{"player_id": playerID.String()},
+		})
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -489,28 +509,40 @@ type startGameRequest struct {
 	PlayerID string `json:"player_id"`
 }
 
-func handleStartGame(svc *lobby.Service) http.HandlerFunc {
+func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid room id")
 			return
 		}
+
 		var req startGameRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+
 		playerID, err := uuid.Parse(req.PlayerID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid player_id")
 			return
 		}
+
 		session, err := svc.StartGame(r.Context(), roomID, playerID)
 		if err != nil {
 			writeLobbyError(w, err)
 			return
 		}
+
+		// Schedule the initial turn timer for the new session.
+		rt.StartSession(session)
+
+		hub.Broadcast(roomID, ws.Event{
+			Type:    ws.EventGameStarted,
+			Payload: map[string]any{"session": session},
+		})
+
 		writeJSON(w, http.StatusOK, session)
 		activeSessions.Inc()
 	}
@@ -571,12 +603,16 @@ func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid session id")
 			return
 		}
-		state, err := rt.GetState(r.Context(), sessionID)
+		session, state, result, err := rt.GetSessionAndState(r.Context(), sessionID)
 		if err != nil {
 			writeRuntimeError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, state)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"session": session,
+			"state":   state,
+			"result":  result,
+		})
 	}
 }
 

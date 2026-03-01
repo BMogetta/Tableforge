@@ -71,6 +71,8 @@ type GameSession struct {
 	SuspendCount    int        `json:"suspend_count"`
 	SuspendedAt     *time.Time `json:"suspended_at,omitempty"`
 	SuspendedReason *string    `json:"suspended_reason,omitempty"`
+	TurnTimeoutSecs *int       `json:"turn_timeout_secs,omitempty"`
+	LastMoveAt      time.Time  `json:"last_move_at"`
 	StartedAt       time.Time  `json:"started_at"`
 	FinishedAt      *time.Time `json:"finished_at,omitempty"`
 	DeletedAt       *time.Time `json:"deleted_at,omitempty"`
@@ -83,6 +85,23 @@ type Move struct {
 	StateAfter []byte    `json:"state_after,omitempty"`
 	MoveNumber int       `json:"move_number"`
 	AppliedAt  time.Time `json:"applied_at"`
+}
+
+// TimeoutPenalty defines what happens when a player's turn expires.
+type TimeoutPenalty string
+
+const (
+	PenaltyLoseTurn TimeoutPenalty = "lose_turn"
+	PenaltyLoseGame TimeoutPenalty = "lose_game"
+)
+
+// GameConfig holds the configurable defaults for a specific game.
+type GameConfig struct {
+	GameID             string         `json:"game_id"`
+	DefaultTimeoutSecs int            `json:"default_timeout_secs"`
+	MinTimeoutSecs     int            `json:"min_timeout_secs"`
+	MaxTimeoutSecs     int            `json:"max_timeout_secs"`
+	TimeoutPenalty     TimeoutPenalty `json:"timeout_penalty"`
 }
 
 type OAuthIdentity struct {
@@ -169,8 +188,9 @@ type Store interface {
 	ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]RoomPlayer, error)
 
 	// Game sessions
-	CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte) (GameSession, error)
+	CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int) (GameSession, error)
 	GetGameSession(ctx context.Context, id uuid.UUID) (GameSession, error)
+	GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameResult, error)
 	GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) (GameSession, error)
 	UpdateSessionState(ctx context.Context, id uuid.UUID, state []byte) error
 	FinishSession(ctx context.Context, id uuid.UUID) error
@@ -178,6 +198,8 @@ type Store interface {
 	ResumeSession(ctx context.Context, id uuid.UUID) error
 	ListActiveSessions(ctx context.Context, playerID uuid.UUID) ([]GameSession, error)
 	SoftDeleteSession(ctx context.Context, id uuid.UUID) error
+	GetGameConfig(ctx context.Context, gameID string) (GameConfig, error)
+	TouchLastMoveAt(ctx context.Context, sessionID uuid.UUID) error
 
 	// Moves
 	RecordMove(ctx context.Context, params RecordMoveParams) (Move, error)

@@ -45,6 +45,12 @@ export interface GameSession {
   finished_at?: string
 }
 
+export interface GameResult {
+  winner_id?: string
+  status?: string
+  ended_by?: string
+}
+
 export interface Move {
   id: string
   session_id: string
@@ -156,10 +162,14 @@ export const players = {
 export const rooms = {
   list: () => request<RoomView[]>('/rooms'),
   get: (id: string) => request<RoomView>(`/rooms/${id}`),
-  create: (gameId: string, playerId: string) =>
+  create: (gameId: string, playerId: string, turnTimeoutSecs?: number) =>
     request<RoomView>('/rooms', {
       method: 'POST',
-      body: JSON.stringify({ game_id: gameId, player_id: playerId }),
+      body: JSON.stringify({
+        game_id: gameId,
+        player_id: playerId,
+        turn_timeout_secs: turnTimeoutSecs,
+      }),
     }),
   join: (code: string, playerId: string) =>
     request<RoomView>('/rooms/join', {
@@ -182,9 +192,11 @@ export const rooms = {
 
 export const sessions = {
   get: (id: string) =>
-    request<{ session: GameSession; state: { current_player_id: string; data: unknown } }>(
-      `/sessions/${id}`
-    ),
+    request<{ 
+      session: GameSession
+      state: { current_player_id: string; data: unknown }
+      result?: GameResult
+    }>(`/sessions/${id}`),
   history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
   move: (sessionId: string, playerId: string, payload: unknown) =>
     request<{
@@ -218,6 +230,19 @@ export interface GameInfo {
 
 export const gameRegistry = {
   list: () => request<GameInfo[]>('/games'),
+}
+
+export interface GameConfig {
+  game_id: string
+  default_timeout_secs: number
+  min_timeout_secs: number
+  max_timeout_secs: number
+  timeout_penalty: 'lose_turn' | 'lose_game'
+}
+
+export const gameConfig = {
+  get: (gameId: string) =>
+    request<GameConfig>(`/games/${gameId}/config`),
 }
 
 // --- Admin -------------------------------------------------------------------

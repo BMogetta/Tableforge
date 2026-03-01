@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/engine"
 	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/ws"
 )
 
 var (
@@ -33,6 +34,7 @@ type MoveResult struct {
 type Service struct {
 	store    store.Store
 	registry engine.Registry
+	timer    *TurnTimer
 }
 
 // New creates a new runtime Service.
@@ -40,9 +42,23 @@ func New(st store.Store, registry engine.Registry) *Service {
 	return &Service{store: st, registry: registry}
 }
 
+// SetTimer attaches a TurnTimer to the service.
+// Call this after constructing both Service and TurnTimer to avoid a circular dep.
+func (svc *Service) SetTimer(t *TurnTimer) {
+	svc.timer = t
+}
+
+// StartSession schedules the initial turn timer for a session.
+// Call this from the lobby after creating the session.
+func (svc *Service) StartSession(session store.GameSession) {
+	if svc.timer != nil {
+		svc.timer.Schedule(session)
+	}
+}
+
 // ApplyMove validates and applies a player move to the given session.
 func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID, payload map[string]any) (MoveResult, error) {
-	// Load session
+	// Load session.
 	session, err := svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
 		return MoveResult{}, ErrSessionNotFound
@@ -54,37 +70,37 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, ErrSuspended
 	}
 
-	// Load game plugin
+	// Load game plugin.
 	game, err := svc.registry.Get(session.GameID)
 	if err != nil {
 		return MoveResult{}, ErrGameNotFound
 	}
 
-	// Deserialize current state
+	// Deserialize current state.
 	var state engine.GameState
 	if err := json.Unmarshal(session.State, &state); err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: deserialize state: %w", err)
 	}
 
-	// Build move
+	// Build move.
 	move := engine.Move{
 		PlayerID:  engine.PlayerID(playerID.String()),
 		Payload:   payload,
 		Timestamp: time.Now(),
 	}
 
-	// Validate
+	// Validate.
 	if err := game.ValidateMove(state, move); err != nil {
 		return MoveResult{}, fmt.Errorf("%w: %s", ErrInvalidMove, err.Error())
 	}
 
-	// Apply
+	// Apply.
 	newState, err := game.ApplyMove(state, move)
 	if err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: apply: %w", err)
 	}
 
-	// Marshal payload and new state
+	// Marshal payload and new state.
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: marshal payload: %w", err)
@@ -94,7 +110,7 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, fmt.Errorf("ApplyMove: marshal state: %w", err)
 	}
 
-	// Persist move with state snapshot
+	// Persist move with state snapshot.
 	moveNumber := session.MoveCount + 1
 	if _, err := svc.store.RecordMove(ctx, store.RecordMoveParams{
 		SessionID:  sessionID,
@@ -106,30 +122,36 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, fmt.Errorf("ApplyMove: record move: %w", err)
 	}
 
-	// Persist new state
+	// Persist new state and reset turn clock.
 	if err := svc.store.UpdateSessionState(ctx, sessionID, stateJSON); err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: update state: %w", err)
 	}
+	if err := svc.store.TouchLastMoveAt(ctx, sessionID); err != nil {
+		return MoveResult{}, fmt.Errorf("ApplyMove: touch last_move_at: %w", err)
+	}
 
-	// Reload session to get updated move_count
+	// Reload session to get updated move_count.
 	session, err = svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: reload session: %w", err)
 	}
 
-	// Check if game is over
+	// Check if game is over.
 	over, result := game.IsOver(newState)
 	if over {
+		// Cancel the turn timer before finishing.
+		if svc.timer != nil {
+			svc.timer.Cancel(sessionID)
+		}
+
 		if err := svc.store.FinishSession(ctx, sessionID); err != nil {
 			return MoveResult{}, fmt.Errorf("ApplyMove: finish session: %w", err)
 		}
 		session.FinishedAt = timePtr(time.Now())
 
-		// Record result and per-player outcomes
 		players, _ := svc.store.ListRoomPlayers(ctx, session.RoomID)
 		resultParams := buildGameResultParams(session, result, players)
 		if _, err := svc.store.CreateGameResult(ctx, resultParams); err != nil {
-			// Non-fatal: log but don't fail the move
 			fmt.Printf("ApplyMove: record game result: %v\n", err)
 		}
 
@@ -141,6 +163,11 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		}, nil
 	}
 
+	// Reschedule the turn timer for the next player.
+	if svc.timer != nil {
+		svc.timer.Schedule(session)
+	}
+
 	return MoveResult{
 		Session: session,
 		State:   newState,
@@ -148,19 +175,28 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 	}, nil
 }
 
-// GetState returns the current deserialized state of a session.
-func (svc *Service) GetState(ctx context.Context, sessionID uuid.UUID) (engine.GameState, error) {
+// GetSessionAndState returns the session, its deserialized state, and optionally
+// the game result if the session is finished.
+func (svc *Service) GetSessionAndState(ctx context.Context, sessionID uuid.UUID) (store.GameSession, engine.GameState, *store.GameResult, error) {
 	session, err := svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
-		return engine.GameState{}, ErrSessionNotFound
+		return store.GameSession{}, engine.GameState{}, nil, ErrSessionNotFound
 	}
 
 	var state engine.GameState
 	if err := json.Unmarshal(session.State, &state); err != nil {
-		return engine.GameState{}, fmt.Errorf("GetState: %w", err)
+		return store.GameSession{}, engine.GameState{}, nil, fmt.Errorf("GetSessionAndState: %w", err)
 	}
 
-	return state, nil
+	var result *store.GameResult
+	if session.FinishedAt != nil {
+		r, err := svc.store.GetGameResult(ctx, sessionID)
+		if err == nil {
+			result = &r
+		}
+	}
+
+	return session, state, result, nil
 }
 
 // GetStateAt returns the game state after a specific move number.
@@ -225,3 +261,6 @@ func buildGameResultParams(session store.GameSession, result engine.Result, play
 }
 
 func timePtr(t time.Time) *time.Time { return &t }
+
+// Ensure ws import is used — hub is accessed via TurnTimer only.
+var _ = ws.EventGameOver
