@@ -9,6 +9,9 @@ interface AppState {
   socket: RoomSocket | null
   joinRoom: (roomId: string) => void
   leaveRoom: () => void
+
+  pendingRematch: string | null
+  setPendingRematch: (sessionId: string | null) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -27,4 +30,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().socket?.close()
     set({ socket: null })
   },
+  pendingRematch: null,
+  setPendingRematch: (sessionId) => set({ pendingRematch: sessionId }),
 }))

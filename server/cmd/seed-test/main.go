@@ -43,6 +43,9 @@ func main() {
 		log.Fatalf("create player 2: %v", err)
 	}
 
+	// TODO add more users to check other integrations and roles
+	// We nee to test spectators, managers, admin, friends, chats, etc.
+
 	// Also add both emails to allowed_emails so they can log in via test-login.
 	for _, email := range []string{"test1@tableforge.test", "test2@tableforge.test"} {
 		if _, err := st.AddAllowedEmail(ctx, store.AddAllowedEmailParams{

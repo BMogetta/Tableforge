@@ -4,6 +4,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -102,6 +103,8 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 		r.Post("/rooms/{roomID}/start", handleStartGame(lobbyService, rt, hub))
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
+		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub))
+		r.Post("/sessions/{sessionID}/rematch", handleRematch(rt, hub))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
 		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub))
 
@@ -616,6 +619,98 @@ func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 	}
 }
 
+type surrenderRequest struct {
+	PlayerID string `json:"player_id"`
+}
+
+func handleSurrender(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+		var req surrenderRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		playerID, err := uuid.Parse(req.PlayerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		result, err := rt.Surrender(r.Context(), sessionID, playerID)
+		if err != nil {
+			writeRuntimeError(w, err)
+			return
+		}
+
+		hub.Broadcast(result.Session.RoomID, ws.Event{
+			Type:    ws.EventGameOver,
+			Payload: result,
+		})
+		activeSessions.Dec()
+
+		writeJSON(w, http.StatusOK, result)
+	}
+}
+
+type rematchRequest struct {
+	PlayerID string `json:"player_id"`
+}
+
+func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+		var req rematchRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		playerID, err := uuid.Parse(req.PlayerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		votes, totalPlayers, roomID, newSession, err := rt.VoteRematch(r.Context(), sessionID, playerID)
+		if err != nil {
+			writeRuntimeError(w, err)
+			return
+		}
+
+		if newSession != nil {
+			log.Printf("broadcasting rematch_started to room %s, new session %s", roomID, newSession.ID)
+			hub.Broadcast(roomID, ws.Event{
+				Type:    ws.EventRematchStarted,
+				Payload: map[string]any{"session": newSession},
+			})
+			activeSessions.Inc()
+		} else {
+			hub.Broadcast(roomID, ws.Event{
+				Type: ws.EventRematchVote,
+				Payload: map[string]any{
+					"player_id":     playerID.String(),
+					"votes":         len(votes),
+					"total_players": totalPlayers,
+				},
+			})
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"votes":         len(votes),
+			"total_players": totalPlayers,
+			"session":       newSession,
+		})
+	}
+}
+
 // GET /api/v1/sessions/{sessionID}/history
 func handleGetSessionHistory(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -682,6 +777,10 @@ func writeLobbyError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, lobby.ErrNotEnoughPlayer):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, runtime.ErrNotParticipant):
+		writeError(w, http.StatusForbidden, err.Error())
+	case errors.Is(err, runtime.ErrNotFinished):
+		writeError(w, http.StatusConflict, err.Error())
 	default:
 		writeError(w, http.StatusInternalServerError, "internal error")
 	}

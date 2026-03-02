@@ -11,6 +11,7 @@ export default function Room() {
   const player = useAppStore((s) => s.player)!
   const joinRoom = useAppStore((s) => s.joinRoom)
   const socket = useAppStore((s) => s.socket)
+  const leaveRoom = useAppStore((s) => s.leaveRoom)
   const navigate = useNavigate()
 
   const [view, setView] = useState<RoomView | null>(null)
@@ -66,6 +67,7 @@ export default function Room() {
 
   async function handleLeave() {
     await rooms.leave(roomId!, player.id).catch(() => {})
+    leaveRoom()
     navigate('/')
   }
 

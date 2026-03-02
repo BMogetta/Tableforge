@@ -197,6 +197,25 @@ export const sessions = {
       state: { current_player_id: string; data: unknown }
       result?: GameResult
     }>(`/sessions/${id}`),
+  surrender: (sessionId: string, playerId: string) =>
+    request<{
+      session: GameSession
+      state: { current_player_id: string; data: unknown }
+      is_over: boolean
+      result?: GameResult
+    }>(`/sessions/${sessionId}/surrender`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+  rematch: (sessionId: string, playerId: string) =>
+    request<{
+      votes: number
+      total_players: number
+      session?: GameSession
+    }>(`/sessions/${sessionId}/rematch`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
   history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
   move: (sessionId: string, playerId: string, payload: unknown) =>
     request<{

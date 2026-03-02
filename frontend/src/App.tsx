@@ -1,5 +1,5 @@
 import { useEffect, useState, Component, type ReactNode } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAppStore } from './store'
 import { auth } from './api'
 import Login from './pages/Login'
@@ -7,6 +7,8 @@ import Lobby from './pages/Lobby'
 import Room from './pages/Room'
 import Game from './pages/Game'
 import Admin from './pages/Admin'
+import { lazy } from 'react'
+const TestError = lazy(() => import('./pages/TestError'))
 
 // --- Error boundary ----------------------------------------------------------
 
@@ -102,6 +104,23 @@ function RequireRole({ role, children }: { role: 'manager' | 'owner'; children: 
   return <>{children}</>
 }
 
+// --- Navigation helper ----------------------------------------------------------
+
+function RematchNavigator() {
+  const pendingRematch = useAppStore((s) => s.pendingRematch)
+  const setPendingRematch = useAppStore((s) => s.setPendingRematch)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (pendingRematch) {
+      setPendingRematch(null)
+      navigate(`/game/${pendingRematch}`)
+    }
+  }, [pendingRematch, navigate, setPendingRematch])
+
+  return null
+}
+
 // --- App ---------------------------------------------------------------------
 
 export default function App() {
@@ -118,8 +137,9 @@ export default function App() {
   if (loading) return <Splash />
 
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ErrorBoundary>
+        <RematchNavigator />
         <Routes>
           <Route path="/login" element={player ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/" element={<RequireAuth><Lobby /></RequireAuth>} />
@@ -135,10 +155,13 @@ export default function App() {
               </RequireAuth>
             }
           />
+          {import.meta.env.VITE_TEST_MODE === 'true' && (
+            <Route path="/test/error" element={<TestError />} />
+          )}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </BrowserRouter>
   )
 }
 

@@ -97,3 +97,23 @@ func TestHandleLogout(t *testing.T) {
 		t.Error("expected tf_session cookie in response")
 	}
 }
+
+func TestSanitizeUsername(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"Alice", "alice"},
+		{"alice-123", "alice_123"},
+		{"ALICE__", "alice__"},
+		{"a!b@c#", "abc"},
+		{"User-Name-Test", "user_name_test"},
+	}
+
+	for _, tt := range tests {
+		got := auth.SanitizeUsername(tt.in)
+		if got != tt.want {
+			t.Errorf("sanitizeUsername(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}

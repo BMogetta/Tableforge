@@ -216,6 +216,190 @@ func (svc *Service) GetStateAt(ctx context.Context, sessionID uuid.UUID, moveNum
 	return state, nil
 }
 
+// ErrNotParticipant is returned when the player is not part of the session.
+var ErrNotParticipant = errors.New("player is not a participant in this session")
+
+// Surrender forfeits the session on behalf of playerID.
+// The opponent is recorded as the winner with ended_by = "forfeit".
+func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID) (MoveResult, error) {
+	session, err := svc.store.GetGameSession(ctx, sessionID)
+	if err != nil {
+		return MoveResult{}, ErrSessionNotFound
+	}
+	if session.FinishedAt != nil {
+		return MoveResult{}, ErrGameOver
+	}
+	if session.SuspendedAt != nil {
+		return MoveResult{}, ErrSuspended
+	}
+
+	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
+	if err != nil {
+		return MoveResult{}, fmt.Errorf("Surrender: list players: %w", err)
+	}
+
+	// Verify caller is a participant and find the opponent.
+	var opponentID *uuid.UUID
+	callerFound := false
+	for _, p := range players {
+		if p.PlayerID == playerID {
+			callerFound = true
+		} else {
+			id := p.PlayerID
+			opponentID = &id
+		}
+	}
+	if !callerFound {
+		return MoveResult{}, ErrNotParticipant
+	}
+
+	// Cancel the turn timer before finishing.
+	if svc.timer != nil {
+		svc.timer.Cancel(sessionID)
+	}
+
+	if err := svc.store.FinishSession(ctx, sessionID); err != nil {
+		return MoveResult{}, fmt.Errorf("Surrender: finish session: %w", err)
+	}
+	session.FinishedAt = timePtr(time.Now())
+
+	// Build result — opponent wins, surrendering player loses.
+	resultPlayers := make([]store.GameResultPlayer, len(players))
+	for i, p := range players {
+		outcome := "loss"
+		if opponentID != nil && p.PlayerID == *opponentID {
+			outcome = "win"
+		}
+		resultPlayers[i] = store.GameResultPlayer{
+			PlayerID: p.PlayerID,
+			Seat:     p.Seat,
+			Outcome:  outcome,
+		}
+	}
+
+	if _, err := svc.store.CreateGameResult(ctx, store.CreateGameResultParams{
+		SessionID: sessionID,
+		GameID:    session.GameID,
+		WinnerID:  opponentID,
+		IsDraw:    false,
+		EndedBy:   "forfeit",
+		Players:   resultPlayers,
+	}); err != nil {
+		fmt.Printf("Surrender: record game result: %v\n", err)
+	}
+
+	// Return current state unchanged — the game ended, no new move was made.
+	var state engine.GameState
+	if err := json.Unmarshal(session.State, &state); err != nil {
+		return MoveResult{}, fmt.Errorf("Surrender: deserialize state: %w", err)
+	}
+
+	var winnerEngineID *engine.PlayerID
+	if opponentID != nil {
+		id := engine.PlayerID(opponentID.String())
+		winnerEngineID = &id
+	}
+
+	return MoveResult{
+		Session: session,
+		State:   state,
+		IsOver:  true,
+		Result: &engine.Result{
+			Status:   engine.ResultWin,
+			WinnerID: winnerEngineID,
+		},
+	}, nil
+}
+
+// ErrNotFinished is returned when a rematch is requested on an active session.
+var ErrNotFinished = errors.New("game is not finished yet")
+
+// VoteRematch registers a rematch vote for playerID on the given session.
+// Returns (votes, totalPlayers, roomID, newSession, error).
+// newSession is non-nil only when all players have voted and the rematch session was created.
+func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UUID) ([]store.RematchVote, int, uuid.UUID, *store.GameSession, error) {
+	session, err := svc.store.GetGameSession(ctx, sessionID)
+	if err != nil {
+		return nil, 0, uuid.Nil, nil, ErrSessionNotFound
+	}
+	if session.FinishedAt == nil {
+		return nil, 0, uuid.Nil, nil, ErrNotFinished
+	}
+
+	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
+	if err != nil {
+		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: list players: %w", err)
+	}
+
+	callerFound := false
+	for _, p := range players {
+		if p.PlayerID == playerID {
+			callerFound = true
+			break
+		}
+	}
+	if !callerFound {
+		return nil, 0, uuid.Nil, nil, ErrNotParticipant
+	}
+
+	if err := svc.store.UpsertRematchVote(ctx, sessionID, playerID); err != nil {
+		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: upsert vote: %w", err)
+	}
+
+	votes, err := svc.store.ListRematchVotes(ctx, sessionID)
+	if err != nil {
+		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: list votes: %w", err)
+	}
+
+	totalPlayers := len(players)
+
+	if len(votes) < totalPlayers {
+		return votes, totalPlayers, session.RoomID, nil, nil
+	}
+
+	if err := svc.store.DeleteRematchVotes(ctx, sessionID); err != nil {
+		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: delete votes: %w", err)
+	}
+
+	game, err := svc.registry.Get(session.GameID)
+	if err != nil {
+		return nil, 0, uuid.Nil, nil, ErrGameNotFound
+	}
+
+	enginePlayers := make([]engine.Player, len(players))
+	for _, rp := range players {
+		p, err := svc.store.GetPlayer(ctx, rp.PlayerID)
+		if err != nil {
+			return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: get player: %w", err)
+		}
+		enginePlayers[rp.Seat] = engine.Player{
+			ID:       engine.PlayerID(p.ID.String()),
+			Username: p.Username,
+		}
+	}
+
+	initialState, err := game.Init(enginePlayers)
+	if err != nil {
+		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: init game: %w", err)
+	}
+
+	stateJSON, err := json.Marshal(initialState)
+	if err != nil {
+		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: marshal state: %w", err)
+	}
+
+	newSession, err := svc.store.CreateGameSession(ctx, session.RoomID, session.GameID, stateJSON, session.TurnTimeoutSecs)
+	if err != nil {
+		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: create session: %w", err)
+	}
+
+	if svc.timer != nil {
+		svc.timer.Schedule(newSession)
+	}
+
+	return votes, totalPlayers, session.RoomID, &newSession, nil
+}
+
 // --- Helpers -----------------------------------------------------------------
 
 func buildGameResultParams(session store.GameSession, result engine.Result, players []store.RoomPlayer) store.CreateGameResultParams {

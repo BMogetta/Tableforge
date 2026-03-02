@@ -6,7 +6,7 @@ export default defineConfig({
   fullyParallel: false, // game tests must run sequentially — shared server state
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
+  workers: 2,
   reporter: 'html',
   timeout: 60_000,
 
@@ -19,15 +19,25 @@ export default defineConfig({
   },
 
   projects: [
-    // Setup project: creates authenticated storage states for two players.
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
-
     {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
+      name: 'game-tests',
+      use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
+      testMatch: /\/(game|lobby)\.spec\.ts/,
     },
-  ],
+    {
+      name: 'leaderboard-tests',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup', 'game-tests'],
+      testMatch: /\/leaderboard\.spec\.ts/,
+    },
+    {
+      name: 'chromium-parallel',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testMatch: /\/auth\.spec\.ts/,
+      fullyParallel: true,
+    },
+  ]
 })

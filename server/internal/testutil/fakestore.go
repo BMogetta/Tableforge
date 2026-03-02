@@ -13,20 +13,22 @@ var ErrNotFound = errors.New("not found")
 
 // FakeStore is an in-memory implementation of store.Store for use in tests.
 type FakeStore struct {
-	Players     map[uuid.UUID]store.Player
-	Rooms       map[uuid.UUID]store.Room
-	RoomPlayers map[uuid.UUID][]store.RoomPlayer
-	Sessions    map[uuid.UUID]store.GameSession
-	Moves       map[uuid.UUID][]store.Move
+	Players       map[uuid.UUID]store.Player
+	Rooms         map[uuid.UUID]store.Room
+	RoomPlayers   map[uuid.UUID][]store.RoomPlayer
+	Sessions      map[uuid.UUID]store.GameSession
+	Moves         map[uuid.UUID][]store.Move
+	AllowedEmails map[string]store.AllowedEmail
 }
 
 func NewFakeStore() *FakeStore {
 	return &FakeStore{
-		Players:     make(map[uuid.UUID]store.Player),
-		Rooms:       make(map[uuid.UUID]store.Room),
-		RoomPlayers: make(map[uuid.UUID][]store.RoomPlayer),
-		Sessions:    make(map[uuid.UUID]store.GameSession),
-		Moves:       make(map[uuid.UUID][]store.Move),
+		Players:       make(map[uuid.UUID]store.Player),
+		Rooms:         make(map[uuid.UUID]store.Room),
+		RoomPlayers:   make(map[uuid.UUID][]store.RoomPlayer),
+		Sessions:      make(map[uuid.UUID]store.GameSession),
+		Moves:         make(map[uuid.UUID][]store.Move),
+		AllowedEmails: make(map[string]store.AllowedEmail),
 	}
 }
 
@@ -141,8 +143,22 @@ func (f *FakeStore) ListRoomPlayers(_ context.Context, roomID uuid.UUID) ([]stor
 
 // --- Game sessions -----------------------------------------------------------
 
-func (f *FakeStore) CreateGameSession(_ context.Context, roomID uuid.UUID, gameID string, state []byte) (store.GameSession, error) {
-	gs := store.GameSession{ID: uuid.New(), RoomID: roomID, GameID: gameID, State: state, StartedAt: time.Now()}
+func (f *FakeStore) CreateGameSession(
+	_ context.Context,
+	roomID uuid.UUID,
+	gameID string,
+	initialState []byte,
+	turnTimeoutSecs *int,
+) (store.GameSession, error) {
+
+	gs := store.GameSession{
+		ID:              uuid.New(),
+		RoomID:          roomID,
+		GameID:          gameID,
+		State:           initialState,
+		StartedAt:       time.Now(),
+		TurnTimeoutSecs: turnTimeoutSecs,
+	}
 	f.Sessions[gs.ID] = gs
 	return gs, nil
 }
@@ -236,6 +252,18 @@ func (f *FakeStore) SoftDeleteSession(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (f *FakeStore) GetGameResult(_ context.Context, _ uuid.UUID) (store.GameResult, error) {
+	return store.GameResult{}, ErrNotFound
+}
+
+func (f *FakeStore) GetGameConfig(_ context.Context, _ string) (store.GameConfig, error) {
+	return store.GameConfig{}, ErrNotFound
+}
+
+func (f *FakeStore) TouchLastMoveAt(_ context.Context, _ uuid.UUID) error {
+	return nil
+}
+
 // --- Moves -------------------------------------------------------------------
 
 func (f *FakeStore) RecordMove(_ context.Context, params store.RecordMoveParams) (store.Move, error) {
@@ -265,6 +293,50 @@ func (f *FakeStore) GetMoveAt(_ context.Context, sessionID uuid.UUID, moveNumber
 	return store.Move{}, ErrNotFound
 }
 
+// --- Admin: allowed emails ---------------------------------------------------
+
+func (f *FakeStore) ListAllowedEmails(_ context.Context) ([]store.AllowedEmail, error) {
+	var result []store.AllowedEmail
+	for _, e := range f.AllowedEmails {
+		result = append(result, e)
+	}
+	return result, nil
+}
+
+func (f *FakeStore) AddAllowedEmail(_ context.Context, params store.AddAllowedEmailParams) (store.AllowedEmail, error) {
+	e := store.AllowedEmail{
+		Email:     params.Email,
+		CreatedAt: time.Now(),
+	}
+	f.AllowedEmails[params.Email] = e
+	return e, nil
+}
+
+func (f *FakeStore) RemoveAllowedEmail(_ context.Context, email string) error {
+	delete(f.AllowedEmails, email)
+	return nil
+}
+
+// --- Admin: players ----------------------------------------------------------
+
+func (f *FakeStore) ListPlayers(_ context.Context) ([]store.Player, error) {
+	var result []store.Player
+	for _, p := range f.Players {
+		result = append(result, p)
+	}
+	return result, nil
+}
+
+func (f *FakeStore) SetPlayerRole(_ context.Context, playerID uuid.UUID, role store.PlayerRole) error {
+	p, ok := f.Players[playerID]
+	if !ok {
+		return ErrNotFound
+	}
+	p.Role = role
+	f.Players[playerID] = p
+	return nil
+}
+
 // --- OAuth -------------------------------------------------------------------
 
 func (f *FakeStore) UpsertOAuthIdentity(_ context.Context, _ store.UpsertOAuthParams) (store.OAuthIdentity, error) {
@@ -272,6 +344,10 @@ func (f *FakeStore) UpsertOAuthIdentity(_ context.Context, _ store.UpsertOAuthPa
 }
 
 func (f *FakeStore) GetOAuthIdentity(_ context.Context, _, _ string) (store.OAuthIdentity, error) {
+	return store.OAuthIdentity{}, ErrNotFound
+}
+
+func (f *FakeStore) GetOAuthIdentityByEmail(_ context.Context, _ string) (store.OAuthIdentity, error) {
 	return store.OAuthIdentity{}, ErrNotFound
 }
 

@@ -70,7 +70,12 @@ func main() {
 	runtimeService.SetTimer(turnTimer)
 
 	// Rate limiter: 100 req/min per IP
-	limiter := ratelimit.New(rdb, 100, time.Minute)
+	// Disabled in TEST_MODE to prevent rate limit failures during Playwright tests.
+	testMode := getEnv("TEST_MODE", "false") == "true"
+	var limiter *ratelimit.Limiter
+	if !testMode {
+		limiter = ratelimit.New(rdb, 100, time.Minute)
+	}
 
 	// Auth
 	authHandler := auth.NewHandler(
@@ -84,9 +89,15 @@ func main() {
 	// HTTP server
 	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter)
 	addr := getEnv("ADDR", ":8080")
+
+	var handler http.Handler = router
+	if limiter != nil {
+		handler = limiter.Middleware(router)
+	}
+
 	srv := &http.Server{
 		Addr:    addr,
-		Handler: limiter.Middleware(router),
+		Handler: handler,
 	}
 
 	go func() {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store'
@@ -6,6 +6,7 @@ import { sessions, type GameSession } from '../api'
 import { keys } from '../queryClient'
 import TicTacToeBoard, { type TicTacToeState } from '../components/TicTacToe'
 import styles from './Game.module.css'
+import SurrenderModal from '../components/SurrenderModal'
 
 interface GameData {
   current_player_id: string
@@ -23,12 +24,18 @@ export default function Game() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const player = useAppStore((s) => s.player)!
   const socket = useAppStore((s) => s.socket)
+  const leaveRoom = useAppStore((s) => s.leaveRoom)
   const navigate = useNavigate()
   const qc = useQueryClient()
 
   const [isOver, setIsOver] = useState(false)
   const [winnerId, setWinnerId] = useState<string | null>(null)
   const [isDraw, setIsDraw] = useState(false)
+  const [showSurrenderModal, setShowSurrenderModal] = useState(false)
+  const [rematchVotes, setRematchVotes] = useState(0)
+  const [totalPlayers, setTotalPlayers] = useState(0)
+  const [votedRematch, setVotedRematch] = useState(false)
+  const setPendingRematch = useAppStore((s) => s.setPendingRematch) 
 
   // Fetch session state on mount. Poll every 3s as a fallback for missed WS events.
   // Polling stops once finished_at is set.
@@ -39,7 +46,6 @@ export default function Game() {
     staleTime: 0,
     refetchInterval: (query) => {
       const d = query.state.data as { session?: { finished_at?: string } } | undefined
-      console.log('refetchInterval check, finished_at:', d?.session?.finished_at)
       return d?.session?.finished_at ? false : 3_000
     },
   })
@@ -49,7 +55,6 @@ export default function Game() {
 
   // Sync game-over state from fetch (covers page refresh and missed WS events).
   useEffect(() => {
-    console.log('sync effect, finished_at:', data?.session?.finished_at)
     if (!data?.session?.finished_at) return
     setIsOver(true)
     const result = (data as any).result as { winner_id?: string; is_draw?: boolean } | null
@@ -86,9 +91,18 @@ export default function Game() {
         if (payload.result?.winner_id) setWinnerId(payload.result.winner_id)
         else if (payload.result?.is_draw) setIsDraw(true)
       }
+      if (event.type === 'rematch_vote') {
+        const payload = event.payload as { votes: number; total_players: number }
+        setRematchVotes(payload.votes)
+        setTotalPlayers(payload.total_players)
+      }
+      if (event.type === 'rematch_started') {
+        const payload = event.payload as { session: { id: string } }
+        setPendingRematch(payload.session.id)
+      }
     })
 
-    return () => off // Unsubscribe only — do not close the socket here.
+    return () => off() // Unsubscribe only — do not close the socket here.
   }, [socket, sessionId, qc])
 
   const move = useMutation({
@@ -103,6 +117,31 @@ export default function Game() {
       if (res.is_over) setIsOver(true)
     },
   })
+
+  const surrender = useMutation({
+    mutationFn: () => sessions.surrender(sessionId!, player.id),
+    onSuccess: () => {
+      // The game_over WS event will update state. Close modal and leave.
+      setShowSurrenderModal(false)
+      leaveRoom()
+      navigate('/')
+    },
+  })
+
+  const rematch = useMutation({
+    mutationFn: () => sessions.rematch(sessionId!, player.id),
+    onSuccess: (res) => {
+      setVotedRematch(true)
+      setRematchVotes(res.votes)
+      setTotalPlayers(res.total_players)
+      // If both players voted, rematch_started WS event handles navigation.
+    },
+  })
+
+  function handleBackToLobby() {
+    leaveRoom()
+    navigate('/')
+  }
 
   if (!session || !gameData) {
     return (
@@ -132,7 +171,11 @@ export default function Game() {
     <div className={`${styles.root} page-enter`}>
       <div className={styles.panel}>
         <header className={styles.header}>
-          <button className="btn btn-ghost" onClick={() => navigate('/')} style={{ padding: '4px 10px', fontSize: 11 }}>
+          <button
+            className="btn btn-ghost"
+            onClick={() => isOver ? handleBackToLobby() : setShowSurrenderModal(true)}
+            style={{ padding: '4px 10px', fontSize: 11 }}
+          >
             ← Lobby
           </button>
           <div className={styles.gameInfo}>
@@ -170,12 +213,31 @@ export default function Game() {
 
         {isOver && (
           <div className={styles.gameOver}>
-            <button className="btn btn-primary" onClick={() => navigate('/')}>
+            <button className="btn btn-ghost" onClick={handleBackToLobby}>
               Back to Lobby
+            </button>
+            <button
+              className="btn btn-primary"
+              data-testid="rematch-btn"
+              onClick={() => rematch.mutate()}
+              disabled={votedRematch || rematch.isPending}
+            >
+              {votedRematch
+                ? totalPlayers > 0
+                  ? `Waiting for opponent… (${rematchVotes}/${totalPlayers})`
+                  : 'Waiting for opponent…'
+                : 'Rematch'}
             </button>
           </div>
         )}
       </div>
+      {showSurrenderModal && (
+        <SurrenderModal
+          onConfirm={() => surrender.mutate()}
+          onCancel={() => setShowSurrenderModal(false)}
+          isPending={surrender.isPending}
+        />
+      )}
     </div>
   )
 }

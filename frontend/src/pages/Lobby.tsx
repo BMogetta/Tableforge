@@ -76,7 +76,7 @@ export default function Lobby() {
           {player.avatar_url && (
             <img src={player.avatar_url} alt="" className={styles.avatar} />
           )}
-          <span className={styles.username}>{player.username}</span>
+          <span data-testid="player-username" className={styles.username}>{player.username}</span>
           {(player.role === 'manager' || player.role === 'owner') && (
             <Link to="/admin" className="btn btn-ghost" style={{ padding: '6px 12px' }}>
               Admin
@@ -201,7 +201,7 @@ function LeaderboardTable({ entries }: { entries: LeaderboardEntry[] }) {
     return <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No games played yet.</p>
   }
   return (
-    <table className={styles.table}>
+    <table data-testid="leaderboard-table" className={styles.table}>
       <thead>
         <tr>
           <th>#</th>

@@ -15,11 +15,13 @@ import (
 type EventType string
 
 const (
-	EventMoveApplied  EventType = "move_applied"
-	EventGameOver     EventType = "game_over"
-	EventPlayerJoined EventType = "player_joined"
-	EventPlayerLeft   EventType = "player_left"
-	EventGameStarted  EventType = "game_started"
+	EventMoveApplied    EventType = "move_applied"
+	EventGameOver       EventType = "game_over"
+	EventPlayerJoined   EventType = "player_joined"
+	EventPlayerLeft     EventType = "player_left"
+	EventGameStarted    EventType = "game_started"
+	EventRematchVote    EventType = "rematch_vote"
+	EventRematchStarted EventType = "rematch_started"
 )
 
 // Event is the envelope sent to all clients in a room.

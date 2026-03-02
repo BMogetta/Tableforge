@@ -1,4 +1,5 @@
 # Tableforge — Session Handoff
+
 ## Critical Rules (always apply)
 - All code, comments, and documentation **must be in English**
 - CSS modules for all component styles
@@ -6,6 +7,9 @@
 - `.env.example` always shown as markdown, never as a file download
 - `expose:` not `ports:` for internal services in prod compose
 - No bullet points in prose responses
+
+---
+
 ## Project Overview
 
 Tableforge is a multiplayer board game platform. Monorepo structure:
@@ -35,7 +39,10 @@ Tableforge is a multiplayer board game platform. Monorepo structure:
 ### WebSocket
 - `RoomSocket` in `frontend/src/ws.ts` handles connection, reconnect, and status events
 - Emits: `ws_connected`, `ws_reconnecting`, `ws_disconnected` (internal), plus game events
-- `Room.tsx` shows a connection status banner based on socket state
+- Socket instance lives in Zustand (`useAppStore`) — created in `Room.tsx` via `joinRoom()`, survives Room→Game navigation
+- `Game.tsx` subscribes to the same socket instance without closing it on unmount
+- `leaveRoom()` in Zustand closes the socket — should be called when navigating back to lobby (currently NOT called anywhere — socket leaks)
+- On page refresh in `/game/:id`, `Game.tsx` calls `joinRoom(session.room_id)` if socket is null
 
 ### Rate Limiting
 - Redis sliding window, per-IP
@@ -48,12 +55,18 @@ Tableforge is a multiplayer board game platform. Monorepo structure:
 - Started when a game session is created, reset after every move
 - Penalty configured per game in `game_configs` table: `lose_turn` or `lose_game`
 - Broadcasts `game_over` or `move_applied` via WebSocket on timeout
+- **No persistence** — server restart mid-game loses all active timers. Sessions with `finished_at = NULL` should reschedule on startup (not yet implemented)
 
 ### React Query
 - `QueryClient` in `frontend/src/queryClient.ts`
 - Key factory: `keys.rooms()`, `keys.session(id)`, `keys.leaderboard()`, etc.
-- WebSocket events update cache directly via `qc.setQueryData` — no refetch
-- Zustand retained only for authenticated player global state
+- WebSocket events update cache directly via `qc.setQueryData` — no refetch needed
+- `Game.tsx` also polls every 3s as a fallback for missed WS events — polling stops when `finished_at` is set
+- Zustand retained only for authenticated player global state and socket instance
+
+### GET /sessions/:id Response Shape
+Returns `{ session, state, result }` where `result` is non-null only when `finished_at` is set.
+Used by `Game.tsx` on mount and on polling to detect game-over state without relying on WS.
 
 ---
 
@@ -90,7 +103,7 @@ Tableforge is a multiplayer board game platform. Monorepo structure:
 |------|---------|
 | `src/main.tsx` | App entry, `QueryClientProvider` wrapper |
 | `src/queryClient.ts` | Shared `QueryClient` + key factory |
-| `src/store.ts` | Zustand — authenticated player only |
+| `src/store.ts` | Zustand — authenticated player + global RoomSocket instance |
 | `src/api.ts` | All API functions, typed responses |
 | `src/ws.ts` | `RoomSocket` with connection status events |
 | `src/App.tsx` | Routes, `RequireAuth`, `RequireRole`, `ErrorBoundary` |
@@ -140,64 +153,57 @@ make test
 
 ## Pending Work
 
-### From original backlog
+### Features
 - [ ] **Rematch flow** — backend ready (`UpsertRematchVote`, `ListRematchVotes`), no frontend UI
 - [ ] **Spectator mode** — store methods exist, no endpoints or UI
 - [ ] **JWT session revocation** — no way to invalidate active sessions on logout
 - [ ] **sessionStorage cache for player** — avoid `/auth/me` round-trip on every refresh
+- [ ] **Chat** — see notes below
 
-### Production hardening
+### Known Issues
+- [ ] `leaveRoom()` in Zustand is never called — socket stays open when user navigates back to lobby. Should be called from the "Back to Lobby" button in `Game.tsx` and the "Leave" button in `Room.tsx`
+- [ ] `TurnTimer` has no persistence — server restart mid-game loses all active timers. On startup, sessions with `finished_at = NULL` and a configured timeout should be rescheduled
+- [ ] Page refresh on `/game/:id` reconnects correctly but loses the connection banner state (always shows "connecting" briefly even if socket connects immediately)
+- [ ] Turn timeout Playwright test is sensitive to `game_configs.default_timeout_secs` — currently 30s in DB, test timeout set to 35s to accommodate
+
+### Production Hardening
 - [ ] DB backups
 - [ ] Watchtower rollback strategy
 - [ ] Health check endpoints
 - [ ] Observability iframes — Grafana works via subpath; Jaeger v2 has limited subpath support, recommend external links
 
-### Testing
-- [ ] Playwright tests not yet verified running end-to-end (setup complete, needs first run)
-- [ ] Turn timeout Playwright test requires `default_timeout_secs=10` in `game_configs` for tictactoe
-- [ ] No backend unit tests yet
-
-### Nice to have
-- [ ] Turn countdown timer UI (show remaining seconds to player)
-- [ ] `turn_timeout_secs` field exposed in room creation UI (frontend form)
-- [ ] `gameConfig.get()` called in Lobby to show timeout info per game
+### Testing — Next Playwright Scenarios
+- [ ] **Player wins a game** — assert winner sees "You won!" and loser sees "You lost." with correct CSS class applied (currently covered only via the full game test, but worth isolating)
+- [ ] **Player leaves room before game starts** — P2 joins, then leaves; P1's start button should become disabled again and player count should update
+- [ ] **Reconnection during game** — simulate P1 going offline briefly (close/reopen page), assert game state is restored correctly and moves can resume
+- [ ] **Invalid move** — attempt to click an already-filled cell; assert error message appears and turn does not advance
+- [ ] **Back to Lobby button** — after game ends, click "Back to Lobby", assert redirect to `/` and socket is closed (`leaveRoom` fix required first)
+- [ ] **Rematch flow** — once frontend UI is built, test both players voting for rematch and a new game starting
 
 ---
 
-## Seeder Behavior
+## Chat — Design Notes
 
-`cmd/seed/main.go` — blocking, waits up to 10 minutes for owner to log in:
-1. Adds `OWNER_EMAIL` to `allowed_emails` with `role = owner`
-2. Polls every 5s for the player record (created on first GitHub login)
-3. Once found, promotes to owner and exits
+The WebSocket infrastructure already supports adding chat with minimal backend changes.
 
-In `docker-compose.yml` set `restart: "no"` for the seeder service.
+**Decision needed first:** ephemeral (WS only, no persistence) vs persistent (stored in `chat_messages` table, loaded on join). Ephemeral is significantly simpler for an MVP.
 
----
+**Backend changes needed:**
+- Add `EventType = "chat_message"` to `ws/hub.go`
+- `readPump` in `ws/client.go` currently discards all incoming client messages — needs to parse and re-broadcast chat messages
+- Optional: `POST /rooms/:id/chat` endpoint if server-side validation or persistence is needed
 
-## Turn Timeout Flow
-
-1. Room created with optional `turn_timeout_secs`
-2. `lobby.StartGame` resolves effective timeout: room value → clamped to game config min/max → game default
-3. `runtime.Service.StartSession(session)` called from `handleStartGame` → schedules `TurnTimer`
-4. After every move: `TurnTimer.Schedule(session)` resets the timer
-5. On timeout: `TurnTimer.onTimeout` fires, reads `game_configs.timeout_penalty`
-   - `lose_game`: calls `FinishSession`, creates `GameResult` with `ended_by = timeout`, broadcasts `game_over`
-   - `lose_turn`: advances `CurrentPlayerID` to next player, broadcasts `move_applied`, reschedules timer
-6. Normal game end: `TurnTimer.Cancel(sessionID)` called before `FinishSession`
-
----
-
-## Error Boundary
-
-`App.tsx` wraps all routes in `ErrorBoundary` (class component).  
-On render error: shows game-themed error screen with "Try Again" (resets boundary) and "Go to Lobby" (hard redirect).
+**Frontend changes needed:**
+- Subscribe to `chat_message` events in the global socket
+- Chat state can live in Zustand (persists across Room→Game) or local to a shared layout component
+- UI: input + scrollable message list, shown in both `Room.tsx` and `Game.tsx`
 
 ---
 
 ## Notes for Next Session
 
-- `game_configs` is seeded with tictactoe defaults in migration `003`. For new games, insert a row in `game_configs` matching the `game.ID()` return value.
+- `game_configs` is seeded in migration `003` with `default_timeout_secs = 30` for tictactoe. The Playwright timeout test uses a 35s assertion timeout to accommodate this. Do not lower it without updating the test.
 - `GameRenderer` in `Game.tsx` is a switch on `game_id` — add new cases there for new game renderers.
-- `ws.ts` event types include `ws_connected/ws_reconnecting/ws_disconnected` — these are client-only and not sent by the server.
-- The `TurnTimer` has no persistence — if the server restarts mid-game, active timers are lost. On restart, sessions with `finished_at = NULL` and a configured timeout should reschedule. This is not yet implemented.
+- `ws.ts` event types `ws_connected`, `ws_reconnecting`, `ws_disconnected` are client-only and never sent by the server.
+- For new games, insert a row in `game_configs` matching the `game.ID()` return value, then add a case to `GameRenderer`.
+- The global socket pattern: `joinRoom(roomId)` → Zustand stores `RoomSocket` → both `Room.tsx` and `Game.tsx` read from store. Cleanup via `leaveRoom()` is not yet wired to navigation events.
