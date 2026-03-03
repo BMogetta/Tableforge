@@ -87,6 +87,35 @@ func (s *PGStore) SoftDeletePlayer(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (s *PGStore) UpdateRoomOwner(ctx context.Context, roomID, newOwnerID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE rooms SET owner_id = $1, updated_at = NOW() WHERE id = $2`,
+		newOwnerID, roomID,
+	)
+	if err != nil {
+		return fmt.Errorf("UpdateRoomOwner: %w", err)
+	}
+	return nil
+}
+
+func (s *PGStore) DeleteRoom(ctx context.Context, roomID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx,
+		`DELETE FROM room_players WHERE room_id = $1`,
+		roomID,
+	)
+	if err != nil {
+		return fmt.Errorf("DeleteRoom: remove players: %w", err)
+	}
+	_, err = s.pool.Exec(ctx,
+		`UPDATE rooms SET status = 'finished', updated_at = NOW() WHERE id = $1`,
+		roomID,
+	)
+	if err != nil {
+		return fmt.Errorf("DeleteRoom: close room: %w", err)
+	}
+	return nil
+}
+
 // ListAllowedEmails returns all entries in the whitelist.
 func (s *PGStore) ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error) {
 	rows, err := s.pool.Query(ctx,

@@ -18,6 +18,7 @@ export default function Room() {
   const [error, setError] = useState('')
   const [starting, setStarting] = useState(false)
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('connecting')
+  const [ownerId, setOwnerId] = useState<string | null>(null)
 
   const refresh = useCallback(() => {
     rooms.get(roomId!).then(setView).catch(() => setError('Room not found'))
@@ -28,6 +29,10 @@ export default function Room() {
   useEffect(() => {
     joinRoom(roomId!)
   }, [roomId, joinRoom])
+
+  useEffect(() => {
+    if (view) setOwnerId(view.room.owner_id)
+  }, [view])
 
   // Subscribe to socket events for real-time room state updates.
   useEffect(() => {
@@ -49,6 +54,17 @@ export default function Room() {
           navigate(`/game/${payload.session.id}`)
         }
       }
+
+      if (event.type === 'owner_changed') {
+        const payload = event.payload as { owner_id: string }
+        console.log('owner_changed received, new owner:', payload.owner_id, 'my id:', player.id)
+        setOwnerId(payload.owner_id)
+        refresh()
+      }
+      if (event.type === 'room_closed') {
+        navigate('/')
+      }
+
     })
 
     return () => off() // Unsubscribe only — do not close the socket here.
@@ -74,7 +90,7 @@ export default function Room() {
   if (!view) return <LoadingScreen />
 
   const { room } = view
-  const isOwner = room.owner_id === player.id
+  const isOwner = ownerId === player.id
   const canStart = isOwner && view.players.length >= 2
 
   return (
@@ -97,21 +113,21 @@ export default function Room() {
             Players ({view.players.length}/{room.max_players})
           </p>
           <div className={styles.playerList}>
-            {view.players.map((p) => (
-              <div key={p.id} className={styles.playerRow}>
-                {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
-                <span className={styles.playerName}>{p.username}</span>
-                {p.id === room.owner_id && <span className="badge badge-amber">Host</span>}
-                {p.id === player.id && <span className="badge badge-muted">You</span>}
-              </div>
-            ))}
-            {Array.from({ length: room.max_players - view.players.length }).map((_, i) => (
-              <div key={i} className={`${styles.playerRow} ${styles.empty}`}>
-                <div className={styles.emptySlot} />
-                <span className={styles.waitingText}>Waiting for player...</span>
-              </div>
-            ))}
-          </div>
+          {view.players.map((p) => (
+            <div key={p.id} className={styles.playerRow}>
+              {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
+              <span className={styles.playerName}>{p.username}</span>
+              {p.id === ownerId && <span className="badge badge-amber">Host</span>}
+              {p.id === player.id && <span className="badge badge-muted">You</span>}
+            </div>
+          ))}
+          {Array.from({ length: room.max_players - view.players.length }).map((_, i) => (
+            <div key={i} className={`${styles.playerRow} ${styles.empty}`}>
+              <div className={styles.emptySlot} />
+              <span className={styles.waitingText}>Waiting for player...</span>
+            </div>
+          ))}
+        </div>
         </section>
 
         <hr className="divider" />

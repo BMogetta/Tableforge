@@ -181,6 +181,8 @@ type Store interface {
 	UpdateRoomStatus(ctx context.Context, id uuid.UUID, status RoomStatus) error
 	ListWaitingRooms(ctx context.Context) ([]Room, error)
 	SoftDeleteRoom(ctx context.Context, id uuid.UUID) error
+	UpdateRoomOwner(ctx context.Context, roomID, newOwnerID uuid.UUID) error
+	DeleteRoom(ctx context.Context, roomID uuid.UUID) error
 
 	// Room players
 	AddPlayerToRoom(ctx context.Context, roomID, playerID uuid.UUID, seat int) error

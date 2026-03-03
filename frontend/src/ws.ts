@@ -6,6 +6,8 @@ export type WsEventType =
   | 'game_started'
   | 'rematch_vote'
   | 'rematch_started'
+  | 'owner_changed'
+  | 'room_closed'
   | 'ws_connected'
   | 'ws_reconnecting'
   | 'ws_disconnected'

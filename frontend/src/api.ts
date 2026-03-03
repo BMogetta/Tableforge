@@ -11,6 +11,11 @@ export interface Player {
   created_at: string
 }
 
+export interface RoomViewPlayer extends Player {
+  seat: number
+  joined_at: string
+}
+
 export interface AllowedEmail {
   email: string
   role: 'player' | 'manager' | 'owner'
@@ -32,7 +37,7 @@ export interface Room {
 
 export interface RoomView {
   room: Room
-  players: Player[]
+  players: RoomViewPlayer[]
 }
 
 export interface GameSession {

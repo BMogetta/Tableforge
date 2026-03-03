@@ -494,15 +494,30 @@ func handleLeaveRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid player_id")
 			return
 		}
-		if err := svc.LeaveRoom(r.Context(), roomID, playerID); err != nil {
+
+		result, err := svc.LeaveRoom(r.Context(), roomID, playerID)
+		if err != nil {
 			writeLobbyError(w, err)
 			return
 		}
 
-		hub.Broadcast(roomID, ws.Event{
-			Type:    ws.EventPlayerLeft,
-			Payload: map[string]string{"player_id": playerID.String()},
-		})
+		if result.RoomClosed {
+			hub.Broadcast(roomID, ws.Event{
+				Type:    ws.EventRoomClosed,
+				Payload: nil,
+			})
+		} else if result.NewOwnerID != nil {
+			hub.Broadcast(roomID, ws.Event{
+				Type:    ws.EventOwnerChanged,
+				Payload: map[string]any{"owner_id": result.NewOwnerID},
+			})
+		} else {
+			// Non-owner left, no ownership change — just notify players.
+			hub.Broadcast(roomID, ws.Event{
+				Type:    ws.EventPlayerLeft,
+				Payload: map[string]string{"player_id": playerID.String()},
+			})
+		}
 
 		w.WriteHeader(http.StatusNoContent)
 	}
@@ -688,8 +703,12 @@ func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 		if newSession != nil {
 			log.Printf("broadcasting rematch_started to room %s, new session %s", roomID, newSession.ID)
 			hub.Broadcast(roomID, ws.Event{
-				Type:    ws.EventRematchStarted,
-				Payload: map[string]any{"session": newSession},
+				Type: ws.EventRematchStarted,
+				Payload: map[string]any{
+					"session":       newSession,
+					"votes":         len(votes),
+					"total_players": totalPlayers,
+				},
 			})
 			activeSessions.Inc()
 		} else {

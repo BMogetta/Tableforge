@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store'
@@ -35,7 +35,17 @@ export default function Game() {
   const [rematchVotes, setRematchVotes] = useState(0)
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [votedRematch, setVotedRematch] = useState(false)
-  const setPendingRematch = useAppStore((s) => s.setPendingRematch) 
+  const setPendingRematch = useAppStore((s) => s.setPendingRematch)
+
+  useEffect(() => {
+    setIsOver(false)
+    setWinnerId(null)
+    setIsDraw(false)
+    setVotedRematch(false)
+    setRematchVotes(0)
+    setTotalPlayers(0)
+    setShowSurrenderModal(false)
+  }, [sessionId])
 
   // Fetch session state on mount. Poll every 3s as a fallback for missed WS events.
   // Polling stops once finished_at is set.
@@ -97,7 +107,9 @@ export default function Game() {
         setTotalPlayers(payload.total_players)
       }
       if (event.type === 'rematch_started') {
-        const payload = event.payload as { session: { id: string } }
+        const payload = event.payload as { session: { id: string }; votes: number; total_players: number }
+        setRematchVotes(payload.votes)
+        setTotalPlayers(payload.total_players)
         setPendingRematch(payload.session.id)
       }
     })
@@ -223,10 +235,11 @@ export default function Game() {
               disabled={votedRematch || rematch.isPending}
             >
               {votedRematch
-                ? totalPlayers > 0
-                  ? `Waiting for opponent… (${rematchVotes}/${totalPlayers})`
-                  : 'Waiting for opponent…'
-                : 'Rematch'}
+                ? `Waiting for opponent… (${rematchVotes}/${totalPlayers})`
+                : rematchVotes > 0
+                  ? `Rematch (${rematchVotes}/${totalPlayers} voted)`
+                  : 'Rematch'
+              }
             </button>
           </div>
         )}

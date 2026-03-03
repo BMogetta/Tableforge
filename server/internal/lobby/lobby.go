@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/engine"
@@ -24,10 +25,17 @@ var (
 	ErrGameNotFound    = errors.New("game not found")
 )
 
+// RoomViewPlayer combines full player data with room-specific metadata.
+type RoomViewPlayer struct {
+	store.Player
+	Seat     int       `json:"seat"`
+	JoinedAt time.Time `json:"joined_at"`
+}
+
 // RoomView is the full state of a room as seen by clients.
 type RoomView struct {
-	Room    store.Room         `json:"room"`
-	Players []store.RoomPlayer `json:"players"`
+	Room    store.Room       `json:"room"`
+	Players []RoomViewPlayer `json:"players"`
 }
 
 // GameRegistry is a read-only view of the game plugin registry.
@@ -110,18 +118,49 @@ func (svc *Service) JoinRoom(ctx context.Context, code string, playerID uuid.UUI
 	return svc.getRoomView(ctx, room)
 }
 
-// LeaveRoom removes a player from a waiting room.
-func (svc *Service) LeaveRoom(ctx context.Context, roomID, playerID uuid.UUID) error {
+type LeaveResult struct {
+	NewOwnerID *uuid.UUID
+	RoomClosed bool
+}
+
+func (svc *Service) LeaveRoom(ctx context.Context, roomID, playerID uuid.UUID) (LeaveResult, error) {
 	room, err := svc.store.GetRoom(ctx, roomID)
 	if err != nil {
-		return ErrRoomNotFound
+		return LeaveResult{}, ErrRoomNotFound
 	}
 
 	if room.Status != store.RoomStatusWaiting {
-		return ErrRoomNotWaiting
+		return LeaveResult{}, ErrRoomNotWaiting
 	}
 
-	return svc.store.RemovePlayerFromRoom(ctx, roomID, playerID)
+	if err := svc.store.RemovePlayerFromRoom(ctx, roomID, playerID); err != nil {
+		return LeaveResult{}, fmt.Errorf("LeaveRoom: remove player: %w", err)
+	}
+
+	remaining, err := svc.store.ListRoomPlayers(ctx, roomID)
+	if err != nil {
+		return LeaveResult{}, fmt.Errorf("LeaveRoom: list remaining: %w", err)
+	}
+
+	// No players left — close the room.
+	if len(remaining) == 0 {
+		if err := svc.store.DeleteRoom(ctx, roomID); err != nil {
+			return LeaveResult{}, fmt.Errorf("LeaveRoom: delete room: %w", err)
+		}
+		return LeaveResult{RoomClosed: true}, nil
+	}
+
+	// Owner left — transfer ownership to the player with the earliest joined_at.
+	if room.OwnerID == playerID {
+		// ListRoomPlayers returns players ordered by joined_at ASC.
+		newOwner := remaining[0]
+		if err := svc.store.UpdateRoomOwner(ctx, roomID, newOwner.PlayerID); err != nil {
+			return LeaveResult{}, fmt.Errorf("LeaveRoom: transfer ownership: %w", err)
+		}
+		return LeaveResult{NewOwnerID: &newOwner.PlayerID}, nil
+	}
+
+	return LeaveResult{}, nil
 }
 
 // StartGame transitions the room to in_progress and creates a game session.
@@ -245,9 +284,21 @@ func (svc *Service) ListWaitingRooms(ctx context.Context) ([]RoomView, error) {
 }
 
 func (svc *Service) getRoomView(ctx context.Context, room store.Room) (RoomView, error) {
-	players, err := svc.store.ListRoomPlayers(ctx, room.ID)
+	roomPlayers, err := svc.store.ListRoomPlayers(ctx, room.ID)
 	if err != nil {
-		return RoomView{}, fmt.Errorf("getRoomView: %w", err)
+		return RoomView{}, fmt.Errorf("getRoomView: list players: %w", err)
+	}
+	players := make([]RoomViewPlayer, 0, len(roomPlayers))
+	for _, rp := range roomPlayers {
+		p, err := svc.store.GetPlayer(ctx, rp.PlayerID)
+		if err != nil {
+			return RoomView{}, fmt.Errorf("getRoomView: get player %s: %w", rp.PlayerID, err)
+		}
+		players = append(players, RoomViewPlayer{
+			Player:   p,
+			Seat:     rp.Seat,
+			JoinedAt: rp.JoinedAt,
+		})
 	}
 	return RoomView{Room: room, Players: players}, nil
 }

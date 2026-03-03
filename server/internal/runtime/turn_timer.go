@@ -137,6 +137,11 @@ func (tt *TurnTimer) applyLoseGame(ctx context.Context, session store.GameSessio
 		return
 	}
 
+	// Mark the room as finished so it disappears from the lobby.
+	if err := tt.st.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
+		log.Printf("TurnTimer: finish room %s: %v", session.RoomID, err)
+	}
+
 	// Record game result.
 	resultParams := buildGameResultParams(session, result, players)
 	resultParams.EndedBy = "timeout"

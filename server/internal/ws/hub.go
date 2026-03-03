@@ -19,6 +19,8 @@ const (
 	EventGameOver       EventType = "game_over"
 	EventPlayerJoined   EventType = "player_joined"
 	EventPlayerLeft     EventType = "player_left"
+	EventOwnerChanged   EventType = "owner_changed"
+	EventRoomClosed     EventType = "room_closed"
 	EventGameStarted    EventType = "game_started"
 	EventRematchVote    EventType = "rematch_vote"
 	EventRematchStarted EventType = "rematch_started"

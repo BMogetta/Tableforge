@@ -149,6 +149,11 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		}
 		session.FinishedAt = timePtr(time.Now())
 
+		// Mark the room as finished so it disappears from the lobby.
+		if err := svc.store.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
+			fmt.Printf("ApplyMove: finish room: %v\n", err)
+		}
+
 		players, _ := svc.store.ListRoomPlayers(ctx, session.RoomID)
 		resultParams := buildGameResultParams(session, result, players)
 		if _, err := svc.store.CreateGameResult(ctx, resultParams); err != nil {
@@ -262,6 +267,10 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, fmt.Errorf("Surrender: finish session: %w", err)
 	}
 	session.FinishedAt = timePtr(time.Now())
+
+	if err := svc.store.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
+		fmt.Printf("Surrender: finish room: %v\n", err)
+	}
 
 	// Build result — opponent wins, surrendering player loses.
 	resultPlayers := make([]store.GameResultPlayer, len(players))

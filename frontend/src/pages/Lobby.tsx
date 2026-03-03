@@ -213,7 +213,7 @@ function LeaderboardTable({ entries }: { entries: LeaderboardEntry[] }) {
       </thead>
       <tbody>
         {entries.map((e: LeaderboardEntry, i: number) => (
-          <tr key={e.player_id}>
+          <tr key={e.player_id} data-testid="leaderboard-row">
             <td className={styles.rank}>{i + 1}</td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

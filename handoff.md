@@ -1,209 +1,169 @@
 # Tableforge — Session Handoff
 
-## Critical Rules (always apply)
-- All code, comments, and documentation **must be in English**
-- CSS modules for all component styles
-- `credentials: 'include'` on all fetch calls (cookie auth)
-- `.env.example` always shown as markdown, never as a file download
-- `expose:` not `ports:` for internal services in prod compose
-- No bullet points in prose responses
+## What Is This Project
+
+Tableforge is a multiplayer board game platform. Players authenticate via GitHub OAuth, create or join rooms, and play turn-based games in real time via WebSockets. The only game currently implemented is TicTacToe, but the engine is pluggable.
+
+**Stack:**
+- Backend: Go, Chi router, PostgreSQL (pgx), Redis (rate limiting), OpenTelemetry
+- Frontend: React + TypeScript, Vite, React Query, Zustand, React Router, CSS Modules
+- Infrastructure: Docker Compose, Caddy (reverse proxy), Cloudflare Tunnel for TLS
+- Tests: Playwright E2E (no unit tests yet)
 
 ---
 
-## Project Overview
+## Architecture Overview
 
-Tableforge is a multiplayer board game platform. Monorepo structure:
-- `server/` — Go backend (chi router, pgx, JWT auth, WebSocket hub)
-- `frontend/` — React + TypeScript + Vite + CSS Modules + Zustand + TanStack Query
-- `infra/` — Caddy reverse proxy, Docker Compose
-
----
-
-## Stack
-
-**Backend:** Go 1.23, chi, pgx/v5, golang-jwt, Redis (rate limiting), Docker  
-**Frontend:** React 18, TypeScript, Vite, CSS Modules, Zustand, TanStack Query v5, React Router v6  
-**Testing:** Playwright (E2E), test auth bypass via `TEST_MODE=true`  
-**Infra:** Caddy, Docker Compose, Prometheus + Grafana + Jaeger
-
----
-
-## Architecture Notes
-
-### Auth
-- GitHub OAuth → JWT cookie → middleware loads player from DB on every request
-- Role hierarchy: `player < manager < owner`
-- `RequireRole` guard in `App.tsx` for frontend route protection
-- **Test bypass:** `GET /auth/test-login?player_id=<uuid>` — only active when `TEST_MODE=true`
-
-### WebSocket
-- `RoomSocket` in `frontend/src/ws.ts` handles connection, reconnect, and status events
-- Emits: `ws_connected`, `ws_reconnecting`, `ws_disconnected` (internal), plus game events
-- Socket instance lives in Zustand (`useAppStore`) — created in `Room.tsx` via `joinRoom()`, survives Room→Game navigation
-- `Game.tsx` subscribes to the same socket instance without closing it on unmount
-- `leaveRoom()` in Zustand closes the socket — should be called when navigating back to lobby (currently NOT called anywhere — socket leaks)
-- On page refresh in `/game/:id`, `Game.tsx` calls `joinRoom(session.room_id)` if socket is null
-
-### Rate Limiting
-- Redis sliding window, per-IP
-- Global: 100 req/min | Auth: 10 req/min | Moves: 60 req/min | Admin: 30 req/min
-- Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-- Fail-open on Redis errors
-
-### Turn Timer
-- `TurnTimer` in `server/internal/runtime/turn_timer.go`
-- Started when a game session is created, reset after every move
-- Penalty configured per game in `game_configs` table: `lose_turn` or `lose_game`
-- Broadcasts `game_over` or `move_applied` via WebSocket on timeout
-- **No persistence** — server restart mid-game loses all active timers. Sessions with `finished_at = NULL` should reschedule on startup (not yet implemented)
-
-### React Query
-- `QueryClient` in `frontend/src/queryClient.ts`
-- Key factory: `keys.rooms()`, `keys.session(id)`, `keys.leaderboard()`, etc.
-- WebSocket events update cache directly via `qc.setQueryData` — no refetch needed
-- `Game.tsx` also polls every 3s as a fallback for missed WS events — polling stops when `finished_at` is set
-- Zustand retained only for authenticated player global state and socket instance
-
-### GET /sessions/:id Response Shape
-Returns `{ session, state, result }` where `result` is non-null only when `finished_at` is set.
-Used by `Game.tsx` on mount and on polling to detect game-over state without relying on WS.
-
----
-
-## Database Migrations
-
-| File | Description |
-|------|-------------|
-| `001_initial.sql` | Core tables: players, rooms, room_players, game_sessions, moves |
-| `002_roles.sql` | `player_role` enum, roles on players and allowed_emails |
-| `003_turn_timeout.sql` | `game_configs` table, `turn_timeout_secs` + `last_move_at` on game_sessions |
-
----
-
-## Key Files
-
-### Backend
-| File | Purpose |
-|------|---------|
-| `internal/store/store.go` | All models and Store interface |
-| `internal/store/pg_store.go` | PostgreSQL implementation |
-| `internal/auth/middleware.go` | JWT validation, role injection into context |
-| `internal/auth/test_auth.go` | Test-only login bypass |
-| `internal/api/api.go` | All HTTP routes and handlers |
-| `internal/lobby/lobby.go` | Room lifecycle: create, join, leave, start |
-| `internal/runtime/runtime.go` | Move validation, application, game-over detection |
-| `internal/runtime/turn_timer.go` | Per-session turn countdown, timeout penalty |
-| `internal/ratelimit/ratelimit.go` | Redis sliding window rate limiter |
-| `internal/ws/hub.go` | WebSocket hub, broadcast by room |
-| `cmd/seed/main.go` | Owner bootstrap — waits for first login then promotes |
-| `cmd/seed-test/main.go` | Creates two test players, prints JSON with IDs |
-
-### Frontend
-| File | Purpose |
-|------|---------|
-| `src/main.tsx` | App entry, `QueryClientProvider` wrapper |
-| `src/queryClient.ts` | Shared `QueryClient` + key factory |
-| `src/store.ts` | Zustand — authenticated player + global RoomSocket instance |
-| `src/api.ts` | All API functions, typed responses |
-| `src/ws.ts` | `RoomSocket` with connection status events |
-| `src/App.tsx` | Routes, `RequireAuth`, `RequireRole`, `ErrorBoundary` |
-| `src/pages/Lobby.tsx` | Room list, create/join — uses React Query |
-| `src/pages/Room.tsx` | Waiting room, WS connection banner |
-| `src/pages/Game.tsx` | Game board, moves — uses React Query + WS |
-| `src/pages/Admin.tsx` | Email whitelist + player role management + observability iframes |
-
-### Infra
-| File | Purpose |
-|------|---------|
-| `infra/caddy/Caddyfile` | Reverse proxy, security headers, WS upgrade |
-| `docker-compose.yml` | All services: server, frontend, postgres, redis, caddy, grafana, jaeger, prometheus |
-
-### Testing
-| File | Purpose |
-|------|---------|
-| `frontend/playwright.config.ts` | Playwright config, setup project for auth |
-| `frontend/tests/e2e/auth.setup.ts` | Creates `.auth/player1.json` and `.auth/player2.json` |
-| `frontend/tests/e2e/lobby.spec.ts` | Lobby: load, create room, two players join |
-| `frontend/tests/e2e/game.spec.ts` | Full TicTacToe game + timeout test |
-
----
-
-## Makefile Commands
-
-```bash
-make up           # start in dev mode
-make up-test      # start with TEST_MODE=true (required for Playwright)
-make down         # stop containers
-make seed         # bootstrap owner (OWNER_EMAIL=... make seed)
-make seed-test    # create test players → frontend/tests/e2e/.players.json
-make test         # run Playwright tests
-make test-ui      # Playwright UI mode
-make clean-test   # remove test fixtures and auth state
-make clean        # stop containers and wipe DB volumes
+```
+Browser → Caddy (:80) → frontend (nginx :3000)
+                      → game-server (:8080)
+                           ├── /api/v1/*     HTTP handlers
+                           ├── /auth/*       GitHub OAuth
+                           └── /ws/rooms/:id WebSocket hub
 ```
 
-### Full test workflow
+**WebSocket flow:** One socket per room, opened in `Room.tsx`, kept alive through `Room → Game` navigation via Zustand store. Closed only when `leaveRoom()` is called.
+
+**State management:** Zustand holds `player`, `socket`, and `pendingRematch`. React Query manages server state (sessions, rooms, leaderboard).
+
+**Navigation from WS events:** Use `RematchNavigator` component in `App.tsx` that watches `pendingRematch` in Zustand and calls `navigate()` from within the React tree — never call `navigate()` directly from a socket handler.
+
+---
+
+## What Was Implemented (This Session)
+
+### Socket Leak Fix
+- `leaveRoom()` now called before every navigation away from Room/Game pages
+- Closes the WebSocket cleanly
+
+### Surrender Flow
+- `POST /api/v1/sessions/:id/surrender` — records forfeit, opponent wins
+- `SurrenderModal` component with confirm/cancel
+- `← Lobby` button mid-game opens modal; post-game navigates directly
+
+### Rematch Flow
+- `POST /api/v1/sessions/:id/rematch` — vote system, creates new session when all vote
+- `rematch_vote` WS event updates vote counter for non-voting player
+- `rematch_started` WS event carries new session ID + vote counts
+- Navigation via `setPendingRematch` → `RematchNavigator` in `App.tsx`
+- State reset on `sessionId` change via `useEffect([sessionId])`
+
+### Room Ownership Transfer
+- `LeaveRoom` in `lobby.go` now returns `LeaveResult{NewOwnerID, RoomClosed}`
+- If owner leaves and others remain: `UpdateRoomOwner` to earliest `joined_at`
+- If last player leaves: `DeleteRoom` (marks room as `finished`, clears players)
+- WS events: `owner_changed` (with `owner_id`) and `room_closed`
+- `Room.tsx` handles both events: updates `ownerId` state, refreshes view, redirects on close
+- `RoomView.players` now returns `[]RoomViewPlayer` (full Player fields + seat + joined_at) instead of `[]RoomPlayer`
+
+### Room Cleanup After Game Ends
+- `ApplyMove`, `Surrender`, and `TurnTimer.applyLoseGame` now call `UpdateRoomStatus(finished)` after `FinishSession`
+- Finished rooms no longer appear in `ListWaitingRooms`
+
+### Rate Limiting in Tests
+- `TEST_MODE=true` env var disables Redis rate limiter in game-server
+- `VITE_TEST_MODE=true` build arg enables `/test/error` route in frontend
+
+### Test Infrastructure
+- Shared helpers extracted to `frontend/tests/e2e/helpers.ts`: `createPlayerContexts`, `setupAndStartGame`, `playFullGame`, `PLAYER1_STATE`, `PLAYER2_STATE`
+- Playwright projects split: `game-tests` → `leaderboard-tests` (sequential dependency), `chromium-parallel` (auth tests, parallel), 2 workers
+
+### New E2E Tests Added
+- `game.spec.ts`: rematch, surrender, back to lobby, occupied cell disabled
+- `lobby.spec.ts`: player leaving disables start, owner transfer, last player closes room, room disappears after game
+- `leaderboard.spec.ts`: wins increment after completed game
+- `auth.spec.ts`: unauthenticated redirect, admin access denied, error boundary
+- `spectator.spec.ts`: fully commented, blocked pending feature
+
+### Bug Fixes
+- `ErrorBoundary` moved inside `BrowserRouter` so navigate works correctly
+- `data-testid="leaderboard-row"` added to `<tr>` in `LeaderboardTable`
+- `data-testid="player-username"` added to username span in Lobby header
+- `data-testid="leaderboard-table"` already present, `leaderboard-row` was missing
+- CSP updated in Caddyfile: added `fonts.googleapis.com` to `style-src`, `fonts.gstatic.com` to `font-src`
+
+---
+
+## Current Test Status
+
+**20 tests, all passing.**
+
+Projects:
+- `setup` → `game-tests` (game.spec + lobby.spec, serial)
+- `game-tests` → `leaderboard-tests` (serial dependency)
+- `setup` → `chromium-parallel` (auth.spec, parallel)
+
+Run tests:
 ```bash
-make up-test
-make seed-test
+make down && make up-test
+docker compose exec game-server /bin/seed-test > frontend/tests/e2e/.players.json
 make test
 ```
 
 ---
 
-## Pending Work
+## Backlog (Prioritized)
 
-### Features
-- [ ] **Rematch flow** — backend ready (`UpsertRematchVote`, `ListRematchVotes`), no frontend UI
-- [ ] **Spectator mode** — store methods exist, no endpoints or UI
-- [ ] **JWT session revocation** — no way to invalidate active sessions on logout
-- [ ] **sessionStorage cache for player** — avoid `/auth/me` round-trip on every refresh
-- [ ] **Chat** — see notes below
+### In Progress / Next Up
+1. **First mover policy** — configurable per room: `random`, `fixed` (seat 0), `winner_first`, `loser_first`, `winner_chooses`, `loser_chooses`. Affects `StartGame` and `VoteRematch` in lobby.go. Frontend needs UI in Room.tsx to expose choice when policy is `winner_chooses`.
+
+2. **Spectator mode** — `spectator_links` table exists, `CreateSpectatorLink`/`GetSpectatorLink` in store, `allow_spectators bool` on Room. Missing: HTTP endpoints, WS spectator channel, frontend UI. Test file exists at `spectator.spec.ts` (fully commented).
+
+3. **In-game chat** — no backend or frontend yet. Likely a new WS event type `chat_message` with payload `{player_id, text, timestamp}`.
+
+4. **Friends list** — no backend or frontend yet. Requires a new `friendships` table, invite flow, and lobby UI.
 
 ### Known Issues
-- [ ] `leaveRoom()` in Zustand is never called — socket stays open when user navigates back to lobby. Should be called from the "Back to Lobby" button in `Game.tsx` and the "Leave" button in `Room.tsx`
-- [ ] `TurnTimer` has no persistence — server restart mid-game loses all active timers. On startup, sessions with `finished_at = NULL` and a configured timeout should be rescheduled
-- [ ] Page refresh on `/game/:id` reconnects correctly but loses the connection banner state (always shows "connecting" briefly even if socket connects immediately)
-- [ ] Turn timeout Playwright test is sensitive to `game_configs.default_timeout_secs` — currently 30s in DB, test timeout set to 35s to accommodate
+- `TurnTimer` has no persistence — server restart mid-game loses active timers
+- Page refresh on `/game/:id` shows "Connecting..." banner briefly even if socket connects immediately
+- Reconnection test not written yet — blocked by the banner flash issue
 
-### Production Hardening
-- [ ] DB backups
-- [ ] Watchtower rollback strategy
-- [ ] Health check endpoints
-- [ ] Observability iframes — Grafana works via subpath; Jaeger v2 has limited subpath support, recommend external links
-
-### Testing — Next Playwright Scenarios
-- [ ] **Player wins a game** — assert winner sees "You won!" and loser sees "You lost." with correct CSS class applied (currently covered only via the full game test, but worth isolating)
-- [ ] **Player leaves room before game starts** — P2 joins, then leaves; P1's start button should become disabled again and player count should update
-- [ ] **Reconnection during game** — simulate P1 going offline briefly (close/reopen page), assert game state is restored correctly and moves can resume
-- [ ] **Invalid move** — attempt to click an already-filled cell; assert error message appears and turn does not advance
-- [ ] **Back to Lobby button** — after game ends, click "Back to Lobby", assert redirect to `/` and socket is closed (`leaveRoom` fix required first)
-- [ ] **Rematch flow** — once frontend UI is built, test both players voting for rematch and a new game starting
+### Cosmetic / Low Priority
+- CSP violation for Google Fonts appears in Playwright logs (fixed in Caddy, may still show in some contexts)
+- Open rooms don't disappear from lobby in real time when a game starts — they disappear on the next 10s poll
 
 ---
 
-## Chat — Design Notes
+## Key Files Reference
 
-The WebSocket infrastructure already supports adding chat with minimal backend changes.
-
-**Decision needed first:** ephemeral (WS only, no persistence) vs persistent (stored in `chat_messages` table, loaded on join). Ephemeral is significantly simpler for an MVP.
-
-**Backend changes needed:**
-- Add `EventType = "chat_message"` to `ws/hub.go`
-- `readPump` in `ws/client.go` currently discards all incoming client messages — needs to parse and re-broadcast chat messages
-- Optional: `POST /rooms/:id/chat` endpoint if server-side validation or persistence is needed
-
-**Frontend changes needed:**
-- Subscribe to `chat_message` events in the global socket
-- Chat state can live in Zustand (persists across Room→Game) or local to a shared layout component
-- UI: input + scrollable message list, shown in both `Room.tsx` and `Game.tsx`
+| File | Purpose |
+|------|---------|
+| `internal/lobby/lobby.go` | Room lifecycle: create, join, leave, start, ownership transfer |
+| `internal/runtime/runtime.go` | Move validation, game over, surrender, rematch voting |
+| `internal/runtime/turn_timer.go` | Per-session turn countdown, timeout penalties |
+| `internal/ws/hub.go` | WebSocket hub, broadcast, event type constants |
+| `internal/api/api.go` | HTTP handlers, routes |
+| `internal/store/store.go` | Store interface + all models |
+| `frontend/src/store.ts` | Zustand: player, socket, pendingRematch |
+| `frontend/src/pages/Game.tsx` | Game UI, socket events, rematch, surrender |
+| `frontend/src/pages/Room.tsx` | Room UI, socket events, ownership |
+| `frontend/src/App.tsx` | Routes, ErrorBoundary, RematchNavigator |
+| `frontend/tests/e2e/helpers.ts` | Shared test helpers |
 
 ---
 
-## Notes for Next Session
+## Code Style Guidelines
 
-- `game_configs` is seeded in migration `003` with `default_timeout_secs = 30` for tictactoe. The Playwright timeout test uses a 35s assertion timeout to accommodate this. Do not lower it without updating the test.
-- `GameRenderer` in `Game.tsx` is a switch on `game_id` — add new cases there for new game renderers.
-- `ws.ts` event types `ws_connected`, `ws_reconnecting`, `ws_disconnected` are client-only and never sent by the server.
-- For new games, insert a row in `game_configs` matching the `game.ID()` return value, then add a case to `GameRenderer`.
-- The global socket pattern: `joinRoom(roomId)` → Zustand stores `RoomSocket` → both `Room.tsx` and `Game.tsx` read from store. Cleanup via `leaveRoom()` is not yet wired to navigation events.
+**Go:**
+- Errors wrapped with `fmt.Errorf("FunctionName: context: %w", err)`
+- Store methods are thin — no business logic, just SQL
+- Business logic lives in `lobby.go` or `runtime.go`
+- New WS event types added as constants in `hub.go`
+- HTTP handlers are standalone functions `func handleX(dep1, dep2) http.HandlerFunc`
+- Soft deletes preferred over hard deletes for auditing; use `finished` status for rooms/sessions
+
+**TypeScript/React:**
+- All code and comments in English
+- CSS Modules for component styles, global utility classes in `global.css`
+- `data-testid` on every interactive or observable element
+- Never call `navigate()` from a WebSocket event handler — use `setPendingRematch` pattern or similar Zustand state, handled by a always-mounted navigator component
+- State that depends on `sessionId` must reset via `useEffect([sessionId])`
+- Socket cleanup: always return `() => off()` from useEffect, never `() => off`
+- React Query for server state, Zustand for client/socket state — don't mix
+
+**Tests:**
+- Shared helpers in `helpers.ts`, never import from other spec files
+- Every new interactive element needs a `data-testid`
+- Use `toPass({ timeout })` for async DOM polling, never `waitForTimeout` unless polling an external system (e.g. lobby 10s poll)
+- Tests use pre-seeded players from `seed-test` — always run `make seed-test` before `make test` in a fresh environment
+- Rematch and reconnection tests require `--headed --debug` for investigation
