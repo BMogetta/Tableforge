@@ -80,26 +80,75 @@ test.describe('TicTacToe game', () => {
     // P2 receives the rematch_vote WS event — their button stays enabled.
     await expect(p2.getByTestId('rematch-btn')).toBeEnabled()
 
-    // P2 votes. Both players have now voted, so the server creates a new session
-    // and broadcasts rematch_started — both pages should navigate to a new game URL.
+    // P2 votes. Both players have now voted — the server resets the room to
+    // waiting and broadcasts rematch_ready. Both clients navigate to /rooms/:id.
     await p2.getByTestId('rematch-btn').click()
 
-    // Wait for P1 to navigate away from the finished session.
-    // RematchNavigator in App.tsx handles the navigate — give it time to fire.
     await expect(p1).not.toHaveURL(p1GameUrl, { timeout: 15_000 })
+    await expect(p1).toHaveURL(/\/rooms\//, { timeout: 10_000 })
+    await expect(p2).toHaveURL(/\/rooms\//, { timeout: 10_000 })
+
+    // Both players should be in the same room (same URL).
+    expect(p1.url()).toBe(p2.url())
+
+    // The room should be back in waiting state — owner sees the start button
+    // (disabled until both players are present, which they already are).
+    await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
+
+    await p1Ctx.close()
+    await p2Ctx.close()
+  })
+
+  test('rematch full flow: vote, return to lobby, start second game', async ({ browser }) => {
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+
+    // Use fixed policy so p1 always goes first — deterministic assertions.
+    await p1.goto('/')
+    await p2.goto('/')
+    await p1.getByTestId('create-room-btn').click()
+    await expect(p1).toHaveURL(/\/rooms\//)
+
+    const roomId = p1.url().split('/rooms/')[1]
+    const code = await p1.getByTestId('room-code').textContent()
+    const player1Id = process.env.TEST_PLAYER1_ID!
+
+    await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
+      data: { player_id: player1Id, value: 'fixed' },
+    })
+    await p1.request.put(`/api/v1/rooms/${roomId}/settings/rematch_first_mover_policy`, {
+      data: { player_id: player1Id, value: 'fixed' },
+    })
+
+    await p2.getByTestId('join-code-input').fill(code!)
+    await p2.getByTestId('join-btn').click()
+    await expect(p2).toHaveURL(/\/rooms\//)
+    await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
+    await p1.getByTestId('start-game-btn').click()
+
     await expect(p1).toHaveURL(/\/game\//)
-    await expect(p2).not.toHaveURL(p1GameUrl, { timeout: 15_000 })
-    await expect(p2).toHaveURL(/\/game\//)
+    await expect(p2).toHaveURL(/\/game\//, { timeout: 10_000 })
 
-    // The new game URL must differ from the original session — a fresh session
-    // was created, not a reload of the finished one.
-    expect(p1.url()).not.toBe(p1GameUrl)
+    // Play the first game — P1 wins.
+    await playFullGame(p1, p2)
+    await expect(p1.getByTestId('game-status')).toContainText('You won', { timeout: 10_000 })
+    await expect(p2.getByTestId('game-status')).toContainText('You lost', { timeout: 10_000 })
 
-    // Both players should be in an active game state, not a game-over state.
-    const p1Status = await p1.getByTestId('game-status').textContent({ timeout: 10_000 })
-    const p2Status = await p2.getByTestId('game-status').textContent({ timeout: 10_000 })
-    expect(['Your turn', "Opponent's turn"]).toContain(p1Status?.trim())
-    expect(['Your turn', "Opponent's turn"]).toContain(p2Status?.trim())
+    // Both vote for rematch — return to lobby.
+    await p1.getByTestId('rematch-btn').click()
+    await p2.getByTestId('rematch-btn').click()
+    await expect(p1).toHaveURL(/\/rooms\//, { timeout: 15_000 })
+    await expect(p2).toHaveURL(/\/rooms\//, { timeout: 10_000 })
+
+    // Owner starts the second game from the lobby.
+    await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
+    await p1.getByTestId('start-game-btn').click()
+
+    await expect(p1).toHaveURL(/\/game\//)
+    await expect(p2).toHaveURL(/\/game\//, { timeout: 10_000 })
+
+    // rematch_first_mover_policy is 'fixed' (seat 0) — p1 goes first again.
+    await expect(p1.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
+    await expect(p2.getByTestId('game-status')).not.toContainText('Your turn', { timeout: 10_000 })
 
     await p1Ctx.close()
     await p2Ctx.close()

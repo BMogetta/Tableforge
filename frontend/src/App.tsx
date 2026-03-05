@@ -1,5 +1,5 @@
 import { useEffect, useState, Component, type ReactNode } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAppStore } from './store'
 import { auth } from './api'
 import Login from './pages/Login'
@@ -104,23 +104,6 @@ function RequireRole({ role, children }: { role: 'manager' | 'owner'; children: 
   return <>{children}</>
 }
 
-// --- Navigation helper ----------------------------------------------------------
-
-function RematchNavigator() {
-  const pendingRematch = useAppStore((s) => s.pendingRematch)
-  const setPendingRematch = useAppStore((s) => s.setPendingRematch)
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (pendingRematch) {
-      setPendingRematch(null)
-      navigate(`/game/${pendingRematch}`)
-    }
-  }, [pendingRematch, navigate, setPendingRematch])
-
-  return null
-}
-
 // --- App ---------------------------------------------------------------------
 
 export default function App() {
@@ -139,7 +122,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <RematchNavigator />
         <Routes>
           <Route path="/login" element={player ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/" element={<RequireAuth><Lobby /></RequireAuth>} />

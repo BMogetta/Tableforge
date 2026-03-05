@@ -7,11 +7,14 @@ interface AppState {
   setPlayer: (p: Player | null) => void
 
   socket: RoomSocket | null
-  joinRoom: (roomId: string) => void
+  /**
+   * Opens a WebSocket connection for the given room.
+   * @param roomId  The room UUID — used to identify the active room.
+   * @param wsUrl   Full WebSocket URL (including player_id query param).
+   *                Build this with wsRoomUrl() from api.ts.
+   */
+  joinRoom: (roomId: string, wsUrl: string) => void
   leaveRoom: () => void
-
-  pendingRematch: string | null
-  setPendingRematch: (sessionId: string | null) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -19,10 +22,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPlayer: (player) => set({ player }),
 
   socket: null,
-  joinRoom: (roomId: string) => {
+  joinRoom: (roomId: string, wsUrl: string) => {
     // Close existing socket if switching rooms.
     get().socket?.close()
-    const socket = new RoomSocket(roomId)
+    const socket = new RoomSocket(wsUrl)
     socket.connect()
     set({ socket })
   },
@@ -30,6 +33,4 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().socket?.close()
     set({ socket: null })
   },
-  pendingRematch: null,
-  setPendingRematch: (sessionId) => set({ pendingRematch: sessionId }),
 }))

@@ -48,10 +48,12 @@ type Room struct {
 	Status          RoomStatus `json:"status"`
 	MaxPlayers      int        `json:"max_players"`
 	TurnTimeoutSecs *int       `json:"turn_timeout_secs,omitempty"`
-	AllowSpectators bool       `json:"allow_spectators"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	DeletedAt       *time.Time `json:"deleted_at,omitempty"`
+	// AllowSpectators was removed from this struct — spectator permission is
+	// now controlled via the allow_spectators room_setting (see engine.DefaultLobbySettings).
+	// The DB column still exists and can be dropped in a future migration.
 }
 
 type RoomPlayer struct {
@@ -59,6 +61,15 @@ type RoomPlayer struct {
 	PlayerID uuid.UUID `json:"player_id"`
 	Seat     int       `json:"seat"`
 	JoinedAt time.Time `json:"joined_at"`
+}
+
+// RoomSetting is a single key/value setting for a room.
+// Settings are stored in the room_settings table and scoped to a room.
+type RoomSetting struct {
+	RoomID    uuid.UUID `json:"room_id"`
+	Key       string    `json:"key"`
+	Value     string    `json:"value"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type GameSession struct {
@@ -77,6 +88,7 @@ type GameSession struct {
 	FinishedAt      *time.Time `json:"finished_at,omitempty"`
 	DeletedAt       *time.Time `json:"deleted_at,omitempty"`
 }
+
 type Move struct {
 	ID         uuid.UUID `json:"id"`
 	SessionID  uuid.UUID `json:"session_id"`
@@ -141,6 +153,10 @@ type GameResultPlayer struct {
 	Outcome  string    `json:"outcome"`
 }
 
+// SpectatorLink is retained for backwards compatibility with existing data.
+// Deprecated: spectator access is now controlled via the allow_spectators
+// room_setting. The spectator_links table and these methods will be removed
+// in a future migration once the old token-based flow is fully retired.
 type SpectatorLink struct {
 	Token     string    `json:"token"`
 	RoomID    uuid.UUID `json:"room_id"`
@@ -184,6 +200,14 @@ type Store interface {
 	UpdateRoomOwner(ctx context.Context, roomID, newOwnerID uuid.UUID) error
 	DeleteRoom(ctx context.Context, roomID uuid.UUID) error
 
+	// Room settings
+	// GetRoomSettings returns all settings for a room as a key/value map.
+	GetRoomSettings(ctx context.Context, roomID uuid.UUID) (map[string]string, error)
+	// SetRoomSetting upserts a single setting for a room.
+	// The caller (lobby.validateSetting) is responsible for validating the key and value
+	// before calling this method.
+	SetRoomSetting(ctx context.Context, roomID uuid.UUID, key, value string) error
+
 	// Room players
 	AddPlayerToRoom(ctx context.Context, roomID, playerID uuid.UUID, seat int) error
 	RemovePlayerFromRoom(ctx context.Context, roomID, playerID uuid.UUID) error
@@ -202,6 +226,12 @@ type Store interface {
 	SoftDeleteSession(ctx context.Context, id uuid.UUID) error
 	GetGameConfig(ctx context.Context, gameID string) (GameConfig, error)
 	TouchLastMoveAt(ctx context.Context, sessionID uuid.UUID) error
+	// CountFinishedSessions returns the number of completed sessions for a room.
+	// Used by lobby.StartGame to detect rematches and apply rematch_first_mover_policy.
+	CountFinishedSessions(ctx context.Context, roomID uuid.UUID) (int, error)
+	// GetLastFinishedSession returns the most recently finished session for a room.
+	// Returns an error if no finished session exists.
+	GetLastFinishedSession(ctx context.Context, roomID uuid.UUID) (GameSession, error)
 
 	// Moves
 	RecordMove(ctx context.Context, params RecordMoveParams) (Move, error)
@@ -220,7 +250,9 @@ type Store interface {
 	GetLeaderboard(ctx context.Context, gameID string, limit int) ([]LeaderboardEntry, error)
 	ListPlayerHistory(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]GameResult, error)
 
-	// Spectators
+	// Spectator links — Deprecated: use allow_spectators room_setting instead.
+	// These methods are retained for backwards compatibility and will be removed
+	// once the spectator_links table is dropped.
 	CreateSpectatorLink(ctx context.Context, roomID, createdBy uuid.UUID) (SpectatorLink, error)
 	GetSpectatorLink(ctx context.Context, token string) (SpectatorLink, error)
 
@@ -238,7 +270,12 @@ type CreateRoomParams struct {
 	OwnerID         uuid.UUID
 	MaxPlayers      int
 	TurnTimeoutSecs *int
-	AllowSpectators bool
+	// DefaultSettings is a map of key/value pairs to insert into room_settings
+	// when the room is created. Populated by lobby.Service from engine.DefaultLobbySettings()
+	// merged with any game-specific settings from engine.LobbySettingsProvider.
+	DefaultSettings map[string]string
+	// AllowSpectators was removed — spectator permission is now controlled via
+	// the allow_spectators room_setting. Field removed from params accordingly.
 }
 
 type RecordMoveParams struct {

@@ -228,22 +228,54 @@ func (s *PGStore) SetPlayerRole(ctx context.Context, playerID uuid.UUID, role Pl
 
 // --- Rooms -------------------------------------------------------------------
 
+// CreateRoom inserts a new room and its default settings in a single transaction.
+// The default settings are provided by the caller via params.DefaultSettings —
+// lobby.Service populates this from engine.DefaultLobbySettings() merged with
+// any game-specific settings from engine.LobbySettingsProvider.
+// Note: allow_spectators is now a room_setting, not a column — it is included
+// in params.DefaultSettings and inserted with the rest of the settings below.
 func (s *PGStore) CreateRoom(ctx context.Context, params CreateRoomParams) (Room, error) {
-	row := s.pool.QueryRow(ctx,
-		`INSERT INTO rooms (code, game_id, owner_id, max_players, turn_timeout_secs, allow_spectators)
-		 VALUES ($1, $2, $3, $4, $5, $6)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Room{}, fmt.Errorf("CreateRoom: begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	row := tx.QueryRow(ctx,
+		`INSERT INTO rooms (code, game_id, owner_id, max_players, turn_timeout_secs)
+		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, code, game_id, owner_id, status, max_players,
-		           turn_timeout_secs, allow_spectators, created_at, updated_at, deleted_at`,
+		           turn_timeout_secs, created_at, updated_at, deleted_at`,
 		params.Code, params.GameID, params.OwnerID, params.MaxPlayers,
-		params.TurnTimeoutSecs, params.AllowSpectators,
+		params.TurnTimeoutSecs,
 	)
-	return scanRoom(row)
+	room, err := scanRoom(row)
+	if err != nil {
+		return Room{}, fmt.Errorf("CreateRoom: insert room: %w", err)
+	}
+
+	for key, value := range params.DefaultSettings {
+		_, err := tx.Exec(ctx,
+			`INSERT INTO room_settings (room_id, key, value)
+			 VALUES ($1, $2, $3)`,
+			room.ID, key, value,
+		)
+		if err != nil {
+			return Room{}, fmt.Errorf("CreateRoom: insert setting %q: %w", key, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return Room{}, fmt.Errorf("CreateRoom: commit: %w", err)
+	}
+
+	return room, nil
 }
 
 func (s *PGStore) GetRoom(ctx context.Context, id uuid.UUID) (Room, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, code, game_id, owner_id, status, max_players,
-		        turn_timeout_secs, allow_spectators, created_at, updated_at, deleted_at
+		        turn_timeout_secs, created_at, updated_at, deleted_at
 		 FROM rooms WHERE id = $1 AND deleted_at IS NULL`,
 		id,
 	)
@@ -253,7 +285,7 @@ func (s *PGStore) GetRoom(ctx context.Context, id uuid.UUID) (Room, error) {
 func (s *PGStore) GetRoomByCode(ctx context.Context, code string) (Room, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, code, game_id, owner_id, status, max_players,
-		        turn_timeout_secs, allow_spectators, created_at, updated_at, deleted_at
+		        turn_timeout_secs, created_at, updated_at, deleted_at
 		 FROM rooms WHERE code = $1 AND deleted_at IS NULL`,
 		code,
 	)
@@ -274,7 +306,7 @@ func (s *PGStore) UpdateRoomStatus(ctx context.Context, id uuid.UUID, status Roo
 func (s *PGStore) ListWaitingRooms(ctx context.Context) ([]Room, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, code, game_id, owner_id, status, max_players,
-		        turn_timeout_secs, allow_spectators, created_at, updated_at, deleted_at
+		        turn_timeout_secs, created_at, updated_at, deleted_at
 		 FROM rooms WHERE status = 'waiting' AND deleted_at IS NULL
 		 ORDER BY created_at DESC`,
 	)
@@ -301,6 +333,48 @@ func (s *PGStore) SoftDeleteRoom(ctx context.Context, id uuid.UUID) error {
 	)
 	if err != nil {
 		return fmt.Errorf("SoftDeleteRoom: %w", err)
+	}
+	return nil
+}
+
+// --- Room settings -----------------------------------------------------------
+
+// GetRoomSettings returns all settings for a room as a key/value map.
+// Returns an empty map if the room has no settings.
+func (s *PGStore) GetRoomSettings(ctx context.Context, roomID uuid.UUID) (map[string]string, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT key, value FROM room_settings WHERE room_id = $1`,
+		roomID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetRoomSettings: %w", err)
+	}
+	defer rows.Close()
+
+	settings := make(map[string]string)
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return nil, fmt.Errorf("GetRoomSettings scan: %w", err)
+		}
+		settings[key] = value
+	}
+	return settings, rows.Err()
+}
+
+// SetRoomSetting upserts a single setting for a room.
+// The caller is responsible for validating the key and value before calling this.
+func (s *PGStore) SetRoomSetting(ctx context.Context, roomID uuid.UUID, key, value string) error {
+	_, err := s.pool.Exec(ctx,
+		`INSERT INTO room_settings (room_id, key, value)
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (room_id, key) DO UPDATE
+		   SET value      = EXCLUDED.value,
+		       updated_at = NOW()`,
+		roomID, key, value,
+	)
+	if err != nil {
+		return fmt.Errorf("SetRoomSetting: %w", err)
 	}
 	return nil
 }
@@ -368,7 +442,7 @@ func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameI
 func (s *PGStore) GetGameSession(ctx context.Context, id uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, room_id, game_id, state, move_count,
-		        suspend_count, suspended_at, suspended_reason,  turn_timeout_secs, last_move_at,
+		        suspend_count, suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
 		        started_at, finished_at, deleted_at
 		 FROM game_sessions WHERE id = $1 AND deleted_at IS NULL`,
 		id,
@@ -402,7 +476,7 @@ func (s *PGStore) GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameR
 func (s *PGStore) GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, room_id, game_id, name, state, move_count,
-		        suspend_count, suspended_at, suspended_reason,  turn_timeout_secs, last_move_at,
+		        suspend_count, suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
 		        started_at, finished_at, deleted_at
 		 FROM game_sessions
 		 WHERE room_id = $1 AND finished_at IS NULL AND deleted_at IS NULL
@@ -532,6 +606,37 @@ func (s *PGStore) TouchLastMoveAt(ctx context.Context, sessionID uuid.UUID) erro
 		sessionID,
 	)
 	return err
+}
+
+// CountFinishedSessions returns the number of completed sessions for a room.
+// Used by lobby.StartGame to detect rematches and apply rematch_first_mover_policy.
+func (s *PGStore) CountFinishedSessions(ctx context.Context, roomID uuid.UUID) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM game_sessions
+		 WHERE room_id = $1 AND finished_at IS NOT NULL AND deleted_at IS NULL`,
+		roomID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("CountFinishedSessions: %w", err)
+	}
+	return count, nil
+}
+
+// GetLastFinishedSession returns the most recently finished session for a room.
+// Returns an error if no finished session exists.
+func (s *PGStore) GetLastFinishedSession(ctx context.Context, roomID uuid.UUID) (GameSession, error) {
+	row := s.pool.QueryRow(ctx,
+		`SELECT id, room_id, game_id, state, move_count,
+		        suspend_count, suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
+		        started_at, finished_at, deleted_at
+		 FROM game_sessions
+		 WHERE room_id = $1 AND finished_at IS NOT NULL AND deleted_at IS NULL
+		 ORDER BY finished_at DESC
+		 LIMIT 1`,
+		roomID,
+	)
+	return scanGameSession(row)
 }
 
 // --- Moves -------------------------------------------------------------------
@@ -789,6 +894,9 @@ func (s *PGStore) ListPlayerHistory(ctx context.Context, playerID uuid.UUID, lim
 }
 
 // --- Spectators --------------------------------------------------------------
+// Deprecated: spectator access is now controlled via the allow_spectators
+// room_setting. These methods are retained for backwards compatibility until
+// the spectator_links table is dropped in a future migration.
 
 func (s *PGStore) CreateSpectatorLink(ctx context.Context, roomID, createdBy uuid.UUID) (SpectatorLink, error) {
 	token, err := generateToken(32)
@@ -890,7 +998,7 @@ func scanRoom(row scanner) (Room, error) {
 	var r Room
 	if err := row.Scan(
 		&r.ID, &r.Code, &r.GameID, &r.OwnerID, &r.Status, &r.MaxPlayers,
-		&r.TurnTimeoutSecs, &r.AllowSpectators, &r.CreatedAt, &r.UpdatedAt, &r.DeletedAt,
+		&r.TurnTimeoutSecs, &r.CreatedAt, &r.UpdatedAt, &r.DeletedAt,
 	); err != nil {
 		return Room{}, fmt.Errorf("scanRoom: %w", err)
 	}

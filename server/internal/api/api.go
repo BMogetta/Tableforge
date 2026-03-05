@@ -1,4 +1,3 @@
-// Package api wires up the HTTP routes and handlers for Tableforge.
 package api
 
 import (
@@ -101,6 +100,7 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 		r.Post("/rooms/join", handleJoinRoom(lobbyService, hub))
 		r.Post("/rooms/{roomID}/leave", handleLeaveRoom(lobbyService, hub))
 		r.Post("/rooms/{roomID}/start", handleStartGame(lobbyService, rt, hub))
+		r.Put("/rooms/{roomID}/settings/{key}", handleUpdateRoomSetting(lobbyService, hub))
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
 		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub))
@@ -122,11 +122,12 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 		})
 	})
 
-	// WebSocket — protected in production, open when authHandler is nil (tests)
-	wsHandler := http.HandlerFunc(ws.Handler(hub))
+	// WebSocket — protected in production, open when authHandler is nil (tests).
+	// The handler receives store.Store to resolve participant vs spectator status.
+	wsHandler := http.HandlerFunc(ws.Handler(hub, st))
 	if authHandler != nil {
 		wsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHandler.Middleware(ws.Handler(hub)).ServeHTTP(w, r)
+			authHandler.Middleware(ws.Handler(hub, st)).ServeHTTP(w, r)
 		})
 	}
 	r.Get("/ws/rooms/{roomID}", wsHandler)
@@ -325,27 +326,44 @@ func handleSetPlayerRole(st store.Store) http.HandlerFunc {
 
 // gameInfo is the public representation of a registered game.
 type gameInfo struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	MinPlayers int    `json:"min_players"`
-	MaxPlayers int    `json:"max_players"`
+	ID         string                `json:"id"`
+	Name       string                `json:"name"`
+	MinPlayers int                   `json:"min_players"`
+	MaxPlayers int                   `json:"max_players"`
+	Settings   []engine.LobbySetting `json:"settings"`
 }
 
-// handleListGames returns all games available in the engine registry.
 func handleListGames(all func() []engine.Game) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		list := all()
 		result := make([]gameInfo, 0, len(list))
 		for _, g := range list {
+			settings := engine.DefaultLobbySettings()
+			if provider, ok := g.(engine.LobbySettingsProvider); ok {
+				for _, s := range provider.LobbySettings() {
+					settings = upsertLobbySetting(settings, s)
+				}
+			}
 			result = append(result, gameInfo{
 				ID:         g.ID(),
 				Name:       g.Name(),
 				MinPlayers: g.MinPlayers(),
 				MaxPlayers: g.MaxPlayers(),
+				Settings:   settings,
 			})
 		}
 		writeJSON(w, http.StatusOK, result)
 	}
+}
+
+func upsertLobbySetting(settings []engine.LobbySetting, s engine.LobbySetting) []engine.LobbySetting {
+	for i, existing := range settings {
+		if existing.Key == s.Key {
+			settings[i] = s
+			return settings
+		}
+	}
+	return append(settings, s)
 }
 
 // GET /api/v1/players/{playerID}/sessions
@@ -502,17 +520,13 @@ func handleLeaveRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 		}
 
 		if result.RoomClosed {
-			hub.Broadcast(roomID, ws.Event{
-				Type:    ws.EventRoomClosed,
-				Payload: nil,
-			})
+			hub.Broadcast(roomID, ws.Event{Type: ws.EventRoomClosed, Payload: nil})
 		} else if result.NewOwnerID != nil {
 			hub.Broadcast(roomID, ws.Event{
 				Type:    ws.EventOwnerChanged,
 				Payload: map[string]any{"owner_id": result.NewOwnerID},
 			})
 		} else {
-			// Non-owner left, no ownership change — just notify players.
 			hub.Broadcast(roomID, ws.Event{
 				Type:    ws.EventPlayerLeft,
 				Payload: map[string]string{"player_id": playerID.String()},
@@ -553,7 +567,6 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 			return
 		}
 
-		// Schedule the initial turn timer for the new session.
 		rt.StartSession(session)
 
 		hub.Broadcast(roomID, ws.Event{
@@ -563,6 +576,50 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 
 		writeJSON(w, http.StatusOK, session)
 		activeSessions.Inc()
+	}
+}
+
+type updateRoomSettingRequest struct {
+	PlayerID string `json:"player_id"`
+	Value    string `json:"value"`
+}
+
+func handleUpdateRoomSetting(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid room id")
+			return
+		}
+		key := chi.URLParam(r, "key")
+		if key == "" {
+			writeError(w, http.StatusBadRequest, "setting key is required")
+			return
+		}
+
+		var req updateRoomSettingRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		playerID, err := uuid.Parse(req.PlayerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		if err := svc.UpdateRoomSetting(r.Context(), roomID, playerID, key, req.Value); err != nil {
+			writeLobbyError(w, err)
+			return
+		}
+
+		hub.Broadcast(roomID, ws.Event{
+			Type:    ws.EventSettingUpdated,
+			Payload: map[string]any{"key": key, "value": req.Value},
+		})
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
@@ -694,23 +751,18 @@ func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 			return
 		}
 
-		votes, totalPlayers, roomID, newSession, err := rt.VoteRematch(r.Context(), sessionID, playerID)
+		votes, totalPlayers, roomID, rematchReady, err := rt.VoteRematch(r.Context(), sessionID, playerID)
 		if err != nil {
 			writeRuntimeError(w, err)
 			return
 		}
 
-		if newSession != nil {
-			log.Printf("broadcasting rematch_started to room %s, new session %s", roomID, newSession.ID)
+		if rematchReady {
+			log.Printf("rematch ready: room %s returning to lobby", roomID)
 			hub.Broadcast(roomID, ws.Event{
-				Type: ws.EventRematchStarted,
-				Payload: map[string]any{
-					"session":       newSession,
-					"votes":         len(votes),
-					"total_players": totalPlayers,
-				},
+				Type:    ws.EventRematchReady,
+				Payload: map[string]any{"room_id": roomID},
 			})
-			activeSessions.Inc()
 		} else {
 			hub.Broadcast(roomID, ws.Event{
 				Type: ws.EventRematchVote,
@@ -725,7 +777,6 @@ func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"votes":         len(votes),
 			"total_players": totalPlayers,
-			"session":       newSession,
 		})
 	}
 }
@@ -749,7 +800,6 @@ func handleGetSessionHistory(st store.Store) http.HandlerFunc {
 
 // --- Leaderboard -------------------------------------------------------------
 
-// GET /api/v1/leaderboard?game_id=chess&limit=20
 func handleGetLeaderboard(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gameID := r.URL.Query().Get("game_id")
@@ -795,6 +845,10 @@ func writeLobbyError(w http.ResponseWriter, err error) {
 	case errors.Is(err, lobby.ErrNotOwner):
 		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, lobby.ErrNotEnoughPlayer):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, lobby.ErrUnknownSetting):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, lobby.ErrInvalidSettingVal):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, runtime.ErrNotParticipant):
 		writeError(w, http.StatusForbidden, err.Error())

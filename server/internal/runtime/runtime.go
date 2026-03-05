@@ -324,20 +324,22 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 var ErrNotFinished = errors.New("game is not finished yet")
 
 // VoteRematch registers a rematch vote for playerID on the given session.
-// Returns (votes, totalPlayers, roomID, newSession, error).
-// newSession is non-nil only when all players have voted and the rematch session was created.
-func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UUID) ([]store.RematchVote, int, uuid.UUID, *store.GameSession, error) {
+// Returns (votes, totalPlayers, roomID, rematchReady, error).
+// rematchReady is true only when all players have voted. When that happens,
+// the room status is reset to waiting so players return to the lobby to start
+// a new game with the same settings. No new session is created here.
+func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UUID) ([]store.RematchVote, int, uuid.UUID, bool, error) {
 	session, err := svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
-		return nil, 0, uuid.Nil, nil, ErrSessionNotFound
+		return nil, 0, uuid.Nil, false, ErrSessionNotFound
 	}
 	if session.FinishedAt == nil {
-		return nil, 0, uuid.Nil, nil, ErrNotFinished
+		return nil, 0, uuid.Nil, false, ErrNotFinished
 	}
 
 	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
 	if err != nil {
-		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: list players: %w", err)
+		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: list players: %w", err)
 	}
 
 	callerFound := false
@@ -348,65 +350,42 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 		}
 	}
 	if !callerFound {
-		return nil, 0, uuid.Nil, nil, ErrNotParticipant
+		return nil, 0, uuid.Nil, false, ErrNotParticipant
 	}
 
 	if err := svc.store.UpsertRematchVote(ctx, sessionID, playerID); err != nil {
-		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: upsert vote: %w", err)
+		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: upsert vote: %w", err)
 	}
 
 	votes, err := svc.store.ListRematchVotes(ctx, sessionID)
 	if err != nil {
-		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: list votes: %w", err)
+		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: list votes: %w", err)
 	}
 
 	totalPlayers := len(players)
 
+	// Not everyone has voted yet — just report the current vote count.
 	if len(votes) < totalPlayers {
-		return votes, totalPlayers, session.RoomID, nil, nil
+		return votes, totalPlayers, session.RoomID, false, nil
 	}
 
+	// All players voted — clean up votes and reset the room to waiting.
+	// The lobby is responsible for starting a new session when the owner
+	// clicks Start again. Settings are preserved in room_settings.
 	if err := svc.store.DeleteRematchVotes(ctx, sessionID); err != nil {
-		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: delete votes: %w", err)
+		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: delete votes: %w", err)
 	}
 
-	game, err := svc.registry.Get(session.GameID)
-	if err != nil {
-		return nil, 0, uuid.Nil, nil, ErrGameNotFound
-	}
-
-	enginePlayers := make([]engine.Player, len(players))
-	for _, rp := range players {
-		p, err := svc.store.GetPlayer(ctx, rp.PlayerID)
-		if err != nil {
-			return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: get player: %w", err)
-		}
-		enginePlayers[rp.Seat] = engine.Player{
-			ID:       engine.PlayerID(p.ID.String()),
-			Username: p.Username,
-		}
-	}
-
-	initialState, err := game.Init(enginePlayers)
-	if err != nil {
-		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: init game: %w", err)
-	}
-
-	stateJSON, err := json.Marshal(initialState)
-	if err != nil {
-		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: marshal state: %w", err)
-	}
-
-	newSession, err := svc.store.CreateGameSession(ctx, session.RoomID, session.GameID, stateJSON, session.TurnTimeoutSecs)
-	if err != nil {
-		return nil, 0, uuid.Nil, nil, fmt.Errorf("VoteRematch: create session: %w", err)
-	}
-
+	// Cancel any active turn timer before resetting the room.
 	if svc.timer != nil {
-		svc.timer.Schedule(newSession)
+		svc.timer.Cancel(sessionID)
 	}
 
-	return votes, totalPlayers, session.RoomID, &newSession, nil
+	if err := svc.store.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusWaiting); err != nil {
+		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: reset room status: %w", err)
+	}
+
+	return votes, totalPlayers, session.RoomID, true, nil
 }
 
 // --- Helpers -----------------------------------------------------------------

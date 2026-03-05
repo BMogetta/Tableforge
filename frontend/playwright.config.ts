@@ -27,6 +27,12 @@ export default defineConfig({
       testMatch: /\/(game|lobby)\.spec\.ts/,
     },
     {
+      name: 'settings-tests',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testMatch: /\/settings\.spec\.ts/,
+    },
+    {
       name: 'leaderboard-tests',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup', 'game-tests'],

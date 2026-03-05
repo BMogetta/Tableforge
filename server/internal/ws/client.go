@@ -21,14 +21,20 @@ type Client struct {
 	roomID uuid.UUID
 	conn   *websocket.Conn
 	send   chan []byte
+
+	// spectator is true when the client is watching the game but is not a
+	// participant (not in room_players). Spectators receive most events but
+	// are silently excluded from rematch_vote broadcasts.
+	spectator bool
 }
 
-func newClient(hub *Hub, roomID uuid.UUID, conn *websocket.Conn) *Client {
+func newClient(hub *Hub, roomID uuid.UUID, conn *websocket.Conn, spectator bool) *Client {
 	return &Client{
-		hub:    hub,
-		roomID: roomID,
-		conn:   conn,
-		send:   make(chan []byte, 64),
+		hub:       hub,
+		roomID:    roomID,
+		conn:      conn,
+		send:      make(chan []byte, 64),
+		spectator: spectator,
 	}
 }
 

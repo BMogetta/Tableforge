@@ -35,7 +35,6 @@ export default function Game() {
   const [rematchVotes, setRematchVotes] = useState(0)
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [votedRematch, setVotedRematch] = useState(false)
-  const setPendingRematch = useAppStore((s) => s.setPendingRematch)
 
   useEffect(() => {
     setIsOver(false)
@@ -106,16 +105,16 @@ export default function Game() {
         setRematchVotes(payload.votes)
         setTotalPlayers(payload.total_players)
       }
-      if (event.type === 'rematch_started') {
-        const payload = event.payload as { session: { id: string }; votes: number; total_players: number }
-        setRematchVotes(payload.votes)
-        setTotalPlayers(payload.total_players)
-        setPendingRematch(payload.session.id)
+      if (event.type === 'rematch_ready') {
+        // All players voted — navigate back to the lobby.
+        // The room is already in waiting state with settings preserved.
+        const payload = event.payload as { room_id: string }
+        navigate(`/rooms/${payload.room_id}`)
       }
     })
 
     return () => off() // Unsubscribe only — do not close the socket here.
-  }, [socket, sessionId, qc])
+  }, [socket, sessionId, qc, navigate])
 
   const move = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
@@ -146,7 +145,7 @@ export default function Game() {
       setVotedRematch(true)
       setRematchVotes(res.votes)
       setTotalPlayers(res.total_players)
-      // If both players voted, rematch_started WS event handles navigation.
+      // When all players have voted, the rematch_ready WS event handles navigation.
     },
   })
 

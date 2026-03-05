@@ -20,27 +20,37 @@ test('reflects wins and losses after a completed game', async ({ browser }) => {
   const p1Username = await p1.getByTestId('player-username').textContent()
 
   // Baseline wins — if the table doesn't exist yet, player has 0 wins.
-const getWins = async (username: string) => {
-  const tableExists = await p1.getByTestId('leaderboard-table').count()
-  if (!tableExists) return 0
-  const rows = p1.getByTestId('leaderboard-row')
-  const count = await rows.count()
-  for (let i = 0; i < count; i++) {
-    const row = rows.nth(i)
-    const nameCell = await row.locator('td').nth(1).textContent()
-    if (nameCell?.trim() === username?.trim()) {
-      const wins = await row.locator('td').nth(2).textContent()
-      return wins ? parseInt(wins.trim(), 10) : 0
+  const getWins = async (username: string) => {
+    const tableExists = await p1.getByTestId('leaderboard-table').count()
+    if (!tableExists) return 0
+    const rows = p1.getByTestId('leaderboard-row')
+    const count = await rows.count()
+    for (let i = 0; i < count; i++) {
+      const row = rows.nth(i)
+      const nameCell = await row.locator('td').nth(1).textContent()
+      if (nameCell?.trim() === username?.trim()) {
+        const wins = await row.locator('td').nth(2).textContent()
+        return wins ? parseInt(wins.trim(), 10) : 0
+      }
     }
+    return 0
   }
-  return 0
-}
 
   const winsBefore = await getWins(p1Username!)
 
-  // Play a full game — P1 wins top row.
+  // Create room and force first_mover_policy to 'fixed' (seat 0 = P1) before
+  // starting so the move sequence below is always valid regardless of the
+  // room default (which is 'random').
   await p1.getByTestId('create-room-btn').click()
+  await expect(p1).toHaveURL(/\/rooms\//)
   const code = await p1.getByTestId('room-code').textContent()
+
+  const roomId = p1.url().split('/rooms/')[1]
+  const res = await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
+    data: { player_id: process.env.TEST_PLAYER1_ID!, value: 'fixed' },
+  })
+  expect(res.status()).toBe(204)
+
   await p2.getByTestId('join-code-input').fill(code!)
   await p2.getByTestId('join-btn').click()
   await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
@@ -48,6 +58,7 @@ const getWins = async (username: string) => {
   await expect(p1).toHaveURL(/\/game\//)
   await expect(p2).toHaveURL(/\/game\//, { timeout: 10_000 })
 
+  // Play full game — P1 wins top row.
   const moves = [
     { player: p1, cell: 0 }, { player: p2, cell: 3 },
     { player: p1, cell: 1 }, { player: p2, cell: 4 },

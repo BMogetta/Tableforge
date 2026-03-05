@@ -15,16 +15,31 @@ import (
 type EventType string
 
 const (
-	EventMoveApplied    EventType = "move_applied"
-	EventGameOver       EventType = "game_over"
-	EventPlayerJoined   EventType = "player_joined"
-	EventPlayerLeft     EventType = "player_left"
-	EventOwnerChanged   EventType = "owner_changed"
-	EventRoomClosed     EventType = "room_closed"
-	EventGameStarted    EventType = "game_started"
-	EventRematchVote    EventType = "rematch_vote"
-	EventRematchStarted EventType = "rematch_started"
+	EventMoveApplied  EventType = "move_applied"
+	EventGameOver     EventType = "game_over"
+	EventPlayerJoined EventType = "player_joined"
+	EventPlayerLeft   EventType = "player_left"
+	EventOwnerChanged EventType = "owner_changed"
+	EventRoomClosed   EventType = "room_closed"
+	EventGameStarted  EventType = "game_started"
+	EventRematchVote  EventType = "rematch_vote"
+	// EventRematchReady is broadcast to all clients in the room when every
+	// player has voted for a rematch. The payload contains the room_id so
+	// clients can navigate back to the lobby without a full page reload.
+	EventRematchReady   EventType = "rematch_ready"
+	EventSettingUpdated EventType = "setting_updated"
+	// EventSpectatorJoined / EventSpectatorLeft are broadcast to all room
+	// clients when a spectator connects or disconnects, so the lobby can
+	// update the spectator count in real time.
+	EventSpectatorJoined EventType = "spectator_joined"
+	EventSpectatorLeft   EventType = "spectator_left"
 )
+
+// spectatorOnlyEvents are never sent to spectators.
+// Currently only rematch_vote — spectators cannot vote and don't need the tally.
+var spectatorBlocklist = map[EventType]bool{
+	EventRematchVote: true,
+}
 
 // Event is the envelope sent to all clients in a room.
 type Event struct {
@@ -83,6 +98,19 @@ func (h *Hub) unsubscribe(roomID uuid.UUID, c *Client) {
 	}
 }
 
+// SpectatorCount returns the number of spectators currently connected to a room.
+func (h *Hub) SpectatorCount(roomID uuid.UUID) int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	count := 0
+	for c := range h.rooms[roomID] {
+		if c.spectator {
+			count++
+		}
+	}
+	return count
+}
+
 // Broadcast publishes an event. In Redis mode the message is published to
 // the Redis channel; listenRoom delivers it to local clients.
 // In single-instance mode it fans out directly.
@@ -104,7 +132,7 @@ func (h *Hub) Broadcast(roomID uuid.UUID, event Event) {
 		return
 	}
 
-	h.fanout(roomID, data)
+	h.fanout(roomID, event.Type, data)
 }
 
 // listenRoom subscribes to the Redis channel for roomID and fans out messages
@@ -121,17 +149,29 @@ func (h *Hub) listenRoom(roomID uuid.UUID) {
 		if !active {
 			return
 		}
-		h.fanout(roomID, []byte(msg.Payload))
+		// In Redis mode we don't have the EventType at fanout time, so we
+		// re-parse just the type field for spectator filtering.
+		var envelope struct {
+			Type EventType `json:"type"`
+		}
+		_ = json.Unmarshal([]byte(msg.Payload), &envelope)
+		h.fanout(roomID, envelope.Type, []byte(msg.Payload))
 	}
 }
 
 // fanout delivers data to all local clients in a room.
-func (h *Hub) fanout(roomID uuid.UUID, data []byte) {
+// Events in spectatorBlocklist are skipped for spectator clients.
+func (h *Hub) fanout(roomID uuid.UUID, eventType EventType, data []byte) {
 	h.mu.RLock()
 	clients := h.rooms[roomID]
 	h.mu.RUnlock()
 
+	blocked := spectatorBlocklist[eventType]
+
 	for c := range clients {
+		if blocked && c.spectator {
+			continue
+		}
 		select {
 		case c.send <- data:
 		default:

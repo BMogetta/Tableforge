@@ -27,6 +27,12 @@ export interface AllowedEmail {
 
 export interface Room {
   id: string
+  /**
+   * The room join code. Empty string ("") for private rooms when returned
+   * from GET /rooms (list) — the backend redacts it to prevent discovery.
+   * Always populated when returned from GET /rooms/:id (direct fetch by a
+   * participant who already knows the room).
+   */
   code: string
   game_id: string
   owner_id: string
@@ -38,6 +44,12 @@ export interface Room {
 export interface RoomView {
   room: Room
   players: RoomViewPlayer[]
+  // Key/value map of all settings for this room.
+  // Always present — defaults are inserted when the room is created.
+  settings: Record<string, string>
+  // Live spectator count. Kept in sync by spectator_joined / spectator_left
+  // WS events in Room.tsx; may be absent on initial HTTP fetch.
+  spectator_count?: number
 }
 
 export interface GameSession {
@@ -81,6 +93,30 @@ export interface LeaderboardEntry {
   wins: number
   losses: number
   draws: number
+}
+
+// --- Lobby settings types ----------------------------------------------------
+
+export interface SettingOption {
+  value: string
+  label: string
+}
+
+/**
+ * Describes a single configurable room setting declared by a game.
+ * Mirrors engine.LobbySetting on the Go side.
+ */
+export interface LobbySetting {
+  key: string
+  label: string
+  description?: string
+  type: 'select' | 'int'
+  default: string
+  // Present when type === 'select'
+  options?: SettingOption[]
+  // Present when type === 'int'
+  min?: number
+  max?: number
 }
 
 // --- HTTP client -------------------------------------------------------------
@@ -142,7 +178,7 @@ export class ApiError extends Error {
 }
 
 // --- Auth --------------------------------------------------------------------
-
+// We don't use the request() helper for auth routes since they have some special handling (e.g. login redirects to GitHub) and we don't want them to be traced like normal API calls.
 export const auth = {
   me: () => fetch('/auth/me', { credentials: 'include' }).then(async res => {
     if (!res.ok) {
@@ -191,13 +227,34 @@ export const rooms = {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId }),
     }),
+  /**
+   * Updates a single room setting. Only the room owner can call this while
+   * the room is in waiting state. Triggers a `setting_updated` WS event.
+   */
+  updateSetting: (roomId: string, playerId: string, key: string, value: string) =>
+    request<void>(`/rooms/${roomId}/settings/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ player_id: playerId, value }),
+    }),
+}
+
+// --- WebSocket URL -----------------------------------------------------------
+
+/**
+ * Returns the WebSocket URL for a room, including the player_id query param.
+ * The server uses player_id to determine whether the connecting client is a
+ * participant (in room_players) or a spectator.
+ */
+export function wsRoomUrl(roomId: string, playerId: string): string {
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  return `${proto}://${window.location.host}/ws/rooms/${roomId}?player_id=${encodeURIComponent(playerId)}`
 }
 
 // --- Sessions ----------------------------------------------------------------
 
 export const sessions = {
   get: (id: string) =>
-    request<{ 
+    request<{
       session: GameSession
       state: { current_player_id: string; data: unknown }
       result?: GameResult
@@ -245,28 +302,22 @@ export const leaderboard = {
 
 // --- Game Registry -----------------------------------------------------------
 
+/**
+ * Public representation of a registered game, including its lobby settings.
+ * Mirrors api.gameInfo on the Go side.
+ */
 export interface GameInfo {
   id: string
   name: string
   min_players: number
   max_players: number
+  // Full list of configurable lobby settings for this game,
+  // platform defaults merged with any game-specific overrides.
+  settings: LobbySetting[]
 }
 
 export const gameRegistry = {
   list: () => request<GameInfo[]>('/games'),
-}
-
-export interface GameConfig {
-  game_id: string
-  default_timeout_secs: number
-  min_timeout_secs: number
-  max_timeout_secs: number
-  timeout_penalty: 'lose_turn' | 'lose_game'
-}
-
-export const gameConfig = {
-  get: (gameId: string) =>
-    request<GameConfig>(`/games/${gameId}/config`),
 }
 
 // --- Admin -------------------------------------------------------------------

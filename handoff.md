@@ -1,169 +1,200 @@
 # Tableforge — Session Handoff
 
-## What Is This Project
-
-Tableforge is a multiplayer board game platform. Players authenticate via GitHub OAuth, create or join rooms, and play turn-based games in real time via WebSockets. The only game currently implemented is TicTacToe, but the engine is pluggable.
-
-**Stack:**
-- Backend: Go, Chi router, PostgreSQL (pgx), Redis (rate limiting), OpenTelemetry
-- Frontend: React + TypeScript, Vite, React Query, Zustand, React Router, CSS Modules
-- Infrastructure: Docker Compose, Caddy (reverse proxy), Cloudflare Tunnel for TLS
-- Tests: Playwright E2E (no unit tests yet)
+## Rules for the next session
+- **Do not write code without reading the current file first.** Ask for the file, read it, propose changes, confirm, only then write.
+- **One file at a time.** Move to the next only when the owner confirms the previous one is integrated and compiles.
+- **Always deliver the complete file** for full replacement, never partial patches.
+- **List proposed changes before writing** and wait for confirmation.
+- **All code, comments, and documentation must be in English.** This includes inline comments, godoc, JSDoc, README files, and any other written artifact produced during the session.
 
 ---
 
-## Architecture Overview
-
-```
-Browser → Caddy (:80) → frontend (nginx :3000)
-                      → game-server (:8080)
-                           ├── /api/v1/*     HTTP handlers
-                           ├── /auth/*       GitHub OAuth
-                           └── /ws/rooms/:id WebSocket hub
-```
-
-**WebSocket flow:** One socket per room, opened in `Room.tsx`, kept alive through `Room → Game` navigation via Zustand store. Closed only when `leaveRoom()` is called.
-
-**State management:** Zustand holds `player`, `socket`, and `pendingRematch`. React Query manages server state (sessions, rooms, leaderboard).
-
-**Navigation from WS events:** Use `RematchNavigator` component in `App.tsx` that watches `pendingRematch` in Zustand and calls `navigate()` from within the React tree — never call `navigate()` directly from a socket handler.
+## Stack
+- **Backend:** Go, PostgreSQL (pgx), Redis, WebSockets
+- **Frontend:** React + TypeScript, Vite, CSS Modules
+- **Infra:** Docker Compose, Caddy (reverse proxy + Cloudflare tunnel)
+- **Tests:** Playwright E2E
 
 ---
 
-## What Was Implemented (This Session)
+## Project status
 
-### Socket Leak Fix
-- `leaveRoom()` now called before every navigation away from Room/Game pages
-- Closes the WebSocket cleanly
+### What works (base MVP)
+- Auth via GitHub OAuth + test-login for Playwright
+- Lobby: create room, join by code, leave, ownership transfer
+- Matches: TicTacToe fully implemented with turn timer, surrender, rematch vote
+- WebSockets: hub with Redis pub/sub for multi-instance
+- Admin: roles (player/manager/owner), allowed emails, leaderboard
+- Spectator: `spectator_links` table exists, endpoints pending
+- Rate limiting via Redis
+- OpenTelemetry + Prometheus
 
-### Surrender Flow
-- `POST /api/v1/sessions/:id/surrender` — records forfeit, opponent wins
-- `SurrenderModal` component with confirm/cancel
-- `← Lobby` button mid-game opens modal; post-game navigates directly
+### Recently integrated (this session) — Go compilation verification pending
+All code was written and delivered. The owner must run `go build ./...` to confirm it compiles before the next session.
 
-### Rematch Flow
-- `POST /api/v1/sessions/:id/rematch` — vote system, creates new session when all vote
-- `rematch_vote` WS event updates vote counter for non-voting player
-- `rematch_started` WS event carries new session ID + vote counts
-- Navigation via `setPendingRematch` → `RematchNavigator` in `App.tsx`
-- State reset on `sessionId` change via `useEffect([sessionId])`
+| File | Destination | Status |
+|---|---|---|
+| `005_room_settings.sql` | `db/migrations/` | Delivered |
+| `lobby_settings.go` | `internal/engine/` | Delivered |
+| `tictactoe_lobby_settings.go` | `games/tictactoe/` | Delivered |
+| `store.go` | `internal/store/` | Delivered |
+| `store_pg.go` | `internal/store/` | Delivered |
+| `randutil.go` + `errors.go` | `internal/randutil/` (new package) | Delivered |
+| `lobby.go` | `internal/lobby/` | Delivered |
+| `api.go` | `internal/api/` | Delivered |
+| `hub.go` | `internal/ws/` | Delivered |
+| `api.ts` | `frontend/src/` | Delivered |
+| `LobbySettings.tsx` + `.module.css` | `frontend/src/components/` | Delivered |
+| `Room.tsx` | `frontend/src/pages/` | Delivered |
+| `helpers.ts` | `frontend/tests/e2e/` | Delivered ✓ tests pass |
+| `lobby.spec.ts` | `frontend/tests/e2e/` | Delivered ✓ tests pass |
+| `leaderboard.spec.ts` | `frontend/tests/e2e/` | Delivered ✓ tests pass |
 
-### Room Ownership Transfer
-- `LeaveRoom` in `lobby.go` now returns `LeaveResult{NewOwnerID, RoomClosed}`
-- If owner leaves and others remain: `UpdateRoomOwner` to earliest `joined_at`
-- If last player leaves: `DeleteRoom` (marks room as `finished`, clears players)
-- WS events: `owner_changed` (with `owner_id`) and `room_closed`
-- `Room.tsx` handles both events: updates `ownerId` state, refreshes view, redirects on close
-- `RoomView.players` now returns `[]RoomViewPlayer` (full Player fields + seat + joined_at) instead of `[]RoomPlayer`
-
-### Room Cleanup After Game Ends
-- `ApplyMove`, `Surrender`, and `TurnTimer.applyLoseGame` now call `UpdateRoomStatus(finished)` after `FinishSession`
-- Finished rooms no longer appear in `ListWaitingRooms`
-
-### Rate Limiting in Tests
-- `TEST_MODE=true` env var disables Redis rate limiter in game-server
-- `VITE_TEST_MODE=true` build arg enables `/test/error` route in frontend
-
-### Test Infrastructure
-- Shared helpers extracted to `frontend/tests/e2e/helpers.ts`: `createPlayerContexts`, `setupAndStartGame`, `playFullGame`, `PLAYER1_STATE`, `PLAYER2_STATE`
-- Playwright projects split: `game-tests` → `leaderboard-tests` (sequential dependency), `chromium-parallel` (auth tests, parallel), 2 workers
-
-### New E2E Tests Added
-- `game.spec.ts`: rematch, surrender, back to lobby, occupied cell disabled
-- `lobby.spec.ts`: player leaving disables start, owner transfer, last player closes room, room disappears after game
-- `leaderboard.spec.ts`: wins increment after completed game
-- `auth.spec.ts`: unauthenticated redirect, admin access denied, error boundary
-- `spectator.spec.ts`: fully commented, blocked pending feature
-
-### Bug Fixes
-- `ErrorBoundary` moved inside `BrowserRouter` so navigate works correctly
-- `data-testid="leaderboard-row"` added to `<tr>` in `LeaderboardTable`
-- `data-testid="player-username"` added to username span in Lobby header
-- `data-testid="leaderboard-table"` already present, `leaderboard-row` was missing
-- CSP updated in Caddyfile: added `fonts.googleapis.com` to `style-src`, `fonts.gstatic.com` to `font-src`
+**Tests: 20/20 passing.**
 
 ---
 
-## Current Test Status
+## Next session — Tests for new features
 
-**20 tests, all passing.**
+The priority is writing E2E tests for everything that was implemented. Existing tests verify that the base system wasn't broken, but there is no coverage for the new features.
 
-Projects:
-- `setup` → `game-tests` (game.spec + lobby.spec, serial)
-- `game-tests` → `leaderboard-tests` (serial dependency)
-- `setup` → `chromium-parallel` (auth.spec, parallel)
+### Tests to write
 
-Run tests:
-```bash
-make down && make up-test
-docker compose exec game-server /bin/seed-test > frontend/tests/e2e/.players.json
-make test
-```
+#### `settings.spec.ts` (new file)
+1. **Owner can change `first_mover_policy`** — create room, change selector to `fixed`, verify the change is reflected in p2's UI via WS (`setting_updated` event)
+2. **`first_mover_seat` appears only when policy is `fixed`** — verify the field is not visible with `random`, appears with `fixed`
+3. **`first_mover_seat` disappears when switching back to `random`** — change policy from `fixed` to `random`, verify the field disappears
+4. **Non-owner sees settings as read-only** — p2 cannot edit, sees current values
+5. **Invalid setting is rejected** — direct API call with invalid value, expect 400
+6. **`first_mover_policy: fixed` makes seat 0 go first** — create room with fixed, start match, verify p1 has "Your turn"
+7. **`first_mover_policy: random` eventually assigns p2 first** — probabilistic, can be omitted or tested with many iterations
+
+#### `game.spec.ts` — add tests
+8. **Turn order respects `first_mover_policy: fixed` with seat 1** — p2 goes first, p1 waits
+9. **WS `setting_updated` updates the UI for all clients** — p1 changes setting, p2 sees the change without reloading
+
+#### `settings.spec.ts` — API validations
+10. **Non-owner cannot change settings** — direct call with p2's player_id in p1's room, expect 403
+11. **Cannot change settings with room `in_progress`** — start match, attempt to change setting, expect 409
+
+---
+
+## Known technical debt
+
+- **`rematch_first_mover_policy` is inert** — defined in migration and engine, but `VoteRematch` in `runtime.go` never reads it. Wire it up when the rematch flow is refactored.
+- **`winner_chooses` / `loser_chooses`** — require an extra UI step (winner/loser chooses before starting). No WS event or screen defined yet.
+- **`gameConfig.get` in `api.ts`** — calls `/games/{gameId}/config` which does not exist in the backend. Nobody calls it yet but it is waiting to break.
+- **`seed-test` does not go through `lobby.Service`** — rooms from the seed have no rows in `room_settings`. Existing tests pass because they don't touch settings, but this must be fixed before writing settings tests that use `setupAndStartGame` without override.
+- **`scanSession` incomplete** — `store_pg.go` does not scan `turn_timeout_secs` or `last_move_at`. Pre-existed this session.
+- **`TurnTimer` has no Redis persistence** — if the server restarts mid-game, active timers are lost.
+- **Rematch flow** — currently `VoteRematch` creates a new session directly. The decision is that it should return to the lobby in `waiting` state instead of starting the match automatically. This refactor is pending.
 
 ---
 
 ## Backlog (Prioritized)
 
-### In Progress / Next Up
-1. **First mover policy** — configurable per room: `random`, `fixed` (seat 0), `winner_first`, `loser_first`, `winner_chooses`, `loser_chooses`. Affects `StartGame` and `VoteRematch` in lobby.go. Frontend needs UI in Room.tsx to expose choice when policy is `winner_chooses`.
+### Immediate (post settings tests)
+1. **E2E tests for settings** — see "Next session" section above
+2. **Spectator** — `spectator_links` table exists, `CreateSpectatorLink`/`GetSpectatorLink` in store. Missing: HTTP endpoints, WS channel for spectators, UI. Test file at `spectator.spec.ts` (fully commented out).
+3. **Rematch flow refactor** — on rematch vote, return to lobby in `waiting` instead of creating session directly. This unblocks `rematch_first_mover_policy`.
 
-2. **Spectator mode** — `spectator_links` table exists, `CreateSpectatorLink`/`GetSpectatorLink` in store, `allow_spectators bool` on Room. Missing: HTTP endpoints, WS spectator channel, frontend UI. Test file exists at `spectator.spec.ts` (fully commented).
+### Future features
+4. **In-match chat** — no backend or frontend. New WS event `chat_message` with payload `{player_id, text, timestamp}`.
+5. **Friends list** — `friendships` table, invite flow, lobby UI.
+6. **ELO system** — `domain/rating`. Real-time leaderboard with Redis sorted sets. Calculated at match end via background job.
+7. **Matchmaking** — queue in Redis sorted set by rating. Finds closest player with `ZRANGEBYSCORE`.
+8. **Match replay** — events in Redis Stream (`XADD`) while active, persisted to Postgres on completion.
+9. **Match pause** — `SuspendSession`/`ResumeSession` exist in store. Business logic and UI missing.
+10. **More games** — engine is pluggable. Each game in `games/<name>/`, implements `engine.Game` and optionally `engine.LobbySettingsProvider`.
+11. **Custom avatars** — S3-compatible object storage.
+12. **Notifications** — email on invite, on match end. Via Asynq (background jobs over Redis).
 
-3. **In-game chat** — no backend or frontend yet. Likely a new WS event type `chat_message` with payload `{player_id, text, timestamp}`.
+### Structural refactor (post-MVP)
+- **Domain-first structure** — migrate from packages by technical type (`store`, `api`, `runtime`) to packages by domain (`domain/lobby`, `domain/match`, `domain/rating`). Each domain defines its own store interface. `platform/store` implements all. Ideal moment: before adding ELO or matchmaking.
+- **Split `api.go`** into files by domain: `api/lobby.go`, `api/match.go`, `api/rating.go`, etc.
+- **Split `store.go` / `store_pg.go`** when it exceeds ~150 methods.
 
-4. **Friends list** — no backend or frontend yet. Requires a new `friendships` table, invite flow, and lobby UI.
+### Pending infrastructure
+- **Session store in Redis** — sessions currently live in cookies. Redis with TTL avoids session loss on restarts.
+- **Player presence** — `SETEX presence:<player_id> 30` renewed by WS heartbeat.
+- **Idempotency keys** — `SET idempotency:<key> 1 NX EX 60` for moves and critical operations.
+- **Background jobs (Asynq)** — for ELO, emails, replay processing.
+- **Full observability** — Grafana + Loki + Tempo/Jaeger. OpenTelemetry and Prometheus already in place.
+- **CDN for assets** — Cloudflare already used as tunnel, enable static asset caching.
 
-### Known Issues
-- `TurnTimer` has no persistence — server restart mid-game loses active timers
-- Page refresh on `/game/:id` shows "Connecting..." banner briefly even if socket connects immediately
-- Reconnection test not written yet — blocked by the banner flash issue
-
-### Cosmetic / Low Priority
-- CSP violation for Google Fonts appears in Playwright logs (fixed in Caddy, may still show in some contexts)
-- Open rooms don't disappear from lobby in real time when a game starts — they disappear on the next 10s poll
-
----
-
-## Key Files Reference
-
-| File | Purpose |
-|------|---------|
-| `internal/lobby/lobby.go` | Room lifecycle: create, join, leave, start, ownership transfer |
-| `internal/runtime/runtime.go` | Move validation, game over, surrender, rematch voting |
-| `internal/runtime/turn_timer.go` | Per-session turn countdown, timeout penalties |
-| `internal/ws/hub.go` | WebSocket hub, broadcast, event type constants |
-| `internal/api/api.go` | HTTP handlers, routes |
-| `internal/store/store.go` | Store interface + all models |
-| `frontend/src/store.ts` | Zustand: player, socket, pendingRematch |
-| `frontend/src/pages/Game.tsx` | Game UI, socket events, rematch, surrender |
-| `frontend/src/pages/Room.tsx` | Room UI, socket events, ownership |
-| `frontend/src/App.tsx` | Routes, ErrorBoundary, RematchNavigator |
-| `frontend/tests/e2e/helpers.ts` | Shared test helpers |
+### Discarded
+- **Kafka** — Redis pub/sub + Asynq are sufficient.
+- **GraphQL** — REST + WebSockets is the right choice.
+- **Microservices** — domain-first monolith provides the necessary isolation without operational overhead.
 
 ---
 
-## Code Style Guidelines
+## Architecture — decisions made
 
-**Go:**
-- Errors wrapped with `fmt.Errorf("FunctionName: context: %w", err)`
-- Store methods are thin — no business logic, just SQL
-- Business logic lives in `lobby.go` or `runtime.go`
-- New WS event types added as constants in `hub.go`
-- HTTP handlers are standalone functions `func handleX(dep1, dep2) http.HandlerFunc`
-- Soft deletes preferred over hard deletes for auditing; use `finished` status for rooms/sessions
+### Settings model
+- `room_settings(room_id, key, value, updated_at)` — generic KV table
+- `first_mover_policy`: `random` | `fixed` | `game_default`
+- `rematch_first_mover_policy`: adds `winner_first` | `loser_first` | `winner_chooses` | `loser_chooses`
+- `first_mover_seat`: seat index when policy is `fixed` (default `'0'`)
+- Defaults inserted in `CreateRoom` via transaction, not in the migration
+- Only editable during `waiting` (validated in lobby layer, not in DB)
 
-**TypeScript/React:**
-- All code and comments in English
-- CSS Modules for component styles, global utility classes in `global.css`
-- `data-testid` on every interactive or observable element
-- Never call `navigate()` from a WebSocket event handler — use `setPendingRematch` pattern or similar Zustand state, handled by a always-mounted navigator component
-- State that depends on `sessionId` must reset via `useEffect([sessionId])`
-- Socket cleanup: always return `() => off()` from useEffect, never `() => off`
-- React Query for server state, Zustand for client/socket state — don't mix
+### Engine interface
+- `LobbySettingsProvider` — optional interface that games implement to declare custom settings
+- `DefaultLobbySettings()` — platform settings, merged with game-specific ones
+- TicTacToe implements the interface, returns defaults unchanged (extensible for board size, etc.)
 
-**Tests:**
-- Shared helpers in `helpers.ts`, never import from other spec files
-- Every new interactive element needs a `data-testid`
-- Use `toPass({ timeout })` for async DOM polling, never `waitForTimeout` unless polling an external system (e.g. lobby 10s poll)
-- Tests use pre-seeded players from `seed-test` — always run `make seed-test` before `make test` in a fresh environment
-- Rematch and reconnection tests require `--headed --debug` for investigation
+### randutil package
+- `internal/randutil` — everything related to randomness (crypto/rand based)
+- `Intn(n int) (int, error)`, `Shuffle[T]`, `Pick[T]`
+- Replaces the inline crypto/rand in `generateRoomCode`
+- Foundation for future use: shuffle cards, draw card, dice
+
+### Store
+- `GetRoomSettings(roomID) (map[string]string, error)`
+- `SetRoomSetting(roomID, key, value) error` — upsert with `ON CONFLICT`
+- `CreateRoom` uses transaction: insert room + iterate DefaultSettings + commit
+
+### Future folder structure (post-MVP)
+```
+server/
+├── internal/
+│   ├── domain/
+│   │   ├── lobby/
+│   │   ├── match/
+│   │   ├── replay/
+│   │   ├── rating/
+│   │   ├── player/
+│   │   └── spectator/
+│   ├── engine/
+│   ├── platform/
+│   │   ├── store/
+│   │   ├── ws/
+│   │   ├── auth/
+│   │   ├── ratelimit/
+│   │   └── randutil/
+│   └── api/
+│       ├── router.go
+│       ├── lobby.go
+│       ├── match.go
+│       └── ...
+└── games/
+    ├── registry.go
+    └── tictactoe/
+```
+
+---
+
+## Redis — current and planned uses
+
+| Use | Status |
+|---|---|
+| Rate limiting | ✓ Implemented |
+| Pub/sub for multi-instance WS | ✓ Implemented |
+| Session store | Pending (before production) |
+| Turn timer persistence (`SETEX`) | Pending (before production) |
+| Player presence | With matchmaking |
+| Matchmaking queue (sorted set) | With matchmaking |
+| Real-time leaderboard (sorted set) | With ELO |
+| Replay event sourcing (streams) | With replay |
+| Idempotency keys | With real traffic |

@@ -91,6 +91,11 @@ test.describe('Lobby', () => {
     await p1.getByTestId('create-room-btn').click()
     const code = await p1.getByTestId('room-code').textContent()
 
+    const roomId = p1.url().split('/rooms/')[1]
+    await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
+      data: { player_id: process.env.TEST_PLAYER1_ID!, value: 'fixed' },
+    })
+
     // Wait for P2's lobby to poll and show the new room.
     await expect(async () => {
       await p2.reload()

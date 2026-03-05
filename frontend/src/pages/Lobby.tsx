@@ -177,20 +177,29 @@ export default function Lobby() {
 }
 
 function RoomCard({ view, onJoin }: { view: RoomView; onJoin: () => void }) {
-  const { room, players } = view
+  const { room, players, settings } = view
+  const isPrivate = settings?.room_visibility === 'private'
+
   return (
     <div className={styles.roomCard}>
       <div className={styles.roomInfo}>
-        <span className={styles.roomCode}>{room.code}</span>
+        {isPrivate ? (
+          // Private room — lock icon instead of code to prevent discovery.
+          <span className={styles.roomCodePrivate} title="Private room">🔒</span>
+        ) : (
+          <span className={styles.roomCode}>{room.code}</span>
+        )}
         <span className={styles.roomGame}>{room.game_id}</span>
       </div>
       <div className={styles.roomMeta}>
         <span className={styles.roomPlayers}>
           {players.length}/{room.max_players} players
         </span>
-        <button className="btn btn-ghost" onClick={onJoin} style={{ padding: '4px 12px' }}>
-          Join →
-        </button>
+        {!isPrivate && (
+          <button className="btn btn-ghost" onClick={onJoin} style={{ padding: '4px 12px' }}>
+            Join →
+          </button>
+        )}
       </div>
     </div>
   )

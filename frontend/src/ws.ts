@@ -5,9 +5,13 @@ export type WsEventType =
   | 'player_left'
   | 'game_started'
   | 'rematch_vote'
+  | 'rematch_ready'
   | 'rematch_started'
   | 'owner_changed'
+  | 'setting_updated'
   | 'room_closed'
+  | 'spectator_joined'
+  | 'spectator_left'
   | 'ws_connected'
   | 'ws_reconnecting'
   | 'ws_disconnected'
@@ -26,12 +30,15 @@ export class RoomSocket {
   private closed = false
   private attemptCount = 0
 
-  constructor(private roomId: string) {}
+  /**
+   * @param url Full WebSocket URL including any query params (e.g. player_id).
+   *            Use wsRoomUrl() from api.ts to build this.
+   */
+  constructor(private url: string) {}
 
   connect() {
     if (this.ws) return
-    const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/rooms/${this.roomId}`
-    this.ws = new WebSocket(url)
+    this.ws = new WebSocket(this.url)
 
     this.ws.onopen = () => {
       this.attemptCount = 0
