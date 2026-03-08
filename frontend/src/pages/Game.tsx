@@ -25,6 +25,10 @@ export default function Game() {
   const player = useAppStore((s) => s.player)!
   const socket = useAppStore((s) => s.socket)
   const leaveRoom = useAppStore((s) => s.leaveRoom)
+  const isSpectator = useAppStore((s) => s.isSpectator)
+  const spectatorCount = useAppStore((s) => s.spectatorCount)
+  const presenceMap = useAppStore((s) => s.presenceMap)
+  const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
   const navigate = useNavigate()
   const qc = useQueryClient()
 
@@ -80,6 +84,10 @@ export default function Game() {
       // On reconnect, refetch to catch any events missed during the gap.
       if (event.type === 'ws_connected') {
         qc.invalidateQueries({ queryKey: keys.session(sessionId!) })
+      }
+      if (event.type === 'presence_update') {
+        const payload = event.payload as { player_id: string; online: boolean }
+        setPlayerPresence(payload.player_id, payload.online)
       }
       if (event.type === 'move_applied') {
         const payload = event.payload as MoveResult
@@ -154,6 +162,11 @@ export default function Game() {
     navigate('/')
   }
 
+  function handleViewReplay() {
+    leaveRoom()
+    navigate(`/sessions/${sessionId}/history`)
+  }
+
   if (!session || !gameData) {
     return (
       <div className={styles.centered}>
@@ -165,10 +178,14 @@ export default function Game() {
     )
   }
 
-  const isMyTurn = gameData.current_player_id === player.id && !isOver
+  const isMyTurn = !isSpectator && gameData.current_player_id === player.id && !isOver
 
   let statusText = ''
-  if (winnerId) {
+  if (isSpectator) {
+    if (winnerId) statusText = 'Game over'
+    else if (isDraw) statusText = 'Draw!'
+    else statusText = 'Watching...'
+  } else if (winnerId) {
     statusText = winnerId === player.id ? 'You won!' : 'You lost.'
   } else if (isDraw) {
     statusText = 'Draw!'
@@ -178,13 +195,18 @@ export default function Game() {
     statusText = "Opponent's turn"
   }
 
+  const opponentId = gameData
+    ? (gameData.data as TicTacToeState)?.players?.find(id => id !== player.id)
+    : null
+  const opponentOnline = opponentId ? (presenceMap[opponentId] ?? false) : false
+
   return (
     <div className={`${styles.root} page-enter`}>
       <div className={styles.panel}>
         <header className={styles.header}>
           <button
             className="btn btn-ghost"
-            onClick={() => isOver ? handleBackToLobby() : setShowSurrenderModal(true)}
+            onClick={() => isOver || isSpectator ? handleBackToLobby() : setShowSurrenderModal(true)}
             style={{ padding: '4px 10px', fontSize: 11 }}
           >
             ← Lobby
@@ -203,6 +225,14 @@ export default function Game() {
           >
             {statusText}
           </span>
+          {!isSpectator && opponentId && (
+            <span className={styles.opponentPresence} data-testid="opponent-presence">
+              <span className={styles.presenceDot} data-online={String(opponentOnline)} data-testid="opponent-presence-dot" />
+              <span data-testid="opponent-presence-text">
+                {opponentOnline ? 'Opponent online' : 'Opponent offline'}
+              </span>
+            </span>
+          )}
         </div>
 
         <div className={styles.boardWrapper}>
@@ -211,7 +241,8 @@ export default function Game() {
             gameData={gameData}
             localPlayerId={player.id}
             onMove={(payload) => move.mutate(payload)}
-            disabled={!isMyTurn || move.isPending}
+            // Spectators and players whose turn it isn't are both disabled.
+            disabled={isSpectator || !isMyTurn || move.isPending}
             isOver={isOver}
           />
         </div>
@@ -227,19 +258,25 @@ export default function Game() {
             <button className="btn btn-ghost" onClick={handleBackToLobby}>
               Back to Lobby
             </button>
-            <button
-              className="btn btn-primary"
-              data-testid="rematch-btn"
-              onClick={() => rematch.mutate()}
-              disabled={votedRematch || rematch.isPending}
-            >
-              {votedRematch
-                ? `Waiting for opponent… (${rematchVotes}/${totalPlayers})`
-                : rematchVotes > 0
-                  ? `Rematch (${rematchVotes}/${totalPlayers} voted)`
-                  : 'Rematch'
-              }
+            <button className="btn btn-ghost" data-testid="view-replay-btn" onClick={handleViewReplay}>
+              View Replay
             </button>
+            {/* Spectators do not get a rematch button — only participants vote. */}
+            {!isSpectator && (
+              <button
+                className="btn btn-primary"
+                data-testid="rematch-btn"
+                onClick={() => rematch.mutate()}
+                disabled={votedRematch || rematch.isPending}
+              >
+                {votedRematch
+                  ? `Waiting for opponent… (${rematchVotes}/${totalPlayers})`
+                  : rematchVotes > 0
+                    ? `Rematch (${rematchVotes}/${totalPlayers} voted)`
+                    : 'Rematch'
+                }
+              </button>
+            )}
           </div>
         )}
       </div>

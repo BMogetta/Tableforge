@@ -119,6 +119,15 @@ export interface LobbySetting {
   max?: number
 }
 
+export interface SessionEvent {
+  id: string
+  session_id: string
+  type: string
+  player_id?: string
+  payload?: Record<string, unknown>
+  occurred_at: string
+}
+
 // --- HTTP client -------------------------------------------------------------
 
 const BASE = '/api/v1'
@@ -288,6 +297,7 @@ export const sessions = {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, payload }),
     }),
+  events: (id: string) => request<SessionEvent[]>(`/sessions/${id}/events`),
 }
 
 // --- Leaderboard -------------------------------------------------------------

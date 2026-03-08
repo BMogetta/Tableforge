@@ -16,9 +16,12 @@ type FakeStore struct {
 	Players       map[uuid.UUID]store.Player
 	Rooms         map[uuid.UUID]store.Room
 	RoomPlayers   map[uuid.UUID][]store.RoomPlayer
+	RoomSettings  map[uuid.UUID]map[string]string
 	Sessions      map[uuid.UUID]store.GameSession
 	Moves         map[uuid.UUID][]store.Move
 	AllowedEmails map[string]store.AllowedEmail
+	GameResults   map[uuid.UUID]store.GameResult
+	RematchVotes  map[uuid.UUID][]store.RematchVote
 }
 
 func NewFakeStore() *FakeStore {
@@ -26,9 +29,12 @@ func NewFakeStore() *FakeStore {
 		Players:       make(map[uuid.UUID]store.Player),
 		Rooms:         make(map[uuid.UUID]store.Room),
 		RoomPlayers:   make(map[uuid.UUID][]store.RoomPlayer),
+		RoomSettings:  make(map[uuid.UUID]map[string]string),
 		Sessions:      make(map[uuid.UUID]store.GameSession),
 		Moves:         make(map[uuid.UUID][]store.Move),
 		AllowedEmails: make(map[string]store.AllowedEmail),
+		GameResults:   make(map[uuid.UUID]store.GameResult),
+		RematchVotes:  make(map[uuid.UUID][]store.RematchVote),
 	}
 }
 
@@ -60,6 +66,47 @@ func (f *FakeStore) GetPlayerByUsername(_ context.Context, username string) (sto
 func (f *FakeStore) UpdatePlayerAvatar(_ context.Context, _ uuid.UUID, _ string) error { return nil }
 func (f *FakeStore) SoftDeletePlayer(_ context.Context, _ uuid.UUID) error             { return nil }
 
+// --- Admin: allowed emails ---------------------------------------------------
+
+func (f *FakeStore) ListAllowedEmails(_ context.Context) ([]store.AllowedEmail, error) {
+	var result []store.AllowedEmail
+	for _, e := range f.AllowedEmails {
+		result = append(result, e)
+	}
+	return result, nil
+}
+
+func (f *FakeStore) AddAllowedEmail(_ context.Context, params store.AddAllowedEmailParams) (store.AllowedEmail, error) {
+	e := store.AllowedEmail{Email: params.Email, Role: params.Role, CreatedAt: time.Now()}
+	f.AllowedEmails[params.Email] = e
+	return e, nil
+}
+
+func (f *FakeStore) RemoveAllowedEmail(_ context.Context, email string) error {
+	delete(f.AllowedEmails, email)
+	return nil
+}
+
+// --- Admin: players ----------------------------------------------------------
+
+func (f *FakeStore) ListPlayers(_ context.Context) ([]store.Player, error) {
+	var result []store.Player
+	for _, p := range f.Players {
+		result = append(result, p)
+	}
+	return result, nil
+}
+
+func (f *FakeStore) SetPlayerRole(_ context.Context, playerID uuid.UUID, role store.PlayerRole) error {
+	p, ok := f.Players[playerID]
+	if !ok {
+		return ErrNotFound
+	}
+	p.Role = role
+	f.Players[playerID] = p
+	return nil
+}
+
 // --- Rooms -------------------------------------------------------------------
 
 func (f *FakeStore) CreateRoom(_ context.Context, p store.CreateRoomParams) (store.Room, error) {
@@ -74,6 +121,14 @@ func (f *FakeStore) CreateRoom(_ context.Context, p store.CreateRoomParams) (sto
 		UpdatedAt:  time.Now(),
 	}
 	f.Rooms[r.ID] = r
+
+	if len(p.DefaultSettings) > 0 {
+		f.RoomSettings[r.ID] = make(map[string]string, len(p.DefaultSettings))
+		for k, v := range p.DefaultSettings {
+			f.RoomSettings[r.ID][k] = v
+		}
+	}
+
 	return r, nil
 }
 
@@ -116,6 +171,44 @@ func (f *FakeStore) ListWaitingRooms(_ context.Context) ([]store.Room, error) {
 
 func (f *FakeStore) SoftDeleteRoom(_ context.Context, _ uuid.UUID) error { return nil }
 
+func (f *FakeStore) UpdateRoomOwner(_ context.Context, roomID, newOwnerID uuid.UUID) error {
+	r, ok := f.Rooms[roomID]
+	if !ok {
+		return ErrNotFound
+	}
+	r.OwnerID = newOwnerID
+	f.Rooms[roomID] = r
+	return nil
+}
+
+func (f *FakeStore) DeleteRoom(_ context.Context, roomID uuid.UUID) error {
+	delete(f.Rooms, roomID)
+	return nil
+}
+
+// --- Room settings -----------------------------------------------------------
+
+func (f *FakeStore) GetRoomSettings(_ context.Context, roomID uuid.UUID) (map[string]string, error) {
+	settings, ok := f.RoomSettings[roomID]
+	if !ok {
+		return map[string]string{}, nil
+	}
+	// Return a copy to prevent mutation of internal state.
+	result := make(map[string]string, len(settings))
+	for k, v := range settings {
+		result[k] = v
+	}
+	return result, nil
+}
+
+func (f *FakeStore) SetRoomSetting(_ context.Context, roomID uuid.UUID, key, value string) error {
+	if _, ok := f.RoomSettings[roomID]; !ok {
+		f.RoomSettings[roomID] = make(map[string]string)
+	}
+	f.RoomSettings[roomID][key] = value
+	return nil
+}
+
 // --- Room players ------------------------------------------------------------
 
 func (f *FakeStore) AddPlayerToRoom(_ context.Context, roomID, playerID uuid.UUID, seat int) error {
@@ -150,13 +243,13 @@ func (f *FakeStore) CreateGameSession(
 	initialState []byte,
 	turnTimeoutSecs *int,
 ) (store.GameSession, error) {
-
 	gs := store.GameSession{
 		ID:              uuid.New(),
 		RoomID:          roomID,
 		GameID:          gameID,
 		State:           initialState,
 		StartedAt:       time.Now(),
+		LastMoveAt:      time.Now(),
 		TurnTimeoutSecs: turnTimeoutSecs,
 	}
 	f.Sessions[gs.ID] = gs
@@ -252,16 +345,60 @@ func (f *FakeStore) SoftDeleteSession(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (f *FakeStore) GetGameResult(_ context.Context, _ uuid.UUID) (store.GameResult, error) {
-	return store.GameResult{}, ErrNotFound
-}
-
 func (f *FakeStore) GetGameConfig(_ context.Context, _ string) (store.GameConfig, error) {
 	return store.GameConfig{}, ErrNotFound
 }
 
-func (f *FakeStore) TouchLastMoveAt(_ context.Context, _ uuid.UUID) error {
+func (f *FakeStore) TouchLastMoveAt(_ context.Context, id uuid.UUID) error {
+	gs, ok := f.Sessions[id]
+	if !ok {
+		return ErrNotFound
+	}
+	gs.LastMoveAt = time.Now()
+	f.Sessions[id] = gs
 	return nil
+}
+
+func (f *FakeStore) CountFinishedSessions(_ context.Context, roomID uuid.UUID) (int, error) {
+	count := 0
+	for _, gs := range f.Sessions {
+		if gs.RoomID == roomID && gs.FinishedAt != nil {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (f *FakeStore) GetLastFinishedSession(_ context.Context, roomID uuid.UUID) (store.GameSession, error) {
+	var last *store.GameSession
+	for _, gs := range f.Sessions {
+		gs := gs
+		if gs.RoomID == roomID && gs.FinishedAt != nil {
+			if last == nil || gs.FinishedAt.After(*last.FinishedAt) {
+				last = &gs
+			}
+		}
+	}
+	if last == nil {
+		return store.GameSession{}, ErrNotFound
+	}
+	return *last, nil
+}
+
+// ListSessionsNeedingTimer returns active, non-suspended sessions with a turn
+// timeout configured. Used by TurnTimer.ReschedulePending on startup.
+func (f *FakeStore) ListSessionsNeedingTimer(_ context.Context) ([]store.GameSession, error) {
+	var result []store.GameSession
+	for _, gs := range f.Sessions {
+		if gs.FinishedAt != nil || gs.DeletedAt != nil || gs.SuspendedAt != nil {
+			continue
+		}
+		if gs.TurnTimeoutSecs == nil || *gs.TurnTimeoutSecs <= 0 {
+			continue
+		}
+		result = append(result, gs)
+	}
+	return result, nil
 }
 
 // --- Moves -------------------------------------------------------------------
@@ -293,50 +430,6 @@ func (f *FakeStore) GetMoveAt(_ context.Context, sessionID uuid.UUID, moveNumber
 	return store.Move{}, ErrNotFound
 }
 
-// --- Admin: allowed emails ---------------------------------------------------
-
-func (f *FakeStore) ListAllowedEmails(_ context.Context) ([]store.AllowedEmail, error) {
-	var result []store.AllowedEmail
-	for _, e := range f.AllowedEmails {
-		result = append(result, e)
-	}
-	return result, nil
-}
-
-func (f *FakeStore) AddAllowedEmail(_ context.Context, params store.AddAllowedEmailParams) (store.AllowedEmail, error) {
-	e := store.AllowedEmail{
-		Email:     params.Email,
-		CreatedAt: time.Now(),
-	}
-	f.AllowedEmails[params.Email] = e
-	return e, nil
-}
-
-func (f *FakeStore) RemoveAllowedEmail(_ context.Context, email string) error {
-	delete(f.AllowedEmails, email)
-	return nil
-}
-
-// --- Admin: players ----------------------------------------------------------
-
-func (f *FakeStore) ListPlayers(_ context.Context) ([]store.Player, error) {
-	var result []store.Player
-	for _, p := range f.Players {
-		result = append(result, p)
-	}
-	return result, nil
-}
-
-func (f *FakeStore) SetPlayerRole(_ context.Context, playerID uuid.UUID, role store.PlayerRole) error {
-	p, ok := f.Players[playerID]
-	if !ok {
-		return ErrNotFound
-	}
-	p.Role = role
-	f.Players[playerID] = p
-	return nil
-}
-
 // --- OAuth -------------------------------------------------------------------
 
 func (f *FakeStore) UpsertOAuthIdentity(_ context.Context, _ store.UpsertOAuthParams) (store.OAuthIdentity, error) {
@@ -357,8 +450,26 @@ func (f *FakeStore) IsEmailAllowed(_ context.Context, _ string) (bool, error) {
 
 // --- Results & leaderboard ---------------------------------------------------
 
-func (f *FakeStore) CreateGameResult(_ context.Context, _ store.CreateGameResultParams) (store.GameResult, error) {
-	return store.GameResult{}, nil
+func (f *FakeStore) CreateGameResult(_ context.Context, params store.CreateGameResultParams) (store.GameResult, error) {
+	r := store.GameResult{
+		ID:        uuid.New(),
+		SessionID: params.SessionID,
+		GameID:    params.GameID,
+		WinnerID:  params.WinnerID,
+		IsDraw:    params.IsDraw,
+		EndedBy:   params.EndedBy,
+		CreatedAt: time.Now(),
+	}
+	f.GameResults[params.SessionID] = r
+	return r, nil
+}
+
+func (f *FakeStore) GetGameResult(_ context.Context, sessionID uuid.UUID) (store.GameResult, error) {
+	r, ok := f.GameResults[sessionID]
+	if !ok {
+		return store.GameResult{}, ErrNotFound
+	}
+	return r, nil
 }
 
 func (f *FakeStore) GetPlayerStats(_ context.Context, playerID uuid.UUID) (store.PlayerStats, error) {
@@ -373,22 +484,39 @@ func (f *FakeStore) ListPlayerHistory(_ context.Context, _ uuid.UUID, _, _ int) 
 	return []store.GameResult{}, nil
 }
 
-// --- Spectators --------------------------------------------------------------
-
-func (f *FakeStore) CreateSpectatorLink(_ context.Context, roomID, createdBy uuid.UUID) (store.SpectatorLink, error) {
-	return store.SpectatorLink{Token: uuid.New().String(), RoomID: roomID, CreatedBy: createdBy, CreatedAt: time.Now()}, nil
-}
-
-func (f *FakeStore) GetSpectatorLink(_ context.Context, _ string) (store.SpectatorLink, error) {
-	return store.SpectatorLink{}, ErrNotFound
-}
-
 // --- Rematch -----------------------------------------------------------------
 
-func (f *FakeStore) UpsertRematchVote(_ context.Context, _ uuid.UUID, _ uuid.UUID) error { return nil }
-
-func (f *FakeStore) ListRematchVotes(_ context.Context, _ uuid.UUID) ([]store.RematchVote, error) {
-	return []store.RematchVote{}, nil
+func (f *FakeStore) UpsertRematchVote(_ context.Context, sessionID, playerID uuid.UUID) error {
+	votes := f.RematchVotes[sessionID]
+	for _, v := range votes {
+		if v.PlayerID == playerID {
+			return nil // already voted
+		}
+	}
+	f.RematchVotes[sessionID] = append(votes, store.RematchVote{
+		SessionID: sessionID,
+		PlayerID:  playerID,
+		VotedAt:   time.Now(),
+	})
+	return nil
 }
 
-func (f *FakeStore) DeleteRematchVotes(_ context.Context, _ uuid.UUID) error { return nil }
+func (f *FakeStore) ListRematchVotes(_ context.Context, sessionID uuid.UUID) ([]store.RematchVote, error) {
+	return f.RematchVotes[sessionID], nil
+}
+
+func (f *FakeStore) DeleteRematchVotes(_ context.Context, sessionID uuid.UUID) error {
+	delete(f.RematchVotes, sessionID)
+	return nil
+}
+
+func (f *FakeStore) BulkCreateSessionEvents(_ context.Context, _ []store.CreateSessionEventParams) error {
+	return nil
+}
+func (f *FakeStore) ListSessionEvents(_ context.Context, _ uuid.UUID) ([]store.SessionEvent, error) {
+	return nil, nil
+}
+
+// --- Exec (used by test migrations) ------------------------------------------
+
+func (f *FakeStore) Exec(_ context.Context, _ string) error { return nil }

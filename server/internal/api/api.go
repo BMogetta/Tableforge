@@ -16,7 +16,9 @@ import (
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/auth"
 	"github.com/tableforge/server/internal/engine"
+	"github.com/tableforge/server/internal/events"
 	"github.com/tableforge/server/internal/lobby"
+	"github.com/tableforge/server/internal/presence"
 	"github.com/tableforge/server/internal/ratelimit"
 	"github.com/tableforge/server/internal/runtime"
 	"github.com/tableforge/server/internal/store"
@@ -28,7 +30,7 @@ import (
 // NewRouter builds and returns the main HTTP router.
 // authHandler may be nil — auth middleware is skipped (tests only).
 // limiter may be nil — rate limiting is skipped (tests only).
-func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store, hub *ws.Hub, authHandler *auth.Handler, limiter *ratelimit.Limiter) http.Handler {
+func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store, hub *ws.Hub, authHandler *auth.Handler, limiter *ratelimit.Limiter, eventStore *events.Store, presenceStore *presence.Store) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -103,6 +105,7 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 		r.Put("/rooms/{roomID}/settings/{key}", handleUpdateRoomSetting(lobbyService, hub))
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
+		r.Get("/sessions/{sessionID}/events", handleGetSessionEvents(eventStore))
 		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub))
 		r.Post("/sessions/{sessionID}/rematch", handleRematch(rt, hub))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
@@ -124,10 +127,10 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 
 	// WebSocket — protected in production, open when authHandler is nil (tests).
 	// The handler receives store.Store to resolve participant vs spectator status.
-	wsHandler := http.HandlerFunc(ws.Handler(hub, st))
+	wsHandler := http.HandlerFunc(ws.Handler(hub, st, eventStore, presenceStore))
 	if authHandler != nil {
 		wsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHandler.Middleware(ws.Handler(hub, st)).ServeHTTP(w, r)
+			authHandler.Middleware(ws.Handler(hub, st, eventStore, presenceStore)).ServeHTTP(w, r)
 		})
 	}
 	r.Get("/ws/rooms/{roomID}", wsHandler)
@@ -688,6 +691,26 @@ func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 			"state":   state,
 			"result":  result,
 		})
+	}
+}
+
+// GET /api/v1/sessions/{sessionID}/events
+// Returns the full event log for a session.
+// If the session is still active, reads from the Redis Stream.
+// If the session is finished, reads from Postgres.
+func handleGetSessionEvents(ev *events.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+		evts, err := ev.Read(r.Context(), sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get events")
+			return
+		}
+		writeJSON(w, http.StatusOK, evts)
 	}
 }
 

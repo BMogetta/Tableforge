@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Run the test seeder to create them before running Playwright.
 const PLAYER1_ID = process.env.TEST_PLAYER1_ID!
 const PLAYER2_ID = process.env.TEST_PLAYER2_ID!
+const PLAYER3_ID = process.env.TEST_PLAYER3_ID!
 
 const AUTH_DIR = path.join(__dirname, '.auth')
 
@@ -31,7 +32,6 @@ setup('authenticate player 1', async ({ browser }) => {
   await context.close()
 })
 
-// Creates an authenticated browser context for player 2.
 setup('authenticate player 2', async ({ browser }) => {
   const context = await browser.newContext()
   const page = await context.newPage()
@@ -42,5 +42,19 @@ setup('authenticate player 2', async ({ browser }) => {
   expect(response.status()).toBe(204)
 
   await context.storageState({ path: path.join(AUTH_DIR, 'player2.json') })
+  await context.close()
+})
+
+// player3 is used as a spectator — joins rooms without a seat.
+setup('authenticate player 3', async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+
+  const response = await page.request.get(
+    `http://localhost/auth/test-login?player_id=${PLAYER3_ID}`
+  )
+  expect(response.status()).toBe(204)
+
+  await context.storageState({ path: path.join(AUTH_DIR, 'player3.json') })
   await context.close()
 })

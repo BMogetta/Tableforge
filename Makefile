@@ -33,7 +33,7 @@ logs:
 seed:
 	docker compose exec -e OWNER_EMAIL=$(OWNER_EMAIL) game-server /bin/seeder
 
-# Create two test players for Playwright and save their IDs.
+# Create test players for Playwright and save their IDs.
 # Requires: make up-test first.
 # Output: frontend/tests/e2e/.players.json
 seed-test:
@@ -53,6 +53,7 @@ test:
 	cd frontend && \
 		TEST_PLAYER1_ID=$$(cat tests/e2e/.players.json | jq -r .player1_id) \
 		TEST_PLAYER2_ID=$$(cat tests/e2e/.players.json | jq -r .player2_id) \
+		TEST_PLAYER3_ID=$$(cat tests/e2e/.players.json | jq -r .player3_id) \
 		npx playwright test
 
 # Open Playwright UI mode for interactive test development.
@@ -63,6 +64,7 @@ test-ui:
 	cd frontend && \
 		TEST_PLAYER1_ID=$$(cat tests/e2e/.players.json | jq -r .player1_id) \
 		TEST_PLAYER2_ID=$$(cat tests/e2e/.players.json | jq -r .player2_id) \
+		TEST_PLAYER3_ID=$$(cat tests/e2e/.players.json | jq -r .player3_id) \
 		npx playwright test --ui
 
 # --- Cleanup -----------------------------------------------------------------

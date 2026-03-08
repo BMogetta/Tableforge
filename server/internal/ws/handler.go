@@ -1,11 +1,14 @@
 package ws
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/tableforge/server/internal/events"
+	"github.com/tableforge/server/internal/presence"
 	"github.com/tableforge/server/internal/store"
 )
 
@@ -16,6 +19,10 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+const (
+	EventPresenceUpdate EventType = "presence_update"
+)
+
 // Handler returns an http.HandlerFunc that upgrades connections for roomID.
 //
 // The player_id query parameter is used to determine whether the connecting
@@ -24,10 +31,9 @@ var upgrader = websocket.Upgrader{
 //   - If player_id is NOT in room_players → spectator connection.
 //     Rejected with 403 if the room's allow_spectators setting is "no".
 //
-// When a spectator connects or disconnects, a spectator_joined / spectator_left
-// event is broadcast to all clients in the room so the lobby can update the
-// live spectator count.
-func Handler(hub *Hub, st store.Store) http.HandlerFunc {
+// When a player or spectator connects or disconnects, the event is appended
+// to the session's Redis Stream for event sourcing.
+func Handler(hub *Hub, st store.Store, ev *events.Store, ps *presence.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
 		if err != nil {
@@ -74,31 +80,101 @@ func Handler(hub *Hub, st store.Store) http.HandlerFunc {
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			// Upgrade writes the error response itself.
 			return
 		}
 
 		spectator := !isParticipant
-		c := newClient(hub, roomID, conn, spectator)
+		c := newClient(hub, roomID, playerID, conn, spectator, ps)
 		hub.subscribe(roomID, c)
 
+		if !spectator && ps != nil {
+			// Mark the player as online and broadcast to all clients in the room
+			// so existing participants see the presence dot update immediately.
+			ps.Set(ctx, playerID)
+			hub.Broadcast(roomID, Event{
+				Type: EventPresenceUpdate,
+				Payload: map[string]any{
+					"player_id": playerID.String(),
+					"online":    true,
+				},
+			})
+
+			// Send a presence snapshot directly to the connecting client only.
+			// This catches up the new client on who is already online — without
+			// this, they would miss presence_update events that fired before they
+			// connected and see everyone as offline until the next state change.
+			playerIDs := make([]uuid.UUID, 0, len(roomPlayers))
+			for _, rp := range roomPlayers {
+				playerIDs = append(playerIDs, rp.PlayerID)
+			}
+			if onlineMap, err := ps.ListOnline(ctx, playerIDs); err == nil {
+				for id, online := range onlineMap {
+					snapshot, _ := json.Marshal(Event{
+						Type: EventPresenceUpdate,
+						Payload: map[string]any{
+							"player_id": id.String(),
+							"online":    online,
+						},
+					})
+					select {
+					case c.send <- snapshot:
+					default:
+					}
+				}
+			}
+		}
+
+		session, sessionErr := st.GetActiveSessionByRoom(ctx, roomID)
+
 		if spectator {
+			if sessionErr == nil {
+				ev.Append(ctx, session.ID, events.TypeSpectatorJoined, &playerID, map[string]any{
+					"spectator_count": hub.SpectatorCount(roomID),
+				})
+			}
 			hub.Broadcast(roomID, Event{
 				Type:    EventSpectatorJoined,
 				Payload: map[string]any{"spectator_count": hub.SpectatorCount(roomID)},
 			})
 
-			// Notify remaining clients when the spectator disconnects.
-			// We wrap readPump in a goroutine that broadcasts on exit.
 			go func() {
 				c.readPump()
+				// Spectator disconnected.
+				if sessionErr == nil {
+					ev.Append(ctx, session.ID, events.TypeSpectatorLeft, &playerID, map[string]any{
+						"spectator_count": hub.SpectatorCount(roomID),
+					})
+				}
 				hub.Broadcast(roomID, Event{
 					Type:    EventSpectatorLeft,
 					Payload: map[string]any{"spectator_count": hub.SpectatorCount(roomID)},
 				})
 			}()
 		} else {
-			go c.readPump()
+			if sessionErr == nil {
+				ev.Append(ctx, session.ID, events.TypePlayerConnected, &playerID, map[string]any{
+					"player_id": playerID.String(),
+				})
+			}
+
+			go func() {
+				c.readPump()
+				// presence.Del is called inside readPump defer.
+				if ps != nil {
+					hub.Broadcast(roomID, Event{
+						Type: EventPresenceUpdate,
+						Payload: map[string]any{
+							"player_id": playerID.String(),
+							"online":    false,
+						},
+					})
+				}
+				if sessionErr == nil {
+					ev.Append(ctx, session.ID, events.TypePlayerDisconnected, &playerID, map[string]any{
+						"player_id": playerID.String(),
+					})
+				}
+			}()
 		}
 
 		go c.writePump()

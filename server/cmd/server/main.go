@@ -13,7 +13,9 @@ import (
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/api"
 	"github.com/tableforge/server/internal/auth"
+	"github.com/tableforge/server/internal/events"
 	"github.com/tableforge/server/internal/lobby"
+	"github.com/tableforge/server/internal/presence"
 	"github.com/tableforge/server/internal/ratelimit"
 	"github.com/tableforge/server/internal/runtime"
 	"github.com/tableforge/server/internal/store"
@@ -27,7 +29,6 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	// Telemetry
 	otlpEndpoint := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
 	serviceName := getEnv("OTEL_SERVICE_NAME", "game-server")
 
@@ -44,7 +45,6 @@ func main() {
 		}
 	}()
 
-	// Database
 	dbURL := getEnv("DATABASE_URL", "postgres://tableforge:tableforge@localhost:5432/tableforge?sslmode=disable")
 	st, err := store.New(ctx, dbURL)
 	if err != nil {
@@ -52,7 +52,6 @@ func main() {
 	}
 	defer st.Close()
 
-	// Redis
 	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
 	rdb, err := connectRedis(ctx, redisURL)
 	if err != nil {
@@ -60,24 +59,29 @@ func main() {
 	}
 	defer rdb.Close()
 
-	// Services
+	// Event store — Redis Streams while active, Postgres after session ends.
+	eventStore := events.New(rdb, st)
+
+	// Presence store — tracks which users are connected to which rooms, for accurate online/offline status and spectator vs participant resolution.
+	presenceStore := presence.New(rdb)
+
 	reg := games.DefaultRegistry()
 	lobbyService := lobby.New(st, reg)
-	runtimeService := runtime.New(st, reg)
+	runtimeService := runtime.New(st, reg, eventStore)
 	hub := ws.NewHubWithRedis(rdb)
 
-	turnTimer := runtime.NewTurnTimer(runtimeService, hub, st)
+	turnTimer := runtime.NewTurnTimer(runtimeService, hub, st, rdb, eventStore)
 	runtimeService.SetTimer(turnTimer)
 
-	// Rate limiter: 100 req/min per IP
-	// Disabled in TEST_MODE to prevent rate limit failures during Playwright tests.
+	turnTimer.ReschedulePending(ctx)
+	go turnTimer.Start(ctx)
+
 	testMode := getEnv("TEST_MODE", "false") == "true"
 	var limiter *ratelimit.Limiter
 	if !testMode {
 		limiter = ratelimit.New(rdb, 100, time.Minute)
 	}
 
-	// Auth
 	authHandler := auth.NewHandler(
 		st,
 		getEnv("GITHUB_CLIENT_ID", ""),
@@ -86,8 +90,7 @@ func main() {
 		getEnv("ENV", "development") == "production",
 	)
 
-	// HTTP server
-	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter)
+	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter, eventStore, presenceStore)
 	addr := getEnv("ADDR", ":8080")
 
 	var handler http.Handler = router
@@ -95,10 +98,7 @@ func main() {
 		handler = limiter.Middleware(router)
 	}
 
-	srv := &http.Server{
-		Addr:    addr,
-		Handler: handler,
-	}
+	srv := &http.Server{Addr: addr, Handler: handler}
 
 	go func() {
 		log.Printf("server listening on %s", addr)

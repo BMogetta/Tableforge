@@ -51,9 +51,6 @@ type Room struct {
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	DeletedAt       *time.Time `json:"deleted_at,omitempty"`
-	// AllowSpectators was removed from this struct — spectator permission is
-	// now controlled via the allow_spectators room_setting (see engine.DefaultLobbySettings).
-	// The DB column still exists and can be dropped in a future migration.
 }
 
 type RoomPlayer struct {
@@ -153,17 +150,6 @@ type GameResultPlayer struct {
 	Outcome  string    `json:"outcome"`
 }
 
-// SpectatorLink is retained for backwards compatibility with existing data.
-// Deprecated: spectator access is now controlled via the allow_spectators
-// room_setting. The spectator_links table and these methods will be removed
-// in a future migration once the old token-based flow is fully retired.
-type SpectatorLink struct {
-	Token     string    `json:"token"`
-	RoomID    uuid.UUID `json:"room_id"`
-	CreatedBy uuid.UUID `json:"created_by"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 type RematchVote struct {
 	SessionID uuid.UUID `json:"session_id"`
 	PlayerID  uuid.UUID `json:"player_id"`
@@ -232,11 +218,18 @@ type Store interface {
 	// GetLastFinishedSession returns the most recently finished session for a room.
 	// Returns an error if no finished session exists.
 	GetLastFinishedSession(ctx context.Context, roomID uuid.UUID) (GameSession, error)
+	// ListSessionsNeedingTimer returns active, non-suspended sessions with a
+	// turn timeout configured. Used by TurnTimer.ReschedulePending on startup.
+	ListSessionsNeedingTimer(ctx context.Context) ([]GameSession, error)
 
 	// Moves
 	RecordMove(ctx context.Context, params RecordMoveParams) (Move, error)
 	ListSessionMoves(ctx context.Context, sessionID uuid.UUID) ([]Move, error)
 	GetMoveAt(ctx context.Context, sessionID uuid.UUID, moveNumber int) (Move, error)
+
+	// Session events
+	BulkCreateSessionEvents(ctx context.Context, params []CreateSessionEventParams) error
+	ListSessionEvents(ctx context.Context, sessionID uuid.UUID) ([]SessionEvent, error)
 
 	// OAuth
 	UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthParams) (OAuthIdentity, error)
@@ -249,12 +242,6 @@ type Store interface {
 	GetPlayerStats(ctx context.Context, playerID uuid.UUID) (PlayerStats, error)
 	GetLeaderboard(ctx context.Context, gameID string, limit int) ([]LeaderboardEntry, error)
 	ListPlayerHistory(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]GameResult, error)
-
-	// Spectator links — Deprecated: use allow_spectators room_setting instead.
-	// These methods are retained for backwards compatibility and will be removed
-	// once the spectator_links table is dropped.
-	CreateSpectatorLink(ctx context.Context, roomID, createdBy uuid.UUID) (SpectatorLink, error)
-	GetSpectatorLink(ctx context.Context, token string) (SpectatorLink, error)
 
 	// Rematch
 	UpsertRematchVote(ctx context.Context, sessionID, playerID uuid.UUID) error
@@ -274,8 +261,6 @@ type CreateRoomParams struct {
 	// when the room is created. Populated by lobby.Service from engine.DefaultLobbySettings()
 	// merged with any game-specific settings from engine.LobbySettingsProvider.
 	DefaultSettings map[string]string
-	// AllowSpectators was removed — spectator permission is now controlled via
-	// the allow_spectators room_setting. Field removed from params accordingly.
 }
 
 type RecordMoveParams struct {

@@ -33,6 +33,8 @@ const (
 	// update the spectator count in real time.
 	EventSpectatorJoined EventType = "spectator_joined"
 	EventSpectatorLeft   EventType = "spectator_left"
+	// EventPresenceUpdated is broadcast to all room clients when a player connects or disconnects, so clients can update the player list in real time. The payload is a list of currently connected player IDs.
+	EventPresenceUpdated EventType = "presence_update"
 )
 
 // spectatorOnlyEvents are never sent to spectators.

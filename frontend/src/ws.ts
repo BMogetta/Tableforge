@@ -7,6 +7,7 @@ export type WsEventType =
   | 'rematch_vote'
   | 'rematch_ready'
   | 'rematch_started'
+  | 'presence_update'
   | 'owner_changed'
   | 'setting_updated'
   | 'room_closed'

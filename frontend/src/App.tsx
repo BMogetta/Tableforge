@@ -8,6 +8,7 @@ import Room from './pages/Room'
 import Game from './pages/Game'
 import Admin from './pages/Admin'
 import { lazy } from 'react'
+import SessionHistory from './pages/SessionHistory'
 const TestError = lazy(() => import('./pages/TestError'))
 
 // --- Error boundary ----------------------------------------------------------
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="/" element={<RequireAuth><Lobby /></RequireAuth>} />
           <Route path="/rooms/:roomId" element={<RequireAuth><Room /></RequireAuth>} />
           <Route path="/game/:sessionId" element={<RequireAuth><Game /></RequireAuth>} />
+          <Route path="/sessions/:sessionId/history" element={<RequireAuth><SessionHistory /></RequireAuth>} />
           <Route
             path="/admin"
             element={

@@ -2,8 +2,6 @@ package store
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -232,8 +230,6 @@ func (s *PGStore) SetPlayerRole(ctx context.Context, playerID uuid.UUID, role Pl
 // The default settings are provided by the caller via params.DefaultSettings —
 // lobby.Service populates this from engine.DefaultLobbySettings() merged with
 // any game-specific settings from engine.LobbySettingsProvider.
-// Note: allow_spectators is now a room_setting, not a column — it is included
-// in params.DefaultSettings and inserted with the rest of the settings below.
 func (s *PGStore) CreateRoom(ctx context.Context, params CreateRoomParams) (Room, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -893,46 +889,6 @@ func (s *PGStore) ListPlayerHistory(ctx context.Context, playerID uuid.UUID, lim
 	return results, rows.Err()
 }
 
-// --- Spectators --------------------------------------------------------------
-// Deprecated: spectator access is now controlled via the allow_spectators
-// room_setting. These methods are retained for backwards compatibility until
-// the spectator_links table is dropped in a future migration.
-
-func (s *PGStore) CreateSpectatorLink(ctx context.Context, roomID, createdBy uuid.UUID) (SpectatorLink, error) {
-	token, err := generateToken(32)
-	if err != nil {
-		return SpectatorLink{}, fmt.Errorf("CreateSpectatorLink generate token: %w", err)
-	}
-
-	row := s.pool.QueryRow(ctx,
-		`INSERT INTO spectator_links (token, room_id, created_by)
-		 VALUES ($1, $2, $3)
-		 RETURNING token, room_id, created_by, created_at`,
-		token, roomID, createdBy,
-	)
-	var sl SpectatorLink
-	if err := row.Scan(&sl.Token, &sl.RoomID, &sl.CreatedBy, &sl.CreatedAt); err != nil {
-		return SpectatorLink{}, fmt.Errorf("CreateSpectatorLink: %w", err)
-	}
-	return sl, nil
-}
-
-func (s *PGStore) GetSpectatorLink(ctx context.Context, token string) (SpectatorLink, error) {
-	row := s.pool.QueryRow(ctx,
-		`SELECT sl.token, sl.room_id, sl.created_by, sl.created_at
-		 FROM spectator_links sl
-		 JOIN game_sessions gs ON gs.room_id = sl.room_id
-		 WHERE sl.token = $1 AND gs.finished_at IS NULL
-		 LIMIT 1`,
-		token,
-	)
-	var sl SpectatorLink
-	if err := row.Scan(&sl.Token, &sl.RoomID, &sl.CreatedBy, &sl.CreatedAt); err != nil {
-		return SpectatorLink{}, fmt.Errorf("GetSpectatorLink: %w", err)
-	}
-	return sl, nil
-}
-
 // --- Rematch -----------------------------------------------------------------
 
 func (s *PGStore) UpsertRematchVote(ctx context.Context, sessionID, playerID uuid.UUID) error {
@@ -1015,12 +971,4 @@ func scanSession(row scanner) (GameSession, error) {
 		return GameSession{}, fmt.Errorf("scanSession: %w", err)
 	}
 	return gs, nil
-}
-
-func generateToken(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }

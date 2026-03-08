@@ -13,6 +13,8 @@ export default function Room() {
   const joinRoom = useAppStore((s) => s.joinRoom)
   const socket = useAppStore((s) => s.socket)
   const leaveRoom = useAppStore((s) => s.leaveRoom)
+  const setIsSpectator = useAppStore((s) => s.setIsSpectator)
+  const setSpectatorCount = useAppStore((s) => s.setSpectatorCount)
   const navigate = useNavigate()
 
   const [view, setView] = useState<RoomView | null>(null)
@@ -22,7 +24,9 @@ export default function Room() {
   const [ownerId, setOwnerId] = useState<string | null>(null)
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [settingDescriptors, setSettingDescriptors] = useState<LobbySetting[]>([])
-  const [spectatorCount, setSpectatorCount] = useState(0)
+  const spectatorCount = useAppStore((s) => s.spectatorCount)
+  const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
+  const presenceMap = useAppStore((s) => s.presenceMap)
 
   const refresh = useCallback(() => {
     rooms.get(roomId!).then((v) => {
@@ -39,8 +43,12 @@ export default function Room() {
   }, [roomId, player.id, joinRoom])
 
   useEffect(() => {
-    if (view) setOwnerId(view.room.owner_id)
-  }, [view])
+    if (!view) return
+    setOwnerId(view.room.owner_id)
+    // Sync spectator status to store so Game.tsx can read it without prop drilling.
+    const participant = view.players.some((p) => p.id === player.id)
+    setIsSpectator(!participant)
+  }, [view, player.id, setIsSpectator])
 
   // Load game setting descriptors once we know the game_id.
   // Used to render LobbySettings with the correct labels, types and options.
@@ -95,6 +103,11 @@ export default function Room() {
       if (event.type === 'spectator_joined' || event.type === 'spectator_left') {
         const payload = event.payload as { spectator_count: number }
         setSpectatorCount(payload.spectator_count)
+      }
+
+      if (event.type === 'presence_update') {
+        const payload = event.payload as { player_id: string; online: boolean }
+        setPlayerPresence(payload.player_id, payload.online)
       }
     })
 
@@ -171,6 +184,11 @@ export default function Room() {
           <div className={styles.playerList}>
             {view.players.map((p) => (
               <div key={p.id} className={styles.playerRow}>
+                <span
+                  className={styles.presenceDot}
+                  data-online={String(presenceMap[p.id] ?? false)}
+                  data-testid={`presence-dot-${p.id}`}
+                />
                 {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
                 <span className={styles.playerName}>{p.username}</span>
                 {p.id === ownerId && <span className="badge badge-amber">Host</span>}
@@ -216,7 +234,7 @@ export default function Room() {
                   Share the room code privately — it won't appear in the public lobby.
                 </p>
                 <div className={styles.codeBox}>
-                  <span className={styles.codeDisplay}>{room.code}</span>
+                  <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
                   <button
                     className="btn btn-ghost"
                     style={{ padding: '4px 10px', fontSize: 11 }}
@@ -230,7 +248,7 @@ export default function Room() {
               <>
                 <p className="label">Invite Code</p>
                 <div className={styles.codeBox}>
-                  <span className={styles.codeDisplay}>{room.code}</span>
+                  <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
                   <button
                     className="btn btn-ghost"
                     style={{ padding: '4px 10px', fontSize: 11 }}

@@ -193,3 +193,17 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.3; }
 }
+
+.presenceDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.presenceDot[data-online='true'] {
+  background: var(--success);
+  box-shadow: 0 0 4px var(--success);
+}

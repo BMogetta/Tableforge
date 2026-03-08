@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/engine"
+	"github.com/tableforge/server/internal/events"
 	"github.com/tableforge/server/internal/store"
 	"github.com/tableforge/server/internal/ws"
 )
@@ -35,11 +36,12 @@ type Service struct {
 	store    store.Store
 	registry engine.Registry
 	timer    *TurnTimer
+	events   *events.Store
 }
 
 // New creates a new runtime Service.
-func New(st store.Store, registry engine.Registry) *Service {
-	return &Service{store: st, registry: registry}
+func New(st store.Store, registry engine.Registry, ev *events.Store) *Service {
+	return &Service{store: st, registry: registry, events: ev}
 }
 
 // SetTimer attaches a TurnTimer to the service.
@@ -48,17 +50,22 @@ func (svc *Service) SetTimer(t *TurnTimer) {
 	svc.timer = t
 }
 
-// StartSession schedules the initial turn timer for a session.
+// StartSession schedules the initial turn timer and appends a game_started event.
 // Call this from the lobby after creating the session.
 func (svc *Service) StartSession(session store.GameSession) {
 	if svc.timer != nil {
 		svc.timer.Schedule(session)
 	}
+	if svc.events != nil {
+		svc.events.Append(context.Background(), session.ID, events.TypeGameStarted, nil, map[string]any{
+			"game_id":           session.GameID,
+			"turn_timeout_secs": session.TurnTimeoutSecs,
+		})
+	}
 }
 
 // ApplyMove validates and applies a player move to the given session.
 func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID, payload map[string]any) (MoveResult, error) {
-	// Load session.
 	session, err := svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
 		return MoveResult{}, ErrSessionNotFound
@@ -70,37 +77,31 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, ErrSuspended
 	}
 
-	// Load game plugin.
 	game, err := svc.registry.Get(session.GameID)
 	if err != nil {
 		return MoveResult{}, ErrGameNotFound
 	}
 
-	// Deserialize current state.
 	var state engine.GameState
 	if err := json.Unmarshal(session.State, &state); err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: deserialize state: %w", err)
 	}
 
-	// Build move.
 	move := engine.Move{
 		PlayerID:  engine.PlayerID(playerID.String()),
 		Payload:   payload,
 		Timestamp: time.Now(),
 	}
 
-	// Validate.
 	if err := game.ValidateMove(state, move); err != nil {
 		return MoveResult{}, fmt.Errorf("%w: %s", ErrInvalidMove, err.Error())
 	}
 
-	// Apply.
 	newState, err := game.ApplyMove(state, move)
 	if err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: apply: %w", err)
 	}
 
-	// Marshal payload and new state.
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: marshal payload: %w", err)
@@ -110,7 +111,6 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, fmt.Errorf("ApplyMove: marshal state: %w", err)
 	}
 
-	// Persist move with state snapshot.
 	moveNumber := session.MoveCount + 1
 	if _, err := svc.store.RecordMove(ctx, store.RecordMoveParams{
 		SessionID:  sessionID,
@@ -122,7 +122,6 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, fmt.Errorf("ApplyMove: record move: %w", err)
 	}
 
-	// Persist new state and reset turn clock.
 	if err := svc.store.UpdateSessionState(ctx, sessionID, stateJSON); err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: update state: %w", err)
 	}
@@ -130,16 +129,13 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, fmt.Errorf("ApplyMove: touch last_move_at: %w", err)
 	}
 
-	// Reload session to get updated move_count.
 	session, err = svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: reload session: %w", err)
 	}
 
-	// Check if game is over.
 	over, result := game.IsOver(newState)
 	if over {
-		// Cancel the turn timer before finishing.
 		if svc.timer != nil {
 			svc.timer.Cancel(sessionID)
 		}
@@ -149,7 +145,6 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		}
 		session.FinishedAt = timePtr(time.Now())
 
-		// Mark the room as finished so it disappears from the lobby.
 		if err := svc.store.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
 			fmt.Printf("ApplyMove: finish room: %v\n", err)
 		}
@@ -160,6 +155,19 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 			fmt.Printf("ApplyMove: record game result: %v\n", err)
 		}
 
+		if svc.events != nil {
+			svc.events.Append(ctx, sessionID, events.TypeMoveApplied, &playerID, map[string]any{
+				"move_number": moveNumber,
+				"payload":     payload,
+			})
+			svc.events.Append(ctx, sessionID, events.TypeGameOver, nil, map[string]any{
+				"winner_id": result.WinnerID,
+				"status":    result.Status,
+				"ended_by":  "win",
+			})
+			svc.events.Persist(ctx, sessionID)
+		}
+
 		return MoveResult{
 			Session: session,
 			State:   newState,
@@ -168,7 +176,13 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		}, nil
 	}
 
-	// Reschedule the turn timer for the next player.
+	if svc.events != nil {
+		svc.events.Append(ctx, sessionID, events.TypeMoveApplied, &playerID, map[string]any{
+			"move_number": moveNumber,
+			"payload":     payload,
+		})
+	}
+
 	if svc.timer != nil {
 		svc.timer.Schedule(session)
 	}
@@ -243,7 +257,6 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, fmt.Errorf("Surrender: list players: %w", err)
 	}
 
-	// Verify caller is a participant and find the opponent.
 	var opponentID *uuid.UUID
 	callerFound := false
 	for _, p := range players {
@@ -258,7 +271,6 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		return MoveResult{}, ErrNotParticipant
 	}
 
-	// Cancel the turn timer before finishing.
 	if svc.timer != nil {
 		svc.timer.Cancel(sessionID)
 	}
@@ -272,7 +284,6 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		fmt.Printf("Surrender: finish room: %v\n", err)
 	}
 
-	// Build result — opponent wins, surrendering player loses.
 	resultPlayers := make([]store.GameResultPlayer, len(players))
 	for i, p := range players {
 		outcome := "loss"
@@ -297,7 +308,19 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		fmt.Printf("Surrender: record game result: %v\n", err)
 	}
 
-	// Return current state unchanged — the game ended, no new move was made.
+	if svc.events != nil {
+		svc.events.Append(ctx, sessionID, events.TypePlayerSurrendered, &playerID, map[string]any{
+			"player_id":   playerID.String(),
+			"opponent_id": opponentID,
+		})
+		svc.events.Append(ctx, sessionID, events.TypeGameOver, nil, map[string]any{
+			"winner_id": opponentID,
+			"status":    "win",
+			"ended_by":  "forfeit",
+		})
+		svc.events.Persist(ctx, sessionID)
+	}
+
 	var state engine.GameState
 	if err := json.Unmarshal(session.State, &state); err != nil {
 		return MoveResult{}, fmt.Errorf("Surrender: deserialize state: %w", err)
@@ -324,10 +347,6 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 var ErrNotFinished = errors.New("game is not finished yet")
 
 // VoteRematch registers a rematch vote for playerID on the given session.
-// Returns (votes, totalPlayers, roomID, rematchReady, error).
-// rematchReady is true only when all players have voted. When that happens,
-// the room status is reset to waiting so players return to the lobby to start
-// a new game with the same settings. No new session is created here.
 func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UUID) ([]store.RematchVote, int, uuid.UUID, bool, error) {
 	session, err := svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
@@ -357,6 +376,12 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: upsert vote: %w", err)
 	}
 
+	if svc.events != nil {
+		svc.events.Append(ctx, sessionID, events.TypeRematchVoted, &playerID, map[string]any{
+			"player_id": playerID.String(),
+		})
+	}
+
 	votes, err := svc.store.ListRematchVotes(ctx, sessionID)
 	if err != nil {
 		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: list votes: %w", err)
@@ -364,19 +389,14 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 
 	totalPlayers := len(players)
 
-	// Not everyone has voted yet — just report the current vote count.
 	if len(votes) < totalPlayers {
 		return votes, totalPlayers, session.RoomID, false, nil
 	}
 
-	// All players voted — clean up votes and reset the room to waiting.
-	// The lobby is responsible for starting a new session when the owner
-	// clicks Start again. Settings are preserved in room_settings.
 	if err := svc.store.DeleteRematchVotes(ctx, sessionID); err != nil {
 		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: delete votes: %w", err)
 	}
 
-	// Cancel any active turn timer before resetting the room.
 	if svc.timer != nil {
 		svc.timer.Cancel(sessionID)
 	}

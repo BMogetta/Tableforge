@@ -152,7 +152,7 @@ export default function Lobby() {
             ) : roomList.length === 0 ? (
               <p className={styles.empty}>No open rooms. Create one to get started.</p>
             ) : (
-              <div className={styles.roomList}>
+              <div data-testid="lobby-room-list" className={styles.roomList}>
                 {roomList.map((view: RoomView) => (
                   <RoomCard
                     key={view.room.id}
@@ -181,13 +181,18 @@ function RoomCard({ view, onJoin }: { view: RoomView; onJoin: () => void }) {
   const isPrivate = settings?.room_visibility === 'private'
 
   return (
-    <div className={styles.roomCard}>
+    <div data-testid="room-card" className={styles.roomCard}>
       <div className={styles.roomInfo}>
         {isPrivate ? (
-          // Private room — lock icon instead of code to prevent discovery.
-          <span className={styles.roomCodePrivate} title="Private room">🔒</span>
+          <span
+            data-testid="room-card-private-icon"
+            className={styles.roomCodePrivate}
+            title="Private room"
+          >
+            🔒
+          </span>
         ) : (
-          <span className={styles.roomCode}>{room.code}</span>
+          <span data-testid="room-card-code" className={styles.roomCode}>{room.code}</span>
         )}
         <span className={styles.roomGame}>{room.game_id}</span>
       </div>

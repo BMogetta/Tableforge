@@ -1,40 +1,45 @@
 package ws
 
 import (
+	"context"
 	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/tableforge/server/internal/presence"
 )
 
 const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 512
+	writeWait       = 10 * time.Second
+	pongWait        = 60 * time.Second
+	pingPeriod      = (pongWait * 9) / 10
+	heartbeatPeriod = 15 * time.Second
+	maxMessageSize  = 512
 )
 
 // Client wraps a single WebSocket connection.
 type Client struct {
-	hub    *Hub
-	roomID uuid.UUID
-	conn   *websocket.Conn
-	send   chan []byte
+	hub      *Hub
+	roomID   uuid.UUID
+	playerID uuid.UUID
+	conn     *websocket.Conn
+	send     chan []byte
+	presence *presence.Store // nil for spectators
 
-	// spectator is true when the client is watching the game but is not a
-	// participant (not in room_players). Spectators receive most events but
-	// are silently excluded from rematch_vote broadcasts.
+	// spectator is true when the client is watching but is not a participant.
 	spectator bool
 }
 
-func newClient(hub *Hub, roomID uuid.UUID, conn *websocket.Conn, spectator bool) *Client {
+func newClient(hub *Hub, roomID, playerID uuid.UUID, conn *websocket.Conn, spectator bool, ps *presence.Store) *Client {
 	return &Client{
 		hub:       hub,
 		roomID:    roomID,
+		playerID:  playerID,
 		conn:      conn,
 		send:      make(chan []byte, 64),
 		spectator: spectator,
+		presence:  ps,
 	}
 }
 
@@ -45,6 +50,10 @@ func (c *Client) readPump() {
 		wsConnectionsActive.Dec()
 		c.hub.unsubscribe(c.roomID, c)
 		c.conn.Close()
+		// Mark player offline on disconnect.
+		if !c.spectator && c.presence != nil {
+			c.presence.Del(context.Background(), c.playerID)
+		}
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
@@ -66,6 +75,7 @@ func (c *Client) readPump() {
 }
 
 // writePump fans out messages from the send channel to the WebSocket.
+// For participant clients it also runs a presence heartbeat every 15s.
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -73,7 +83,18 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 
+	var heartbeat *time.Ticker
+	if !c.spectator && c.presence != nil {
+		heartbeat = time.NewTicker(heartbeatPeriod)
+		defer heartbeat.Stop()
+	}
+
 	for {
+		var heartbeatC <-chan time.Time
+		if heartbeat != nil {
+			heartbeatC = heartbeat.C
+		}
+
 		select {
 		case msg, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
@@ -91,6 +112,13 @@ func (c *Client) writePump() {
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
+
+		case <-heartbeatC:
+			go func() {
+				if err := c.presence.Set(context.Background(), c.playerID); err != nil {
+					log.Printf("ws: presence heartbeat: %v", err)
+				}
+			}()
 		}
 	}
 }

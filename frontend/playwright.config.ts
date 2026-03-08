@@ -33,10 +33,28 @@ export default defineConfig({
       testMatch: /\/settings\.spec\.ts/,
     },
     {
+      name: 'spectator-tests',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testMatch: /\/spectator\.spec\.ts/,
+    },
+    {
       name: 'leaderboard-tests',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup', 'game-tests'],
       testMatch: /\/leaderboard\.spec\.ts/,
+    },
+    {
+      name: 'session-history-tests',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup', 'game-tests'],
+      testMatch: /\/session-history\.spec\.ts/,
+    },
+    {
+      name: 'presence-tests',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testMatch: /\/presence\.spec\.ts/,
     },
     {
       name: 'chromium-parallel',
@@ -45,5 +63,5 @@ export default defineConfig({
       testMatch: /\/auth\.spec\.ts/,
       fullyParallel: true,
     },
-  ]
+  ],
 })

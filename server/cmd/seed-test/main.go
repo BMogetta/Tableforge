@@ -10,15 +10,21 @@ import (
 	"github.com/tableforge/server/internal/store"
 )
 
-// seed-test creates two test players for Playwright and prints their IDs.
+// seed-test creates test players for Playwright and prints their IDs.
 // Run with TEST_MODE=true before running Playwright tests.
 //
 // Usage:
-//   DATABASE_URL=... go run ./cmd/seed-test
 //
-// Output is a JSON object with player1_id and player2_id.
-// Pass these as TEST_PLAYER1_ID and TEST_PLAYER2_ID env vars to Playwright.
-
+//	DATABASE_URL=... go run ./cmd/seed-test
+//
+// Output is a JSON object with player1_id, player2_id, and player3_id.
+// Pass these as TEST_PLAYER1_ID, TEST_PLAYER2_ID, TEST_PLAYER3_ID env vars
+// to Playwright.
+//
+// Players:
+//   - player1: room owner / host in most tests
+//   - player2: second participant
+//   - player3: used for spectator tests — joins rooms without a seat
 func main() {
 	ctx := context.Background()
 
@@ -43,22 +49,33 @@ func main() {
 		log.Fatalf("create player 2: %v", err)
 	}
 
-	// TODO add more users to check other integrations and roles
-	// We nee to test spectators, managers, admin, friends, chats, etc.
+	p3, err := st.CreatePlayer(ctx, "test_player_3")
+	if err != nil {
+		log.Fatalf("create player 3: %v", err)
+	}
 
-	// Also add both emails to allowed_emails so they can log in via test-login.
-	for _, email := range []string{"test1@tableforge.test", "test2@tableforge.test"} {
+	// Add all emails to allowed_emails so they can log in via test-login.
+	allowedEmails := []struct {
+		email string
+		role  store.PlayerRole
+	}{
+		{"test1@tableforge.test", store.RolePlayer},
+		{"test2@tableforge.test", store.RolePlayer},
+		{"test3@tableforge.test", store.RolePlayer},
+	}
+	for _, e := range allowedEmails {
 		if _, err := st.AddAllowedEmail(ctx, store.AddAllowedEmailParams{
-			Email: email,
-			Role:  store.RolePlayer,
+			Email: e.email,
+			Role:  e.role,
 		}); err != nil {
-			log.Printf("warn: add allowed email %s: %v", email, err)
+			log.Printf("warn: add allowed email %s: %v", e.email, err)
 		}
 	}
 
 	out, _ := json.MarshalIndent(map[string]string{
 		"player1_id": p1.ID.String(),
 		"player2_id": p2.ID.String(),
+		"player3_id": p3.ID.String(),
 	}, "", "  ")
 	fmt.Println(string(out))
 }

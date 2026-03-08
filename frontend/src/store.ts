@@ -7,6 +7,24 @@ interface AppState {
   setPlayer: (p: Player | null) => void
 
   socket: RoomSocket | null
+  activeRoomId: string | null
+
+  /**
+   * True when the current player joined as a spectator (not in room_players).
+   * Set by Room.tsx once the room view loads and the player list is known.
+   * Consumed by Game.tsx to hide participant-only UI (rematch button, etc).
+   */
+  isSpectator: boolean
+  setIsSpectator: (value: boolean) => void
+
+  /**
+   * Live count of spectators currently watching the room.
+   * Updated via spectator_joined / spectator_left WS events in Room.tsx.
+   * Read by Room.tsx and Game.tsx to display the "👁 N watching" badge.
+   */
+  spectatorCount: number
+  setSpectatorCount: (count: number) => void
+
   /**
    * Opens a WebSocket connection for the given room.
    * @param roomId  The room UUID — used to identify the active room.
@@ -15,6 +33,13 @@ interface AppState {
    */
   joinRoom: (roomId: string, wsUrl: string) => void
   leaveRoom: () => void
+
+  /**
+   * Live presence map: playerID → online.
+   * Updated via presence_update WS events in Room.tsx and Game.tsx.
+   */
+  presenceMap: Record<string, boolean>
+  setPlayerPresence: (playerId: string, online: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -22,15 +47,29 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPlayer: (player) => set({ player }),
 
   socket: null,
+  activeRoomId: null,
+  isSpectator: false,
+  setIsSpectator: (value) => set({ isSpectator: value }),
+
+  spectatorCount: 0,
+  setSpectatorCount: (count) => set({ spectatorCount: count }),
+
   joinRoom: (roomId: string, wsUrl: string) => {
     // Close existing socket if switching rooms.
+    // Reset spectator state so Game.tsx always reads fresh values for the new room.
     get().socket?.close()
     const socket = new RoomSocket(wsUrl)
     socket.connect()
-    set({ socket })
+    set({ socket, activeRoomId: roomId, isSpectator: false, spectatorCount: 0, presenceMap: {} })
   },
   leaveRoom: () => {
     get().socket?.close()
-    set({ socket: null })
+    set({ socket: null, activeRoomId: null, isSpectator: false, spectatorCount: 0, presenceMap: {} })
   },
+
+  presenceMap: {},
+  setPlayerPresence: (playerId, online) =>
+    set((state) => ({
+      presenceMap: { ...state.presenceMap, [playerId]: online },
+    })),
 }))

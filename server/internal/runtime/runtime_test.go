@@ -59,27 +59,12 @@ func (f *fakeStore) ListSessionMoves(_ context.Context, sessionID uuid.UUID) ([]
 	return f.Moves[sessionID], nil
 }
 
-func (f *fakeStore) CreateGameSession(_ context.Context, roomID uuid.UUID, gameID string, state []byte) (store.GameSession, error) {
-	gs := store.GameSession{ID: uuid.New(), RoomID: roomID, GameID: gameID, State: state, StartedAt: time.Now()}
-	f.Sessions[gs.ID] = gs
-	return gs, nil
-}
-
 func (f *fakeStore) GetGameSession(_ context.Context, id uuid.UUID) (store.GameSession, error) {
 	gs, ok := f.Sessions[id]
 	if !ok {
 		return store.GameSession{}, errNotFound
 	}
 	return gs, nil
-}
-
-func (f *fakeStore) GetActiveSessionByRoom(_ context.Context, roomID uuid.UUID) (store.GameSession, error) {
-	for _, gs := range f.Sessions {
-		if gs.RoomID == roomID && gs.FinishedAt == nil {
-			return gs, nil
-		}
-	}
-	return store.GameSession{}, errNotFound
 }
 
 func (f *fakeStore) UpdateSessionState(_ context.Context, id uuid.UUID, state []byte) error {
@@ -172,7 +157,7 @@ func seedSession(t *testing.T, s *fakeStore, game engine.Game) (store.GameSessio
 	})
 	stateJSON, _ := json.Marshal(state)
 
-	gs, _ := s.CreateGameSession(context.Background(), uuid.New(), game.ID(), stateJSON)
+	gs, _ := s.CreateGameSession(context.Background(), uuid.New(), game.ID(), stateJSON, nil)
 	return gs, p1
 }
 
@@ -274,7 +259,7 @@ func TestGetState(t *testing.T) {
 
 	gs, _ := seedSession(t, s, game)
 
-	state, err := svc.GetSessionAndState(context.Background(), gs.ID)
+	_, state, _, err := svc.GetSessionAndState(context.Background(), gs.ID)
 	if err != nil {
 		t.Fatalf("GetSessionAndState: %v", err)
 	}

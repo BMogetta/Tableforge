@@ -5,8 +5,9 @@ import path from 'path'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PLAYER1_STATE = path.join(__dirname, '.auth/player1.json')
 const PLAYER2_STATE = path.join(__dirname, '.auth/player2.json')
+const PLAYER3_STATE = path.join(__dirname, '.auth/player3.json')
 
-export { PLAYER1_STATE, PLAYER2_STATE }
+export { PLAYER1_STATE, PLAYER2_STATE, PLAYER3_STATE }
 
 // --- Shared helpers ----------------------------------------------------------
 
@@ -28,6 +29,16 @@ export async function createPlayerContexts(browser: Browser) {
   return { p1Ctx, p1, p2Ctx, p2 }
 }
 
+// Creates a third browser context for player3, used in spectator tests.
+export async function createSpectatorContext(browser: Browser) {
+  const p3Ctx = await browser.newContext({ storageState: PLAYER3_STATE })
+  const p3 = await p3Ctx.newPage()
+  p3.on('console', msg => console.log('P3:', msg.text()))
+  p3.on('pageerror', err => console.log('P3 ERROR:', err.message))
+  await p3.goto('/')
+  return { p3Ctx, p3 }
+}
+
 // P1 creates a room, P2 joins via the room code, P1 starts the game.
 // Both pages are asserted to have navigated to /game/:id before returning.
 //
@@ -38,17 +49,10 @@ export async function setupAndStartGame(p1: Page, p2: Page) {
   await expect(p1).toHaveURL(/\/rooms\//)
 
   const code = await p1.getByTestId('room-code').textContent()
-
-  // Extract the room ID from the URL so we can call the settings API directly.
-  const roomUrl = p1.url()
-  const roomId = roomUrl.split('/rooms/')[1]
-
-  // Read player1 ID from the env var injected by the test runner.
+  const roomId = p1.url().split('/rooms/')[1]
   const player1Id = process.env.TEST_PLAYER1_ID!
 
   // Force first_mover_policy to 'fixed' so P1 (seat 0) always goes first.
-  // This makes all turn-order assertions in tests deterministic regardless
-  // of the room default (which is 'random').
   await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
     data: { player_id: player1Id, value: 'fixed' },
   })
@@ -57,12 +61,26 @@ export async function setupAndStartGame(p1: Page, p2: Page) {
   await p2.getByTestId('join-btn').click()
   await expect(p2).toHaveURL(/\/rooms\//)
 
-  // Start button is disabled until the WS player_joined event updates the room.
   await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
   await p1.getByTestId('start-game-btn').click()
 
   await expect(p1).toHaveURL(/\/game\//)
   await expect(p2).toHaveURL(/\/game\//, { timeout: 10_000 })
+}
+
+// Enables spectators for a room via the settings API.
+// Must be called before starting the game.
+export async function enableSpectators(p1: Page, roomId: string) {
+  await p1.request.put(`/api/v1/rooms/${roomId}/settings/allow_spectators`, {
+    data: { player_id: process.env.TEST_PLAYER1_ID!, value: 'yes' },
+  })
+}
+
+// Sets room visibility to private via the settings API.
+export async function setRoomPrivate(p1: Page, roomId: string) {
+  await p1.request.put(`/api/v1/rooms/${roomId}/settings/room_visibility`, {
+    data: { player_id: process.env.TEST_PLAYER1_ID!, value: 'private' },
+  })
 }
 
 // Plays a fixed winning sequence for TicTacToe.

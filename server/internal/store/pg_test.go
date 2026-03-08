@@ -164,7 +164,7 @@ func TestGameSessionFlow(t *testing.T) {
 
 	initialState := []byte(`{"current_player_id":"` + uuid.New().String() + `","data":{}}`)
 
-	session, err := s.CreateGameSession(ctx, room.ID, "chess", initialState)
+	session, err := s.CreateGameSession(ctx, room.ID, "chess", initialState, nil)
 	if err != nil {
 		t.Fatalf("CreateGameSession: %v", err)
 	}
