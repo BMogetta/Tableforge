@@ -1,0 +1,149 @@
+package api
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/tableforge/server/internal/platform/store"
+	"github.com/tableforge/server/internal/platform/ws"
+)
+
+// POST /api/v1/rooms/{roomID}/messages
+// Saves a chat message and broadcasts it to all room clients.
+// Spectators are not allowed to send messages.
+func handleSendRoomMessage(st store.Store, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid room id")
+			return
+		}
+
+		var req struct {
+			PlayerID string `json:"player_id"`
+			Content  string `json:"content"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if req.Content == "" {
+			writeError(w, http.StatusBadRequest, "content is required")
+			return
+		}
+
+		playerID, err := uuid.Parse(req.PlayerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		// Verify the player is a participant, not a spectator.
+		players, err := st.ListRoomPlayers(r.Context(), roomID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify participant")
+			return
+		}
+		participant := false
+		for _, rp := range players {
+			if rp.PlayerID == playerID {
+				participant = true
+				break
+			}
+		}
+		if !participant {
+			writeError(w, http.StatusForbidden, "spectators cannot send messages")
+			return
+		}
+
+		msg, err := st.SaveRoomMessage(r.Context(), roomID, playerID, req.Content)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to save message")
+			return
+		}
+
+		hub.Broadcast(roomID, ws.Event{
+			Type: ws.EventChatMessage,
+			Payload: map[string]any{
+				"message_id": msg.ID,
+				"room_id":    msg.RoomID,
+				"player_id":  msg.PlayerID,
+				"content":    msg.Content,
+				"timestamp":  msg.CreatedAt,
+			},
+		})
+
+		writeJSON(w, http.StatusCreated, msg)
+	}
+}
+
+// GET /api/v1/rooms/{roomID}/messages
+// Returns all messages for a room ordered chronologically.
+func handleGetRoomMessages(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid room id")
+			return
+		}
+
+		messages, err := st.GetRoomMessages(r.Context(), roomID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get messages")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, messages)
+	}
+}
+
+// POST /api/v1/rooms/{roomID}/messages/{messageID}/report
+// Flags a message as reported.
+func handleReportRoomMessage(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		messageID, err := uuid.Parse(chi.URLParam(r, "messageID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid message id")
+			return
+		}
+
+		if err := st.ReportRoomMessage(r.Context(), messageID); err != nil {
+			writeError(w, http.StatusNotFound, "message not found")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// DELETE /api/v1/rooms/{roomID}/messages/{messageID}
+// Hides a message. Manager-only. Broadcasts chat_message_hidden to the room.
+func handleHideRoomMessage(st store.Store, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid room id")
+			return
+		}
+
+		messageID, err := uuid.Parse(chi.URLParam(r, "messageID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid message id")
+			return
+		}
+
+		if err := st.HideRoomMessage(r.Context(), messageID); err != nil {
+			writeError(w, http.StatusNotFound, "message not found")
+			return
+		}
+
+		hub.Broadcast(roomID, ws.Event{
+			Type:    ws.EventChatMessageHidden,
+			Payload: map[string]any{"message_id": messageID},
+		})
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}

@@ -69,21 +69,32 @@ type RoomSetting struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// SessionMode controls whether rating changes apply after the session ends.
+type SessionMode string
+
+const (
+	SessionModeCasual SessionMode = "casual"
+	SessionModeRanked SessionMode = "ranked"
+)
+
 type GameSession struct {
-	ID              uuid.UUID  `json:"id"`
-	RoomID          uuid.UUID  `json:"room_id"`
-	GameID          string     `json:"game_id"`
-	Name            *string    `json:"name,omitempty"`
-	State           []byte     `json:"state"`
-	MoveCount       int        `json:"move_count"`
-	SuspendCount    int        `json:"suspend_count"`
-	SuspendedAt     *time.Time `json:"suspended_at,omitempty"`
-	SuspendedReason *string    `json:"suspended_reason,omitempty"`
-	TurnTimeoutSecs *int       `json:"turn_timeout_secs,omitempty"`
-	LastMoveAt      time.Time  `json:"last_move_at"`
-	StartedAt       time.Time  `json:"started_at"`
-	FinishedAt      *time.Time `json:"finished_at,omitempty"`
-	DeletedAt       *time.Time `json:"deleted_at,omitempty"`
+	ID              uuid.UUID   `json:"id"`
+	RoomID          uuid.UUID   `json:"room_id"`
+	GameID          string      `json:"game_id"`
+	Name            *string     `json:"name,omitempty"`
+	State           []byte      `json:"state"`
+	Mode            SessionMode `json:"mode"`
+	MoveCount       int         `json:"move_count"`
+	SuspendCount    int         `json:"suspend_count"`
+	SuspendedAt     *time.Time  `json:"suspended_at,omitempty"`
+	SuspendedReason *string     `json:"suspended_reason,omitempty"`
+	PauseVotes      []string    `json:"pause_votes"`
+	ResumeVotes     []string    `json:"resume_votes"`
+	TurnTimeoutSecs *int        `json:"turn_timeout_secs,omitempty"`
+	LastMoveAt      time.Time   `json:"last_move_at"`
+	StartedAt       time.Time   `json:"started_at"`
+	FinishedAt      *time.Time  `json:"finished_at,omitempty"`
+	DeletedAt       *time.Time  `json:"deleted_at,omitempty"`
 }
 
 type Move struct {
@@ -154,6 +165,50 @@ type RematchVote struct {
 	SessionID uuid.UUID `json:"session_id"`
 	PlayerID  uuid.UUID `json:"player_id"`
 	VotedAt   time.Time `json:"voted_at"`
+}
+
+// RoomMessage is a single chat message in a room.
+// Messages are auditable and never deleted; managers may hide them.
+type RoomMessage struct {
+	ID        uuid.UUID `json:"id"`
+	RoomID    uuid.UUID `json:"room_id"`
+	PlayerID  uuid.UUID `json:"player_id"`
+	Content   string    `json:"content"`
+	Reported  bool      `json:"reported"`
+	Hidden    bool      `json:"hidden"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// DirectMessage is a private message between two players.
+type DirectMessage struct {
+	ID         uuid.UUID  `json:"id"`
+	SenderID   uuid.UUID  `json:"sender_id"`
+	ReceiverID uuid.UUID  `json:"receiver_id"`
+	Content    string     `json:"content"`
+	ReadAt     *time.Time `json:"read_at,omitempty"`
+	Reported   bool       `json:"reported"`
+	Hidden     bool       `json:"hidden"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+// PlayerMute records that MuterID has muted MutedID.
+// Mutes are cross-session and server-side — they survive reconnects.
+type PlayerMute struct {
+	MuterID   uuid.UUID `json:"muter_id"`
+	MutedID   uuid.UUID `json:"muted_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Rating holds the Elo-based rating for a player.
+// Only updated after ranked sessions.
+type Rating struct {
+	PlayerID      uuid.UUID `json:"player_id"`
+	MMR           float64   `json:"mmr"`
+	DisplayRating float64   `json:"display_rating"`
+	GamesPlayed   int       `json:"games_played"`
+	WinStreak     int       `json:"win_streak"`
+	LossStreak    int       `json:"loss_streak"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // --- Store interface ---------------------------------------------------------
@@ -237,16 +292,45 @@ type Store interface {
 	GetOAuthIdentityByEmail(ctx context.Context, email string) (OAuthIdentity, error)
 	IsEmailAllowed(ctx context.Context, email string) (bool, error)
 
-	// Results & leaderboard
+	// Results
 	CreateGameResult(ctx context.Context, params CreateGameResultParams) (GameResult, error)
 	GetPlayerStats(ctx context.Context, playerID uuid.UUID) (PlayerStats, error)
-	GetLeaderboard(ctx context.Context, gameID string, limit int) ([]LeaderboardEntry, error)
 	ListPlayerHistory(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]GameResult, error)
 
 	// Rematch
 	UpsertRematchVote(ctx context.Context, sessionID, playerID uuid.UUID) error
 	ListRematchVotes(ctx context.Context, sessionID uuid.UUID) ([]RematchVote, error)
 	DeleteRematchVotes(ctx context.Context, sessionID uuid.UUID) error
+
+	// Room chat
+	SaveRoomMessage(ctx context.Context, roomID, playerID uuid.UUID, content string) (RoomMessage, error)
+	GetRoomMessages(ctx context.Context, roomID uuid.UUID) ([]RoomMessage, error)
+	HideRoomMessage(ctx context.Context, messageID uuid.UUID) error
+	ReportRoomMessage(ctx context.Context, messageID uuid.UUID) error
+
+	// Direct messages
+	SaveDM(ctx context.Context, senderID, receiverID uuid.UUID, content string) (DirectMessage, error)
+	GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID) ([]DirectMessage, error)
+	MarkDMRead(ctx context.Context, messageID uuid.UUID) error
+	GetUnreadDMCount(ctx context.Context, playerID uuid.UUID) (int, error)
+	ReportDM(ctx context.Context, messageID uuid.UUID) error
+
+	// Mutes
+	MutePlayer(ctx context.Context, muterID, mutedID uuid.UUID) error
+	UnmutePlayer(ctx context.Context, muterID, mutedID uuid.UUID) error
+	GetMutedPlayers(ctx context.Context, playerID uuid.UUID) ([]PlayerMute, error)
+
+	// Ratings
+	GetRating(ctx context.Context, playerID uuid.UUID) (Rating, error)
+	UpsertRating(ctx context.Context, r Rating) error
+	GetRatingLeaderboard(ctx context.Context, limit int) ([]Rating, error)
+
+	// Pause / resume votes
+	VotePause(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
+	ClearPauseVotes(ctx context.Context, sessionID uuid.UUID) error
+	VoteResume(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
+	ClearResumeVotes(ctx context.Context, sessionID uuid.UUID) error
+	ForceCloseSession(ctx context.Context, sessionID uuid.UUID) error
 }
 
 // --- Params ------------------------------------------------------------------
@@ -297,13 +381,4 @@ type PlayerStats struct {
 	Losses     int       `json:"losses"`
 	Draws      int       `json:"draws"`
 	Forfeits   int       `json:"forfeits"`
-}
-
-type LeaderboardEntry struct {
-	PlayerID  uuid.UUID `json:"player_id"`
-	Username  string    `json:"username"`
-	AvatarURL *string   `json:"avatar_url,omitempty"`
-	Wins      int       `json:"wins"`
-	Losses    int       `json:"losses"`
-	Draws     int       `json:"draws"`
 }

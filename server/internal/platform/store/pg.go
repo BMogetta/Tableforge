@@ -227,9 +227,6 @@ func (s *PGStore) SetPlayerRole(ctx context.Context, playerID uuid.UUID, role Pl
 // --- Rooms -------------------------------------------------------------------
 
 // CreateRoom inserts a new room and its default settings in a single transaction.
-// The default settings are provided by the caller via params.DefaultSettings —
-// lobby.Service populates this from engine.DefaultLobbySettings() merged with
-// any game-specific settings from engine.LobbySettingsProvider.
 func (s *PGStore) CreateRoom(ctx context.Context, params CreateRoomParams) (Room, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -335,8 +332,6 @@ func (s *PGStore) SoftDeleteRoom(ctx context.Context, id uuid.UUID) error {
 
 // --- Room settings -----------------------------------------------------------
 
-// GetRoomSettings returns all settings for a room as a key/value map.
-// Returns an empty map if the room has no settings.
 func (s *PGStore) GetRoomSettings(ctx context.Context, roomID uuid.UUID) (map[string]string, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT key, value FROM room_settings WHERE room_id = $1`,
@@ -358,8 +353,6 @@ func (s *PGStore) GetRoomSettings(ctx context.Context, roomID uuid.UUID) (map[st
 	return settings, rows.Err()
 }
 
-// SetRoomSetting upserts a single setting for a room.
-// The caller is responsible for validating the key and value before calling this.
 func (s *PGStore) SetRoomSetting(ctx context.Context, roomID uuid.UUID, key, value string) error {
 	_, err := s.pool.Exec(ctx,
 		`INSERT INTO room_settings (room_id, key, value)
@@ -427,33 +420,23 @@ func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameI
 	row := s.pool.QueryRow(ctx,
 		`INSERT INTO game_sessions (room_id, game_id, state, turn_timeout_secs)
          VALUES ($1, $2, $3, $4)
-         RETURNING id, room_id, game_id, state, move_count, suspend_count,
-                   suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
-                   started_at, finished_at, deleted_at`,
+         RETURNING id, room_id, game_id, name, state, mode, move_count, suspend_count,
+                   suspended_at, suspended_reason, pause_votes, resume_votes,
+                   turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at`,
 		roomID, gameID, initialState, turnTimeoutSecs,
 	)
-	return scanGameSession(row)
+	return scanSession(row)
 }
 
 func (s *PGStore) GetGameSession(ctx context.Context, id uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, room_id, game_id, state, move_count,
-		        suspend_count, suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
-		        started_at, finished_at, deleted_at
+		`SELECT id, room_id, game_id, name, state, mode, move_count,
+		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+		        turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 		 FROM game_sessions WHERE id = $1 AND deleted_at IS NULL`,
 		id,
 	)
-	return scanGameSession(row)
-}
-
-func scanGameSession(row scanner) (GameSession, error) {
-	var s GameSession
-	err := row.Scan(
-		&s.ID, &s.RoomID, &s.GameID, &s.State, &s.MoveCount, &s.SuspendCount,
-		&s.SuspendedAt, &s.SuspendedReason, &s.TurnTimeoutSecs, &s.LastMoveAt,
-		&s.StartedAt, &s.FinishedAt, &s.DeletedAt,
-	)
-	return s, err
+	return scanSession(row)
 }
 
 func (s *PGStore) GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameResult, error) {
@@ -471,9 +454,9 @@ func (s *PGStore) GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameR
 
 func (s *PGStore) GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, room_id, game_id, name, state, move_count,
-		        suspend_count, suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
-		        started_at, finished_at, deleted_at
+		`SELECT id, room_id, game_id, name, state, mode, move_count,
+		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+		        turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 		 FROM game_sessions
 		 WHERE room_id = $1 AND finished_at IS NULL AND deleted_at IS NULL
 		 ORDER BY started_at DESC LIMIT 1`,
@@ -534,8 +517,10 @@ func (s *PGStore) ResumeSession(ctx context.Context, id uuid.UUID) error {
 
 func (s *PGStore) ListActiveSessions(ctx context.Context, playerID uuid.UUID) ([]GameSession, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT gs.id, gs.room_id, gs.game_id, gs.name, gs.state, gs.move_count,
-		        gs.suspend_count, gs.suspended_at, gs.suspended_reason, gs.turn_timeout_secs, gs.last_move_at,
+		`SELECT gs.id, gs.room_id, gs.game_id, gs.name, gs.state, gs.mode, gs.move_count,
+		        gs.suspend_count, gs.suspended_at, gs.suspended_reason,
+		        gs.pause_votes, gs.resume_votes,
+		        gs.turn_timeout_secs, gs.last_move_at,
 		        gs.started_at, gs.finished_at, gs.deleted_at
 		 FROM game_sessions gs
 		 JOIN room_players rp ON rp.room_id = gs.room_id
@@ -582,7 +567,6 @@ func (s *PGStore) GetGameConfig(ctx context.Context, gameID string) (GameConfig,
 	)
 	var c GameConfig
 	if err := row.Scan(&c.GameID, &c.DefaultTimeoutSecs, &c.MinTimeoutSecs, &c.MaxTimeoutSecs, &c.TimeoutPenalty); err != nil {
-		// No config found — return a safe default.
 		return GameConfig{
 			GameID:             gameID,
 			DefaultTimeoutSecs: 60,
@@ -595,7 +579,6 @@ func (s *PGStore) GetGameConfig(ctx context.Context, gameID string) (GameConfig,
 }
 
 // TouchLastMoveAt updates last_move_at to now for the given session.
-// Called after every move to reset the turn timer.
 func (s *PGStore) TouchLastMoveAt(ctx context.Context, sessionID uuid.UUID) error {
 	_, err := s.pool.Exec(ctx,
 		`UPDATE game_sessions SET last_move_at = NOW() WHERE id = $1`,
@@ -605,7 +588,6 @@ func (s *PGStore) TouchLastMoveAt(ctx context.Context, sessionID uuid.UUID) erro
 }
 
 // CountFinishedSessions returns the number of completed sessions for a room.
-// Used by lobby.StartGame to detect rematches and apply rematch_first_mover_policy.
 func (s *PGStore) CountFinishedSessions(ctx context.Context, roomID uuid.UUID) (int, error) {
 	var count int
 	err := s.pool.QueryRow(ctx,
@@ -620,19 +602,18 @@ func (s *PGStore) CountFinishedSessions(ctx context.Context, roomID uuid.UUID) (
 }
 
 // GetLastFinishedSession returns the most recently finished session for a room.
-// Returns an error if no finished session exists.
 func (s *PGStore) GetLastFinishedSession(ctx context.Context, roomID uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, room_id, game_id, state, move_count,
-		        suspend_count, suspended_at, suspended_reason, turn_timeout_secs, last_move_at,
-		        started_at, finished_at, deleted_at
+		`SELECT id, room_id, game_id, name, state, mode, move_count,
+		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+		        turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 		 FROM game_sessions
 		 WHERE room_id = $1 AND finished_at IS NOT NULL AND deleted_at IS NULL
 		 ORDER BY finished_at DESC
 		 LIMIT 1`,
 		roomID,
 	)
-	return scanGameSession(row)
+	return scanSession(row)
 }
 
 // --- Moves -------------------------------------------------------------------
@@ -689,7 +670,6 @@ func (s *PGStore) GetMoveAt(ctx context.Context, sessionID uuid.UUID, moveNumber
 // --- OAuth -------------------------------------------------------------------
 
 func (s *PGStore) UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthParams) (OAuthIdentity, error) {
-	// Upsert player first
 	row := s.pool.QueryRow(ctx,
 		`INSERT INTO players (username, avatar_url)
 		 VALUES ($1, $2)
@@ -703,7 +683,6 @@ func (s *PGStore) UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthPar
 		return OAuthIdentity{}, fmt.Errorf("UpsertOAuthIdentity upsert player: %w", err)
 	}
 
-	// Upsert identity
 	row = s.pool.QueryRow(ctx,
 		`INSERT INTO oauth_identities (player_id, provider, provider_id, email, avatar_url)
 		 VALUES ($1, $2, $3, $4, $5)
@@ -760,7 +739,7 @@ func (s *PGStore) IsEmailAllowed(ctx context.Context, email string) (bool, error
 	return count > 0, nil
 }
 
-// --- Results & leaderboard ---------------------------------------------------
+// --- Results -----------------------------------------------------------------
 
 func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultParams) (GameResult, error) {
 	tx, err := s.pool.Begin(ctx)
@@ -769,7 +748,6 @@ func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultP
 	}
 	defer tx.Rollback(ctx)
 
-	// Calculate duration
 	var durationSecs *int
 	row := tx.QueryRow(ctx,
 		`SELECT EXTRACT(EPOCH FROM (NOW() - started_at))::INT FROM game_sessions WHERE id = $1`,
@@ -780,7 +758,6 @@ func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultP
 		durationSecs = &d
 	}
 
-	// Insert result
 	var gr GameResult
 	row = tx.QueryRow(ctx,
 		`INSERT INTO game_results (session_id, game_id, winner_id, is_draw, ended_by, duration_secs)
@@ -792,7 +769,6 @@ func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultP
 		return GameResult{}, fmt.Errorf("CreateGameResult insert result: %w", err)
 	}
 
-	// Insert per-player outcomes
 	for _, p := range params.Players {
 		_, err := tx.Exec(ctx,
 			`INSERT INTO game_result_players (result_id, player_id, seat, outcome)
@@ -828,38 +804,6 @@ func (s *PGStore) GetPlayerStats(ctx context.Context, playerID uuid.UUID) (Playe
 		return PlayerStats{}, fmt.Errorf("GetPlayerStats: %w", err)
 	}
 	return ps, nil
-}
-
-func (s *PGStore) GetLeaderboard(ctx context.Context, gameID string, limit int) ([]LeaderboardEntry, error) {
-	rows, err := s.pool.Query(ctx,
-		`SELECT p.id, p.username, p.avatar_url,
-		        COUNT(*) FILTER (WHERE grp.outcome = 'win')   AS wins,
-		        COUNT(*) FILTER (WHERE grp.outcome = 'loss')  AS losses,
-		        COUNT(*) FILTER (WHERE grp.outcome = 'draw')  AS draws
-		 FROM game_result_players grp
-		 JOIN game_results gr ON gr.id = grp.result_id
-		 JOIN players p ON p.id = grp.player_id
-		 WHERE ($1 = '' OR gr.game_id = $1)
-		   AND p.deleted_at IS NULL
-		 GROUP BY p.id, p.username, p.avatar_url
-		 ORDER BY wins DESC, draws DESC
-		 LIMIT $2`,
-		gameID, limit,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("GetLeaderboard: %w", err)
-	}
-	defer rows.Close()
-
-	entries := []LeaderboardEntry{}
-	for rows.Next() {
-		var e LeaderboardEntry
-		if err := rows.Scan(&e.PlayerID, &e.Username, &e.AvatarURL, &e.Wins, &e.Losses, &e.Draws); err != nil {
-			return nil, fmt.Errorf("GetLeaderboard scan: %w", err)
-		}
-		entries = append(entries, e)
-	}
-	return entries, rows.Err()
 }
 
 func (s *PGStore) ListPlayerHistory(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]GameResult, error) {
@@ -961,12 +905,19 @@ func scanRoom(row scanner) (Room, error) {
 	return r, nil
 }
 
+// scanSession scans all columns of game_sessions into a GameSession.
+// All queries against game_sessions must select columns in this exact order:
+//
+//	id, room_id, game_id, name, state, mode, move_count,
+//	suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+//	turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 func scanSession(row scanner) (GameSession, error) {
 	var gs GameSession
 	if err := row.Scan(
-		&gs.ID, &gs.RoomID, &gs.GameID, &gs.Name, &gs.State, &gs.MoveCount,
-		&gs.SuspendCount, &gs.SuspendedAt, &gs.SuspendedReason,
-		&gs.StartedAt, &gs.FinishedAt, &gs.DeletedAt,
+		&gs.ID, &gs.RoomID, &gs.GameID, &gs.Name, &gs.State, &gs.Mode,
+		&gs.MoveCount, &gs.SuspendCount, &gs.SuspendedAt, &gs.SuspendedReason,
+		&gs.PauseVotes, &gs.ResumeVotes,
+		&gs.TurnTimeoutSecs, &gs.LastMoveAt, &gs.StartedAt, &gs.FinishedAt, &gs.DeletedAt,
 	); err != nil {
 		return GameSession{}, fmt.Errorf("scanSession: %w", err)
 	}

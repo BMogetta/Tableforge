@@ -35,6 +35,12 @@ const (
 	EventSpectatorLeft   EventType = "spectator_left"
 	// EventPresenceUpdated is broadcast to all room clients when a player connects or disconnects, so clients can update the player list in real time. The payload is a list of currently connected player IDs.
 	EventPresenceUpdated EventType = "presence_update"
+	// EventChatMessage is broadcast to all room clients (including spectators)
+	// when a player sends a chat message.
+	EventChatMessage EventType = "chat_message"
+	// EventChatMessageHidden is broadcast to all room clients when a manager
+	// hides a chat message. Clients should remove or redact the message by ID.
+	EventChatMessageHidden EventType = "chat_message_hidden"
 )
 
 // spectatorOnlyEvents are never sent to spectators.

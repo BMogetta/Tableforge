@@ -9,10 +9,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/tableforge/server/internal/platform/api"
 	"github.com/tableforge/server/internal/domain/engine"
 	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/domain/runtime"
+	"github.com/tableforge/server/internal/platform/api"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/testutil"
 )
@@ -361,7 +361,7 @@ func TestGetLeaderboard(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var entries []store.LeaderboardEntry
+	var entries []store.Rating
 	json.NewDecoder(w.Body).Decode(&entries)
 	// FakeStore returns empty slice — just verify the shape is correct.
 	if entries == nil {

@@ -3,34 +3,36 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/tableforge/server/games"
-	"github.com/tableforge/server/internal/platform/auth"
-	"github.com/tableforge/server/internal/domain/engine"
-	"github.com/tableforge/server/internal/platform/events"
 	"github.com/tableforge/server/internal/domain/lobby"
+	"github.com/tableforge/server/internal/domain/runtime"
+	"github.com/tableforge/server/internal/platform/auth"
+	"github.com/tableforge/server/internal/platform/events"
 	"github.com/tableforge/server/internal/platform/presence"
 	"github.com/tableforge/server/internal/platform/ratelimit"
-	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
 )
 
-// --- Router ------------------------------------------------------------------
-
 // NewRouter builds and returns the main HTTP router.
 // authHandler may be nil — auth middleware is skipped (tests only).
 // limiter may be nil — rate limiting is skipped (tests only).
-func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store, hub *ws.Hub, authHandler *auth.Handler, limiter *ratelimit.Limiter, eventStore *events.Store, presenceStore *presence.Store) http.Handler {
+func NewRouter(
+	lobbyService *lobby.Service,
+	rt *runtime.Service,
+	st store.Store,
+	hub *ws.Hub,
+	authHandler *auth.Handler,
+	limiter *ratelimit.Limiter,
+	eventStore *events.Store,
+	presenceStore *presence.Store,
+) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -85,11 +87,11 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 		})
 	}
 
-	// API routes — protected in production, open when authHandler is nil (tests)
+	// API routes — protected in production, open when authHandler is nil (tests).
 	r.Route("/api/v1", func(r chi.Router) {
 		requireAuth(r)
 
-		r.Get("/games", handleListGames(games.All))
+		r.Get("/games", handleListGames)
 		r.Get("/leaderboard", handleGetLeaderboard(st))
 
 		r.Post("/players", handleCreatePlayer(st))
@@ -111,7 +113,13 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
 		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub))
 
-		// Admin routes — manager+ only, stricter rate limit
+		// Room chat
+		r.Post("/rooms/{roomID}/messages", handleSendRoomMessage(st, hub))
+		r.Get("/rooms/{roomID}/messages", handleGetRoomMessages(st))
+		r.Post("/rooms/{roomID}/messages/{messageID}/report", handleReportRoomMessage(st))
+		r.With(requireRole(store.RoleManager)).Delete("/rooms/{roomID}/messages/{messageID}", handleHideRoomMessage(st, hub))
+
+		// Admin routes — manager+ only, stricter rate limit.
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(adminLimiter)
 			r.Use(requireRole(store.RoleManager))
@@ -126,7 +134,6 @@ func NewRouter(lobbyService *lobby.Service, rt *runtime.Service, st store.Store,
 	})
 
 	// WebSocket — protected in production, open when authHandler is nil (tests).
-	// The handler receives store.Store to resolve participant vs spectator status.
 	wsHandler := http.HandlerFunc(ws.Handler(hub, st, eventStore, presenceStore))
 	if authHandler != nil {
 		wsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -174,673 +181,6 @@ func requireRole(minimum store.PlayerRole) func(http.Handler) http.Handler {
 	}
 }
 
-// --- Allowed emails ----------------------------------------------------------
-
-// GET /api/v1/admin/allowed-emails
-func handleListAllowedEmails(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		entries, err := st.ListAllowedEmails(r.Context())
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list allowed emails")
-			return
-		}
-		writeJSON(w, http.StatusOK, entries)
-	}
-}
-
-type addAllowedEmailRequest struct {
-	Email string           `json:"email"`
-	Role  store.PlayerRole `json:"role"`
-}
-
-// POST /api/v1/admin/allowed-emails
-func handleAddAllowedEmail(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req addAllowedEmailRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		if req.Email == "" {
-			writeError(w, http.StatusBadRequest, "email is required")
-			return
-		}
-		if req.Role == "" {
-			req.Role = store.RolePlayer
-		}
-
-		// Managers can only invite players, not other managers or owners.
-		callerRole, _ := auth.RoleFromContext(r.Context())
-		if callerRole == store.RoleManager && req.Role != store.RolePlayer {
-			writeError(w, http.StatusForbidden, "managers can only invite players")
-			return
-		}
-
-		callerID, _ := auth.PlayerIDFromContext(r.Context())
-		entry, err := st.AddAllowedEmail(r.Context(), store.AddAllowedEmailParams{
-			Email:     req.Email,
-			Role:      req.Role,
-			InvitedBy: &callerID,
-		})
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to add email")
-			return
-		}
-		writeJSON(w, http.StatusCreated, entry)
-	}
-}
-
-// DELETE /api/v1/admin/allowed-emails/{email}
-func handleRemoveAllowedEmail(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		email := chi.URLParam(r, "email")
-		if email == "" {
-			writeError(w, http.StatusBadRequest, "email is required")
-			return
-		}
-		if err := st.RemoveAllowedEmail(r.Context(), email); err != nil {
-			writeError(w, http.StatusNotFound, "email not found")
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-// --- Players -----------------------------------------------------------------
-
-type createPlayerRequest struct {
-	Username string `json:"username"`
-}
-
-func handleCreatePlayer(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req createPlayerRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		if req.Username == "" {
-			writeError(w, http.StatusBadRequest, "username is required")
-			return
-		}
-		player, err := st.CreatePlayer(r.Context(), req.Username)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to create player")
-			return
-		}
-		writeJSON(w, http.StatusCreated, player)
-	}
-}
-
-// GET /api/v1/admin/players
-func handleListPlayers(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		players, err := st.ListPlayers(r.Context())
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list players")
-			return
-		}
-		writeJSON(w, http.StatusOK, players)
-	}
-}
-
-type setRoleRequest struct {
-	Role store.PlayerRole `json:"role"`
-}
-
-// PUT /api/v1/admin/players/{playerID}/role
-func handleSetPlayerRole(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-
-		var req setRoleRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		if req.Role == "" {
-			writeError(w, http.StatusBadRequest, "role is required")
-			return
-		}
-
-		// Prevent self-demotion.
-		callerID, _ := auth.PlayerIDFromContext(r.Context())
-		if callerID == playerID {
-			callerRole, _ := auth.RoleFromContext(r.Context())
-			if callerRole == store.RoleOwner && req.Role != store.RoleOwner {
-				writeError(w, http.StatusForbidden, "cannot demote yourself")
-				return
-			}
-		}
-
-		if err := st.SetPlayerRole(r.Context(), playerID, req.Role); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-// --- Games -------------------------------------------------------------------
-
-// gameInfo is the public representation of a registered game.
-type gameInfo struct {
-	ID         string                `json:"id"`
-	Name       string                `json:"name"`
-	MinPlayers int                   `json:"min_players"`
-	MaxPlayers int                   `json:"max_players"`
-	Settings   []engine.LobbySetting `json:"settings"`
-}
-
-func handleListGames(all func() []engine.Game) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		list := all()
-		result := make([]gameInfo, 0, len(list))
-		for _, g := range list {
-			settings := engine.DefaultLobbySettings()
-			if provider, ok := g.(engine.LobbySettingsProvider); ok {
-				for _, s := range provider.LobbySettings() {
-					settings = upsertLobbySetting(settings, s)
-				}
-			}
-			result = append(result, gameInfo{
-				ID:         g.ID(),
-				Name:       g.Name(),
-				MinPlayers: g.MinPlayers(),
-				MaxPlayers: g.MaxPlayers(),
-				Settings:   settings,
-			})
-		}
-		writeJSON(w, http.StatusOK, result)
-	}
-}
-
-func upsertLobbySetting(settings []engine.LobbySetting, s engine.LobbySetting) []engine.LobbySetting {
-	for i, existing := range settings {
-		if existing.Key == s.Key {
-			settings[i] = s
-			return settings
-		}
-	}
-	return append(settings, s)
-}
-
-// GET /api/v1/players/{playerID}/sessions
-func handleListPlayerSessions(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-		sessions, err := st.ListActiveSessions(r.Context(), playerID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list sessions")
-			return
-		}
-		writeJSON(w, http.StatusOK, sessions)
-	}
-}
-
-// GET /api/v1/players/{playerID}/stats
-func handleGetPlayerStats(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-		stats, err := st.GetPlayerStats(r.Context(), playerID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get stats")
-			return
-		}
-		writeJSON(w, http.StatusOK, stats)
-	}
-}
-
-// --- Rooms -------------------------------------------------------------------
-
-type createRoomRequest struct {
-	GameID          string `json:"game_id"`
-	PlayerID        string `json:"player_id"`
-	TurnTimeoutSecs *int   `json:"turn_timeout_secs,omitempty"`
-}
-
-func handleCreateRoom(svc *lobby.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req createRoomRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-
-		ownerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-
-		view, err := svc.CreateRoom(r.Context(), req.GameID, ownerID, req.TurnTimeoutSecs)
-		if err != nil {
-			writeLobbyError(w, err)
-			return
-		}
-
-		writeJSON(w, http.StatusCreated, view)
-	}
-}
-
-func handleListRooms(svc *lobby.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		rooms, err := svc.ListWaitingRooms(r.Context())
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list rooms")
-			return
-		}
-		writeJSON(w, http.StatusOK, rooms)
-	}
-}
-
-func handleGetRoom(svc *lobby.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid room id")
-			return
-		}
-		view, err := svc.GetRoom(r.Context(), roomID)
-		if err != nil {
-			writeLobbyError(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, view)
-	}
-}
-
-type joinRoomRequest struct {
-	Code     string `json:"code"`
-	PlayerID string `json:"player_id"`
-}
-
-func handleJoinRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req joinRoomRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-		view, err := svc.JoinRoom(r.Context(), req.Code, playerID)
-		if err != nil {
-			writeLobbyError(w, err)
-			return
-		}
-
-		hub.Broadcast(view.Room.ID, ws.Event{
-			Type:    ws.EventPlayerJoined,
-			Payload: view,
-		})
-
-		writeJSON(w, http.StatusOK, view)
-	}
-}
-
-type leaveRoomRequest struct {
-	PlayerID string `json:"player_id"`
-}
-
-func handleLeaveRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid room id")
-			return
-		}
-		var req leaveRoomRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-
-		result, err := svc.LeaveRoom(r.Context(), roomID, playerID)
-		if err != nil {
-			writeLobbyError(w, err)
-			return
-		}
-
-		if result.RoomClosed {
-			hub.Broadcast(roomID, ws.Event{Type: ws.EventRoomClosed, Payload: nil})
-		} else if result.NewOwnerID != nil {
-			hub.Broadcast(roomID, ws.Event{
-				Type:    ws.EventOwnerChanged,
-				Payload: map[string]any{"owner_id": result.NewOwnerID},
-			})
-		} else {
-			hub.Broadcast(roomID, ws.Event{
-				Type:    ws.EventPlayerLeft,
-				Payload: map[string]string{"player_id": playerID.String()},
-			})
-		}
-
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-type startGameRequest struct {
-	PlayerID string `json:"player_id"`
-}
-
-func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid room id")
-			return
-		}
-
-		var req startGameRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-
-		session, err := svc.StartGame(r.Context(), roomID, playerID)
-		if err != nil {
-			writeLobbyError(w, err)
-			return
-		}
-
-		rt.StartSession(session)
-
-		hub.Broadcast(roomID, ws.Event{
-			Type:    ws.EventGameStarted,
-			Payload: map[string]any{"session": session},
-		})
-
-		writeJSON(w, http.StatusOK, session)
-		activeSessions.Inc()
-	}
-}
-
-type updateRoomSettingRequest struct {
-	PlayerID string `json:"player_id"`
-	Value    string `json:"value"`
-}
-
-func handleUpdateRoomSetting(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid room id")
-			return
-		}
-		key := chi.URLParam(r, "key")
-		if key == "" {
-			writeError(w, http.StatusBadRequest, "setting key is required")
-			return
-		}
-
-		var req updateRoomSettingRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-
-		if err := svc.UpdateRoomSetting(r.Context(), roomID, playerID, key, req.Value); err != nil {
-			writeLobbyError(w, err)
-			return
-		}
-
-		hub.Broadcast(roomID, ws.Event{
-			Type:    ws.EventSettingUpdated,
-			Payload: map[string]any{"key": key, "value": req.Value},
-		})
-
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-// --- Sessions ----------------------------------------------------------------
-
-type moveRequest struct {
-	PlayerID string         `json:"player_id"`
-	Payload  map[string]any `json:"payload"`
-}
-
-func handleMove(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid session id")
-			return
-		}
-		var req moveRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-		result, err := rt.ApplyMove(r.Context(), sessionID, playerID, req.Payload)
-		if err != nil {
-			writeRuntimeError(w, err)
-			return
-		}
-
-		eventType := ws.EventMoveApplied
-		if result.IsOver {
-			eventType = ws.EventGameOver
-		}
-		hub.Broadcast(result.Session.RoomID, ws.Event{
-			Type:    eventType,
-			Payload: result,
-		})
-
-		movesTotal.WithLabelValues(result.Session.GameID).Inc()
-		if result.IsOver {
-			activeSessions.Dec()
-		}
-
-		writeJSON(w, http.StatusOK, result)
-	}
-}
-
-func handleGetSession(rt *runtime.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid session id")
-			return
-		}
-		session, state, result, err := rt.GetSessionAndState(r.Context(), sessionID)
-		if err != nil {
-			writeRuntimeError(w, err)
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"session": session,
-			"state":   state,
-			"result":  result,
-		})
-	}
-}
-
-// GET /api/v1/sessions/{sessionID}/events
-// Returns the full event log for a session.
-// If the session is still active, reads from the Redis Stream.
-// If the session is finished, reads from Postgres.
-func handleGetSessionEvents(ev *events.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid session id")
-			return
-		}
-		evts, err := ev.Read(r.Context(), sessionID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get events")
-			return
-		}
-		writeJSON(w, http.StatusOK, evts)
-	}
-}
-
-type surrenderRequest struct {
-	PlayerID string `json:"player_id"`
-}
-
-func handleSurrender(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid session id")
-			return
-		}
-		var req surrenderRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-
-		result, err := rt.Surrender(r.Context(), sessionID, playerID)
-		if err != nil {
-			writeRuntimeError(w, err)
-			return
-		}
-
-		hub.Broadcast(result.Session.RoomID, ws.Event{
-			Type:    ws.EventGameOver,
-			Payload: result,
-		})
-		activeSessions.Dec()
-
-		writeJSON(w, http.StatusOK, result)
-	}
-}
-
-type rematchRequest struct {
-	PlayerID string `json:"player_id"`
-}
-
-func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid session id")
-			return
-		}
-		var req rematchRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
-			return
-		}
-
-		votes, totalPlayers, roomID, rematchReady, err := rt.VoteRematch(r.Context(), sessionID, playerID)
-		if err != nil {
-			writeRuntimeError(w, err)
-			return
-		}
-
-		if rematchReady {
-			log.Printf("rematch ready: room %s returning to lobby", roomID)
-			hub.Broadcast(roomID, ws.Event{
-				Type:    ws.EventRematchReady,
-				Payload: map[string]any{"room_id": roomID},
-			})
-		} else {
-			hub.Broadcast(roomID, ws.Event{
-				Type: ws.EventRematchVote,
-				Payload: map[string]any{
-					"player_id":     playerID.String(),
-					"votes":         len(votes),
-					"total_players": totalPlayers,
-				},
-			})
-		}
-
-		writeJSON(w, http.StatusOK, map[string]any{
-			"votes":         len(votes),
-			"total_players": totalPlayers,
-		})
-	}
-}
-
-// GET /api/v1/sessions/{sessionID}/history
-func handleGetSessionHistory(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid session id")
-			return
-		}
-		moves, err := st.ListSessionMoves(r.Context(), sessionID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get history")
-			return
-		}
-		writeJSON(w, http.StatusOK, moves)
-	}
-}
-
-// --- Leaderboard -------------------------------------------------------------
-
-func handleGetLeaderboard(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		gameID := r.URL.Query().Get("game_id")
-		limit := 20
-		if l := r.URL.Query().Get("limit"); l != "" {
-			if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 100 {
-				limit = parsed
-			}
-		}
-		entries, err := st.GetLeaderboard(r.Context(), gameID, limit)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get leaderboard")
-			return
-		}
-		writeJSON(w, http.StatusOK, entries)
-	}
-}
-
 // --- Helpers -----------------------------------------------------------------
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -851,6 +191,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+func decodeJSON(r *http.Request, v any) error {
+	return json.NewDecoder(r.Body).Decode(v)
 }
 
 func writeLobbyError(w http.ResponseWriter, err error) {
