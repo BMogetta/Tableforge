@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/store"
 )
 
 type contextKey int

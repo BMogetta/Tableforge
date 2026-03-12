@@ -7,9 +7,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/tableforge/server/internal/events"
-	"github.com/tableforge/server/internal/presence"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/events"
+	"github.com/tableforge/server/internal/platform/presence"
+	"github.com/tableforge/server/internal/platform/store"
 )
 
 var upgrader = websocket.Upgrader{

@@ -3,7 +3,7 @@ package lobby_test
 import (
 	"errors"
 
-	"github.com/tableforge/server/internal/engine"
+	"github.com/tableforge/server/internal/domain/engine"
 )
 
 // fakeRegistry satisfies lobby.GameRegistry.

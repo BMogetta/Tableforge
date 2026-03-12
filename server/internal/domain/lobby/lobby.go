@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/engine"
-	"github.com/tableforge/server/internal/randutil"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/domain/engine"
+	"github.com/tableforge/server/internal/platform/randutil"
+	"github.com/tableforge/server/internal/platform/store"
 )
 
 var (

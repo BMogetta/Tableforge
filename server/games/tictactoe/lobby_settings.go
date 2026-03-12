@@ -1,6 +1,6 @@
 package tictactoe
 
-import "github.com/tableforge/server/internal/engine"
+import "github.com/tableforge/server/internal/domain/engine"
 
 // LobbySettings implements engine.LobbySettingsProvider.
 // TicTacToe uses the platform defaults without modification.

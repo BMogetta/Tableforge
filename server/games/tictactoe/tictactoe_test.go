@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/tableforge/server/games/tictactoe"
-	"github.com/tableforge/server/internal/engine"
+	"github.com/tableforge/server/internal/domain/engine"
 )
 
 var (

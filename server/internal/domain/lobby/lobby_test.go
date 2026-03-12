@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/lobby"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/domain/lobby"
+	"github.com/tableforge/server/internal/platform/store"
 )
 
 func createPlayer(t *testing.T, s *fakeStore, username string) store.Player {

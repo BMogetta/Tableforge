@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/engine"
-	"github.com/tableforge/server/internal/runtime"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/domain/engine"
+	"github.com/tableforge/server/internal/domain/runtime"
+	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/testutil"
 )
 

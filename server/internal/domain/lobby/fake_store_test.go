@@ -1,7 +1,7 @@
 package lobby_test
 
 import (
-	"github.com/tableforge/server/internal/lobby"
+	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/testutil"
 )
 

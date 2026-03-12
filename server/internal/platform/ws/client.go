@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/tableforge/server/internal/presence"
+	"github.com/tableforge/server/internal/platform/presence"
 )
 
 const (

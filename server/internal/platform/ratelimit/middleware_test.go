@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tableforge/server/internal/ratelimit"
+	"github.com/tableforge/server/internal/platform/ratelimit"
 )
 
 type fakeRunner struct {

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/store"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -51,8 +51,8 @@ func newTestStore(t *testing.T) store.Store {
 	}
 
 	for _, path := range []string{
-		"../../db/migrations/001_initial.sql",
-		"../../db/migrations/002_session_events.sql",
+		"../../../db/migrations/001_initial.sql",
+		"../../../db/migrations/002_session_events.sql",
 	} {
 		migration, err := os.ReadFile(path)
 		if err != nil {

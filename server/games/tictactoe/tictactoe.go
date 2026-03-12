@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/tableforge/server/games"
-	"github.com/tableforge/server/internal/engine"
+	"github.com/tableforge/server/internal/domain/engine"
 )
 
 func init() {

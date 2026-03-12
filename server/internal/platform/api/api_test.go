@@ -9,11 +9,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/tableforge/server/internal/api"
-	"github.com/tableforge/server/internal/engine"
-	"github.com/tableforge/server/internal/lobby"
-	"github.com/tableforge/server/internal/runtime"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/api"
+	"github.com/tableforge/server/internal/domain/engine"
+	"github.com/tableforge/server/internal/domain/lobby"
+	"github.com/tableforge/server/internal/domain/runtime"
+	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/testutil"
 )
 

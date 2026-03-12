@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/store"
 )
 
 // seed-test creates test players for Playwright and prints their IDs.

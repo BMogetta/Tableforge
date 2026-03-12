@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/server/internal/engine"
-	"github.com/tableforge/server/internal/events"
-	"github.com/tableforge/server/internal/store"
-	"github.com/tableforge/server/internal/ws"
+	"github.com/tableforge/server/internal/domain/engine"
+	"github.com/tableforge/server/internal/platform/events"
+	"github.com/tableforge/server/internal/platform/store"
+	"github.com/tableforge/server/internal/platform/ws"
 )
 
 const timerKeyPrefix = "timer:session:"

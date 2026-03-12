@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/testutil"
 )
 

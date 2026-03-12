@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/store"
 )
 
 const (

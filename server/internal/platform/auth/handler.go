@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/platform/store"
 )
 
 // Handler holds dependencies for all auth routes.
