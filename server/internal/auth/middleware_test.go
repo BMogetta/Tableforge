@@ -4,12 +4,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/tableforge/server/internal/store"
+	"github.com/tableforge/server/internal/testutil"
 )
 
-func newTestHandler() *Handler {
-	return &Handler{jwtSecret: testSecret}
+func newTestHandlerWithStore(s *testutil.FakeStore) *Handler {
+	return NewHandler(s, "", "", string(testSecret), false)
 }
 
 // sentinel is a simple next handler that records whether it was called.
@@ -21,7 +24,7 @@ func sentinel(called *bool) http.Handler {
 }
 
 func TestMiddleware_NoCookie(t *testing.T) {
-	h := newTestHandler()
+	h := newTestHandlerWithStore(testutil.NewFakeStore())
 	called := false
 	handler := h.Middleware(sentinel(&called))
 
@@ -38,7 +41,7 @@ func TestMiddleware_NoCookie(t *testing.T) {
 }
 
 func TestMiddleware_InvalidToken(t *testing.T) {
-	h := newTestHandler()
+	h := newTestHandlerWithStore(testutil.NewFakeStore())
 	called := false
 	handler := h.Middleware(sentinel(&called))
 
@@ -56,10 +59,18 @@ func TestMiddleware_InvalidToken(t *testing.T) {
 }
 
 func TestMiddleware_ValidToken(t *testing.T) {
-	h := newTestHandler()
 	playerID := uuid.New()
 	username := "alice"
 
+	// Seed the player so GetPlayer succeeds during middleware execution.
+	s := testutil.NewFakeStore()
+	s.Players[playerID] = store.Player{
+		ID:        playerID,
+		Username:  username,
+		CreatedAt: time.Now(),
+	}
+
+	h := newTestHandlerWithStore(s)
 	token, _ := signToken(testSecret, playerID, username)
 
 	var (

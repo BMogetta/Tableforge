@@ -69,8 +69,8 @@ func newTestRouter(t *testing.T) (http.Handler, *fakeStore) {
 	s := newFakeStore()
 	reg := newFakeRegistry(&stubGame{})
 	svc := lobby.New(s, reg)
-	rt := runtime.New(s, reg)
-	return api.NewRouter(svc, rt, s, nil, nil), s
+	rt := runtime.New(s, reg, nil)
+	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil), s
 }
 
 func postJSON(t *testing.T, router http.Handler, path string, body any) *httptest.ResponseRecorder {

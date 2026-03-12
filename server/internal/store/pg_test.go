@@ -52,7 +52,7 @@ func newTestStore(t *testing.T) store.Store {
 
 	for _, path := range []string{
 		"../../db/migrations/001_initial.sql",
-		"../../db/migrations/002_auth_and_history.sql",
+		"../../db/migrations/002_session_events.sql",
 	} {
 		migration, err := os.ReadFile(path)
 		if err != nil {

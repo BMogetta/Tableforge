@@ -24,7 +24,7 @@ func TestCreateRoom_Success(t *testing.T) {
 	svc, s := newTestService()
 	owner := createPlayer(t, s, "alice")
 
-	view, err := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, err := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	if err != nil {
 		t.Fatalf("CreateRoom: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestCreateRoom_Success(t *testing.T) {
 	if len(view.Players) != 1 {
 		t.Errorf("expected 1 player in room, got %d", len(view.Players))
 	}
-	if view.Players[0].PlayerID != owner.ID {
+	if view.Players[0].ID != owner.ID {
 		t.Errorf("expected owner in seat 0")
 	}
 }
@@ -47,7 +47,7 @@ func TestCreateRoom_UnknownGame(t *testing.T) {
 	svc, s := newTestService()
 	owner := createPlayer(t, s, "alice")
 
-	_, err := svc.CreateRoom(context.Background(), "unknown_game", owner.ID)
+	_, err := svc.CreateRoom(context.Background(), "unknown_game", owner.ID, nil)
 	if err != lobby.ErrGameNotFound {
 		t.Errorf("expected ErrGameNotFound, got %v", err)
 	}
@@ -60,7 +60,7 @@ func TestJoinRoom_Success(t *testing.T) {
 	owner := createPlayer(t, s, "alice")
 	guest := createPlayer(t, s, "bob")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 
 	joined, err := svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 	if err != nil {
@@ -87,7 +87,7 @@ func TestJoinRoom_Full(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 	extra := createPlayer(t, s, "carol")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	_, err := svc.JoinRoom(context.Background(), view.Room.Code, extra.ID)
@@ -100,7 +100,7 @@ func TestJoinRoom_AlreadyInRoom(t *testing.T) {
 	svc, s := newTestService()
 	owner := createPlayer(t, s, "alice")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 
 	_, err := svc.JoinRoom(context.Background(), view.Room.Code, owner.ID)
 	if err != lobby.ErrAlreadyInRoom {
@@ -115,10 +115,10 @@ func TestLeaveRoom_Success(t *testing.T) {
 	owner := createPlayer(t, s, "alice")
 	guest := createPlayer(t, s, "bob")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
-	if err := svc.LeaveRoom(context.Background(), view.Room.ID, guest.ID); err != nil {
+	if _, err := svc.LeaveRoom(context.Background(), view.Room.ID, guest.ID); err != nil {
 		t.Fatalf("LeaveRoom: %v", err)
 	}
 
@@ -135,7 +135,7 @@ func TestStartGame_Success(t *testing.T) {
 	owner := createPlayer(t, s, "alice")
 	guest := createPlayer(t, s, "bob")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	session, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID)
@@ -158,7 +158,7 @@ func TestStartGame_NotOwner(t *testing.T) {
 	owner := createPlayer(t, s, "alice")
 	guest := createPlayer(t, s, "bob")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	_, err := svc.StartGame(context.Background(), view.Room.ID, guest.ID)
@@ -171,7 +171,7 @@ func TestStartGame_NotEnoughPlayers(t *testing.T) {
 	svc, s := newTestService()
 	owner := createPlayer(t, s, "alice")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 
 	_, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID)
 	if err != lobby.ErrNotEnoughPlayer {
@@ -184,7 +184,7 @@ func TestStartGame_AlreadyStarted(t *testing.T) {
 	owner := createPlayer(t, s, "alice")
 	guest := createPlayer(t, s, "bob")
 
-	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID)
+	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 	svc.StartGame(context.Background(), view.Room.ID, owner.ID)
 

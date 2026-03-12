@@ -322,12 +322,13 @@ func (f *FakeStore) ResumeSession(_ context.Context, id uuid.UUID) error {
 func (f *FakeStore) ListActiveSessions(_ context.Context, playerID uuid.UUID) ([]store.GameSession, error) {
 	var sessions []store.GameSession
 	for _, gs := range f.Sessions {
-		if gs.FinishedAt == nil && gs.DeletedAt == nil {
-			for _, rp := range f.RoomPlayers[gs.RoomID] {
-				if rp.PlayerID == playerID {
-					sessions = append(sessions, gs)
-					break
-				}
+		if gs.FinishedAt != nil || gs.DeletedAt != nil {
+			continue
+		}
+		for _, rp := range f.RoomPlayers[gs.RoomID] {
+			if rp.PlayerID == playerID {
+				sessions = append(sessions, gs)
+				break
 			}
 		}
 	}
@@ -345,8 +346,15 @@ func (f *FakeStore) SoftDeleteSession(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// GetGameConfig returns sensible defaults for any game ID.
+// Tests do not populate game configs, so returning defaults avoids
+// resolveTimeout failures in lobby.StartGame.
 func (f *FakeStore) GetGameConfig(_ context.Context, _ string) (store.GameConfig, error) {
-	return store.GameConfig{}, ErrNotFound
+	return store.GameConfig{
+		DefaultTimeoutSecs: 60,
+		MinTimeoutSecs:     10,
+		MaxTimeoutSecs:     300,
+	}, nil
 }
 
 func (f *FakeStore) TouchLastMoveAt(_ context.Context, id uuid.UUID) error {
