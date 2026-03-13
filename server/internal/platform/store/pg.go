@@ -416,14 +416,14 @@ func (s *PGStore) ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]Room
 
 // --- Game sessions -----------------------------------------------------------
 
-func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int) (GameSession, error) {
+func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int, mode SessionMode) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
-		`INSERT INTO game_sessions (room_id, game_id, state, turn_timeout_secs)
-         VALUES ($1, $2, $3, $4)
+		`INSERT INTO game_sessions (room_id, game_id, state, turn_timeout_secs, mode)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING id, room_id, game_id, name, state, mode, move_count, suspend_count,
                    suspended_at, suspended_reason, pause_votes, resume_votes,
                    turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at`,
-		roomID, gameID, initialState, turnTimeoutSecs,
+		roomID, gameID, initialState, turnTimeoutSecs, mode,
 	)
 	return scanSession(row)
 }

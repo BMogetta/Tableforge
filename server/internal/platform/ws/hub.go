@@ -41,12 +41,49 @@ const (
 	// EventChatMessageHidden is broadcast to all room clients when a manager
 	// hides a chat message. Clients should remove or redact the message by ID.
 	EventChatMessageHidden EventType = "chat_message_hidden"
+	// EventDMReceived is delivered to the receiver's player channel when a
+	// direct message arrives. Payload: message_id, from, content, timestamp.
+	EventDMReceived EventType = "dm_received"
+	// EventDMRead is delivered to the sender's player channel when the receiver
+	// reads their message. Payload: message_id.
+	EventDMRead EventType = "dm_read"
+	// EventPauseVoteUpdate is broadcast when a player casts a pause vote.
+	// Payload: votes []player_id, required int
+	EventPauseVoteUpdate EventType = "pause_vote_update"
+	// EventSessionSuspended is broadcast when all players have voted to pause.
+	// Payload: suspended_at time.Time
+	EventSessionSuspended EventType = "session_suspended"
+	// EventResumeVoteUpdate is broadcast when a player casts a resume vote.
+	// Payload: votes []player_id, required int
+	EventResumeVoteUpdate EventType = "resume_vote_update"
+	// EventSessionResumed is broadcast when all players have voted to resume.
+	// Payload: resumed_at time.Time
+	EventSessionResumed EventType = "session_resumed"
+	// EventQueueJoined is delivered to a player when they successfully join the
+	// ranked queue. Payload: position, estimated_wait_secs.
+	EventQueueJoined EventType = "queue_joined"
+	// EventQueueLeft is delivered to a player when they leave the ranked queue.
+	// Payload: reason ("declined", "manual").
+	EventQueueLeft EventType = "queue_left"
+	// EventMatchFound is delivered to both players when a match is proposed.
+	// Payload: match_id, quality, timeout.
+	EventMatchFound EventType = "match_found"
+	// EventMatchCancelled is delivered when a proposed match expires or is
+	// declined. Payload: match_id, reason ("timeout", "declined").
+	EventMatchCancelled EventType = "match_cancelled"
+	// EventMatchReady is delivered to both players when both have accepted and
+	// the session has been created. Payload: room_id, session_id.
+	EventMatchReady EventType = "match_ready"
 )
 
 // spectatorOnlyEvents are never sent to spectators.
 // Currently only rematch_vote — spectators cannot vote and don't need the tally.
 var spectatorBlocklist = map[EventType]bool{
-	EventRematchVote: true,
+	EventRematchVote:      true,
+	EventPauseVoteUpdate:  true,
+	EventSessionSuspended: true,
+	EventResumeVoteUpdate: true,
+	EventSessionResumed:   true,
 }
 
 // Event is the envelope sent to all clients in a room.
@@ -62,19 +99,27 @@ type Hub struct {
 	mu    sync.RWMutex
 	rooms map[uuid.UUID]map[*Client]struct{}
 
+	// pmu guards the per-player index used by BroadcastToPlayer.
+	pmu     sync.RWMutex
+	players map[uuid.UUID]map[*Client]struct{}
+
 	rdb *redis.Client // nil → single-instance mode (original behaviour)
 }
 
 func NewHub() *Hub {
-	return &Hub{rooms: make(map[uuid.UUID]map[*Client]struct{})}
+	return &Hub{
+		rooms:   make(map[uuid.UUID]map[*Client]struct{}),
+		players: make(map[uuid.UUID]map[*Client]struct{}),
+	}
 }
 
 // NewHubWithRedis returns a Hub that uses Redis pub/sub for cross-instance fanout.
 // Call Run(ctx) to start the subscription listener.
 func NewHubWithRedis(rdb *redis.Client) *Hub {
 	return &Hub{
-		rooms: make(map[uuid.UUID]map[*Client]struct{}),
-		rdb:   rdb,
+		rooms:   make(map[uuid.UUID]map[*Client]struct{}),
+		players: make(map[uuid.UUID]map[*Client]struct{}),
+		rdb:     rdb,
 	}
 }
 
@@ -95,6 +140,10 @@ func (h *Hub) subscribe(roomID uuid.UUID, c *Client) {
 	if h.rdb != nil && len(h.rooms[roomID]) == 1 {
 		go h.listenRoom(roomID)
 	}
+
+	if !c.spectator {
+		h.subscribePlayer(c.playerID, c)
+	}
 }
 
 func (h *Hub) unsubscribe(roomID uuid.UUID, c *Client) {
@@ -103,6 +152,9 @@ func (h *Hub) unsubscribe(roomID uuid.UUID, c *Client) {
 	delete(h.rooms[roomID], c)
 	if len(h.rooms[roomID]) == 0 {
 		delete(h.rooms, roomID)
+	}
+	if !c.spectator {
+		h.unsubscribePlayer(c.playerID, c)
 	}
 }
 

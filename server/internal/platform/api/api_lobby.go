@@ -10,6 +10,7 @@ import (
 	"github.com/tableforge/server/internal/domain/engine"
 	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/domain/runtime"
+	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
 )
 
@@ -212,7 +213,7 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 			writeError(w, http.StatusBadRequest, "invalid player_id")
 			return
 		}
-		session, err := svc.StartGame(r.Context(), roomID, playerID)
+		session, err := svc.StartGame(r.Context(), roomID, playerID, store.SessionModeCasual)
 		if err != nil {
 			writeLobbyError(w, err)
 			return

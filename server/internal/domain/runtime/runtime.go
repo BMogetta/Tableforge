@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/domain/engine"
+	"github.com/tableforge/server/internal/domain/rating"
 	"github.com/tableforge/server/internal/platform/events"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
@@ -33,10 +34,11 @@ type MoveResult struct {
 
 // Service processes moves for active game sessions.
 type Service struct {
-	store    store.Store
-	registry engine.Registry
-	timer    *TurnTimer
-	events   *events.Store
+	store        store.Store
+	registry     engine.Registry
+	timer        *TurnTimer
+	events       *events.Store
+	ratingEngine *rating.Engine
 }
 
 // New creates a new runtime Service.
@@ -48,6 +50,13 @@ func New(st store.Store, registry engine.Registry, ev *events.Store) *Service {
 // Call this after constructing both Service and TurnTimer to avoid a circular dep.
 func (svc *Service) SetTimer(t *TurnTimer) {
 	svc.timer = t
+}
+
+// SetRatingEngine attaches a rating engine to the service.
+// Call this after constructing both Service and rating.Engine.
+// When non-nil, ratings are updated after every ranked session.
+func (svc *Service) SetRatingEngine(e *rating.Engine) {
+	svc.ratingEngine = e
 }
 
 // StartSession schedules the initial turn timer and appends a game_started event.
@@ -153,6 +162,17 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		resultParams := buildGameResultParams(session, result, players)
 		if _, err := svc.store.CreateGameResult(ctx, resultParams); err != nil {
 			fmt.Printf("ApplyMove: record game result: %v\n", err)
+		}
+
+		if session.Mode == store.SessionModeRanked {
+			var winnerID *uuid.UUID
+			if result.WinnerID != nil {
+				id, err := uuid.Parse(string(*result.WinnerID))
+				if err == nil {
+					winnerID = &id
+				}
+			}
+			svc.applyRatings(ctx, session, players, winnerID, result.Status == engine.ResultDraw)
 		}
 
 		if svc.events != nil {
@@ -306,6 +326,10 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		Players:   resultPlayers,
 	}); err != nil {
 		fmt.Printf("Surrender: record game result: %v\n", err)
+	}
+
+	if session.Mode == store.SessionModeRanked {
+		svc.applyRatings(ctx, session, players, opponentID, false)
 	}
 
 	if svc.events != nil {

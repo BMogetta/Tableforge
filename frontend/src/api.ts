@@ -95,6 +95,93 @@ export interface LeaderboardEntry {
   draws: number
 }
 
+// Rating mirrors store.Rating on the Go side.
+// LeaderboardEntry above is kept for backward compatibility until the
+// leaderboard UI is updated to consume Rating directly.
+export interface Rating {
+  player_id: string
+  mmr: number
+  display_rating: number
+  games_played: number
+  win_streak: number
+  loss_streak: number
+  updated_at: string
+}
+
+// DirectMessage mirrors store.DirectMessage on the Go side.
+export interface DirectMessage {
+  id: string
+  sender_id: string
+  receiver_id: string
+  content: string
+  read_at?: string
+  reported: boolean
+  hidden: boolean
+  created_at: string
+}
+
+// --- Direct messages ---------------------------------------------------------
+
+export const dm = {
+  /**
+   * Sends a DM from playerId to receiverId.
+   * POST /players/{receiverId}/dm
+   */
+  send: (playerId: string, receiverId: string, content: string) =>
+    request<DirectMessage>(`/players/${receiverId}/dm`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, content }),
+    }),
+
+  /**
+   * Returns the full conversation history between two players.
+   * Caller must be one of the two participants or hold owner role.
+   * GET /players/{playerID}/dm/{otherPlayerID}
+   */
+  history: (callerId: string, playerA: string, playerB: string) =>
+    request<DirectMessage[]>(`/players/${playerA}/dm/${playerB}`, {
+      method: 'GET',
+      body: JSON.stringify({ player_id: callerId }),
+    }),
+
+  /**
+   * Returns the number of unread DMs for playerId.
+   * Caller must match playerId.
+   * GET /players/{playerID}/dm/unread
+   */
+  unreadCount: (playerId: string) =>
+    request<{ count: number }>(`/players/${playerId}/dm/unread`, {
+      method: 'GET',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  /**
+   * Marks a DM as read. No-op if already read.
+   * POST /dm/{messageID}/read
+   */
+  markRead: (callerId: string, messageId: string) =>
+    request<void>(`/dm/${messageId}/read`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: callerId }),
+    }),
+
+  /**
+   * Reports a DM. Caller must be one of the two participants.
+   * POST /players/{playerID}/dm/{otherPlayerID}/report
+   */
+  report: (callerId: string, playerA: string, playerB: string, messageId: string) =>
+    request<void>(`/players/${playerA}/dm/${playerB}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: callerId, message_id: messageId }),
+    }),
+}
+// Mutes are cross-session and server-side — they survive reconnects.
+export interface PlayerMute {
+  muter_id: string
+  muted_id: string
+  created_at: string
+}
+
 // --- Lobby settings types ----------------------------------------------------
 
 export interface SettingOption {
@@ -287,6 +374,21 @@ export const sessions = {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId }),
     }),
+    pause: (sessionId: string, playerId: string) =>
+    request<{ votes: string[]; required: number; all_voted: boolean }>(
+      `/sessions/${sessionId}/pause`,
+      { method: 'POST', body: JSON.stringify({ player_id: playerId }) },
+    ),
+
+  resume: (sessionId: string, playerId: string) =>
+    request<{ votes: string[]; required: number; all_voted: boolean }>(
+      `/sessions/${sessionId}/resume`,
+      { method: 'POST', body: JSON.stringify({ player_id: playerId }) },
+    ),
+
+  // Manager only. Broadcasts room_closed to all clients.
+  forceClose: (sessionId: string) =>
+    request<void>(`/sessions/${sessionId}`, { method: 'DELETE' }),
   history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
   move: (sessionId: string, playerId: string, payload: unknown) =>
     request<{
@@ -303,11 +405,16 @@ export const sessions = {
 // --- Leaderboard -------------------------------------------------------------
 
 export const leaderboard = {
+  // TODO: update return type to Rating[] once the leaderboard UI is updated.
   get: (gameId?: string, limit = 20) => {
     const params = new URLSearchParams({ limit: String(limit) })
     if (gameId) params.set('game_id', gameId)
     return request<LeaderboardEntry[]>(`/leaderboard?${params}`)
   },
+  // getRatings: (limit = 20) => {
+  //   const params = new URLSearchParams({ limit: String(limit) })
+  //   return request<Rating[]>(`/leaderboard?${params}`)
+  // },
 }
 
 // --- Game Registry -----------------------------------------------------------
@@ -356,5 +463,90 @@ export const admin = {
     request<void>(`/admin/players/${playerId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role }),
+    }),
+}
+
+// --- Mutes -------------------------------------------------------------------
+
+export const mutes = {
+  /**
+   * Records that playerId has muted mutedId. Idempotent.
+   * POST /players/{mutedId}/mute
+   */
+  mute: (playerId: string, mutedId: string) =>
+    request<void>(`/players/${mutedId}/mute`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, muted_id: mutedId }),
+    }),
+
+  /**
+   * Removes a mute. No-op if the mute does not exist.
+   * DELETE /players/{playerId}/mute/{mutedId}
+   */
+  unmute: (playerId: string, mutedId: string) =>
+    request<void>(`/players/${playerId}/mute/${mutedId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  /**
+   * Returns all players muted by playerId.
+   * Managers may pass any playerId; regular players may only pass their own.
+   * GET /players/{playerId}/mutes
+   */
+  list: (callerId: string, playerId: string) =>
+    request<PlayerMute[]>(`/players/${playerId}/mutes`, {
+      method: 'GET',
+      body: JSON.stringify({ player_id: callerId }),
+    }),
+}
+
+export interface QueuePosition {
+  position: number;
+  estimated_wait_secs: number;
+}
+
+export const queue = {
+  /**
+   * Adds the player to the ranked matchmaking queue.
+   * Returns position and estimated wait time.
+   * POST /queue
+   */
+  join: (playerId: string) =>
+    request<QueuePosition>('/queue', {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  /**
+   * Removes the player from the ranked matchmaking queue. Idempotent.
+   * DELETE /queue
+   */
+  leave: (playerId: string) =>
+    request<void>('/queue', {
+      method: 'DELETE',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  /**
+   * Records that the player accepts the proposed match.
+   * If both players accept, match_ready is broadcast via the player channel.
+   * POST /queue/accept
+   */
+  accept: (playerId: string, matchId: string) =>
+    request<void>('/queue/accept', {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, match_id: matchId }),
+    }),
+
+  /**
+   * Records that the player declines the proposed match.
+   * The declining player is dropped from the queue and receives a penalty.
+   * POST /queue/decline
+   */
+  decline: (playerId: string, matchId: string) =>
+    request<void>('/queue/decline', {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, match_id: matchId }),
     }),
 }

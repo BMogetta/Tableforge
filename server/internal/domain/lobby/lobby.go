@@ -200,7 +200,7 @@ func (svc *Service) UpdateRoomSetting(ctx context.Context, roomID, requesterID u
 // The first mover is resolved from the room's settings. For rematches (rooms
 // with at least one finished session), rematch_first_mover_policy is used
 // instead of first_mover_policy.
-func (svc *Service) StartGame(ctx context.Context, roomID, requesterID uuid.UUID) (store.GameSession, error) {
+func (svc *Service) StartGame(ctx context.Context, roomID, requesterID uuid.UUID, mode store.SessionMode) (store.GameSession, error) {
 	room, err := svc.store.GetRoom(ctx, roomID)
 	if err != nil {
 		return store.GameSession{}, ErrRoomNotFound
@@ -301,7 +301,7 @@ func (svc *Service) StartGame(ctx context.Context, roomID, requesterID uuid.UUID
 		return store.GameSession{}, fmt.Errorf("StartGame: marshal state: %w", err)
 	}
 
-	session, err := svc.store.CreateGameSession(ctx, roomID, room.GameID, stateJSON, effectiveTimeout)
+	session, err := svc.store.CreateGameSession(ctx, roomID, room.GameID, stateJSON, effectiveTimeout, mode)
 	if err != nil {
 		return store.GameSession{}, fmt.Errorf("StartGame: create session: %w", err)
 	}

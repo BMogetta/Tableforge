@@ -249,13 +249,14 @@ func (f *FakeStore) CreateGameSession(
 	gameID string,
 	initialState []byte,
 	turnTimeoutSecs *int,
+	mode store.SessionMode,
 ) (store.GameSession, error) {
 	gs := store.GameSession{
 		ID:              uuid.New(),
 		RoomID:          roomID,
 		GameID:          gameID,
 		State:           initialState,
-		Mode:            store.SessionModeCasual,
+		Mode:            mode,
 		PauseVotes:      []string{},
 		ResumeVotes:     []string{},
 		StartedAt:       time.Now(),

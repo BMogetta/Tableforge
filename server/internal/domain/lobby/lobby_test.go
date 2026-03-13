@@ -138,7 +138,7 @@ func TestStartGame_Success(t *testing.T) {
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
-	session, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID)
+	session, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 	if err != nil {
 		t.Fatalf("StartGame: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestStartGame_NotOwner(t *testing.T) {
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
-	_, err := svc.StartGame(context.Background(), view.Room.ID, guest.ID)
+	_, err := svc.StartGame(context.Background(), view.Room.ID, guest.ID, store.SessionModeCasual)
 	if err != lobby.ErrNotOwner {
 		t.Errorf("expected ErrNotOwner, got %v", err)
 	}
@@ -173,7 +173,7 @@ func TestStartGame_NotEnoughPlayers(t *testing.T) {
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 
-	_, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID)
+	_, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 	if err != lobby.ErrNotEnoughPlayer {
 		t.Errorf("expected ErrNotEnoughPlayer, got %v", err)
 	}
@@ -186,9 +186,9 @@ func TestStartGame_AlreadyStarted(t *testing.T) {
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
-	svc.StartGame(context.Background(), view.Room.ID, owner.ID)
+	svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 
-	_, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID)
+	_, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 	if err != lobby.ErrRoomNotWaiting {
 		t.Errorf("expected ErrRoomNotWaiting, got %v", err)
 	}

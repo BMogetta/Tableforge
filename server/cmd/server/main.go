@@ -11,13 +11,15 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/server/games"
+	"github.com/tableforge/server/internal/domain/lobby"
+	"github.com/tableforge/server/internal/domain/rating"
+	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/api"
 	"github.com/tableforge/server/internal/platform/auth"
 	"github.com/tableforge/server/internal/platform/events"
-	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/platform/presence"
+	"github.com/tableforge/server/internal/platform/queue"
 	"github.com/tableforge/server/internal/platform/ratelimit"
-	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/telemetry"
 	"github.com/tableforge/server/internal/platform/ws"
@@ -73,6 +75,24 @@ func main() {
 	turnTimer := runtime.NewTurnTimer(runtimeService, hub, st, rdb, eventStore)
 	runtimeService.SetTimer(turnTimer)
 
+	ratingEngine := rating.NewDefaultEngine()
+	runtimeService.SetRatingEngine(ratingEngine)
+
+	queueSvc := queue.New(rdb, st, lobbyService, runtimeService, hub)
+	go queueSvc.ListenExpiry(ctx)
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				queueSvc.FindAndPropose(ctx)
+			}
+		}
+	}()
+
 	turnTimer.ReschedulePending(ctx)
 	go turnTimer.Start(ctx)
 
@@ -90,7 +110,7 @@ func main() {
 		getEnv("ENV", "development") == "production",
 	)
 
-	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter, eventStore, presenceStore)
+	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter, eventStore, presenceStore, queueSvc)
 	addr := getEnv("ADDR", ":8080")
 
 	var handler http.Handler = router

@@ -255,7 +255,7 @@ type Store interface {
 	ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]RoomPlayer, error)
 
 	// Game sessions
-	CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int) (GameSession, error)
+	CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int, mode SessionMode) (GameSession, error)
 	GetGameSession(ctx context.Context, id uuid.UUID) (GameSession, error)
 	GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameResult, error)
 	GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) (GameSession, error)

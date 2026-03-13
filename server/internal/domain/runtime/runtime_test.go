@@ -157,7 +157,7 @@ func seedSession(t *testing.T, s *fakeStore, game engine.Game) (store.GameSessio
 	})
 	stateJSON, _ := json.Marshal(state)
 
-	gs, _ := s.CreateGameSession(context.Background(), uuid.New(), game.ID(), stateJSON, nil)
+	gs, _ := s.CreateGameSession(context.Background(), uuid.New(), game.ID(), stateJSON, nil, store.SessionModeCasual)
 	return gs, p1
 }
 

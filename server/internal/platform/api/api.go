@@ -15,6 +15,7 @@ import (
 	"github.com/tableforge/server/internal/platform/auth"
 	"github.com/tableforge/server/internal/platform/events"
 	"github.com/tableforge/server/internal/platform/presence"
+	"github.com/tableforge/server/internal/platform/queue"
 	"github.com/tableforge/server/internal/platform/ratelimit"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
@@ -32,6 +33,7 @@ func NewRouter(
 	limiter *ratelimit.Limiter,
 	eventStore *events.Store,
 	presenceStore *presence.Store,
+	queueSvc *queue.Service,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -110,14 +112,35 @@ func NewRouter(
 		r.Get("/sessions/{sessionID}/events", handleGetSessionEvents(eventStore))
 		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub))
 		r.Post("/sessions/{sessionID}/rematch", handleRematch(rt, hub))
+		r.Post("/sessions/{sessionID}/pause", handleVotePause(rt, hub))
+		r.Post("/sessions/{sessionID}/resume", handleVoteResume(rt, hub))
+		r.With(requireRole(store.RoleManager)).Delete("/sessions/{sessionID}", handleForceCloseSession(st, hub))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
 		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub))
+
+		// Direct messages
+		r.Post("/players/{playerID}/dm", handleSendDM(st, hub))
+		r.Get("/players/{playerID}/dm/unread", handleGetUnreadDMCount(st))
+		r.Get("/players/{playerID}/dm/{otherPlayerID}", handleGetDMHistory(st))
+		r.Post("/dm/{messageID}/read", handleMarkDMRead(st, hub))
+		r.Post("/players/{playerID}/dm/{otherPlayerID}/report", handleReportDM(st))
 
 		// Room chat
 		r.Post("/rooms/{roomID}/messages", handleSendRoomMessage(st, hub))
 		r.Get("/rooms/{roomID}/messages", handleGetRoomMessages(st))
 		r.Post("/rooms/{roomID}/messages/{messageID}/report", handleReportRoomMessage(st))
 		r.With(requireRole(store.RoleManager)).Delete("/rooms/{roomID}/messages/{messageID}", handleHideRoomMessage(st, hub))
+
+		// Mutes
+		r.Post("/players/{playerID}/mute", handleMutePlayer(st))
+		r.Delete("/players/{playerID}/mute/{mutedID}", handleUnmutePlayer(st))
+		r.Get("/players/{playerID}/mutes", handleGetMutedPlayers(st))
+
+		// Ranked matchmaking queue
+		r.Post("/queue", handleJoinQueue(queueSvc))
+		r.Delete("/queue", handleLeaveQueue(queueSvc))
+		r.Post("/queue/accept", handleAcceptMatch(queueSvc))
+		r.Post("/queue/decline", handleDeclineMatch(queueSvc))
 
 		// Admin routes — manager+ only, stricter rate limit.
 		r.Route("/admin", func(r chi.Router) {
