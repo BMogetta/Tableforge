@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tableforge/server/internal/domain/lobby"
+	"github.com/tableforge/server/internal/domain/notification"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/auth"
 	"github.com/tableforge/server/internal/platform/events"
@@ -34,6 +35,7 @@ func NewRouter(
 	eventStore *events.Store,
 	presenceStore *presence.Store,
 	queueSvc *queue.Service,
+	notificationSvc *notification.Service,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -99,6 +101,7 @@ func NewRouter(
 		r.Post("/players", handleCreatePlayer(st))
 		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
 		r.Get("/players/{playerID}/stats", handleGetPlayerStats(st))
+		r.Get("/players/{playerID}/notifications", handleListNotifications(notificationSvc))
 
 		r.Post("/rooms", handleCreateRoom(lobbyService))
 		r.Get("/rooms", handleListRooms(lobbyService))
@@ -141,6 +144,11 @@ func NewRouter(
 		r.Delete("/queue", handleLeaveQueue(queueSvc))
 		r.Post("/queue/accept", handleAcceptMatch(queueSvc))
 		r.Post("/queue/decline", handleDeclineMatch(queueSvc))
+
+		// Notification actions
+		r.Post("/notifications/{notificationID}/read", handleMarkNotificationRead(notificationSvc))
+		r.Post("/notifications/{notificationID}/accept", handleAcceptNotification(notificationSvc))
+		r.Post("/notifications/{notificationID}/decline", handleDeclineNotification(notificationSvc))
 
 		// Admin routes — manager+ only, stricter rate limit.
 		r.Route("/admin", func(r chi.Router) {

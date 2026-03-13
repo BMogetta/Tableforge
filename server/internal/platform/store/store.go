@@ -211,6 +211,66 @@ type Rating struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+// NotificationType identifies the kind of inbox notification.
+type NotificationType string
+
+const (
+	NotificationTypeFriendRequest  NotificationType = "friend_request"
+	NotificationTypeRoomInvitation NotificationType = "room_invitation"
+	NotificationTypeBanIssued      NotificationType = "ban_issued"
+)
+
+// BanReason identifies why a queue ban was issued.
+type BanReason string
+
+const (
+	BanReasonDeclineThreshold BanReason = "decline_threshold"
+	BanReasonModerator        BanReason = "moderator"
+)
+
+// Notification is a persistent inbox notification for a player.
+type Notification struct {
+	ID              uuid.UUID        `json:"id"`
+	PlayerID        uuid.UUID        `json:"player_id"`
+	Type            NotificationType `json:"type"`
+	Payload         []byte           `json:"payload"` // raw JSONB
+	ActionTaken     *string          `json:"action_taken,omitempty"`
+	ActionExpiresAt *time.Time       `json:"action_expires_at,omitempty"`
+	ReadAt          *time.Time       `json:"read_at,omitempty"`
+	CreatedAt       time.Time        `json:"created_at"`
+}
+
+// NotificationPayloadFriendRequest is the payload for friend_request notifications.
+type NotificationPayloadFriendRequest struct {
+	FromPlayerID string `json:"from_player_id"`
+	FromUsername string `json:"from_username"`
+}
+
+// NotificationPayloadRoomInvitation is the payload for room_invitation notifications.
+type NotificationPayloadRoomInvitation struct {
+	FromPlayerID string `json:"from_player_id"`
+	FromUsername string `json:"from_username"`
+	RoomID       string `json:"room_id"`
+	RoomCode     string `json:"room_code"`
+	GameID       string `json:"game_id"`
+	GameName     string `json:"game_name"`
+}
+
+// NotificationPayloadBanIssued is the payload for ban_issued notifications.
+type NotificationPayloadBanIssued struct {
+	Reason       BanReason `json:"reason"`
+	DurationSecs int       `json:"duration_secs"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+// CreateNotificationParams holds the fields needed to create a notification.
+type CreateNotificationParams struct {
+	PlayerID        uuid.UUID
+	Type            NotificationType
+	Payload         []byte
+	ActionExpiresAt *time.Time
+}
+
 // --- Store interface ---------------------------------------------------------
 
 // Store is the interface for all database operations.
@@ -331,6 +391,25 @@ type Store interface {
 	VoteResume(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
 	ClearResumeVotes(ctx context.Context, sessionID uuid.UUID) error
 	ForceCloseSession(ctx context.Context, sessionID uuid.UUID) error
+
+	// CreateNotification inserts a new notification and returns the created row.
+	CreateNotification(ctx context.Context, params CreateNotificationParams) (Notification, error)
+
+	// GetNotification fetches a single notification by ID.
+	GetNotification(ctx context.Context, id uuid.UUID) (Notification, error)
+
+	// ListNotifications returns notifications for a player.
+	// If includeRead is false, only unread notifications are returned.
+	// Read notifications older than readCutoff are excluded even if includeRead is true.
+	ListNotifications(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]Notification, error)
+
+	// MarkNotificationRead sets read_at to now for the given notification.
+	// No-op if already read.
+	MarkNotificationRead(ctx context.Context, id uuid.UUID) error
+
+	// SetNotificationAction records an accepted or declined action on a notification.
+	// Returns an error if action_expires_at has passed or action_taken is already set.
+	SetNotificationAction(ctx context.Context, id uuid.UUID, action string) error
 }
 
 // --- Params ------------------------------------------------------------------

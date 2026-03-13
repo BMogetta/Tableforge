@@ -26,6 +26,7 @@ type FakeStore struct {
 	DirectMessages map[uuid.UUID]store.DirectMessage
 	PlayerMutes    map[uuid.UUID][]store.PlayerMute
 	Ratings        map[uuid.UUID]store.Rating
+	Notifications  map[uuid.UUID]store.Notification
 }
 
 func NewFakeStore() *FakeStore {
@@ -43,6 +44,7 @@ func NewFakeStore() *FakeStore {
 		DirectMessages: make(map[uuid.UUID]store.DirectMessage),
 		PlayerMutes:    make(map[uuid.UUID][]store.PlayerMute),
 		Ratings:        make(map[uuid.UUID]store.Rating),
+		Notifications:  make(map[uuid.UUID]store.Notification),
 	}
 }
 
@@ -773,6 +775,79 @@ func (f *FakeStore) checkAllVoted(sessionID uuid.UUID, votes []string) bool {
 		return false
 	}
 	return len(votes) >= len(f.RoomPlayers[gs.RoomID])
+}
+
+// --- Notifications -----------------------------------------------------------
+
+func (f *FakeStore) CreateNotification(_ context.Context, params store.CreateNotificationParams) (store.Notification, error) {
+	n := store.Notification{
+		ID:              uuid.New(),
+		PlayerID:        params.PlayerID,
+		Type:            params.Type,
+		Payload:         params.Payload,
+		ActionExpiresAt: params.ActionExpiresAt,
+		CreatedAt:       time.Now(),
+	}
+	f.Notifications[n.ID] = n
+	return n, nil
+}
+
+func (f *FakeStore) GetNotification(_ context.Context, id uuid.UUID) (store.Notification, error) {
+	n, ok := f.Notifications[id]
+	if !ok {
+		return store.Notification{}, ErrNotFound
+	}
+	return n, nil
+}
+
+func (f *FakeStore) ListNotifications(_ context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]store.Notification, error) {
+	var result []store.Notification
+	for _, n := range f.Notifications {
+		if n.PlayerID != playerID {
+			continue
+		}
+		if !includeRead && n.ReadAt != nil {
+			continue
+		}
+		if includeRead && n.ReadAt != nil && n.CreatedAt.Before(readCutoff) {
+			continue
+		}
+		result = append(result, n)
+	}
+	if result == nil {
+		result = []store.Notification{}
+	}
+	return result, nil
+}
+
+func (f *FakeStore) MarkNotificationRead(_ context.Context, id uuid.UUID) error {
+	n, ok := f.Notifications[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if n.ReadAt != nil {
+		return nil // already read, no-op
+	}
+	now := time.Now()
+	n.ReadAt = &now
+	f.Notifications[id] = n
+	return nil
+}
+
+func (f *FakeStore) SetNotificationAction(_ context.Context, id uuid.UUID, action string) error {
+	n, ok := f.Notifications[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if n.ActionTaken != nil {
+		return store.ErrNotificationActionExpired
+	}
+	if n.ActionExpiresAt != nil && time.Now().After(*n.ActionExpiresAt) {
+		return store.ErrNotificationActionExpired
+	}
+	n.ActionTaken = &action
+	f.Notifications[id] = n
+	return nil
 }
 
 // --- Exec (used by test migrations) ------------------------------------------

@@ -74,6 +74,8 @@ const (
 	// EventMatchReady is delivered to both players when both have accepted and
 	// the session has been created. Payload: room_id, session_id.
 	EventMatchReady EventType = "match_ready"
+
+	EventNotificationReceived EventType = "notification_received"
 )
 
 // spectatorOnlyEvents are never sent to spectators.

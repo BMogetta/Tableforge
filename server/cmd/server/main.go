@@ -12,6 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/domain/lobby"
+	"github.com/tableforge/server/internal/domain/notification"
 	"github.com/tableforge/server/internal/domain/rating"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/api"
@@ -110,7 +111,9 @@ func main() {
 		getEnv("ENV", "development") == "production",
 	)
 
-	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter, eventStore, presenceStore, queueSvc)
+	notificationSvc := notification.New(st, hub)
+
+	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter, eventStore, presenceStore, queueSvc, notificationSvc)
 	addr := getEnv("ADDR", ":8080")
 
 	var handler http.Handler = router
