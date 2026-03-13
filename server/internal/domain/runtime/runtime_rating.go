@@ -29,7 +29,7 @@ func (svc *Service) applyRatings(
 	// Fall back to default values for players with no rating row yet.
 	ratingPlayers := make([]*rating.Player, len(players))
 	for i, rp := range players {
-		r, err := svc.store.GetRating(ctx, rp.PlayerID)
+		r, err := svc.store.GetRating(ctx, rp.PlayerID, session.GameID)
 		if err != nil {
 			// No row yet — start from defaults.
 			ratingPlayers[i] = rating.NewPlayer(rp.PlayerID.String())
@@ -74,6 +74,7 @@ func (svc *Service) applyRatings(
 		playerID := rp.PlayerID
 		if err := svc.store.UpsertRating(ctx, store.Rating{
 			PlayerID:      playerID,
+			GameID:        session.GameID,
 			MMR:           p.MMR,
 			DisplayRating: p.DisplayRating,
 			GamesPlayed:   p.GamesPlayed,

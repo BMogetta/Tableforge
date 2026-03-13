@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type { Player } from './api'
 import { RoomSocket } from './ws'
 
+export type QueueStatus = 'idle' | 'queued' | 'match_found'
+
 interface AppState {
   player: Player | null
   setPlayer: (p: Player | null) => void
@@ -40,6 +42,40 @@ interface AppState {
    */
   presenceMap: Record<string, boolean>
   setPlayerPresence: (playerId: string, online: boolean) => void
+
+  // --- Queue state -----------------------------------------------------------
+ 
+  /**
+   * Current matchmaking queue status for the player.
+   * Persists across navigation so the player can queue and browse the app.
+   * - idle:        not in queue
+   * - queued:      waiting for a match
+   * - match_found: a match has been proposed, awaiting confirmation
+   */
+  queueStatus: QueueStatus
+ 
+  /**
+   * Timestamp (Date.now()) when the player joined the queue.
+   * Used to calculate elapsed wait time from any page.
+   * Null when queueStatus is 'idle'.
+   */
+  queueJoinedAt: number | null
+ 
+  /**
+   * The match ID proposed by the server when queueStatus is 'match_found'.
+   * Required to call queue.accept() / queue.decline().
+   * Null otherwise.
+   */
+  matchId: string | null
+ 
+  /** Set queue status to 'queued' and record the join timestamp. */
+  setQueued: (joinedAt: number) => void
+ 
+  /** Set queue status to 'match_found' and record the match ID. */
+  setMatchFound: (matchId: string) => void
+ 
+  /** Reset all queue state back to idle. */
+  clearQueue: () => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -72,4 +108,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       presenceMap: { ...state.presenceMap, [playerId]: online },
     })),
+
+// Queue
+  queueStatus: 'idle',
+  queueJoinedAt: null,
+  matchId: null,
+  setQueued: (joinedAt) => set({ queueStatus: 'queued', queueJoinedAt: joinedAt, matchId: null }),
+  setMatchFound: (matchId) => set({ queueStatus: 'match_found', matchId }),
+  clearQueue: () => set({ queueStatus: 'idle', queueJoinedAt: null, matchId: null }),
 }))

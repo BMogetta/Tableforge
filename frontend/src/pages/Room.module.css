@@ -1,18 +1,23 @@
 .root {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+}
+
+/* Two-column layout: panel + chat sidebar */
+.layout {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
   justify-content: center;
-  padding: 24px;
 }
 
 .panel {
   width: 100%;
   max-width: 440px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 32px;
+  padding: 40px 32px;
+  /* Let the panel scroll independently if content overflows */
+  overflow-y: auto;
 }
 
 .header {
@@ -86,7 +91,6 @@
   font-style: italic;
 }
 
-/* Live spectator count shown below the player list when > 0. */
 .spectatorCount {
   margin-top: 10px;
   font-size: 12px;
@@ -96,7 +100,6 @@
 
 .shareSection { margin: 4px 0; }
 
-/* Helper text shown in the invite section for private rooms. */
 .privateNote {
   margin-top: 6px;
   font-size: 12px;
@@ -141,6 +144,7 @@
   color: var(--danger);
 }
 
+/* Connection banner */
 .banner {
   position: fixed;
   top: 0;

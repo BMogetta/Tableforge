@@ -3,6 +3,8 @@
 import { tracer } from './telemetry'
 import { SpanStatusCode, context, propagation } from '@opentelemetry/api'
 
+// --- Types -------------------------------------------------------------------
+
 export interface Player {
   id: string
   username: string
@@ -41,6 +43,16 @@ export interface Room {
   created_at: string
 }
 
+export interface RoomMessage {
+  id: string
+  room_id: string
+  player_id: string
+  content: string
+  reported: boolean
+  hidden: boolean
+  created_at: string
+}
+
 export interface RoomView {
   room: Room
   players: RoomViewPlayer[]
@@ -66,6 +78,7 @@ export interface GameResult {
   winner_id?: string
   status?: string
   ended_by?: string
+  is_draw?: boolean
 }
 
 export interface Move {
@@ -86,26 +99,26 @@ export interface PlayerStats {
   forfeits: number
 }
 
-export interface LeaderboardEntry {
+// Rating mirrors store.Rating on the Go side.
+// NOTE: mmr is intentionally absent — it must not reach the frontend.
+// If the backend serializes mmr in /leaderboard responses, that is a backend
+// bug and should be fixed by excluding it from the JSON response struct.
+export interface Rating {
   player_id: string
   username: string
   avatar_url?: string
-  wins: number
-  losses: number
-  draws: number
-}
-
-// Rating mirrors store.Rating on the Go side.
-// LeaderboardEntry above is kept for backward compatibility until the
-// leaderboard UI is updated to consume Rating directly.
-export interface Rating {
-  player_id: string
-  mmr: number
   display_rating: number
   games_played: number
   win_streak: number
   loss_streak: number
   updated_at: string
+}
+
+// Mutes are cross-session and server-side — they survive reconnects.
+export interface PlayerMute {
+  muter_id: string
+  muted_id: string
+  created_at: string
 }
 
 // DirectMessage mirrors store.DirectMessage on the Go side.
@@ -120,65 +133,49 @@ export interface DirectMessage {
   created_at: string
 }
 
-// --- Direct messages ---------------------------------------------------------
-
-export const dm = {
-  /**
-   * Sends a DM from playerId to receiverId.
-   * POST /players/{receiverId}/dm
-   */
-  send: (playerId: string, receiverId: string, content: string) =>
-    request<DirectMessage>(`/players/${receiverId}/dm`, {
-      method: 'POST',
-      body: JSON.stringify({ player_id: playerId, content }),
-    }),
-
-  /**
-   * Returns the full conversation history between two players.
-   * Caller must be one of the two participants or hold owner role.
-   * GET /players/{playerID}/dm/{otherPlayerID}
-   */
-  history: (callerId: string, playerA: string, playerB: string) =>
-    request<DirectMessage[]>(`/players/${playerA}/dm/${playerB}`, {
-      method: 'GET',
-      body: JSON.stringify({ player_id: callerId }),
-    }),
-
-  /**
-   * Returns the number of unread DMs for playerId.
-   * Caller must match playerId.
-   * GET /players/{playerID}/dm/unread
-   */
-  unreadCount: (playerId: string) =>
-    request<{ count: number }>(`/players/${playerId}/dm/unread`, {
-      method: 'GET',
-      body: JSON.stringify({ player_id: playerId }),
-    }),
-
-  /**
-   * Marks a DM as read. No-op if already read.
-   * POST /dm/{messageID}/read
-   */
-  markRead: (callerId: string, messageId: string) =>
-    request<void>(`/dm/${messageId}/read`, {
-      method: 'POST',
-      body: JSON.stringify({ player_id: callerId }),
-    }),
-
-  /**
-   * Reports a DM. Caller must be one of the two participants.
-   * POST /players/{playerID}/dm/{otherPlayerID}/report
-   */
-  report: (callerId: string, playerA: string, playerB: string, messageId: string) =>
-    request<void>(`/players/${playerA}/dm/${playerB}/report`, {
-      method: 'POST',
-      body: JSON.stringify({ player_id: callerId, message_id: messageId }),
-    }),
+export interface QueuePosition {
+  position: number
+  estimated_wait_secs: number
 }
-// Mutes are cross-session and server-side — they survive reconnects.
-export interface PlayerMute {
-  muter_id: string
-  muted_id: string
+
+export interface SessionEvent {
+  id: string
+  session_id: string
+  type: string
+  player_id?: string
+  payload?: Record<string, unknown>
+  occurred_at: string
+}
+
+// --- Notification types ------------------------------------------------------
+
+export type NotificationType = 'friend_request' | 'room_invitation' | 'ban_issued'
+
+export interface NotificationPayloadFriendRequest {
+  from_player_id: string
+  from_username: string
+}
+
+export interface NotificationPayloadRoomInvitation {
+  room_id: string
+  room_code: string
+  from_player_id: string
+  from_username: string
+}
+
+export interface NotificationPayloadBanIssued {
+  reason: 'decline_threshold' | 'moderator'
+  expires_at?: string
+}
+
+export interface Notification {
+  id: string
+  player_id: string
+  type: NotificationType
+  payload: NotificationPayloadFriendRequest | NotificationPayloadRoomInvitation | NotificationPayloadBanIssued
+  action_taken?: string
+  action_expires_at?: string
+  read_at?: string
   created_at: string
 }
 
@@ -206,13 +203,18 @@ export interface LobbySetting {
   max?: number
 }
 
-export interface SessionEvent {
+/**
+ * Public representation of a registered game, including its lobby settings.
+ * Mirrors api.gameInfo on the Go side.
+ */
+export interface GameInfo {
   id: string
-  session_id: string
-  type: string
-  player_id?: string
-  payload?: Record<string, unknown>
-  occurred_at: string
+  name: string
+  min_players: number
+  max_players: number
+  // Full list of configurable lobby settings for this game,
+  // platform defaults merged with any game-specific overrides.
+  settings: LobbySetting[]
 }
 
 // --- HTTP client -------------------------------------------------------------
@@ -274,7 +276,10 @@ export class ApiError extends Error {
 }
 
 // --- Auth --------------------------------------------------------------------
-// We don't use the request() helper for auth routes since they have some special handling (e.g. login redirects to GitHub) and we don't want them to be traced like normal API calls.
+// We don't use the request() helper for auth routes since they have some
+// special handling (e.g. login redirects to GitHub) and we don't want them
+// to be traced like normal API calls.
+
 export const auth = {
   me: () => fetch('/auth/me', { credentials: 'include' }).then(async res => {
     if (!res.ok) {
@@ -332,18 +337,13 @@ export const rooms = {
       method: 'PUT',
       body: JSON.stringify({ player_id: playerId, value }),
     }),
-}
-
-// --- WebSocket URL -----------------------------------------------------------
-
-/**
- * Returns the WebSocket URL for a room, including the player_id query param.
- * The server uses player_id to determine whether the connecting client is a
- * participant (in room_players) or a spectator.
- */
-export function wsRoomUrl(roomId: string, playerId: string): string {
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  return `${proto}://${window.location.host}/ws/rooms/${roomId}?player_id=${encodeURIComponent(playerId)}`
+  messages: (roomId: string) =>
+    request<RoomMessage[]>(`/rooms/${roomId}/messages`),
+  sendMessage: (roomId: string, playerId: string, content: string) =>
+    request<RoomMessage>(`/rooms/${roomId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, content }),
+    }),
 }
 
 // --- Sessions ----------------------------------------------------------------
@@ -355,6 +355,15 @@ export const sessions = {
       state: { current_player_id: string; data: unknown }
       result?: GameResult
     }>(`/sessions/${id}`),
+  move: (sessionId: string, playerId: string, payload: unknown) =>
+    request<{
+      session: GameSession
+      state: { current_player_id: string; data: unknown }
+      is_over: boolean
+    }>(`/sessions/${sessionId}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, payload }),
+    }),
   surrender: (sessionId: string, playerId: string) =>
     request<{
       session: GameSession
@@ -374,64 +383,37 @@ export const sessions = {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId }),
     }),
-    pause: (sessionId: string, playerId: string) =>
+  pause: (sessionId: string, playerId: string) =>
     request<{ votes: string[]; required: number; all_voted: boolean }>(
       `/sessions/${sessionId}/pause`,
       { method: 'POST', body: JSON.stringify({ player_id: playerId }) },
     ),
-
   resume: (sessionId: string, playerId: string) =>
     request<{ votes: string[]; required: number; all_voted: boolean }>(
       `/sessions/${sessionId}/resume`,
       { method: 'POST', body: JSON.stringify({ player_id: playerId }) },
     ),
-
   // Manager only. Broadcasts room_closed to all clients.
   forceClose: (sessionId: string) =>
     request<void>(`/sessions/${sessionId}`, { method: 'DELETE' }),
-  history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
-  move: (sessionId: string, playerId: string, payload: unknown) =>
-    request<{
-      session: GameSession
-      state: { current_player_id: string; data: unknown }
-      is_over: boolean
-    }>(`/sessions/${sessionId}/move`, {
-      method: 'POST',
-      body: JSON.stringify({ player_id: playerId, payload }),
-    }),
   events: (id: string) => request<SessionEvent[]>(`/sessions/${id}/events`),
+  history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
 }
 
 // --- Leaderboard -------------------------------------------------------------
 
 export const leaderboard = {
-  // TODO: update return type to Rating[] once the leaderboard UI is updated.
-  get: (gameId?: string, limit = 20) => {
-    const params = new URLSearchParams({ limit: String(limit) })
-    if (gameId) params.set('game_id', gameId)
-    return request<LeaderboardEntry[]>(`/leaderboard?${params}`)
+  /**
+   * Returns the top players by display_rating for the given game.
+   * game_id is required — ratings are per-game and must not be mixed.
+   */
+  get: (gameId: string, limit = 20) => {
+    const params = new URLSearchParams({ limit: String(limit), game_id: gameId })
+    return request<Rating[]>(`/leaderboard?${params}`)
   },
-  // getRatings: (limit = 20) => {
-  //   const params = new URLSearchParams({ limit: String(limit) })
-  //   return request<Rating[]>(`/leaderboard?${params}`)
-  // },
 }
 
-// --- Game Registry -----------------------------------------------------------
-
-/**
- * Public representation of a registered game, including its lobby settings.
- * Mirrors api.gameInfo on the Go side.
- */
-export interface GameInfo {
-  id: string
-  name: string
-  min_players: number
-  max_players: number
-  // Full list of configurable lobby settings for this game,
-  // platform defaults merged with any game-specific overrides.
-  settings: LobbySetting[]
-}
+// --- Game registry -----------------------------------------------------------
 
 export const gameRegistry = {
   list: () => request<GameInfo[]>('/games'),
@@ -443,13 +425,11 @@ export const admin = {
   // Allowed emails
   listEmails: () =>
     request<AllowedEmail[]>('/admin/allowed-emails'),
-
   addEmail: (email: string, role: 'player' | 'manager' = 'player') =>
     request<AllowedEmail>('/admin/allowed-emails', {
       method: 'POST',
       body: JSON.stringify({ email, role }),
     }),
-
   removeEmail: (email: string) =>
     request<void>(`/admin/allowed-emails/${encodeURIComponent(email)}`, {
       method: 'DELETE',
@@ -458,7 +438,6 @@ export const admin = {
   // Players
   listPlayers: () =>
     request<Player[]>('/admin/players'),
-
   setRole: (playerId: string, role: 'player' | 'manager' | 'owner') =>
     request<void>(`/admin/players/${playerId}/role`, {
       method: 'PUT',
@@ -501,10 +480,109 @@ export const mutes = {
     }),
 }
 
-export interface QueuePosition {
-  position: number;
-  estimated_wait_secs: number;
+// --- Direct messages ---------------------------------------------------------
+
+export const dm = {
+  /**
+   * Sends a DM from playerId to receiverId.
+   * POST /players/{receiverId}/dm
+   */
+  send: (playerId: string, receiverId: string, content: string) =>
+    request<DirectMessage>(`/players/${receiverId}/dm`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, content }),
+    }),
+
+  /**
+   * Returns the full conversation history between two players.
+   * Caller must be one of the two participants or hold owner role.
+   * GET /players/{playerID}/dm/{otherPlayerID}
+   */
+  history: (callerId: string, playerA: string, playerB: string) =>
+    request<DirectMessage[]>(`/players/${playerA}/dm/${playerB}`, {
+      method: 'GET',
+      body: JSON.stringify({ player_id: callerId }),
+    }),
+
+  /**
+   * Returns the number of unread DMs for playerId.
+   * Caller must match playerId.
+   * GET /players/{playerID}/dm/unread
+   */
+  unreadCount: (playerId: string) =>
+    request<{ count: number }>(`/players/${playerId}/dm/unread`, {
+      method: 'GET',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  /**
+   * Marks a DM as read. No-op if already read.
+   * POST /dm/{messageID}/read
+   */
+  markRead: (callerId: string, messageId: string) =>
+    request<void>(`/dm/${messageId}/read`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: callerId }),
+    }),
+
+  /**
+   * Reports a DM. Caller must be one of the two participants.
+   * POST /players/{playerID}/dm/{otherPlayerID}/report
+   */
+  report: (callerId: string, playerA: string, playerB: string, messageId: string) =>
+    request<void>(`/players/${playerA}/dm/${playerB}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: callerId, message_id: messageId }),
+    }),
 }
+
+// --- Notifications -----------------------------------------------------------
+
+export const notifications = {
+  /**
+   * Lists notifications for playerId.
+   * Pass include_read=true to include already-read notifications.
+   * Read notifications older than 30 days are always excluded.
+   * GET /players/{playerID}/notifications
+   */
+  list: (playerId: string, includeRead = false) =>
+    request<Notification[]>(
+      `/players/${playerId}/notifications?include_read=${includeRead}`,
+    ),
+
+  /**
+   * Marks a notification as read. No-op if already read.
+   * POST /notifications/{notificationID}/read
+   */
+  markRead: (playerId: string, notificationId: string) =>
+    request<void>(`/notifications/${notificationId}/read`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  /**
+   * Accepts the action associated with a notification (friend_request,
+   * room_invitation). Returns 410 if the action has expired.
+   * POST /notifications/{notificationID}/accept
+   */
+  accept: (playerId: string, notificationId: string) =>
+    request<void>(`/notifications/${notificationId}/accept`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  /**
+   * Declines the action associated with a notification.
+   * POST /notifications/{notificationID}/decline
+   */
+  decline: (playerId: string, notificationId: string) =>
+    request<void>(`/notifications/${notificationId}/decline`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+}
+
+// --- Queue -------------------------------------------------------------------
 
 export const queue = {
   /**
@@ -549,4 +627,16 @@ export const queue = {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, match_id: matchId }),
     }),
+}
+
+// --- Utilities ---------------------------------------------------------------
+
+/**
+ * Returns the WebSocket URL for a room, including the player_id query param.
+ * The server uses player_id to determine whether the connecting client is a
+ * participant (in room_players) or a spectator.
+ */
+export function wsRoomUrl(roomId: string, playerId: string): string {
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  return `${proto}://${window.location.host}/ws/rooms/${roomId}?player_id=${encodeURIComponent(playerId)}`
 }

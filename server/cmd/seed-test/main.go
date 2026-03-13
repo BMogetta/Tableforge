@@ -54,6 +54,29 @@ func main() {
 		log.Fatalf("create player 3: %v", err)
 	}
 
+	// Seed ranked ratings so the leaderboard test has data without requiring
+	// a full ranked game flow.
+	if err := st.UpsertRating(ctx, store.Rating{
+		PlayerID:      p1.ID,
+		GameID:        "tictactoe",
+		MMR:           1536.0,
+		DisplayRating: 1536.0,
+		GamesPlayed:   1,
+		WinStreak:     1,
+	}); err != nil {
+		log.Printf("warn: upsert rating p1: %v", err)
+	}
+	if err := st.UpsertRating(ctx, store.Rating{
+		PlayerID:      p2.ID,
+		GameID:        "tictactoe",
+		MMR:           1464.0,
+		DisplayRating: 1464.0,
+		GamesPlayed:   1,
+		LossStreak:    1,
+	}); err != nil {
+		log.Printf("warn: upsert rating p2: %v", err)
+	}
+
 	// Add all emails to allowed_emails so they can log in via test-login.
 	allowedEmails := []struct {
 		email string

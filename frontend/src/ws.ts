@@ -1,18 +1,39 @@
 export type WsEventType =
+  // Game flow
   | 'move_applied'
   | 'game_over'
-  | 'player_joined'
-  | 'player_left'
   | 'game_started'
   | 'rematch_vote'
   | 'rematch_ready'
-  | 'rematch_started'
-  | 'presence_update'
+  // Room
+  | 'player_joined'
+  | 'player_left'
   | 'owner_changed'
-  | 'setting_updated'
   | 'room_closed'
+  | 'setting_updated'
+  | 'presence_update'
   | 'spectator_joined'
   | 'spectator_left'
+  // Chat
+  | 'chat_message'
+  | 'chat_message_hidden'
+  // Direct messages
+  | 'dm_received'
+  | 'dm_read'
+  // Pause / resume
+  | 'pause_vote_update'
+  | 'session_suspended'
+  | 'resume_vote_update'
+  | 'session_resumed'
+  // Matchmaking queue
+  | 'queue_joined'
+  | 'queue_left'
+  | 'match_found'
+  | 'match_cancelled'
+  | 'match_ready'
+  // Notifications
+  | 'notification_received'
+  // Synthetic client-side connection events
   | 'ws_connected'
   | 'ws_reconnecting'
   | 'ws_disconnected'
@@ -30,6 +51,8 @@ export class RoomSocket {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private closed = false
   private attemptCount = 0
+  private static readonly MAX_ATTEMPTS = 10
+  private static readonly MAX_BACKOFF_MS = 30_000
 
   /**
    * @param url Full WebSocket URL including any query params (e.g. player_id).
@@ -59,13 +82,12 @@ export class RoomSocket {
       this.ws = null
       if (!this.closed) {
         this.attemptCount++
-        // After 3 failed attempts with no success, emit disconnected.
-        if (this.attemptCount >= 3) {
+        if (this.attemptCount >= RoomSocket.MAX_ATTEMPTS) {
           this.emit('ws_disconnected')
-        } else {
-          this.emit('ws_reconnecting')
         }
-        this.reconnectTimer = setTimeout(() => this.connect(), 2000)
+        this.emit('ws_reconnecting')
+        const delay = Math.min(2 ** this.attemptCount * 1000, RoomSocket.MAX_BACKOFF_MS)
+        this.reconnectTimer = setTimeout(() => this.connect(), delay)
       }
     }
   }

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { rooms, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting } from '../api'
 import LobbySettings from '../components/LobbySettings'
+import ChatSidebar from '../components/room/ChatSidebar'
 import styles from './Room.module.css'
 
 type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
@@ -24,6 +25,8 @@ export default function Room() {
   const [ownerId, setOwnerId] = useState<string | null>(null)
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [settingDescriptors, setSettingDescriptors] = useState<LobbySetting[]>([])
+  const [chatOpen, setChatOpen] = useState(true)
+
   const spectatorCount = useAppStore((s) => s.spectatorCount)
   const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
   const presenceMap = useAppStore((s) => s.presenceMap)
@@ -45,24 +48,19 @@ export default function Room() {
   useEffect(() => {
     if (!view) return
     setOwnerId(view.room.owner_id)
-    // Sync spectator status to store so Game.tsx can read it without prop drilling.
     const participant = view.players.some((p) => p.id === player.id)
     setIsSpectator(!participant)
   }, [view, player.id, setIsSpectator])
 
   // Load game setting descriptors once we know the game_id.
-  // Used to render LobbySettings with the correct labels, types and options.
   useEffect(() => {
     if (!view) return
     gameRegistry.list().then((games) => {
       const game = games.find((g) => g.id === view.room.game_id)
       if (game) setSettingDescriptors(game.settings)
-    }).catch(() => {
-      // Non-fatal — settings UI simply won't render.
-    })
+    }).catch(() => {})
   }, [view?.room.game_id])
 
-  // Subscribe to socket events for real-time room state updates.
   useEffect(() => {
     if (!socket) return
     refresh()
@@ -79,8 +77,6 @@ export default function Room() {
       if (event.type === 'game_started') {
         const payload = event.payload as { session: { id: string } }
         if (!starting) {
-          // Non-owners (and spectators) navigate via WS event;
-          // the owner navigates via HTTP response.
           navigate(`/game/${payload.session.id}`)
         }
       }
@@ -132,8 +128,6 @@ export default function Room() {
   }
 
   function handleSettingChange(key: string, value: string) {
-    // The WS event will also update state for all clients including the owner,
-    // but we update locally here too for an instant response.
     setSettings((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -141,17 +135,12 @@ export default function Room() {
 
   const { room } = view
 
-  // A player is a spectator if they're not in room_players.
   const isParticipant = view.players.some((p) => p.id === player.id)
   const isSpectator = !isParticipant
-
   const isOwner = !isSpectator && ownerId === player.id
   const canStart = isOwner && view.players.length >= 2
-
   const isPrivate = settings['room_visibility'] === 'private'
 
-  // Filter out first_mover_seat when policy is not 'fixed' — it's irrelevant.
-  // Spectators see settings as read-only via isOwner=false passed to LobbySettings.
   const visibleDescriptors = settingDescriptors.filter((s) => {
     if (s.key === 'first_mover_seat') {
       return settings['first_mover_policy'] === 'fixed'
@@ -163,134 +152,139 @@ export default function Room() {
     <div className={`${styles.root} page-enter`}>
       <ConnectionBanner status={socketStatus} />
 
-      <div className={styles.panel}>
-        <header className={styles.header}>
-          <div>
-            <p className={styles.gameLabel}>{room.game_id}</p>
-            <h1 data-testid="room-code" className={styles.code}>{room.code}</h1>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="badge badge-amber">Waiting</span>
-            {isSpectator && <span className="badge badge-muted">Spectating</span>}
-          </div>
-        </header>
+      <div className={styles.layout}>
+        <div className={styles.panel}>
+          <header className={styles.header}>
+            <div>
+              <p className={styles.gameLabel}>{room.game_id}</p>
+              <h1 data-testid="room-code" className={styles.code}>{room.code}</h1>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="badge badge-amber">Waiting</span>
+              {isSpectator && <span className="badge badge-muted">Spectating</span>}
+            </div>
+          </header>
 
-        <hr className="divider" />
+          <hr className="divider" />
 
-        <section className={styles.playersSection}>
-          <p className="label" data-testid="player-count">
-            Players ({view.players.length}/{room.max_players})
-          </p>
-          <div className={styles.playerList}>
-            {view.players.map((p) => (
-              <div key={p.id} className={styles.playerRow}>
-                <span
-                  className={styles.presenceDot}
-                  data-online={String(presenceMap[p.id] ?? false)}
-                  data-testid={`presence-dot-${p.id}`}
-                />
-                {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
-                <span className={styles.playerName}>{p.username}</span>
-                {p.id === ownerId && <span className="badge badge-amber">Host</span>}
-                {p.id === player.id && <span className="badge badge-muted">You</span>}
-              </div>
-            ))}
-            {Array.from({ length: room.max_players - view.players.length }).map((_, i) => (
-              <div key={i} className={`${styles.playerRow} ${styles.empty}`}>
-                <div className={styles.emptySlot} />
-                <span className={styles.waitingText}>Waiting for player...</span>
-              </div>
-            ))}
-          </div>
-
-          {spectatorCount > 0 && (
-            <p className={styles.spectatorCount} data-testid="spectator-count">
-              👁 {spectatorCount} watching
+          <section className={styles.playersSection}>
+            <p className="label" data-testid="player-count">
+              Players ({view.players.length}/{room.max_players})
             </p>
-          )}
-        </section>
-
-        <hr className="divider" />
-
-        <LobbySettings
-          roomId={roomId!}
-          playerId={player.id}
-          isOwner={isOwner}
-          descriptors={visibleDescriptors}
-          values={settings}
-          onSettingChange={handleSettingChange}
-        />
-
-        <hr className="divider" />
-
-        {/* Invite section — only shown to participants; hidden from spectators.
-            Private rooms omit the code display since the join code is secret. */}
-        {isParticipant && (
-          <div className={styles.shareSection}>
-            {isPrivate ? (
-              <>
-                <p className="label">🔒 Private Room</p>
-                <p className={styles.privateNote}>
-                  Share the room code privately — it won't appear in the public lobby.
-                </p>
-                <div className={styles.codeBox}>
-                  <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
-                  <button
-                    className="btn btn-ghost"
-                    style={{ padding: '4px 10px', fontSize: 11 }}
-                    onClick={() => navigator.clipboard.writeText(room.code)}
-                  >
-                    Copy
-                  </button>
+            <div className={styles.playerList}>
+              {view.players.map((p) => (
+                <div key={p.id} className={styles.playerRow}>
+                  <span
+                    className={styles.presenceDot}
+                    data-online={String(presenceMap[p.id] ?? false)}
+                    data-testid={`presence-dot-${p.id}`}
+                  />
+                  {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
+                  <span className={styles.playerName}>{p.username}</span>
+                  {p.id === ownerId && <span className="badge badge-amber">Host</span>}
+                  {p.id === player.id && <span className="badge badge-muted">You</span>}
                 </div>
+              ))}
+              {Array.from({ length: room.max_players - view.players.length }).map((_, i) => (
+                <div key={i} className={`${styles.playerRow} ${styles.empty}`}>
+                  <div className={styles.emptySlot} />
+                  <span className={styles.waitingText}>Waiting for player...</span>
+                </div>
+              ))}
+            </div>
+
+            {spectatorCount > 0 && (
+              <p className={styles.spectatorCount} data-testid="spectator-count">
+                👁 {spectatorCount} watching
+              </p>
+            )}
+          </section>
+
+          <hr className="divider" />
+
+          <LobbySettings
+            roomId={roomId!}
+            playerId={player.id}
+            isOwner={isOwner}
+            descriptors={visibleDescriptors}
+            values={settings}
+            onSettingChange={handleSettingChange}
+          />
+
+          <hr className="divider" />
+
+          {isParticipant && (
+            <div className={styles.shareSection}>
+              {isPrivate ? (
+                <>
+                  <p className="label">🔒 Private Room</p>
+                  <p className={styles.privateNote}>
+                    Share the room code privately — it won't appear in the public lobby.
+                  </p>
+                  <div className={styles.codeBox}>
+                    <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 10px', fontSize: 11 }}
+                      onClick={() => navigator.clipboard.writeText(room.code)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="label">Invite Code</p>
+                  <div className={styles.codeBox}>
+                    <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 10px', fontSize: 11 }}
+                      onClick={() => navigator.clipboard.writeText(room.code)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {isParticipant && <hr className="divider" />}
+
+          <div className={styles.actions}>
+            {isSpectator ? (
+              <button className="btn btn-danger" onClick={() => navigate('/')}>Leave</button>
+            ) : isOwner ? (
+              <>
+                <button
+                  data-testid="start-game-btn"
+                  data-can-start={canStart}
+                  className="btn btn-primary"
+                  onClick={handleStart}
+                  disabled={!canStart || starting}
+                  style={{ flex: 1 }}
+                >
+                  {starting ? 'Starting...' : canStart ? 'Start Game' : `Need ${2 - view.players.length} more player(s)`}
+                </button>
+                <button className="btn btn-danger" onClick={handleLeave}>Leave</button>
               </>
             ) : (
               <>
-                <p className="label">Invite Code</p>
-                <div className={styles.codeBox}>
-                  <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
-                  <button
-                    className="btn btn-ghost"
-                    style={{ padding: '4px 10px', fontSize: 11 }}
-                    onClick={() => navigator.clipboard.writeText(room.code)}
-                  >
-                    Copy
-                  </button>
-                </div>
+                <p className={styles.waitingHost}>Waiting for host to start the game...</p>
+                <button className="btn btn-danger" onClick={handleLeave}>Leave</button>
               </>
             )}
           </div>
-        )}
 
-        {isParticipant && <hr className="divider" />}
-
-        <div className={styles.actions}>
-          {isSpectator ? (
-            // Spectators can only leave — they have no game actions.
-            <button className="btn btn-danger" onClick={() => navigate('/')}>Leave</button>
-          ) : isOwner ? (
-            <>
-              <button
-                data-testid="start-game-btn"
-                data-can-start={canStart}
-                className="btn btn-primary"
-                onClick={handleStart}
-                disabled={!canStart || starting}
-                style={{ flex: 1 }}
-              >
-                {starting ? 'Starting...' : canStart ? 'Start Game' : `Need ${2 - view.players.length} more player(s)`}
-              </button>
-              <button className="btn btn-danger" onClick={handleLeave}>Leave</button>
-            </>
-          ) : (
-            <>
-              <p className={styles.waitingHost}>Waiting for host to start the game...</p>
-              <button className="btn btn-danger" onClick={handleLeave}>Leave</button>
-            </>
-          )}
+          {error && <p className={styles.error}>{error}</p>}
         </div>
 
-        {error && <p className={styles.error}>{error}</p>}
+        <ChatSidebar
+          roomId={roomId!}
+          open={chatOpen}
+          onToggle={() => setChatOpen((v) => !v)}
+        />
       </div>
     </div>
   )

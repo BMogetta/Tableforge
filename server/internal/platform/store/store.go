@@ -203,7 +203,22 @@ type PlayerMute struct {
 // Only updated after ranked sessions.
 type Rating struct {
 	PlayerID      uuid.UUID `json:"player_id"`
+	GameID        string    `json:"game_id"`
 	MMR           float64   `json:"mmr"`
+	DisplayRating float64   `json:"display_rating"`
+	GamesPlayed   int       `json:"games_played"`
+	WinStreak     int       `json:"win_streak"`
+	LossStreak    int       `json:"loss_streak"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// RatingLeaderboardEntry is a leaderboard row with player info joined in.
+// MMR is intentionally excluded — it must not be serialized to the frontend.
+type RatingLeaderboardEntry struct {
+	PlayerID      uuid.UUID `json:"player_id"`
+	GameID        string    `json:"game_id"`
+	Username      string    `json:"username"`
+	AvatarURL     string    `json:"avatar_url,omitempty"`
 	DisplayRating float64   `json:"display_rating"`
 	GamesPlayed   int       `json:"games_played"`
 	WinStreak     int       `json:"win_streak"`
@@ -381,9 +396,9 @@ type Store interface {
 	GetMutedPlayers(ctx context.Context, playerID uuid.UUID) ([]PlayerMute, error)
 
 	// Ratings
-	GetRating(ctx context.Context, playerID uuid.UUID) (Rating, error)
+	GetRating(ctx context.Context, playerID uuid.UUID, gameID string) (Rating, error)
 	UpsertRating(ctx context.Context, r Rating) error
-	GetRatingLeaderboard(ctx context.Context, limit int) ([]Rating, error)
+	GetRatingLeaderboard(ctx context.Context, gameID string, limit int) ([]RatingLeaderboardEntry, error)
 
 	// Pause / resume votes
 	VotePause(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)

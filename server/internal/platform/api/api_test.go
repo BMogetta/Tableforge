@@ -355,13 +355,13 @@ func TestGetSessionHistory_InvalidID(t *testing.T) {
 func TestGetLeaderboard(t *testing.T) {
 	router, _ := newTestRouter(t)
 
-	w := getJSON(t, router, "/api/v1/leaderboard")
+	w := getJSON(t, router, "/api/v1/leaderboard?game_id=chess")
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var entries []store.Rating
+	var entries []store.RatingLeaderboardEntry
 	json.NewDecoder(w.Body).Decode(&entries)
 	// FakeStore returns empty slice — just verify the shape is correct.
 	if entries == nil {
@@ -369,6 +369,7 @@ func TestGetLeaderboard(t *testing.T) {
 	}
 }
 
+// TODO test if this is redundant
 func TestGetLeaderboard_WithGameID(t *testing.T) {
 	router, _ := newTestRouter(t)
 

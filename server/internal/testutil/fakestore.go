@@ -25,7 +25,7 @@ type FakeStore struct {
 	RoomMessages   map[uuid.UUID][]store.RoomMessage
 	DirectMessages map[uuid.UUID]store.DirectMessage
 	PlayerMutes    map[uuid.UUID][]store.PlayerMute
-	Ratings        map[uuid.UUID]store.Rating
+	Ratings        map[string]store.Rating
 	Notifications  map[uuid.UUID]store.Notification
 }
 
@@ -43,7 +43,7 @@ func NewFakeStore() *FakeStore {
 		RoomMessages:   make(map[uuid.UUID][]store.RoomMessage),
 		DirectMessages: make(map[uuid.UUID]store.DirectMessage),
 		PlayerMutes:    make(map[uuid.UUID][]store.PlayerMute),
-		Ratings:        make(map[uuid.UUID]store.Rating),
+		Ratings:        make(map[string]store.Rating),
 		Notifications:  make(map[uuid.UUID]store.Notification),
 	}
 }
@@ -669,8 +669,8 @@ func (f *FakeStore) GetMutedPlayers(_ context.Context, playerID uuid.UUID) ([]st
 
 // --- Ratings -----------------------------------------------------------------
 
-func (f *FakeStore) GetRating(_ context.Context, playerID uuid.UUID) (store.Rating, error) {
-	r, ok := f.Ratings[playerID]
+func (f *FakeStore) GetRating(_ context.Context, playerID uuid.UUID, gameID string) (store.Rating, error) {
+	r, ok := f.Ratings[playerID.String()+":"+gameID]
 	if !ok {
 		return store.Rating{}, ErrNotFound
 	}
@@ -679,18 +679,35 @@ func (f *FakeStore) GetRating(_ context.Context, playerID uuid.UUID) (store.Rati
 
 func (f *FakeStore) UpsertRating(_ context.Context, r store.Rating) error {
 	r.UpdatedAt = time.Now()
-	f.Ratings[r.PlayerID] = r
+	f.Ratings[r.PlayerID.String()+":"+r.GameID] = r
 	return nil
 }
 
-func (f *FakeStore) GetRatingLeaderboard(_ context.Context, limit int) ([]store.Rating, error) {
-	result := []store.Rating{}
+func (f *FakeStore) GetRatingLeaderboard(_ context.Context, gameID string, limit int) ([]store.RatingLeaderboardEntry, error) {
+	result := []store.RatingLeaderboardEntry{}
 	for _, r := range f.Ratings {
-		result = append(result, r)
+		if r.GameID != gameID {
+			continue
+		}
+		p := f.Players[r.PlayerID]
+		avatarURL := ""
+		if p.AvatarURL != nil {
+			avatarURL = *p.AvatarURL
+		}
+		result = append(result, store.RatingLeaderboardEntry{
+			PlayerID:      r.PlayerID,
+			GameID:        r.GameID,
+			Username:      p.Username,
+			AvatarURL:     avatarURL,
+			DisplayRating: r.DisplayRating,
+			GamesPlayed:   r.GamesPlayed,
+			WinStreak:     r.WinStreak,
+			LossStreak:    r.LossStreak,
+			UpdatedAt:     r.UpdatedAt,
+		})
 	}
-	// Sort by MMR descending.
 	for i := 1; i < len(result); i++ {
-		for j := i; j > 0 && result[j].MMR > result[j-1].MMR; j-- {
+		for j := i; j > 0 && result[j].DisplayRating > result[j-1].DisplayRating; j-- {
 			result[j], result[j-1] = result[j-1], result[j]
 		}
 	}

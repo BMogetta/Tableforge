@@ -106,7 +106,7 @@ export function initWebVitals() {
 // JS error handler — unhandled errors and promise rejections → OTLP logs
 // ---------------------------------------------------------------------------
 
-function emitErrorLog(message: string, attrs: Record<string, string>) {
+export function emitErrorLog(message: string, attrs: Record<string, string>) {
   logger.emit({
     severityNumber: SeverityNumber.ERROR,
     severityText: 'ERROR',

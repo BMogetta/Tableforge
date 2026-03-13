@@ -139,11 +139,11 @@ func TestApplyRatings_Win_UpdatesRatings(t *testing.T) {
 
 	svc.applyRatings(ctx, gs, roomPlayers, &aliceID, false)
 
-	aliceRating, ok := fs.Ratings[aliceID]
+	aliceRating, ok := fs.Ratings[aliceID.String()+":chess"]
 	if !ok {
 		t.Fatal("expected rating for alice, got none")
 	}
-	bobRating, ok := fs.Ratings[bobID]
+	bobRating, ok := fs.Ratings[bobID.String()+":chess"]
 	if !ok {
 		t.Fatal("expected rating for bob, got none")
 	}
@@ -175,8 +175,8 @@ func TestApplyRatings_Win_StreaksUpdated(t *testing.T) {
 
 	svc.applyRatings(ctx, gs, roomPlayers, &aliceID, false)
 
-	aliceRating := fs.Ratings[aliceID]
-	bobRating := fs.Ratings[bobID]
+	aliceRating := fs.Ratings[aliceID.String()+":chess"]
+	bobRating := fs.Ratings[bobID.String()+":chess"]
 
 	if aliceRating.WinStreak != 1 {
 		t.Errorf("expected alice win_streak=1, got %d", aliceRating.WinStreak)
@@ -202,11 +202,11 @@ func TestApplyRatings_Win_GamesPlayedIncremented(t *testing.T) {
 
 	svc.applyRatings(ctx, gs, roomPlayers, &aliceID, false)
 
-	if fs.Ratings[aliceID].GamesPlayed != 1 {
-		t.Errorf("expected alice games_played=1, got %d", fs.Ratings[aliceID].GamesPlayed)
+	if fs.Ratings[aliceID.String()+":chess"].GamesPlayed != 1 {
+		t.Errorf("expected alice games_played=1, got %d", fs.Ratings[aliceID.String()+":chess"].GamesPlayed)
 	}
-	if fs.Ratings[bobID].GamesPlayed != 1 {
-		t.Errorf("expected bob games_played=1, got %d", fs.Ratings[bobID].GamesPlayed)
+	if fs.Ratings[bobID.String()+":chess"].GamesPlayed != 1 {
+		t.Errorf("expected bob games_played=1, got %d", fs.Ratings[bobID.String()+":chess"].GamesPlayed)
 	}
 }
 
@@ -223,8 +223,8 @@ func TestApplyRatings_Draw_NoMMRChange(t *testing.T) {
 	svc.applyRatings(ctx, gs, roomPlayers, nil, true)
 
 	const epsilon = 0.001
-	aliceMMR := fs.Ratings[aliceID].MMR
-	bobMMR := fs.Ratings[bobID].MMR
+	aliceMMR := fs.Ratings[aliceID.String()+":chess"].MMR
+	bobMMR := fs.Ratings[bobID.String()+":chess"].MMR
 
 	// Equal MMR draw: expected score = 0.5, actual score = 0.5, delta = 0.
 	if diff := aliceMMR - 1500.0; diff < -epsilon || diff > epsilon {
@@ -245,11 +245,11 @@ func TestApplyRatings_Draw_GamesPlayedIncremented(t *testing.T) {
 
 	svc.applyRatings(ctx, gs, roomPlayers, nil, true)
 
-	if fs.Ratings[aliceID].GamesPlayed != 1 {
-		t.Errorf("expected alice games_played=1, got %d", fs.Ratings[aliceID].GamesPlayed)
+	if fs.Ratings[aliceID.String()+":chess"].GamesPlayed != 1 {
+		t.Errorf("expected alice games_played=1, got %d", fs.Ratings[aliceID.String()+":chess"].GamesPlayed)
 	}
-	if fs.Ratings[bobID].GamesPlayed != 1 {
-		t.Errorf("expected bob games_played=1, got %d", fs.Ratings[bobID].GamesPlayed)
+	if fs.Ratings[bobID.String()+":chess"].GamesPlayed != 1 {
+		t.Errorf("expected bob games_played=1, got %d", fs.Ratings[bobID.String()+":chess"].GamesPlayed)
 	}
 }
 
@@ -263,8 +263,9 @@ func TestApplyRatings_ExistingRating_UsedAsBaseline(t *testing.T) {
 	bobID := uuid.New()
 
 	// Pre-seed alice with a higher MMR.
-	fs.Ratings[aliceID] = store.Rating{
+	fs.Ratings[aliceID.String()+":chess"] = store.Rating{
 		PlayerID:      aliceID,
+		GameID:        "chess",
 		MMR:           1800.0,
 		DisplayRating: 1800.0,
 		GamesPlayed:   50,
@@ -275,8 +276,8 @@ func TestApplyRatings_ExistingRating_UsedAsBaseline(t *testing.T) {
 	// Bob wins as the underdog.
 	svc.applyRatings(ctx, gs, roomPlayers, &bobID, false)
 
-	aliceMMR := fs.Ratings[aliceID].MMR
-	bobMMR := fs.Ratings[bobID].MMR
+	aliceMMR := fs.Ratings[aliceID.String()+":chess"].MMR
+	bobMMR := fs.Ratings[bobID.String()+":chess"].MMR
 
 	// Alice had higher MMR so she loses more; bob gains more.
 	if aliceMMR >= 1800.0 {

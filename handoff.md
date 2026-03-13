@@ -43,6 +43,12 @@
 - Notifications: store + domain service + API + WS complete (`pg_notifications.go`, `domain/notification/`) — **UI pending**
 - Matchmaking queue: Redis-backed, store + API + WS + background ticker complete (`platform/queue/`, `api_queue.go`) — **UI pending**
 
+### Frontend maintenance (this session)
+- `api.ts` reorganized — all interfaces grouped at top, namespaces grouped at bottom, consistent order; `GameResult` gains `is_draw?: boolean` (was `as any` cast in `Game.tsx`)
+- `ws.ts` — `WsEventType` fully synchronized with backend; reconnect loop replaced with exponential backoff (base 2s, cap 30s, max 10 attempts) then hard disconnect
+- `Lobby.tsx` — duplicate `useQuery` for `keys.games()` collapsed into one
+- `telemetry.ts` — `emitErrorLog` exported; `ErrorBoundary.componentDidCatch` in `App.tsx` now emits structured OTLP log in addition to `console.error`
+
 ---
 
 ## Folder structure (current)
@@ -297,14 +303,14 @@ All namespaces use a shared `request<T>(path, init)` helper (no axios).
 | `sessions` | `get`, `move`, `surrender`, `rematch`, `pause`, `resume`, `forceClose`, `events`, `history` |
 | `rooms` | `create`, `list`, `get`, `join`, `leave`, `start`, `updateSetting` |
 | `chat` | `send`, `getMessages`, `report`, `hide` |
-| `dm` | `send`, `getHistory`, `getUnreadCount`, `markRead`, `report` |
+| `dm` | `send`, `history`, `unreadCount`, `markRead`, `report` |
 | `mutes` | `mute`, `unmute`, `list` |
 | `queue` | `join`, `leave`, `accept`, `decline` |
 | `notifications` | `list`, `markRead`, `accept`, `decline` |
-| `ratings` | (leaderboard via `GET /leaderboard`) |
+| `leaderboard` | `get` (returns `Rating[]`) |
 
 ### Interfaces exported from `api.ts`
-`PlayerMute`, `Rating`, `DirectMessage`, `QueuePosition`, `Notification` (store shape with `payload: unknown`)
+`Player`, `RoomViewPlayer`, `AllowedEmail`, `Room`, `RoomView`, `GameSession`, `GameResult`, `Move`, `PlayerStats`, `LeaderboardEntry` (kept for backward compat — see debt), `Rating`, `PlayerMute`, `DirectMessage`, `QueuePosition`, `SessionEvent`, `SettingOption`, `LobbySetting`, `GameInfo`
 
 ---
 
@@ -335,6 +341,7 @@ All namespaces use a shared `request<T>(path, init)` helper (no axios).
 | Direct messages | ✅ complete | Inbox, conversation view, unread badge |
 | Notifications (bell) | ✅ complete | Bell icon, unread count, inline accept/decline for friend requests and room invitations |
 | Matchmaking queue | ✅ complete | "Find Match" button, queue screen with position + wait estimate, match found overlay (accept/decline), ban feedback |
+| Leaderboard (Elo) | ⚠️ broken | Backend now returns `Rating[]` with `display_rating`/`mmr`; `LeaderboardTable` in `Lobby.tsx` still consumes `LeaderboardEntry` (win/loss columns). Must be updated to consume `Rating[]` and display `display_rating`. |
 | Elo / DisplayRating | ✅ complete | Show `display_rating` on player profile and in lobby player list |
 
 ---
@@ -355,4 +362,8 @@ All namespaces use a shared `request<T>(path, init)` helper (no axios).
 - **`BanDurationForOffense` is exported** for testing but is an internal concern — consider moving the test inline if the function is ever refactored
 
 ### Frontend
-- All UI items listed in the UI debt table above
+- **Leaderboard broken** — `LeaderboardTable` in `Lobby.tsx` consumes `LeaderboardEntry` (wins/losses/draws); backend now returns `Rating[]`. Must be updated to show `display_rating` and `mmr`. `LeaderboardEntry` interface can be removed once done.
+- **WS lifecycle coupled to navigation** — socket is created in `Room.tsx` and assumed to exist in `Game.tsx`; direct navigation to `/game/:sessionId` leaves `socket = null`, covered by polling fallback. Known debt, low priority.
+- **Auth outside React Query** — `auth.me()` called via `useEffect` in `App.tsx`, not React Query. No caching or invalidation. Low impact until role refresh or multi-tab scenarios matter.
+- **Polling + WebSocket redundancy** — `Game.tsx` polls every 3s while WS is connected. Intentional safety net; polling stops when `finished_at` is set. Could be disabled while WS is healthy if backend load becomes a concern.
+- **GameRenderer uses `switch`** — does not scale beyond a small number of games. Replace with a registry pattern (`Record<string, React.FC<...>>`) when a second game is added.

@@ -30,7 +30,7 @@
 // the match.
 // # Multi-game ranked support
 //
-// rankedGameID is hardcoded to "tictactoe". When more ranked games are added:
+// RankedGameID is hardcoded to "tictactoe". When more ranked games are added:
 //   - POST /queue body should accept a required game_id field
 //   - One sorted set per game: "queue:ranked:{gameID}"
 //   - QueueConfig (spread, MinQuality) should be tunable per game
@@ -112,7 +112,7 @@ const (
 
 	// gameID is the game used for ranked matchmaking sessions.
 	// TODO: make this configurable when more ranked games are added.
-	rankedGameID = "tictactoe"
+	RankedGameID = "tictactoe"
 )
 
 // ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ func (s *Service) Enqueue(ctx context.Context, playerID uuid.UUID) (QueuePositio
 
 	// Fetch current rating for MMR score.
 	mmr := rating.DefaultMMR
-	r, err := s.st.GetRating(ctx, playerID)
+	r, err := s.st.GetRating(ctx, playerID, RankedGameID)
 	if err == nil {
 		mmr = r.MMR
 	}
@@ -610,7 +610,7 @@ func BanDurationForOffense(offense int) time.Duration {
 
 func (s *Service) startMatch(ctx context.Context, playerA, playerB uuid.UUID) error {
 	// Create a private ranked room owned by playerA.
-	roomView, err := s.lobby.CreateRoom(ctx, rankedGameID, playerA, nil)
+	roomView, err := s.lobby.CreateRoom(ctx, RankedGameID, playerA, nil)
 	if err != nil {
 		return fmt.Errorf("startMatch: create room: %w", err)
 	}

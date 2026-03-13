@@ -3,7 +3,6 @@ package api
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -258,27 +257,5 @@ func handleGetSessionHistory(st store.Store) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, moves)
-	}
-}
-
-// --- Leaderboard -------------------------------------------------------------
-
-// GET /api/v1/leaderboard
-// Returns the top players ordered by MMR descending.
-// Optional query param: limit (1-100, default 20).
-func handleGetLeaderboard(st store.Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		limit := 20
-		if l := r.URL.Query().Get("limit"); l != "" {
-			if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 100 {
-				limit = parsed
-			}
-		}
-		entries, err := st.GetRatingLeaderboard(r.Context(), limit)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get leaderboard")
-			return
-		}
-		writeJSON(w, http.StatusOK, entries)
 	}
 }

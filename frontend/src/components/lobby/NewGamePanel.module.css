@@ -1,0 +1,196 @@
+.section {}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+/* Game selector */
+.gameSelector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.gameOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.gameOption:hover {
+  border-color: var(--border-bright);
+  color: var(--text-primary);
+}
+
+.gameOptionActive {
+  border-color: var(--amber-dim);
+  background: var(--amber-glow);
+  color: var(--amber);
+}
+
+.playerCount {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.gameOptionActive .playerCount {
+  color: var(--amber-dim);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.tab:first-child { border-right: 1px solid var(--border); }
+
+.tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+
+.tabActive {
+  color: var(--amber);
+  background: var(--amber-glow);
+}
+
+/* Body */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.casualBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.joinRow {
+  display: flex;
+  gap: 8px;
+}
+
+.joinRow .input { flex: 1; }
+
+/* Ranked */
+.rankedBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.queueStatus {
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.queueTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.queueLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.queueTimer {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--amber);
+  letter-spacing: 0.05em;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--border-bright);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.matchFound {
+  padding: 14px 16px;
+  background: var(--amber-glow);
+  border: 1px solid var(--amber-dim);
+  border-radius: var(--radius);
+}
+
+.matchFoundLabel {
+  font-size: 13px;
+  color: var(--amber);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.matchFoundHint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.rankedNote {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-top: 2px;
+}
+
+.ratingWord {
+  color: var(--text-secondary);
+}
+
+.error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--danger);
+}

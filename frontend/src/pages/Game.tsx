@@ -70,7 +70,7 @@ export default function Game() {
   useEffect(() => {
     if (!data?.session?.finished_at) return
     setIsOver(true)
-    const result = (data as any).result as { winner_id?: string; is_draw?: boolean } | null
+    const result = data.result ?? null
     if (result?.winner_id) setWinnerId(result.winner_id)
     else if (result?.is_draw) setIsDraw(true)
   }, [data?.session?.finished_at, (data as any)?.result])

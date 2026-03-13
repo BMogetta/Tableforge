@@ -40,8 +40,9 @@ func newPlayerID(t *testing.T) uuid.UUID {
 
 // seedRating sets a player's MMR in the fake store.
 func seedRating(fs *testutil.FakeStore, playerID uuid.UUID, mmr float64) {
-	fs.Ratings[playerID] = store.Rating{
+	fs.Ratings[playerID.String()+":"+queue.RankedGameID] = store.Rating{
 		PlayerID:      playerID,
+		GameID:        queue.RankedGameID,
 		MMR:           mmr,
 		DisplayRating: mmr,
 	}

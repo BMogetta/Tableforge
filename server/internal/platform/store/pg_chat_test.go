@@ -185,6 +185,7 @@ func TestUpsertAndGetRating(t *testing.T) {
 
 	r := store.Rating{
 		PlayerID:      player.ID,
+		GameID:        "chess",
 		MMR:           1600,
 		DisplayRating: 1600,
 		GamesPlayed:   5,
@@ -196,7 +197,7 @@ func TestUpsertAndGetRating(t *testing.T) {
 		t.Fatalf("UpsertRating: %v", err)
 	}
 
-	fetched, err := s.GetRating(ctx, player.ID)
+	fetched, err := s.GetRating(ctx, player.ID, "chess")
 	if err != nil {
 		t.Fatalf("GetRating: %v", err)
 	}
@@ -214,7 +215,7 @@ func TestUpsertAndGetRating(t *testing.T) {
 		t.Fatalf("UpsertRating update: %v", err)
 	}
 
-	fetched, err = s.GetRating(ctx, player.ID)
+	fetched, err = s.GetRating(ctx, player.ID, "chess")
 	if err != nil {
 		t.Fatalf("GetRating after update: %v", err)
 	}
@@ -231,11 +232,11 @@ func TestGetRatingLeaderboard(t *testing.T) {
 	p2, _ := s.CreatePlayer(ctx, "iris")
 	p3, _ := s.CreatePlayer(ctx, "jack")
 
-	_ = s.UpsertRating(ctx, store.Rating{PlayerID: p1.ID, MMR: 1800})
-	_ = s.UpsertRating(ctx, store.Rating{PlayerID: p2.ID, MMR: 1500})
-	_ = s.UpsertRating(ctx, store.Rating{PlayerID: p3.ID, MMR: 1650})
+	_ = s.UpsertRating(ctx, store.Rating{PlayerID: p1.ID, GameID: "chess", MMR: 1800, DisplayRating: 1800})
+	_ = s.UpsertRating(ctx, store.Rating{PlayerID: p2.ID, GameID: "chess", MMR: 1500, DisplayRating: 1500})
+	_ = s.UpsertRating(ctx, store.Rating{PlayerID: p3.ID, GameID: "chess", MMR: 1650, DisplayRating: 1650})
 
-	entries, err := s.GetRatingLeaderboard(ctx, 10)
+	entries, err := s.GetRatingLeaderboard(ctx, "chess", 10)
 	if err != nil {
 		t.Fatalf("GetRatingLeaderboard: %v", err)
 	}
@@ -261,10 +262,10 @@ func TestGetRatingLeaderboard_Limit(t *testing.T) {
 
 	for i, name := range []string{"k1", "k2", "k3", "k4", "k5"} {
 		p, _ := s.CreatePlayer(ctx, name)
-		_ = s.UpsertRating(ctx, store.Rating{PlayerID: p.ID, MMR: float64(1500 + i*10)})
+		_ = s.UpsertRating(ctx, store.Rating{PlayerID: p.ID, GameID: "chess", MMR: float64(1500 + i*10)})
 	}
 
-	entries, err := s.GetRatingLeaderboard(ctx, 3)
+	entries, err := s.GetRatingLeaderboard(ctx, "chess", 3)
 	if err != nil {
 		t.Fatalf("GetRatingLeaderboard with limit: %v", err)
 	}

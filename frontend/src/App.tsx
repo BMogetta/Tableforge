@@ -9,6 +9,7 @@ import Game from './pages/Game'
 import Admin from './pages/Admin'
 import { lazy } from 'react'
 import SessionHistory from './pages/SessionHistory'
+import { emitErrorLog } from './telemetry'
 const TestError = lazy(() => import('./pages/TestError'))
 
 // --- Error boundary ----------------------------------------------------------
@@ -32,6 +33,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     // Errors are also captured by the window.onerror handler in telemetry.ts,
     // but logging here ensures we catch render-phase errors specifically.
     console.error('ErrorBoundary caught:', error, info.componentStack)
+    emitErrorLog(error.message, {
+      'error.type': 'react.boundary',
+      'error.stack': error.stack ?? '',
+      'error.component': info.componentStack ?? '',
+    })
   }
 
   render() {
