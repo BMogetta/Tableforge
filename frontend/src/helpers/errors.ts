@@ -1,5 +1,3 @@
-import { connected } from "node:process";
-
 /**
  * Represents the outcome of an operation that can either succeed or fail.
  *

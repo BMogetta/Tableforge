@@ -458,3 +458,11 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 - **Auth outside React Query** — `auth.me()` called via `useEffect` in `App.tsx`, not React Query; no caching or invalidation
 - **Polling + WebSocket redundancy** — `Game.tsx` polls every 3s while WS is connected; intentional safety net; could be disabled while WS is healthy
 - **`GameRenderer` uses `switch`** — replace with registry pattern when a second game is added
+- **Error handling — migrate to error-as-value** — `src/helpers/errors.ts` exports
+  `ok<S>()` and `error<R, E>()` that return a `Result<S, E>` tuple. New code must
+  use this pattern instead of try/catch. When touching existing code, migrate it.
+  The `reason` string discriminant on error objects enables exhaustive switch handling
+  enforced by TypeScript (`err satisfies never` in the default branch).
+  Convention: when wrapping `ApiError` from `api.ts`, include the HTTP status in the
+  error object (e.g. `{ reason: "UNAUTHORIZED", status: 401 }`) so callers can
+  distinguish error kinds without inspecting message strings.
