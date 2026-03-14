@@ -25,6 +25,7 @@ import (
 	"github.com/tableforge/server/internal/platform/telemetry"
 	"github.com/tableforge/server/internal/platform/ws"
 
+	_ "github.com/tableforge/server/games/loveletter"
 	_ "github.com/tableforge/server/games/tictactoe"
 )
 

@@ -15,7 +15,7 @@
 - **Frontend:** React + TypeScript, Vite, CSS Modules, TanStack Query
 - **Infra:** Docker Compose, Caddy (reverse proxy + Cloudflare tunnel)
 - **Observability:** OpenTelemetry + Jaeger (traces) + Prometheus (metrics) + Loki/Promtail (logs), all in Grafana
-- **Tests:** Playwright E2E (70 tests, all passing), Go unit tests (all passing)
+- **Tests:** Playwright E2E (70 tests, all passing), Go unit tests (all passing), Vitest unit tests (all passing)
 
 ---
 
@@ -27,7 +27,7 @@
 - Matches: TicTacToe and Love Letter with turn timer (Redis TTL + keyspace notifications), surrender, rematch vote
 - Spectators: join/leave, count badge, blocked from rematch/moves/pause/resume
 - Private rooms: code hidden in lobby, owner sees code
-- WebSockets: hub with Redis pub/sub for multi-instance fanout, per-player channels (`BroadcastToPlayer`), dedicated `/ws/players/{playerID}` endpoint; `BroadcastFiltered` for per-player state filtering (Love Letter hands)
+- WebSockets: hub with Redis pub/sub for multi-instance fanout, per-player channels (`BroadcastToPlayer`), dedicated `/ws/players/{playerID}` endpoint; `BroadcastToRoom` for per-client filtered state (Love Letter hands)
 - Admin: roles (player/manager/owner), allowed emails, leaderboard (Elo-based, per-game)
 - Rate limiting via Redis
 - Event sourcing: Redis Streams (active) → Postgres `session_events` (finished)
@@ -43,18 +43,23 @@
 - Notifications: store + domain service + API + WS complete; bell icon + badge in `LobbyHeader` — **full notification UI pending**
 - Matchmaking queue: Redis-backed, store + API + WS + background ticker + frontend queue status in `NewGamePanel` — player channel WS drives real-time state updates
 
-### Frontend (last session)
-- `ws.ts` — fully typed discriminated union for all WS events; `PlayerSocket` class for per-player channel; exponential backoff reconnect (base 2s, cap 30s, max 10 attempts)
-- `api.ts` — `Rating` without `mmr`; `leaderboard.get(gameId)` required; `RoomMessage` with `message_id`/`timestamp`; `wsPlayerUrl`; `rooms.messages` + `rooms.sendMessage`
-- `store.ts` — queue state (`queueStatus`, `queueJoinedAt`, `matchId`); `playerSocket` with `connectPlayerSocket`/`disconnectPlayerSocket`
-- `App.tsx` — connects `playerSocket` on login, disconnects on logout
-- `queryClient.ts` — keys `notifications`, `dmUnread`, `roomMessages`
-- Lobby refactored into components: `LobbyHeader`, `NewGamePanel`, `OpenRooms`, `LeaderboardPanel`, `RoomCard`
-- `LeaderboardPanel` — shows `display_rating`, filtered by `game_id`, top 20
-- `LobbyHeader` — bell icon (unread notifications badge), envelope icon (unread DMs badge)
-- `NewGamePanel` — tabs Casual/Ranked; queue status (spinner + elapsed time + cancel) driven by `playerSocket` events
-- `Room.tsx` + `ChatSidebar` — collapsible chat sidebar, HTTP resync every 30s + WS `chat_message` events
-- `chat.spec.ts` — 5 e2e tests covering WS delivery, ordering, collapse/reopen, empty send, HTTP resync
+### Frontend (this session)
+- `Game.tsx` — `GameRenderer` switch replaced with `GAME_RENDERERS` registry (`Record<string, RendererComponent>`); player socket listener for `move_applied`/`game_over` with deduplication by `move_count`; room query for player usernames; presence indicator uses `roomPlayers` instead of TicTacToe-specific state
+- `NewGamePanel.tsx` — `data-testid="game-option-{id}"` added to game selector buttons
+- `src/components/loveletter/CardDisplay.tsx` + `.module.css` — card face/back, selected/disabled/interactive states, `data-testid="card-display"` + data attributes for testability
+- `src/components/loveletter/HandDisplay.tsx` + `.module.css` — 1–2 card hand, Countess blocking, onSelect
+- `src/components/loveletter/TargetPicker.tsx` + `.module.css` — target selection, eliminated/protected states, Guard guess dropdown
+- `src/components/loveletter/ChancellorModal.tsx` + `.module.css` — keep 1 of 3, order 2 returns, Confirm gated on complete selection
+- `src/components/loveletter/PlayerBoard.tsx` + `.module.css` — discard pile, token track, badges (protected/eliminated/spy), turn indicator
+- `src/components/loveletter/RoundSummary.tsx` + `.module.css` — 4s auto-dismiss + Continue button, spy bonus display, token standings
+- `src/components/loveletter/LoveLetter.tsx` + `.module.css` — root renderer, orchestrates all subcomponents, builds move payloads
+- Vitest configured (`vitest/config`, jsdom, `src/test/setup.ts`)
+- `src/components/loveletter/__tests__/CardDisplay.test.tsx` — 8 tests
+- `src/components/loveletter/__tests__/HandDisplay.test.tsx` — 7 tests
+- `src/components/loveletter/__tests__/TargetPicker.test.tsx` — 8 tests
+- `src/components/loveletter/__tests__/ChancellorModal.test.tsx` — 6 tests
+- `src/components/loveletter/__tests__/PlayerBoard.test.tsx` — 13 tests
+- E2E helpers updated: `setupAndStartGame` and all `create-room-btn` usages now click `game-option-tictactoe` first — prevents Love Letter being selected as default when multiple games are registered
 
 ---
 
@@ -65,7 +70,7 @@ server/
 ├── cmd/
 │   ├── server/
 │   ├── seed/
-│   ├── seed-test/          ← seeds ratings for player1/player2 (leaderboard test)
+│   ├── seed-test/
 │   └── simulate/
 ├── db/
 │   └── migrations/
@@ -147,8 +152,24 @@ frontend/
 │   │   │   ├── OpenRooms.tsx + .module.css
 │   │   │   ├── LeaderboardPanel.tsx + .module.css
 │   │   │   └── RoomCard.tsx + .module.css
-│   │   └── room/
-│   │       └── ChatSidebar.tsx + .module.css
+│   │   ├── room/
+│   │   │   └── ChatSidebar.tsx + .module.css
+│   │   └── loveletter/
+│   │       ├── LoveLetter.tsx + .module.css
+│   │       ├── CardDisplay.tsx + .module.css
+│   │       ├── HandDisplay.tsx + .module.css
+│   │       ├── TargetPicker.tsx + .module.css
+│   │       ├── ChancellorModal.tsx + .module.css
+│   │       ├── PlayerBoard.tsx + .module.css
+│   │       ├── RoundSummary.tsx + .module.css
+│   │       └── __tests__/
+│   │           ├── CardDisplay.test.tsx
+│   │           ├── HandDisplay.test.tsx
+│   │           ├── TargetPicker.test.tsx
+│   │           ├── ChancellorModal.test.tsx
+│   │           └── PlayerBoard.test.tsx
+│   ├── test/
+│   │   └── setup.ts
 │   ├── pages/
 │   │   ├── Lobby.tsx + .module.css
 │   │   ├── Room.tsx + .module.css
@@ -174,9 +195,12 @@ frontend/
 - **Event sourcing** — Redis Streams for active sessions, Postgres `session_events` for finished ones
 - **WS hub** uses Redis pub/sub for multi-instance fanout (`NewHubWithRedis`)
 - **Per-player WS channel** — `hub_player.go` exposes `BroadcastToPlayer(playerID, event)`; `ws_player_handler.go` serves `/ws/players/{playerID}`; used for DMs, queue events, notifications; `PlayerSocket` in frontend connects on login
-- **`BroadcastFiltered`** — `hub.go` exposes `BroadcastFiltered(roomID, playerEvent, spectatorEvent)`; used by `BroadcastMove` in `runtime.go` for games with private state; Redis mode uses `filteredEnvelope{S bool, Data []byte}` to route player vs spectator payloads through the same pub/sub channel
-- **`StateFilter` interface** — optional `engine.Game` extension; if implemented, `BroadcastMove` calls `FilterState(state, playerID)` per player before `BroadcastToPlayer`, and `FilterState(state, "")` for spectators; TicTacToe does not implement it; Love Letter does
+- **`BroadcastToRoom`** — `hub.go` exposes `BroadcastToRoom(roomID, playerIDs, eventFn, spectatorEvent)`; calls `eventFn(playerID)` per non-spectator client in single-instance mode; publishes to each player's Redis channel in multi-instance mode; spectator payload goes to room channel with `filteredEnvelope{S: true}`; used by `BroadcastMove` for games implementing `StateFilter`
+- **`BroadcastFiltered`** — `hub.go` exposes `BroadcastFiltered(roomID, playerEvent, spectatorEvent)`; used for uniform player payloads with a different spectator payload; `playerEvent.Payload == nil` skips non-spectators
+- **`StateFilter` interface** — optional `engine.Game` extension; if implemented, `BroadcastMove` calls `FilterState(state, playerID)` per player via `BroadcastToRoom`, and `FilterState(state, "")` for spectators; TicTacToe does not implement it; Love Letter does
 - **`TurnTimeoutHandler` interface** — optional `engine.Game` extension; if implemented, `turn_timer.go` delegates timeout to `ApplyMove` with the game-provided payload instead of applying platform-level penalty directly; Love Letter returns `{"card":"penalty_lose"}`
+- **`GAME_RENDERERS` registry** — `Game.tsx` uses `Record<string, RendererComponent>` instead of a switch; renderers defined as named components outside the `Game` function to avoid remount on render; add new games here
+- **E2E game selection** — all `create-room-btn` usages in E2E helpers click `game-option-tictactoe` first; the default game is non-deterministic when multiple games are registered
 - **Spectator access** via `room_settings.allow_spectators` — no SpectatorLink table
 - **`state_after`** in moves is `[]byte` → base64 in JSON → `atob()` on frontend
 - **Room settings** — generic KV table `room_settings(room_id, key, value)`, defaults on `CreateRoom`
@@ -288,7 +312,7 @@ turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 | `notification_received` | player | full `store.Notification` |
 
 ### Notes on `move_applied` / `game_over` for games with private state
-For games implementing `engine.StateFilter` (e.g. Love Letter), these events are delivered via the **player channel** (`BroadcastToPlayer`) with a per-player filtered state, and via the **room channel** with a spectator-filtered state (hands empty). Non-Love-Letter games use a single `Broadcast` to the room channel as before.
+For games implementing `engine.StateFilter` (e.g. Love Letter), `BroadcastToRoom` delivers a per-player filtered payload to each non-spectator client and a spectator-filtered payload to spectators — all via the room channel in single-instance mode. In Redis multi-instance mode, per-player payloads are published to each player's personal Redis channel (`ws:player:{id}`), and the spectator payload to the room channel. The frontend always listens to both the room socket and the player socket for `move_applied`/`game_over`, deduplicating by `move_count`.
 
 ### Spectator blocklist (events NOT delivered to spectators)
 `pause_vote_update`, `session_suspended`, `resume_vote_update`, `session_resumed`, `rematch_vote`, `rematch_ready`
@@ -445,19 +469,13 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 
 | Feature | Backend status | Frontend status | Notes |
 |---|---|---|---|
-| Love Letter renderer | ✅ complete | ❌ pending | See frontend notes below |
+| Love Letter renderer | ✅ complete | ✅ complete | Components built, Vitest coverage, E2E pending |
 | Player mutes | ✅ complete | ❌ pending | Mute/unmute from chat panel; mute list in profile |
 | Session pause/resume | ✅ complete | ❌ pending | Pause button, vote overlay, suspended screen |
 | Direct messages | ✅ complete | ❌ pending | Inbox, conversation view, unread badge |
 | Notifications full UI | ✅ complete | ⚠️ partial | Badge in `LobbyHeader` done; inline accept/decline panel pending |
 | Friends system | ❌ not built | ❌ pending | `NotifyFriendRequest` implemented but no endpoint calls it; friends panel button mocked in Lobby |
 | Match found sound | — | ❌ pending | Placeholder sound on `match_found` WS event |
-
-### Love Letter frontend notes
-- Replace `switch` in `GameRenderer` (`Game.tsx`) with `Record<string, React.FC<RendererProps>>` registry
-- `move_applied` and `game_over` for Love Letter arrive on the **player channel** (not the room channel) with a filtered state — `Game.tsx` must listen to `playerSocket` for these events in addition to the room socket
-- `state.data` shape for Love Letter: `round`, `phase`, `current_player`, `deck_remaining`, `tokens`, `eliminated_this_round`, `protected`, `spy_played_by`, `discard_piles`, `set_aside_visible`, `round_winner_id`, `game_winner_id`, `players`, `hands` (own hand only — other players' hands are empty arrays), `chancellor_choices` (active player only), `private_reveals` (recipient only)
-- Renderer needs: hand display (1–2 cards), card picker with effect tooltip, target player picker, Guard guess dropdown, Chancellor follow-up UI (pick 1 of 3, order 2 to return), discard piles, protected indicator, spy tracker, token counter, deck counter, set-aside visible cards (2-player only), round summary screen, game summary screen
 
 ---
 
@@ -476,9 +494,9 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 - **`handleStartGame` hardcodes `SessionModeCasual`** — ranked sessions are only possible via the queue flow; there is no way to start a ranked game manually from the UI
 
 ### Frontend
+- **Love Letter E2E** — no Playwright tests for Love Letter gameplay; renderer components have Vitest coverage but no integration tests
 - **WS payload TODOs** — `player_joined`, `player_left`, `dm_received`, `dm_read`, `session_suspended`, `session_resumed`, `notification_received` typed as `unknown` in `ws.ts`; complete when those features get UI
 - **WS lifecycle coupled to navigation** — socket created in `Room.tsx`, assumed to exist in `Game.tsx`; direct navigation to `/game/:sessionId` leaves `socket = null`, covered by polling fallback
 - **Auth outside React Query** — `auth.me()` called via `useEffect` in `App.tsx`, not React Query; no caching or invalidation
 - **Polling + WebSocket redundancy** — `Game.tsx` polls every 3s while WS is connected; intentional safety net; could be disabled while WS is healthy
-- **`GameRenderer` uses `switch`** — replace with registry pattern when a second game is added; Love Letter renderer is the trigger for this change
 - **Error handling — migrate to error-as-value** — `src/helpers/errors.ts` exports `ok<S>()` and `error<R, E>()` that return a `Result<S, E>` tuple. New code must use this pattern instead of try/catch. When touching existing code, migrate it. The `reason` string discriminant on error objects enables exhaustive switch handling enforced by TypeScript (`err satisfies never` in the default branch). Convention: when wrapping `ApiError` from `api.ts`, include the HTTP status in the error object (e.g. `{ reason: "UNAUTHORIZED", status: 401 }`) so callers can distinguish error kinds without inspecting message strings.

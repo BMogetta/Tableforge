@@ -1,0 +1,164 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideUp 200ms ease forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roundLabel {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.winnerText {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--amber);
+  letter-spacing: 0.06em;
+}
+
+/* Spy bonus */
+
+.spyBonus {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--amber-glow);
+  border: 1px solid rgba(212, 168, 83, 0.2);
+  border-radius: var(--radius);
+}
+
+.spyLabel {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+}
+
+.spyNames {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* Standings */
+
+.standings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.winnerRow {
+  border-color: var(--amber-dim);
+  background: var(--amber-glow);
+}
+
+.playerName {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.handCard {
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1px 6px;
+}
+
+.tokenTrack {
+  display: flex;
+  gap: 3px;
+}
+
+.token {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--amber-dim);
+  background: transparent;
+}
+
+.tokenFilled {
+  background: var(--amber);
+  border-color: var(--amber);
+  box-shadow: 0 0 4px var(--amber-glow);
+}
+
+.tokenCount {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Footer */
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 2px;
+  background: var(--bg-elevated);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--amber-dim);
+  transition: width 100ms linear;
+}

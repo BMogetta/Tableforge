@@ -6,6 +6,7 @@ import { createPlayerContexts } from './helpers'
 // P1 creates a room and P2 joins. Both end up on /rooms/:id.
 // Does NOT start the game — chat is tested in the waiting room.
 async function setupRoom(p1: Page, p2: Page) {
+  await p1.getByTestId('game-option-tictactoe').click()
   await p1.getByTestId('create-room-btn').click()
   await expect(p1).toHaveURL(/\/rooms\//)
 

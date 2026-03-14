@@ -105,6 +105,7 @@ test.describe('TicTacToe game', () => {
     // Use fixed policy so p1 always goes first — deterministic assertions.
     await p1.goto('/')
     await p2.goto('/')
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 

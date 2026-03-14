@@ -34,6 +34,7 @@ test.describe('Lobby', () => {
     const p1Ctx = await browser.newContext({ storageState: PLAYER1_STATE })
     const p1 = await p1Ctx.newPage()
     await p1.goto('/')
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -66,6 +67,7 @@ test.describe('Lobby', () => {
     await p2.goto('/')
 
     // P1 creates a room, P2 joins — start button becomes enabled.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     const code = await p1.getByTestId('room-code').textContent()
     await p2.getByTestId('join-code-input').fill(code!)
@@ -88,6 +90,7 @@ test.describe('Lobby', () => {
   test('room disappears from lobby after game ends', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     const code = await p1.getByTestId('room-code').textContent()
 
@@ -132,6 +135,7 @@ test.describe('Lobby', () => {
   test('owner leaving transfers host to remaining player', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     const code = await p1.getByTestId('room-code').textContent()
     await p2.getByTestId('join-code-input').fill(code!)
@@ -153,6 +157,7 @@ test.describe('Lobby', () => {
   test('last player leaving closes the room', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     const code = await p1.getByTestId('room-code').textContent()
     await p2.getByTestId('join-code-input').fill(code!)
@@ -180,6 +185,7 @@ test.describe('Lobby', () => {
   test('non-owner leaving does not change host', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     const code = await p1.getByTestId('room-code').textContent()
     await p2.getByTestId('join-code-input').fill(code!)

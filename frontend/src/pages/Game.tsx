@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store'
-import { sessions, type GameSession } from '../api'
+import { sessions, rooms, type GameSession } from '../api'
 import { keys } from '../queryClient'
 import TicTacToeBoard, { type TicTacToeState } from '../components/TicTacToe'
+import LoveLetter, { type LoveLetterState } from '../components/loveletter/LoveLetter'
 import styles from './Game.module.css'
 import SurrenderModal from '../components/SurrenderModal'
+import type { WsPayloadMoveResult } from '../ws'
 
 interface GameData {
   current_player_id: string
@@ -20,10 +22,58 @@ interface MoveResult {
   result?: { winner_id?: string; is_draw?: boolean }
 }
 
+// ---------------------------------------------------------------------------
+// Game renderer registry — add new games here.
+// ---------------------------------------------------------------------------
+
+interface RendererProps {
+  gameId: string
+  gameData: GameData
+  localPlayerId: string
+  onMove: (payload: Record<string, unknown>) => void
+  disabled: boolean
+  isOver: boolean
+  players: { id: string; username: string }[]
+}
+
+type RendererComponent = React.FC<RendererProps>
+
+const TicTacToeRenderer: RendererComponent = ({ gameData, localPlayerId, onMove, disabled }) => (
+  <TicTacToeBoard
+    state={gameData.data as TicTacToeState}
+    currentPlayerId={gameData.current_player_id}
+    localPlayerId={localPlayerId}
+    onMove={(cell) => onMove({ cell })}
+    disabled={disabled}
+  />
+)
+
+const LoveLetterRenderer: RendererComponent = ({ gameData, localPlayerId, onMove, disabled, isOver, players }) => (
+  <LoveLetter
+    state={gameData.data as LoveLetterState}
+    currentPlayerId={gameData.current_player_id}
+    localPlayerId={localPlayerId}
+    onMove={onMove}
+    disabled={disabled}
+    isOver={isOver}
+    players={players}
+  />
+)
+
+const GAME_RENDERERS: Record<string, RendererComponent> = {
+  tictactoe: TicTacToeRenderer,
+  loveletter: LoveLetterRenderer,
+}
+
+// ---------------------------------------------------------------------------
+// Game page
+// ---------------------------------------------------------------------------
+
 export default function Game() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const player = useAppStore((s) => s.player)!
   const socket = useAppStore((s) => s.socket)
+  const playerSocket = useAppStore((s) => s.playerSocket)
   const leaveRoom = useAppStore((s) => s.leaveRoom)
   const isSpectator = useAppStore((s) => s.isSpectator)
   const spectatorCount = useAppStore((s) => s.spectatorCount)
@@ -66,6 +116,20 @@ export default function Game() {
   const session = data?.session ?? null
   const gameData = data?.state ?? null
 
+  // Fetch room players for games that need usernames (e.g. Love Letter).
+  // Skipped until session is loaded so we have the room_id.
+  const { data: roomData } = useQuery({
+    queryKey: keys.room(session?.room_id ?? ''),
+    queryFn: () => rooms.get(session!.room_id),
+    enabled: !!session?.room_id,
+    staleTime: Infinity, // players don't change during a session
+  })
+
+  const roomPlayers = roomData?.players.map((p) => ({
+    id: p.id,
+    username: p.username,
+  })) ?? []
+
   // Sync game-over state from fetch (covers page refresh and missed WS events).
   useEffect(() => {
     if (!data?.session?.finished_at) return
@@ -75,54 +139,79 @@ export default function Game() {
     else if (result?.is_draw) setIsDraw(true)
   }, [data?.session?.finished_at, (data as any)?.result])
 
-  // Subscribe to the global socket for real-time game events.
-  // The socket was opened in Room.tsx and survives the Room→Game navigation.
+  // Shared handler for move_applied / game_over payloads.
+  // Deduplicates by move_count to handle delivery from both room and player
+  // channels (Redis mode delivers filtered state via player channel for games
+  // with private state such as Love Letter).
+  function handleMovePayload(payload: WsPayloadMoveResult, type: 'move_applied' | 'game_over') {
+    const current = qc.getQueryData<MoveResult>(keys.session(sessionId!))
+    if (
+      current?.session?.move_count !== undefined &&
+      payload.session.move_count <= current.session.move_count
+    ) {
+      return // already processed
+    }
+    if (type === 'move_applied') {
+      qc.setQueryData(keys.session(sessionId!), {
+        session: payload.session,
+        state: payload.state,
+        is_over: false,
+      })
+    } else {
+      qc.setQueryData(keys.session(sessionId!), {
+        session: payload.session,
+        state: payload.state,
+        is_over: true,
+      })
+      setIsOver(true)
+      if (payload.result?.winner_id) setWinnerId(payload.result.winner_id)
+      else if (payload.result?.is_draw) setIsDraw(true)
+    }
+  }
+
+  // Room socket — all games, all events except filtered move events in Redis mode.
   useEffect((): (() => void) | void => {
     if (!socket) return
-
     const off = socket.on((event) => {
-      // On reconnect, refetch to catch any events missed during the gap.
       if (event.type === 'ws_connected') {
         qc.invalidateQueries({ queryKey: keys.session(sessionId!) })
       }
       if (event.type === 'presence_update') {
-        const payload = event.payload
-        setPlayerPresence(payload.player_id, payload.online)
+        setPlayerPresence(event.payload.player_id, event.payload.online)
       }
       if (event.type === 'move_applied') {
-        const payload = event.payload
-        qc.setQueryData(keys.session(sessionId!), {
-          session: payload.session,
-          state: payload.state,
-          is_over: false,
-        })
+        handleMovePayload(event.payload, 'move_applied')
       }
       if (event.type === 'game_over') {
-        const payload = event.payload
-        qc.setQueryData(keys.session(sessionId!), {
-          session: payload.session,
-          state: payload.state,
-          is_over: true,
-        })
-        setIsOver(true)
-        if (payload.result?.winner_id) setWinnerId(payload.result.winner_id)
-        else if (payload.result?.is_draw) setIsDraw(true)
+        handleMovePayload(event.payload, 'game_over')
       }
       if (event.type === 'rematch_vote') {
-        const payload = event.payload
-        setRematchVotes(payload.votes)
-        setTotalPlayers(payload.total_players)
+        setRematchVotes(event.payload.votes)
+        setTotalPlayers(event.payload.total_players)
       }
       if (event.type === 'rematch_ready') {
-        // All players voted — navigate back to the lobby.
-        // The room is already in waiting state with settings preserved.
-        const payload = event.payload
-        navigate(`/rooms/${payload.room_id}`)
+        navigate(`/rooms/${event.payload.room_id}`)
       }
     })
-
-    return () => off() // Unsubscribe only — do not close the socket here.
+    return () => off()
   }, [socket, sessionId, qc, navigate])
+
+  // Player socket — receives filtered move_applied / game_over for games with
+  // private state (Love Letter) in Redis multi-instance mode. The room socket
+  // handles the same events in single-instance mode, so deduplication by
+  // move_count ensures no double processing.
+  useEffect((): (() => void) | void => {
+    if (!playerSocket) return
+    const off = playerSocket.on((event) => {
+      if (event.type === 'move_applied') {
+        handleMovePayload(event.payload, 'move_applied')
+      }
+      if (event.type === 'game_over') {
+        handleMovePayload(event.payload, 'game_over')
+      }
+    })
+    return () => off()
+  }, [playerSocket, sessionId, qc])
 
   const move = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
@@ -195,10 +284,7 @@ export default function Game() {
     statusText = "Opponent's turn"
   }
 
-  const opponentId = gameData
-    ? (gameData.data as TicTacToeState)?.players?.find(id => id !== player.id)
-    : null
-  const opponentOnline = opponentId ? (presenceMap[opponentId] ?? false) : false
+  const Renderer = GAME_RENDERERS[session.game_id]
 
   return (
     <div className={`${styles.root} page-enter`}>
@@ -225,26 +311,45 @@ export default function Game() {
           >
             {statusText}
           </span>
-          {!isSpectator && opponentId && (
-            <span className={styles.opponentPresence} data-testid="opponent-presence">
-              <span className={styles.presenceDot} data-online={String(opponentOnline)} data-testid="opponent-presence-dot" />
-              <span data-testid="opponent-presence-text">
-                {opponentOnline ? 'Opponent online' : 'Opponent offline'}
+          {!isSpectator && (() => {
+            // Use the first opponent from roomPlayers for the presence indicator.
+            // presenceMap may not have an entry yet (defaults to false until
+            // the first presence_update WS event arrives).
+            const opponentId = roomPlayers.find((p) => p.id !== player.id)?.id ?? null
+            if (!opponentId) return null
+            const opponentOnline = presenceMap[opponentId] ?? false
+            return (
+              <span className={styles.opponentPresence} data-testid="opponent-presence">
+                <span
+                  className={styles.presenceDot}
+                  data-online={String(opponentOnline)}
+                  data-testid="opponent-presence-dot"
+                />
+                <span data-testid="opponent-presence-text">
+                  {opponentOnline ? 'Opponent online' : 'Opponent offline'}
+                </span>
               </span>
-            </span>
-          )}
+            )
+          })()}
         </div>
 
         <div className={styles.boardWrapper}>
-          <GameRenderer
-            gameId={session.game_id}
-            gameData={gameData}
-            localPlayerId={player.id}
-            onMove={(payload) => move.mutate(payload)}
-            // Spectators and players whose turn it isn't are both disabled.
-            disabled={isSpectator || !isMyTurn || move.isPending}
-            isOver={isOver}
-          />
+          {Renderer ? (
+            <Renderer
+              gameId={session.game_id}
+              gameData={gameData}
+              localPlayerId={player.id}
+              onMove={(payload) => move.mutate(payload)}
+              // Spectators and players whose turn it isn't are both disabled.
+              disabled={isSpectator || !isMyTurn || move.isPending}
+              isOver={isOver}
+              players={roomPlayers}
+            />
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+              No renderer available for game: {session.game_id}
+            </p>
+          )}
         </div>
 
         {move.error && (
@@ -289,38 +394,4 @@ export default function Game() {
       )}
     </div>
   )
-}
-
-function GameRenderer({
-  gameId,
-  gameData,
-  localPlayerId,
-  onMove,
-  disabled,
-}: {
-  gameId: string
-  gameData: GameData
-  localPlayerId: string
-  onMove: (payload: Record<string, unknown>) => void
-  disabled: boolean
-  isOver: boolean
-}) {
-  switch (gameId) {
-    case 'tictactoe':
-      return (
-        <TicTacToeBoard
-          state={gameData.data as TicTacToeState}
-          currentPlayerId={gameData.current_player_id}
-          localPlayerId={localPlayerId}
-          onMove={(cell) => onMove({ cell })}
-          disabled={disabled}
-        />
-      )
-    default:
-      return (
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          No renderer available for game: {gameId}
-        </p>
-      )
-  }
 }

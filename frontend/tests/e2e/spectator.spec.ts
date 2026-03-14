@@ -32,6 +32,7 @@ test.describe('Spectator mode', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     const { p3Ctx, p3 } = await createSpectatorContext(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -52,6 +53,7 @@ test.describe('Spectator mode', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     const { p3Ctx, p3 } = await createSpectatorContext(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -72,6 +74,7 @@ test.describe('Spectator mode', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     const { p3Ctx, p3 } = await createSpectatorContext(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -112,6 +115,7 @@ test.describe('Spectator mode', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     const { p3Ctx, p3 } = await createSpectatorContext(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -156,6 +160,7 @@ test.describe('Spectator mode', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     const { p3Ctx, p3 } = await createSpectatorContext(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -201,6 +206,7 @@ test.describe('Spectator mode', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     const { p3Ctx, p3 } = await createSpectatorContext(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -244,6 +250,7 @@ test.describe('Private rooms', () => {
   test('private room code is hidden in the lobby list', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -272,6 +279,7 @@ test.describe('Private rooms', () => {
   test('private room has no direct join button in the lobby', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -297,6 +305,7 @@ test.describe('Private rooms', () => {
   test('private room can be joined by entering the code manually', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -318,6 +327,7 @@ test.describe('Private rooms', () => {
   test('private room owner sees the code inside the room view', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -340,6 +350,7 @@ test.describe('Private rooms', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     // Visibility defaults to public.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -364,6 +375,7 @@ test.describe('Private rooms', () => {
   test('private room setting can be changed back to public', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 

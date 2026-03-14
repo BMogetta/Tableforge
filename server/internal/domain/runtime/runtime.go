@@ -74,10 +74,10 @@ func (svc *Service) StartSession(session store.GameSession) {
 }
 
 // BroadcastMove fans out a MoveResult to all clients in the room.
-// For games that implement engine.StateFilter, each player receives a filtered
-// view of the state via BroadcastToPlayer, and spectators receive their own
-// filtered view via BroadcastFiltered. Falls back to a single hub.Broadcast
-// for games without private state (e.g. TicTacToe).
+// For games that implement engine.StateFilter, hub.BroadcastToRoom is used
+// to deliver a per-player filtered state to each player and a spectator-filtered
+// state to spectator clients. Falls back to a single hub.Broadcast for games
+// without private state (e.g. TicTacToe).
 //
 // players must be the full list of room players (non-spectators). Obtain it
 // from store.ListRoomPlayers before calling this method.
@@ -100,23 +100,27 @@ func (svc *Service) BroadcastMove(
 		return
 	}
 
-	// Per-player filtered broadcast via the player channel.
-	for _, p := range players {
-		filtered := result
-		filtered.State = sf.FilterState(result.State, engine.PlayerID(p.PlayerID.String()))
-		hub.BroadcastToPlayer(p.PlayerID, ws.Event{Type: eventType, Payload: filtered})
+	// Build the player ID list for BroadcastToRoom.
+	playerIDs := make([]uuid.UUID, len(players))
+	for i, p := range players {
+		playerIDs[i] = p.PlayerID
 	}
 
 	// Spectator view: playerID "" signals an empty-hands view.
 	spectatorResult := result
 	spectatorResult.State = sf.FilterState(result.State, engine.PlayerID(""))
 
-	// Players were already notified via BroadcastToPlayer above.
-	// BroadcastFiltered here delivers the spectator-filtered payload to
-	// spectator clients on the room channel. playerData nil skips non-spectators.
-	hub.BroadcastFiltered(
+	// BroadcastToRoom delivers a per-player filtered payload via the room
+	// channel (single-instance) or per-player Redis channels (multi-instance),
+	// and the spectator payload to spectator clients on the room channel.
+	hub.BroadcastToRoom(
 		result.Session.RoomID,
-		ws.Event{Type: eventType, Payload: nil},
+		playerIDs,
+		func(playerID uuid.UUID) ws.Event {
+			filtered := result
+			filtered.State = sf.FilterState(result.State, engine.PlayerID(playerID.String()))
+			return ws.Event{Type: eventType, Payload: filtered}
+		},
 		ws.Event{Type: eventType, Payload: spectatorResult},
 	)
 }

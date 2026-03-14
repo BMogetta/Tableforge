@@ -17,6 +17,9 @@ test.describe('LobbySettings UI', () => {
   test('owner sees first_mover_policy selector with default value "random"', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -32,6 +35,9 @@ test.describe('LobbySettings UI', () => {
   test('first_mover_seat row is hidden when policy is "random"', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -45,6 +51,9 @@ test.describe('LobbySettings UI', () => {
   test('first_mover_seat row appears when policy changes to "fixed"', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -64,6 +73,9 @@ test.describe('LobbySettings UI', () => {
   test('first_mover_seat row disappears when policy switches back to "random"', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -83,6 +95,9 @@ test.describe('LobbySettings UI', () => {
   test('setting_updated WS event updates the read-only value shown to p2', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -110,6 +125,9 @@ test.describe('LobbySettings UI', () => {
   test('non-owner sees settings as read-only (no select element)', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -133,6 +151,9 @@ test.describe('Settings API validation', () => {
   test('invalid setting value returns 400', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -152,6 +173,9 @@ test.describe('Settings API validation', () => {
   test('non-owner cannot update settings (403)', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -209,6 +233,9 @@ test.describe('Turn order enforcement', () => {
     await p1.goto('/')
     await p2.goto('/')
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -247,6 +274,9 @@ test.describe('Turn order enforcement', () => {
     await p1.goto('/')
     await p2.goto('/')
 
+    // Explicitly select TicTacToe — default game is non-deterministic with
+    // multiple games registered.
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -289,6 +319,9 @@ async function setupRematchLobby(p1: any, p2: any, rematchPolicy: string): Promi
   await p1.goto('/')
   await p2.goto('/')
 
+  // Explicitly select TicTacToe — default game is non-deterministic with
+  // multiple games registered.
+  await p1.getByTestId('game-option-tictactoe').click()
   await p1.getByTestId('create-room-btn').click()
   await expect(p1).toHaveURL(/\/rooms\//)
 

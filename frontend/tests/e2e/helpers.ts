@@ -45,12 +45,16 @@ export async function createSpectatorContext(browser: Browser) {
 // first_mover_policy is explicitly set to 'fixed' (seat 0 = P1) before
 // starting so that all tests that depend on turn order are deterministic.
 export async function setupAndStartGame(p1: Page, p2: Page) {
+  const player1Id = process.env.TEST_PLAYER1_ID!
+
+  // Explicitly select TicTacToe before creating the room — the default game
+  // is non-deterministic when multiple games are registered.
+  await p1.getByTestId('game-option-tictactoe').click()
   await p1.getByTestId('create-room-btn').click()
   await expect(p1).toHaveURL(/\/rooms\//)
 
   const code = await p1.getByTestId('room-code').textContent()
   const roomId = p1.url().split('/rooms/')[1]
-  const player1Id = process.env.TEST_PLAYER1_ID!
 
   // Force first_mover_policy to 'fixed' so P1 (seat 0) always goes first.
   await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {

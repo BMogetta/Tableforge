@@ -124,6 +124,7 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
           {gameList.map((g: GameInfo) => (
             <button
               key={g.id}
+              data-testid={`game-option-${g.id}`}
               className={`${styles.gameOption} ${effectiveGame === g.id ? styles.gameOptionActive : ''}`}
               onClick={() => onGameChange(g.id)}
             >

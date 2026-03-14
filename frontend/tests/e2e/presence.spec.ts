@@ -16,6 +16,7 @@ test.describe('Player presence', () => {
   test('presence dot shown in room player list', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
@@ -39,6 +40,7 @@ test.describe('Player presence', () => {
   test('presence dot goes offline when player leaves room', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
+    await p1.getByTestId('game-option-tictactoe').click()
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
