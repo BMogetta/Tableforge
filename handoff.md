@@ -43,23 +43,24 @@
 - Notifications: store + domain service + API + WS complete; bell icon + badge in `LobbyHeader` — **full notification UI pending**
 - Matchmaking queue: Redis-backed, store + API + WS + background ticker + frontend queue status in `NewGamePanel` — player channel WS drives real-time state updates
 
-### Frontend (this session)
-- `Game.tsx` — `GameRenderer` switch replaced with `GAME_RENDERERS` registry (`Record<string, RendererComponent>`); player socket listener for `move_applied`/`game_over` with deduplication by `move_count`; room query for player usernames; presence indicator uses `roomPlayers` instead of TicTacToe-specific state
-- `NewGamePanel.tsx` — `data-testid="game-option-{id}"` added to game selector buttons
-- `src/components/loveletter/CardDisplay.tsx` + `.module.css` — card face/back, selected/disabled/interactive states, `data-testid="card-display"` + data attributes for testability
-- `src/components/loveletter/HandDisplay.tsx` + `.module.css` — 1–2 card hand, Countess blocking, onSelect
-- `src/components/loveletter/TargetPicker.tsx` + `.module.css` — target selection, eliminated/protected states, Guard guess dropdown
-- `src/components/loveletter/ChancellorModal.tsx` + `.module.css` — keep 1 of 3, order 2 returns, Confirm gated on complete selection
-- `src/components/loveletter/PlayerBoard.tsx` + `.module.css` — discard pile, token track, badges (protected/eliminated/spy), turn indicator
-- `src/components/loveletter/RoundSummary.tsx` + `.module.css` — 4s auto-dismiss + Continue button, spy bonus display, token standings
-- `src/components/loveletter/LoveLetter.tsx` + `.module.css` — root renderer, orchestrates all subcomponents, builds move payloads
+### Bot system (Session A — complete)
+- `internal/bot/game.go` — `BotGameState` interface, `BotMove` type, `BotAdapter` interface
+- `internal/bot/state.go` — `concreteState` wrapping `engine.GameState`; `Clone()` via JSON round-trip; `MoveFromPayload` / `BotMove.Payload()` helpers
+- `internal/bot/config.go` — `BotConfig`, `PersonalityProfile`, built-in profiles (easy/medium/hard/aggressive), `DefaultConfig()` and `ConfigFromProfile()` with env var overrides
+- `internal/bot/state_test.go` — Clone independence, nested map isolation, double round-trip, BotMove serialization
+- `internal/bot/config_test.go` — profile defaults, env var overrides, invalid env var fallback, profile validation
+
+### Frontend (last session)
+- `Game.tsx` — `GAME_RENDERERS` registry; player socket listener for `move_applied`/`game_over` with deduplication by `move_count`; room query for player usernames; presence indicator uses `roomPlayers`
+- `NewGamePanel.tsx` — `data-testid="game-option-{id}"` on game selector buttons
+- Love Letter renderer components: `CardDisplay`, `HandDisplay`, `TargetPicker`, `ChancellorModal`, `PlayerBoard`, `RoundSummary`, `LoveLetter` (root)
 - Vitest configured (`vitest/config`, jsdom, `src/test/setup.ts`)
 - `src/components/loveletter/__tests__/CardDisplay.test.tsx` — 8 tests
 - `src/components/loveletter/__tests__/HandDisplay.test.tsx` — 7 tests
 - `src/components/loveletter/__tests__/TargetPicker.test.tsx` — 8 tests
 - `src/components/loveletter/__tests__/ChancellorModal.test.tsx` — 6 tests
 - `src/components/loveletter/__tests__/PlayerBoard.test.tsx` — 13 tests
-- E2E helpers updated: `setupAndStartGame` and all `create-room-btn` usages now click `game-option-tictactoe` first — prevents Love Letter being selected as default when multiple games are registered
+- E2E helpers updated: all `create-room-btn` usages click `game-option-tictactoe` first
 
 ---
 
@@ -86,12 +87,17 @@ server/
 │       ├── loveletter_cards.go
 │       └── loveletter_settings.go
 ├── internal/
+│   ├── bot/
+│   │   ├── game.go          ← BotGameState, BotMove, BotAdapter interfaces
+│   │   ├── state.go         ← concreteState, Clone, MoveFromPayload
+│   │   ├── config.go        ← BotConfig, PersonalityProfile, profiles
+│   │   ├── state_test.go
+│   │   └── config_test.go
 │   ├── domain/
 │   │   ├── engine/
 │   │   ├── lobby/
 │   │   ├── matchmaking/
 │   │   ├── notification/
-│   │   │   └── notification.go
 │   │   ├── rating/
 │   │   └── runtime/
 │   │       ├── runtime.go
@@ -146,6 +152,8 @@ server/
 frontend/
 ├── src/
 │   ├── components/
+│   │   ├── SurrenderModal.tsx + .module.css
+│   │   ├── TicTacToe.tsx + .module.css
 │   │   ├── lobby/
 │   │   │   ├── LobbyHeader.tsx + .module.css
 │   │   │   ├── NewGamePanel.tsx + .module.css
@@ -153,6 +161,7 @@ frontend/
 │   │   │   ├── LeaderboardPanel.tsx + .module.css
 │   │   │   └── RoomCard.tsx + .module.css
 │   │   ├── room/
+│   │   │   ├── RoomSettings.tsx + .module.css
 │   │   │   └── ChatSidebar.tsx + .module.css
 │   │   └── loveletter/
 │   │       ├── LoveLetter.tsx + .module.css
@@ -196,46 +205,61 @@ frontend/
 - **WS hub** uses Redis pub/sub for multi-instance fanout (`NewHubWithRedis`)
 - **Per-player WS channel** — `hub_player.go` exposes `BroadcastToPlayer(playerID, event)`; `ws_player_handler.go` serves `/ws/players/{playerID}`; used for DMs, queue events, notifications; `PlayerSocket` in frontend connects on login
 - **`BroadcastToRoom`** — `hub.go` exposes `BroadcastToRoom(roomID, playerIDs, eventFn, spectatorEvent)`; calls `eventFn(playerID)` per non-spectator client in single-instance mode; publishes to each player's Redis channel in multi-instance mode; spectator payload goes to room channel with `filteredEnvelope{S: true}`; used by `BroadcastMove` for games implementing `StateFilter`
-- **`BroadcastFiltered`** — `hub.go` exposes `BroadcastFiltered(roomID, playerEvent, spectatorEvent)`; used for uniform player payloads with a different spectator payload; `playerEvent.Payload == nil` skips non-spectators
+- - **`BroadcastFiltered`** — `hub.go` exposes `BroadcastFiltered(roomID, playerEvent, spectatorEvent)`; used for uniform player payloads with a different spectator payload; `playerEvent.Payload == nil` skips non-spectators
 - **`StateFilter` interface** — optional `engine.Game` extension; if implemented, `BroadcastMove` calls `FilterState(state, playerID)` per player via `BroadcastToRoom`, and `FilterState(state, "")` for spectators; TicTacToe does not implement it; Love Letter does
 - **`TurnTimeoutHandler` interface** — optional `engine.Game` extension; if implemented, `turn_timer.go` delegates timeout to `ApplyMove` with the game-provided payload instead of applying platform-level penalty directly; Love Letter returns `{"card":"penalty_lose"}`
-- **`GAME_RENDERERS` registry** — `Game.tsx` uses `Record<string, RendererComponent>` instead of a switch; renderers defined as named components outside the `Game` function to avoid remount on render; add new games here
-- **E2E game selection** — all `create-room-btn` usages in E2E helpers click `game-option-tictactoe` first; the default game is non-deterministic when multiple games are registered
+- **`GAME_RENDERERS` registry** — `Game.tsx` uses `Record<string, RendererComponent>` instead of a switch; renderers defined as named components outside `Game` to avoid remount on render
+- **E2E game selection** — all `create-room-btn` usages in E2E helpers click `game-option-tictactoe` first; default game is non-deterministic when multiple games are registered
+- **Bot package lives in `internal/bot/`** — not in `domain/` (pure business logic) nor `platform/` (infrastructure); it is an application layer that depends on `domain/engine` but not on store, ws, or api
+- **`BotMove` is a JSON string** — serialized form of `map[string]any` payload; comparable, usable as map key; round-trips via `MoveFromPayload` / `BotMove.Payload()`
+- **`Clone()` uses JSON round-trip** — same encoding the runtime uses for Postgres persistence; correct by definition; optimize with hand-written clone per game if profiling shows bottleneck
+- **Bot `PlayerID` is `uuid.UUID`** — bots are registered as real `store.Player` rows so `AddPlayerToRoom` works unchanged; naming convention (e.g. username prefix `"bot:"`) distinguishes them from human players
 - **Spectator access** via `room_settings.allow_spectators` — no SpectatorLink table
 - **`state_after`** in moves is `[]byte` → base64 in JSON → `atob()` on frontend
 - **Room settings** — generic KV table `room_settings(room_id, key, value)`, defaults on `CreateRoom`
 - **`domain/` packages are pure** — no deps on store, ws, or any other internal package
 - **Mutes are server-side** — persisted in `player_mutes`, survive across sessions
-- **Chat mute toggle** (mute entire room chat) is UI-only local state — not persisted
+- - **Chat mute toggle** (mute entire room chat) is UI-only local state — not persisted
 - **Ratings are per-game** — `ratings` table has composite PK `(player_id, game_id)`; `game_id` required on all rating endpoints
 - **`mmr` never reaches the frontend** — `RatingLeaderboardEntry` excludes it; leaderboard shows `display_rating` only
 - **`applyRatings` never returns an error** — rating failure must not roll back a completed match; errors are logged only
 - **Room chat is auditable** — persisted in Postgres, never deleted, hideable by manager only
-- **`RoomMessage` uses `message_id`/`timestamp`** — both HTTP response and WS payload use these field names (not `id`/`created_at`)
-- **Session mode** (`casual` | `ranked`) — passed through `lobby.StartGame(ctx, roomID, requesterID, mode)`; rating changes only apply in ranked mode; `handleStartGame` hardcodes `SessionModeCasual` — ranked only possible via queue flow
+- **`RoomMessage` uses `message_id`/`timestamp`** — both HTTP response and WS payload use these field names
+- **Session mode** (`casual` | `ranked`) — `handleStartGame` hardcodes `SessionModeCasual`; ranked only possible via queue flow
 - **Pause is consent-based** — all present players must vote to pause and to resume
 - **No pause timeout** — sessions can stay suspended indefinitely
 - **Suspended sessions** can be force-closed by a manager
-- **`player_id` in request body** — all handlers read `player_id` from body, not JWT context. Exception: `GET /notifications` reads `player_id` from query param (GET has no body)
+- **`player_id` in request body** — all handlers read `player_id` from body, not JWT context
 - **Redis vs Postgres for chat/mutes/ratings** — all go directly to Postgres. No caching.
 - **Spectators receive chat events** — `EventChatMessage` and `EventChatMessageHidden` not in `spectatorBlocklist`
 - **`requireRole` middleware in tests** — returns 401 (no auth middleware), so manager-only DELETE tests expect 401
-- **Notifications are never deleted** — `read_at` tracks state; read notifications older than 30 days excluded from list results
-- **Notification actions expire** — `friend_request` after 7 days, `room_invitation` after 24h, `ban_issued` has no action
-- **Queue is Redis-backed** — sorted set `queue:ranked` (score = MMR), distributed lock `queue:lock` (SET NX EX 4s) ensures only one instance runs `FindMatches` per tick
+- **Notifications are never deleted** — `read_at` tracks state; read notifications older than 30 days excluded
+- **Queue is Redis-backed** — sorted set `queue:ranked`, distributed lock `queue:lock`
 - **`RankedGameID` is exported** from `queue.go` — used by `fakestore` tests
 - **Queue ban formula** — `min(5 * 5^(offense-1), 1440)` minutes; threshold: 3 declines within 1 hour
 - **Match confirmation window** — 30s TTL on `queue:pending:{matchID}`; both players must explicitly accept
-- **Declining a match** drops the player from the queue and applies a penalty; accepting player is re-queued automatically
-- **`miniredis`** used for Redis unit tests in `platform/queue/queue_test.go` — no other package has Redis test infrastructure yet
-- **`joinRoom` omitted from `useEffect` deps in `Room.tsx`** — it is a stable Zustand action that never changes identity; including it causes unnecessary socket reconnects
-- **Queue state persists across navigation** — stored in Zustand (`queueStatus`, `queueJoinedAt`, `matchId`); player can queue and browse other pages
+- - **Declining a match** drops the player from the queue and applies a penalty; accepting player is re-queued automatically
+- **`miniredis`** used for Redis unit tests in `platform/queue/queue_test.go` only
+- **`joinRoom` omitted from `useEffect` deps in `Room.tsx`** — stable Zustand action
+- **Queue state persists across navigation** — stored in Zustand
 - **Love Letter deck has 21 cards** — updated edition: Spy×2, Guard×6, Priest×2, Baron×2, Handmaid×2, Prince×2, Chancellor×2, King×1, Countess×1, Princess×1
-- **Love Letter draw model** — the active player always holds 2 cards when playing; `dealRound` draws the first player's turn card; `advanceTurn` draws for the next player; `applyPrince` gives the target a card directly; `advanceTurn` skips draw if the next player already holds 2 cards
-- **Love Letter `private_reveals`** — set by Priest in `state.Data`; cleared at the start of the next `applyStandardMove` (not in `advanceTurn`), so the reveal survives until the recipient's next move
-- **Love Letter Handmaid expiry** — protection is removed from the *next* player at the start of `advanceTurn`, not from the current player at the end of their turn
-- **Love Letter `penalty_lose`** — synthetic card recognised by `ValidateMove`/`ApplyMove`; bypasses all validation; eliminates the active player and calls `advanceTurn`; used by `TurnTimeoutHandler`
-- **Love Letter state persists in Postgres** — same as all other games; Redis caching deferred (low overhead, easy to add later as a store-layer change)
+- **Love Letter draw model** — active player always holds 2 cards; `dealRound` draws first player's turn card; `advanceTurn` draws for next player; skips draw if next player already holds 2 cards
+- **Love Letter `private_reveals`** — cleared at start of next `applyStandardMove`
+- **Love Letter Handmaid expiry** — protection removed from *next* player at start of `advanceTurn`
+- **Love Letter `penalty_lose`** — synthetic card; bypasses validation; eliminates active player; used by `TurnTimeoutHandler`
+- **Love Letter state persists in Postgres** — Redis caching deferred
+
+---
+
+## Bot system — pending sessions
+
+| Session | Work |
+|---|---|
+| B — Core MCTS | `internal/bot/mcts/node.go`, `mcts.go`, `engine.go` with mock adapter and tests |
+| C — TicTacToe adapter | `internal/bot/adapter/tictactoe/adapter.go`; Determinize = identity; bot-vs-bot test |
+| D — Love Letter adapter | `internal/bot/adapter/loveletter/adapter.go`; Determinize samples hidden hand |
+| E — BotPlayer & integration | `BotPlayer`, hook in runtime post-`ApplyMove`, `POST /rooms/{id}/bots` |
+| F — Config & API | env var loading complete; `GET /bots/profiles`; frontend bot creation UI |
 
 ---
 
@@ -381,7 +405,7 @@ WS /ws/players/{playerID}              ← player channel for queue/DM/notificat
 
 ---
 
-## `api.ts` — namespaces implemented
+## `api.ts`, `queryClient.ts`, `store.ts` — namespaces implemented
 All namespaces use a shared `request<T>(path, init)` helper (no axios).
 
 | Namespace | Methods |
@@ -465,38 +489,38 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 
 ---
 
-## UI debt (backend ready, frontend not started or partial)
+## UI debt
 
-| Feature | Backend status | Frontend status | Notes |
+| Feature | Backend | Frontend | Notes |
 |---|---|---|---|
-| Love Letter renderer | ✅ complete | ✅ complete | Components built, Vitest coverage, E2E pending |
-| Player mutes | ✅ complete | ❌ pending | Mute/unmute from chat panel; mute list in profile |
-| Session pause/resume | ✅ complete | ❌ pending | Pause button, vote overlay, suspended screen |
-| Direct messages | ✅ complete | ❌ pending | Inbox, conversation view, unread badge |
-| Notifications full UI | ✅ complete | ⚠️ partial | Badge in `LobbyHeader` done; inline accept/decline panel pending |
-| Friends system | ❌ not built | ❌ pending | `NotifyFriendRequest` implemented but no endpoint calls it; friends panel button mocked in Lobby |
-| Match found sound | — | ❌ pending | Placeholder sound on `match_found` WS event |
+| Love Letter renderer | ✅ | ✅ | Components built, Vitest coverage, E2E pending |
+| Player mutes | ✅ | ❌ | Mute/unmute from chat panel; mute list in profile |
+| Session pause/resume | ✅ | ❌ | Pause button, vote overlay, suspended screen |
+| Direct messages | ✅ | ❌ | Inbox, conversation view, unread badge |
+| Notifications full UI | ✅ | ⚠️ | Badge done; inline accept/decline pending |
+| Friends system | ❌ | ❌ | `NotifyFriendRequest` implemented but no endpoint calls it |
+| Match found sound | — | ❌ | Placeholder sound on `match_found` WS event |
+| Bot creation UI | ❌ | ❌ | Pending session F |
 
 ---
 
 ## Known technical debt
 
 ### Backend
-- **`rematch_first_mover_policy` is inert** — `VoteRematch` in `runtime.go` never reads it; `winner_chooses`/`loser_chooses` have no WS event defined
-- **`scanSession` in `pg_timer.go`** (`ListSessionsNeedingTimer`) must be verified against the column order added in 003 migration
-- **Queue confirmation timeout penalisation** — when `queue:pending:*` expires, the key is gone so we cannot distinguish who accepted vs timed out. Both players receive `match_cancelled`; neither is penalised. Fix requires shadow key pattern (see TODO in `queue.go`)
-- **Estimated wait time** — `estimatedWait` returns `position * 10s` as a placeholder; should use rolling average of recent match wait times stored in Redis (see TODO in `queue.go`)
-- **Queue: group support** — `QueueEntry` holds one player; pre-formed teams not supported (see TODO in `queue.go`)
-- **Queue: multi-game ranked** — `RankedGameID` hardcoded to `"tictactoe"`; needs `game_id` field in `POST /queue` and one sorted set per game (see TODO in `queue.go`)
-- **Notification friend request hook** — `NotifyFriendRequest` is implemented but nothing calls it yet; friend system endpoints not built
-- **Notification room invitation hook** — `NotifyRoomInvitation` is implemented but no endpoint sends direct invitations yet
-- **`miniredis` not extracted to `testutil`** — only `platform/queue` has Redis tests; extract a shared helper when a second package needs it
-- **`handleStartGame` hardcodes `SessionModeCasual`** — ranked sessions are only possible via the queue flow; there is no way to start a ranked game manually from the UI
+- **`rematch_first_mover_policy` is inert** — `VoteRematch` never reads it
+- **`scanSession` in `pg_timer.go`** — must be verified against 003 migration column order
+- **Queue confirmation timeout penalisation** — shadow key pattern needed
+- **Estimated wait time** — placeholder `position * 10s`
+- **Queue: group support** — `QueueEntry` holds one player only
+- **Queue: multi-game ranked** — `RankedGameID` hardcoded to `"tictactoe"`
+- **Notification hooks** — `NotifyFriendRequest` and `NotifyRoomInvitation` implemented but nothing calls them
+- **`miniredis` not extracted to `testutil`**
+- **`handleStartGame` hardcodes `SessionModeCasual`**
 
 ### Frontend
-- **Love Letter E2E** — no Playwright tests for Love Letter gameplay; renderer components have Vitest coverage but no integration tests
-- **WS payload TODOs** — `player_joined`, `player_left`, `dm_received`, `dm_read`, `session_suspended`, `session_resumed`, `notification_received` typed as `unknown` in `ws.ts`; complete when those features get UI
-- **WS lifecycle coupled to navigation** — socket created in `Room.tsx`, assumed to exist in `Game.tsx`; direct navigation to `/game/:sessionId` leaves `socket = null`, covered by polling fallback
-- **Auth outside React Query** — `auth.me()` called via `useEffect` in `App.tsx`, not React Query; no caching or invalidation
-- **Polling + WebSocket redundancy** — `Game.tsx` polls every 3s while WS is connected; intentional safety net; could be disabled while WS is healthy
+- **Love Letter E2E** — no Playwright tests for gameplay
+- **WS payload TODOs** — `player_joined`, `player_left`, `dm_received`, `dm_read`, `session_suspended`, `session_resumed`, `notification_received` typed as `unknown`
+- **WS lifecycle coupled to navigation** — direct navigation to `/game/:id` leaves `socket = null`
+- **Auth outside React Query** — `auth.me()` in `useEffect`, no caching
+- **Polling + WebSocket redundancy** — intentional safety net
 - **Error handling — migrate to error-as-value** — `src/helpers/errors.ts` exports `ok<S>()` and `error<R, E>()` that return a `Result<S, E>` tuple. New code must use this pattern instead of try/catch. When touching existing code, migrate it. The `reason` string discriminant on error objects enables exhaustive switch handling enforced by TypeScript (`err satisfies never` in the default branch). Convention: when wrapping `ApiError` from `api.ts`, include the HTTP status in the error object (e.g. `{ reason: "UNAUTHORIZED", status: 401 }`) so callers can distinguish error kinds without inspecting message strings.
