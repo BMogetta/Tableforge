@@ -12,6 +12,7 @@ export default function LeaderboardPanel({ gameId }: Props) {
     queryKey: keys.leaderboard(gameId),
     queryFn: () => leaderboard.get(gameId, 20),
     enabled: !!gameId,
+    refetchInterval: 60_000, // poll every 60s
   })
 
   return (

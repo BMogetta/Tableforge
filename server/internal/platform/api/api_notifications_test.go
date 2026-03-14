@@ -59,8 +59,7 @@ func TestListNotifications_ReturnsUnread(t *testing.T) {
 	playerID := uuid.New()
 	seedNotification(t, fs, playerID, store.NotificationTypeBanIssued, nil)
 
-	body := fmt.Sprintf(`{"player_id":"%s"}`, playerID)
-	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/players/%s/notifications", playerID), strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/players/%s/notifications?player_id=%s", playerID, playerID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -84,8 +83,7 @@ func TestListNotifications_ForbiddenForOtherPlayer(t *testing.T) {
 	otherID := uuid.New()
 	seedNotification(t, fs, playerID, store.NotificationTypeBanIssued, nil)
 
-	body := fmt.Sprintf(`{"player_id":"%s"}`, otherID)
-	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/players/%s/notifications", playerID), strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/players/%s/notifications?player_id=%s", playerID, otherID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -99,8 +97,7 @@ func TestListNotifications_EmptyList(t *testing.T) {
 	router, _, _ := newNotificationRouter(t)
 	playerID := uuid.New()
 
-	body := fmt.Sprintf(`{"player_id":"%s"}`, playerID)
-	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/players/%s/notifications", playerID), strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/players/%s/notifications?player_id=%s", playerID, playerID), nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

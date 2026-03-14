@@ -16,9 +16,11 @@ interface Props {
 
 export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
   const player = useAppStore((s) => s.player)!
+  const playerSocket = useAppStore((s) => s.playerSocket)
   const queueStatus = useAppStore((s) => s.queueStatus)
   const queueJoinedAt = useAppStore((s) => s.queueJoinedAt)
   const setQueued = useAppStore((s) => s.setQueued)
+  const setMatchFound = useAppStore((s) => s.setMatchFound)
   const clearQueue = useAppStore((s) => s.clearQueue)
 
   const navigate = useNavigate()
@@ -41,6 +43,44 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [queueStatus, queueJoinedAt])
+
+  // Listen for queue events on the player channel
+  useEffect(() => {
+    if (!playerSocket) return
+
+    const off = playerSocket.on((event) => {
+      if (event.type === 'match_found') {
+        const payload = event.payload as { match_id: string; quality: number; timeout: number }
+        setMatchFound(payload.match_id)
+      }
+
+      if (event.type === 'match_cancelled') {
+        clearQueue()
+      }
+
+      if (event.type === 'match_ready') {
+        const payload = event.payload as { room_id: string; session_id: string }
+        clearQueue()
+        navigate(`/game/${payload.session_id}`)
+      }
+
+      if (event.type === 'queue_left') {
+        const payload = event.payload as { reason: string }
+        if (payload.reason !== 'opponent_declined') {
+          clearQueue()
+        }
+      }
+
+      if (event.type === 'queue_joined') {
+        const payload = event.payload as { reason?: string }
+        if (payload.reason === 'opponent_declined') {
+          setQueued(Date.now())
+        }
+      }
+    })
+
+    return () => off()
+  }, [playerSocket, setMatchFound, clearQueue, navigate, setQueued])
 
   const createRoom = useMutation({
     mutationFn: () => rooms.create(effectiveGame, player.id),

@@ -108,3 +108,64 @@ export class RoomSocket {
     this.handlers.forEach((h) => h({ type, payload: null }))
   }
 }
+
+export class PlayerSocket {
+  private ws: WebSocket | null = null
+  private handlers = new Set<Handler>()
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private closed = false
+  private attemptCount = 0
+  private static readonly MAX_ATTEMPTS = 10
+  private static readonly MAX_BACKOFF_MS = 30_000
+
+  constructor(private url: string) {}
+
+  connect() {
+    if (this.ws) return
+    this.ws = new WebSocket(this.url)
+
+    this.ws.onopen = () => {
+      this.attemptCount = 0
+      this.emit('ws_connected')
+    }
+
+    this.ws.onmessage = (e) => {
+      try {
+        const event: WsEvent = JSON.parse(e.data)
+        this.handlers.forEach((h) => h(event))
+      } catch {
+        // ignore malformed messages
+      }
+    }
+
+    this.ws.onclose = () => {
+      this.ws = null
+      if (!this.closed) {
+        this.attemptCount++
+        if (this.attemptCount >= PlayerSocket.MAX_ATTEMPTS) {
+          this.emit('ws_disconnected')
+          return
+        }
+        this.emit('ws_reconnecting')
+        const delay = Math.min(2 ** this.attemptCount * 1000, PlayerSocket.MAX_BACKOFF_MS)
+        this.reconnectTimer = setTimeout(() => this.connect(), delay)
+      }
+    }
+  }
+
+  on(handler: Handler): () => void {
+    this.handlers.add(handler)
+    return () => { this.handlers.delete(handler) }
+  }
+
+  close() {
+    this.closed = true
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.ws?.close()
+    this.ws = null
+  }
+
+  private emit(type: WsEventType) {
+    this.handlers.forEach((h) => h({ type, payload: null }))
+  }
+}

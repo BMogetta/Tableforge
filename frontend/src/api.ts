@@ -547,7 +547,7 @@ export const notifications = {
    */
   list: (playerId: string, includeRead = false) =>
     request<Notification[]>(
-      `/players/${playerId}/notifications?include_read=${includeRead}`,
+      `/players/${playerId}/notifications?include_read=${includeRead}&player_id=${playerId}`,
     ),
 
   /**
@@ -639,4 +639,13 @@ export const queue = {
 export function wsRoomUrl(roomId: string, playerId: string): string {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   return `${proto}://${window.location.host}/ws/rooms/${roomId}?player_id=${encodeURIComponent(playerId)}`
+}
+
+/**
+ * Returns the WebSocket URL for the player's personal channel.
+ * Connect once on login to receive queue, DM, and notification events.
+ */
+export function wsPlayerUrl(playerId: string): string {
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  return `${proto}://${window.location.host}/ws/players/${encodeURIComponent(playerId)}`
 }

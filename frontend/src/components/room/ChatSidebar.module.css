@@ -6,6 +6,9 @@
   transition: width var(--transition);
   position: relative;
   overflow: hidden;
+  height: 100vh;
+  position: sticky;
+  top: 0;
 }
 
 .open  { width: 280px; min-width: 280px; }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Player } from './api'
-import { RoomSocket } from './ws'
+import { PlayerSocket, RoomSocket } from './ws'
 
 export type QueueStatus = 'idle' | 'queued' | 'match_found'
 
@@ -10,6 +10,17 @@ interface AppState {
 
   socket: RoomSocket | null
   activeRoomId: string | null
+
+  /**
+   * Persistent WebSocket for the player's personal channel.
+   * Receives queue events (match_found, match_cancelled, match_ready),
+   * DM events, and notification_received — regardless of which room the
+   * player is currently in.
+   * Connected on login via connectPlayerSocket(), closed on logout.
+   */
+  playerSocket: PlayerSocket | null
+  connectPlayerSocket: (url: string) => void
+  disconnectPlayerSocket: () => void
 
   /**
    * True when the current player joined as a spectator (not in room_players).
@@ -84,6 +95,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   socket: null,
   activeRoomId: null,
+
+  playerSocket: null,
+  connectPlayerSocket: (url: string) => {
+    get().playerSocket?.close()
+    const playerSocket = new PlayerSocket(url)
+    playerSocket.connect()
+    set({ playerSocket })
+  },
+  disconnectPlayerSocket: () => {
+    get().playerSocket?.close()
+    set({ playerSocket: null })
+  },
+  
   isSpectator: false,
   setIsSpectator: (value) => set({ isSpectator: value }),
 

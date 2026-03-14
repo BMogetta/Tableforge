@@ -27,6 +27,12 @@ export default defineConfig({
       testMatch: /\/(game|lobby)\.spec\.ts/,
     },
     {
+      name: 'chat-tests',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testMatch: /\/chat\.spec\.ts/,
+    },
+    {
       name: 'settings-tests',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],

@@ -22,11 +22,9 @@ func handleListNotifications(svc *notification.Service) http.HandlerFunc {
 			return
 		}
 
-		var callerID string
-		if err := json.NewDecoder(r.Body).Decode(&struct {
-			PlayerID *string `json:"player_id"`
-		}{PlayerID: &callerID}); err != nil || callerID == "" {
-			writeError(w, http.StatusBadRequest, "invalid request body")
+		callerID := r.URL.Query().Get("player_id")
+		if callerID == "" {
+			writeError(w, http.StatusBadRequest, "player_id query param required")
 			return
 		}
 		if callerID != playerID.String() {

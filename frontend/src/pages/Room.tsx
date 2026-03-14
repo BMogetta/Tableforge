@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { rooms, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting } from '../api'
-import LobbySettings from '../components/LobbySettings'
+import RoomSettings from '../components/room/RoomSettings'
 import ChatSidebar from '../components/room/ChatSidebar'
 import styles from './Room.module.css'
 
@@ -41,9 +41,12 @@ export default function Room() {
   // Connect the global socket when entering the room.
   // wsRoomUrl includes the player_id so the server can resolve participant vs spectator.
   // Do NOT close on unmount — Game.tsx reuses the same socket instance.
+  // joinRoom is intentionally omitted from deps — it is a stable Zustand action
+  // that never changes identity. Including it would cause the effect to re-run
+  // on every store update, closing and reopening the socket unnecessarily.
   useEffect(() => {
     joinRoom(roomId!, wsRoomUrl(roomId!, player.id))
-  }, [roomId, player.id, joinRoom])
+  }, [roomId, player.id])
 
   useEffect(() => {
     if (!view) return
@@ -202,7 +205,7 @@ export default function Room() {
 
           <hr className="divider" />
 
-          <LobbySettings
+          <RoomSettings
             roomId={roomId!}
             playerId={player.id}
             isOwner={isOwner}

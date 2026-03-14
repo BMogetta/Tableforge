@@ -1,7 +1,7 @@
 import { useEffect, useState, Component, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAppStore } from './store'
-import { auth } from './api'
+import { auth, wsPlayerUrl } from './api'
 import Login from './pages/Login'
 import Lobby from './pages/Lobby'
 import Room from './pages/Room'
@@ -114,15 +114,28 @@ function RequireRole({ role, children }: { role: 'manager' | 'owner'; children: 
 // --- App ---------------------------------------------------------------------
 
 export default function App() {
-  const { player, setPlayer } = useAppStore()
+  const { player, setPlayer, connectPlayerSocket, disconnectPlayerSocket } = useAppStore()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     auth.me()
-      .then(setPlayer)
+      .then((p) => {
+        setPlayer(p)
+        // Open the player channel WS so queue and DM events are received
+        // immediately after login, regardless of which page the player is on.
+        connectPlayerSocket(wsPlayerUrl(p.id))
+      })
       .catch(() => setPlayer(null))
       .finally(() => setLoading(false))
   }, [])
+
+  // Close the player socket on logout (when player transitions null→non-null
+  // is handled above; null means logged out).
+  useEffect(() => {
+    if (!player) {
+      disconnectPlayerSocket()
+    }
+  }, [player])
 
   if (loading) return <Splash />
 

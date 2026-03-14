@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { rooms, type LobbySetting } from '../api'
-import styles from './LobbySettings.module.css'
+import { rooms, type LobbySetting } from '../../api'
+import styles from './RoomSettings.module.css'
 
 interface Props {
   roomId: string
@@ -14,7 +14,7 @@ interface Props {
   onSettingChange: (key: string, value: string) => void
 }
 
-export default function LobbySettings({
+export default function RoomSettings({
   roomId,
   playerId,
   isOwner,

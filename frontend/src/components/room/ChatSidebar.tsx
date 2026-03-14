@@ -32,7 +32,16 @@ export default function ChatSidebar({ roomId, open, onToggle }: Props) {
     if (!socket) return
     const off = socket.on((event) => {
       if (event.type === 'chat_message') {
-        const msg = event.payload as RoomMessage
+        const payload = event.payload as { message_id: string; player_id: string; content: string; room_id: string; timestamp: string }
+        const msg: RoomMessage = {
+          id: payload.message_id,
+          room_id: payload.room_id,
+          player_id: payload.player_id,
+          content: payload.content,
+          created_at: payload.timestamp,
+          reported: false,
+          hidden: false,
+        }
         qc.setQueryData<RoomMessage[]>(keys.roomMessages(roomId), (prev = []) => {
           // Deduplicate by id in case the HTTP resync already added it
           if (prev.some((m) => m.id === msg.id)) return prev
@@ -56,10 +65,10 @@ export default function ChatSidebar({ roomId, open, onToggle }: Props) {
 
   const sendMessage = useMutation({
     mutationFn: (content: string) => rooms.sendMessage(roomId, player.id, content),
-    onSuccess: () => {
+    onSuccess: (newMsg: RoomMessage) => {
       setDraft('')
       inputRef.current?.focus()
-    },
+      },
   })
 
   function handleSend() {
@@ -133,10 +142,9 @@ interface ChatMessageProps {
 }
 
 function ChatMessage({ msg, isSelf }: ChatMessageProps) {
-  const time = new Date(msg.created_at).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const time = msg.created_at
+    ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : ''
 
   return (
     <div className={`${styles.message} ${isSelf ? styles.self : ''}`}>

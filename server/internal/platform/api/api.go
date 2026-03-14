@@ -164,6 +164,14 @@ func NewRouter(
 		})
 	})
 
+	playerWsHandler := http.HandlerFunc(ws.PlayerHandler(hub))
+	if authHandler != nil {
+		playerWsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHandler.Middleware(ws.PlayerHandler(hub)).ServeHTTP(w, r)
+		})
+	}
+	r.Get("/ws/players/{playerID}", playerWsHandler)
+
 	// WebSocket — protected in production, open when authHandler is nil (tests).
 	wsHandler := http.HandlerFunc(ws.Handler(hub, st, eventStore, presenceStore))
 	if authHandler != nil {
