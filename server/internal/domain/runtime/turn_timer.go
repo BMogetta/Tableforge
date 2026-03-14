@@ -122,7 +122,19 @@ func (tt *TurnTimer) onTimeout(sessionID uuid.UUID) {
 		log.Printf("TurnTimer: unmarshal state for session %s: %v", sessionID, err)
 		return
 	}
+
 	timedOutPlayerID := state.CurrentPlayerID
+
+	// If the game provides its own timeout move, delegate to ApplyMove so the
+	// engine handles all state transitions (e.g. Love Letter penalty_lose).
+	game, err := tt.svc.registry.Get(session.GameID)
+	if err == nil {
+		if th, ok := game.(engine.TurnTimeoutHandler); ok {
+			tt.applyEngineTimeout(ctx, session, timedOutPlayerID, th.TimeoutMove())
+			return
+		}
+	}
+
 	switch cfg.TimeoutPenalty {
 	case store.PenaltyLoseGame:
 		tt.applyLoseGame(ctx, session, state, timedOutPlayerID)
@@ -266,6 +278,42 @@ type TimeoutResult struct {
 	Result         engine.Result     `json:"result,omitempty"`
 	State          *engine.GameState `json:"state,omitempty"`
 	IsOver         bool              `json:"is_over"`
+}
+
+// applyEngineTimeout delegates a timeout to the engine by calling ApplyMove
+// with the game-provided penalty payload. Used for games that implement
+// engine.TurnTimeoutHandler (e.g. Love Letter penalty_lose).
+func (tt *TurnTimer) applyEngineTimeout(ctx context.Context, session store.GameSession, timedOutPlayer engine.PlayerID, payload map[string]any) {
+	playerUUID, err := uuid.Parse(string(timedOutPlayer))
+	if err != nil {
+		log.Printf("TurnTimer: applyEngineTimeout: invalid player id %q: %v", timedOutPlayer, err)
+		return
+	}
+
+	result, err := tt.svc.ApplyMove(ctx, session.ID, playerUUID, payload)
+	if err != nil {
+		log.Printf("TurnTimer: applyEngineTimeout: ApplyMove for session %s: %v", session.ID, err)
+		return
+	}
+
+	eventType := ws.EventMoveApplied
+	if result.IsOver {
+		eventType = ws.EventGameOver
+	}
+
+	players, _ := tt.st.ListRoomPlayers(ctx, session.RoomID)
+	tt.svc.BroadcastMove(ctx, tt.hub, result, eventType, players)
+
+	if tt.events != nil {
+		timedOutUUID, _ := uuid.Parse(string(timedOutPlayer))
+		tt.events.Append(ctx, session.ID, events.TypeTurnTimeout, &timedOutUUID, map[string]any{
+			"timed_out_player": string(timedOutPlayer),
+			"penalty":          "engine_timeout",
+		})
+	}
+
+	log.Printf("TurnTimer: session %s engine timeout applied, timed out: %s, is_over: %v",
+		session.ID, timedOutPlayer, result.IsOver)
 }
 
 var _ = fmt.Sprintf

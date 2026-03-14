@@ -1,4 +1,4 @@
-# Tableforge — Session Handoff
+## Tableforge — Session Handoff
 
 ## Rules for every session
 - **Read before writing.** Ask for the file, read it, propose changes, confirm, only then write.
@@ -24,10 +24,10 @@
 ### What works today (API + backend complete)
 - Auth via GitHub OAuth + test-login for Playwright
 - Lobby: create room, join by code, leave, ownership transfer, room settings
-- Matches: TicTacToe with turn timer (Redis TTL + keyspace notifications), surrender, rematch vote
+- Matches: TicTacToe and Love Letter with turn timer (Redis TTL + keyspace notifications), surrender, rematch vote
 - Spectators: join/leave, count badge, blocked from rematch/moves/pause/resume
 - Private rooms: code hidden in lobby, owner sees code
-- WebSockets: hub with Redis pub/sub for multi-instance fanout, per-player channels (`BroadcastToPlayer`), dedicated `/ws/players/{playerID}` endpoint
+- WebSockets: hub with Redis pub/sub for multi-instance fanout, per-player channels (`BroadcastToPlayer`), dedicated `/ws/players/{playerID}` endpoint; `BroadcastFiltered` for per-player state filtering (Love Letter hands)
 - Admin: roles (player/manager/owner), allowed emails, leaderboard (Elo-based, per-game)
 - Rate limiting via Redis
 - Event sourcing: Redis Streams (active) → Postgres `session_events` (finished)
@@ -43,7 +43,7 @@
 - Notifications: store + domain service + API + WS complete; bell icon + badge in `LobbyHeader` — **full notification UI pending**
 - Matchmaking queue: Redis-backed, store + API + WS + background ticker + frontend queue status in `NewGamePanel` — player channel WS drives real-time state updates
 
-### Frontend (this session)
+### Frontend (last session)
 - `ws.ts` — fully typed discriminated union for all WS events; `PlayerSocket` class for per-player channel; exponential backoff reconnect (base 2s, cap 30s, max 10 attempts)
 - `api.ts` — `Rating` without `mmr`; `leaderboard.get(gameId)` required; `RoomMessage` with `message_id`/`timestamp`; `wsPlayerUrl`; `rooms.messages` + `rooms.sendMessage`
 - `store.ts` — queue state (`queueStatus`, `queueJoinedAt`, `matchId`); `playerSocket` with `connectPlayerSocket`/`disconnectPlayerSocket`
@@ -75,7 +75,11 @@ server/
 │       ├── 004_notifications.sql
 │       └── 005_ratings_game_id.sql
 ├── games/
-│   └── tictactoe/
+│   ├── tictactoe/
+│   └── loveletter/
+│       ├── loveletter.go
+│       ├── loveletter_cards.go
+│       └── loveletter_settings.go
 ├── internal/
 │   ├── domain/
 │   │   ├── engine/
@@ -170,6 +174,9 @@ frontend/
 - **Event sourcing** — Redis Streams for active sessions, Postgres `session_events` for finished ones
 - **WS hub** uses Redis pub/sub for multi-instance fanout (`NewHubWithRedis`)
 - **Per-player WS channel** — `hub_player.go` exposes `BroadcastToPlayer(playerID, event)`; `ws_player_handler.go` serves `/ws/players/{playerID}`; used for DMs, queue events, notifications; `PlayerSocket` in frontend connects on login
+- **`BroadcastFiltered`** — `hub.go` exposes `BroadcastFiltered(roomID, playerEvent, spectatorEvent)`; used by `BroadcastMove` in `runtime.go` for games with private state; Redis mode uses `filteredEnvelope{S bool, Data []byte}` to route player vs spectator payloads through the same pub/sub channel
+- **`StateFilter` interface** — optional `engine.Game` extension; if implemented, `BroadcastMove` calls `FilterState(state, playerID)` per player before `BroadcastToPlayer`, and `FilterState(state, "")` for spectators; TicTacToe does not implement it; Love Letter does
+- **`TurnTimeoutHandler` interface** — optional `engine.Game` extension; if implemented, `turn_timer.go` delegates timeout to `ApplyMove` with the game-provided payload instead of applying platform-level penalty directly; Love Letter returns `{"card":"penalty_lose"}`
 - **Spectator access** via `room_settings.allow_spectators` — no SpectatorLink table
 - **`state_after`** in moves is `[]byte` → base64 in JSON → `atob()` on frontend
 - **Room settings** — generic KV table `room_settings(room_id, key, value)`, defaults on `CreateRoom`
@@ -199,6 +206,12 @@ frontend/
 - **`miniredis`** used for Redis unit tests in `platform/queue/queue_test.go` — no other package has Redis test infrastructure yet
 - **`joinRoom` omitted from `useEffect` deps in `Room.tsx`** — it is a stable Zustand action that never changes identity; including it causes unnecessary socket reconnects
 - **Queue state persists across navigation** — stored in Zustand (`queueStatus`, `queueJoinedAt`, `matchId`); player can queue and browse other pages
+- **Love Letter deck has 21 cards** — updated edition: Spy×2, Guard×6, Priest×2, Baron×2, Handmaid×2, Prince×2, Chancellor×2, King×1, Countess×1, Princess×1
+- **Love Letter draw model** — the active player always holds 2 cards when playing; `dealRound` draws the first player's turn card; `advanceTurn` draws for the next player; `applyPrince` gives the target a card directly; `advanceTurn` skips draw if the next player already holds 2 cards
+- **Love Letter `private_reveals`** — set by Priest in `state.Data`; cleared at the start of the next `applyStandardMove` (not in `advanceTurn`), so the reveal survives until the recipient's next move
+- **Love Letter Handmaid expiry** — protection is removed from the *next* player at the start of `advanceTurn`, not from the current player at the end of their turn
+- **Love Letter `penalty_lose`** — synthetic card recognised by `ValidateMove`/`ApplyMove`; bypasses all validation; eliminates the active player and calls `advanceTurn`; used by `TurnTimeoutHandler`
+- **Love Letter state persists in Postgres** — same as all other games; Redis caching deferred (low overhead, easy to add later as a store-layer change)
 
 ---
 
@@ -274,6 +287,9 @@ turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 | `match_ready` | player | `room_id, session_id` |
 | `notification_received` | player | full `store.Notification` |
 
+### Notes on `move_applied` / `game_over` for games with private state
+For games implementing `engine.StateFilter` (e.g. Love Letter), these events are delivered via the **player channel** (`BroadcastToPlayer`) with a per-player filtered state, and via the **room channel** with a spectator-filtered state (hands empty). Non-Love-Letter games use a single `Broadcast` to the room channel as before.
+
 ### Spectator blocklist (events NOT delivered to spectators)
 `pause_vote_update`, `session_suspended`, `resume_vote_update`, `session_resumed`, `rematch_vote`, `rematch_ready`
 
@@ -336,7 +352,7 @@ GET    /api/v1/admin/players
 PUT    /api/v1/admin/players/{playerID}/role
 
 WS /ws/rooms/{roomID}?player_id={id}
-WS /ws/players/{playerID}              ← new: player channel for queue/DM/notification events
+WS /ws/players/{playerID}              ← player channel for queue/DM/notification/filtered-move events
 ```
 
 ---
@@ -429,12 +445,19 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 
 | Feature | Backend status | Frontend status | Notes |
 |---|---|---|---|
+| Love Letter renderer | ✅ complete | ❌ pending | See frontend notes below |
 | Player mutes | ✅ complete | ❌ pending | Mute/unmute from chat panel; mute list in profile |
 | Session pause/resume | ✅ complete | ❌ pending | Pause button, vote overlay, suspended screen |
 | Direct messages | ✅ complete | ❌ pending | Inbox, conversation view, unread badge |
 | Notifications full UI | ✅ complete | ⚠️ partial | Badge in `LobbyHeader` done; inline accept/decline panel pending |
 | Friends system | ❌ not built | ❌ pending | `NotifyFriendRequest` implemented but no endpoint calls it; friends panel button mocked in Lobby |
 | Match found sound | — | ❌ pending | Placeholder sound on `match_found` WS event |
+
+### Love Letter frontend notes
+- Replace `switch` in `GameRenderer` (`Game.tsx`) with `Record<string, React.FC<RendererProps>>` registry
+- `move_applied` and `game_over` for Love Letter arrive on the **player channel** (not the room channel) with a filtered state — `Game.tsx` must listen to `playerSocket` for these events in addition to the room socket
+- `state.data` shape for Love Letter: `round`, `phase`, `current_player`, `deck_remaining`, `tokens`, `eliminated_this_round`, `protected`, `spy_played_by`, `discard_piles`, `set_aside_visible`, `round_winner_id`, `game_winner_id`, `players`, `hands` (own hand only — other players' hands are empty arrays), `chancellor_choices` (active player only), `private_reveals` (recipient only)
+- Renderer needs: hand display (1–2 cards), card picker with effect tooltip, target player picker, Guard guess dropdown, Chancellor follow-up UI (pick 1 of 3, order 2 to return), discard piles, protected indicator, spy tracker, token counter, deck counter, set-aside visible cards (2-player only), round summary screen, game summary screen
 
 ---
 
@@ -457,12 +480,5 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 - **WS lifecycle coupled to navigation** — socket created in `Room.tsx`, assumed to exist in `Game.tsx`; direct navigation to `/game/:sessionId` leaves `socket = null`, covered by polling fallback
 - **Auth outside React Query** — `auth.me()` called via `useEffect` in `App.tsx`, not React Query; no caching or invalidation
 - **Polling + WebSocket redundancy** — `Game.tsx` polls every 3s while WS is connected; intentional safety net; could be disabled while WS is healthy
-- **`GameRenderer` uses `switch`** — replace with registry pattern when a second game is added
-- **Error handling — migrate to error-as-value** — `src/helpers/errors.ts` exports
-  `ok<S>()` and `error<R, E>()` that return a `Result<S, E>` tuple. New code must
-  use this pattern instead of try/catch. When touching existing code, migrate it.
-  The `reason` string discriminant on error objects enables exhaustive switch handling
-  enforced by TypeScript (`err satisfies never` in the default branch).
-  Convention: when wrapping `ApiError` from `api.ts`, include the HTTP status in the
-  error object (e.g. `{ reason: "UNAUTHORIZED", status: 401 }`) so callers can
-  distinguish error kinds without inspecting message strings.
+- **`GameRenderer` uses `switch`** — replace with registry pattern when a second game is added; Love Letter renderer is the trigger for this change
+- **Error handling — migrate to error-as-value** — `src/helpers/errors.ts` exports `ok<S>()` and `error<R, E>()` that return a `Result<S, E>` tuple. New code must use this pattern instead of try/catch. When touching existing code, migrate it. The `reason` string discriminant on error objects enables exhaustive switch handling enforced by TypeScript (`err satisfies never` in the default branch). Convention: when wrapping `ApiError` from `api.ts`, include the HTTP status in the error object (e.g. `{ reason: "UNAUTHORIZED", status: 401 }`) so callers can distinguish error kinds without inspecting message strings.

@@ -91,3 +91,12 @@ type Registry interface {
 type StateFilter interface {
 	FilterState(state GameState, playerID PlayerID) GameState
 }
+
+// TurnTimeoutHandler is an optional interface a Game can implement to provide
+// a custom move payload when a player's turn times out.
+// If implemented, the timer calls ApplyMove with the returned payload instead
+// of applying the platform-level penalty directly.
+// The move is applied on behalf of the timed-out player (state.CurrentPlayerID).
+type TurnTimeoutHandler interface {
+	TimeoutMove() map[string]any
+}

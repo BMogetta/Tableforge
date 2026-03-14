@@ -896,3 +896,32 @@ func TestFilterState_PrivateRevealOnlyForRecipient(t *testing.T) {
 		t.Error("spectator should not see private reveals")
 	}
 }
+
+func TestTimeoutMove(t *testing.T) {
+	payload := game.TimeoutMove()
+	if payload["card"] != "penalty_lose" {
+		t.Errorf("expected penalty_lose, got %v", payload["card"])
+	}
+}
+
+func TestLoveLetter_ImplementsTurnTimeoutHandler(t *testing.T) {
+	var _ engine.TurnTimeoutHandler = &loveletter.LoveLetter{}
+}
+
+func TestApplyMove_Guard_NoValidTarget_NoEffect(t *testing.T) {
+	state := mustInit(t, "p1", "p2")
+	state = setHand(state, "p1", "guard", "spy")
+	state.Data["protected"] = []string{"p2"}
+	state = setDeck(state, "guard")
+
+	// Guard with empty target — legal when all opponents are protected.
+	// guess is still required by validation even when there is no valid target.
+	state = mustApply(t, state, move("p1", map[string]any{
+		"card":  "guard",
+		"guess": "priest",
+	}))
+
+	if isEliminated(t, state, "p2") {
+		t.Error("expected no elimination when guard played with no valid target")
+	}
+}

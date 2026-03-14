@@ -609,6 +609,12 @@ func highestHandWinner(state engine.GameState, active []string) string {
 	return bestPlayer
 }
 
+// TimeoutMove implements engine.TurnTimeoutHandler.
+// Returns a penalty_lose move that eliminates the active player via the engine.
+func (g *LoveLetter) TimeoutMove() map[string]any {
+	return map[string]any{"card": string(CardPenaltyLose)}
+}
+
 // ---------------------------------------------------------------------------
 // IsOver
 // ---------------------------------------------------------------------------
