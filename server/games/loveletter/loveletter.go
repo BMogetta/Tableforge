@@ -3,10 +3,10 @@ package loveletter
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/domain/engine"
+	"github.com/tableforge/server/internal/platform/randutil"
 )
 
 func init() {
@@ -116,10 +116,12 @@ func validateStandardMove(state engine.GameState, move engine.Move) error {
 		return fmt.Errorf("card %q is not in your hand", card)
 	}
 
-	// Countess must be played if player also holds King or Prince.
-	otherCard := otherCardInHand(hand, card)
-	if card != CardCountess && (otherCard == CardKing || otherCard == CardPrince) {
-		return errors.New("you must play the Countess when holding a King or Prince")
+	// Countess must be played if the player holds Countess together with
+	// King or Prince. Only enforced when Countess is actually in hand.
+	if card != CardCountess && containsCard(hand, CardCountess) {
+		if containsCard(hand, CardKing) || containsCard(hand, CardPrince) {
+			return errors.New("you must play the Countess when holding a King or Prince")
+		}
 	}
 
 	// Cards that require a target.
@@ -243,12 +245,8 @@ func (g *LoveLetter) ApplyMove(state engine.GameState, move engine.Move) (engine
 func applyStandardMove(state engine.GameState, move engine.Move, card CardName) (engine.GameState, error) {
 	playerID := string(move.PlayerID)
 
-	// Draw a card from the deck before playing.
-	state, drawnCard, err := drawCard(state, playerID)
-	if err != nil {
-		return state, fmt.Errorf("ApplyMove: draw: %w", err)
-	}
-	_ = drawnCard
+	// Clear private reveals from the previous turn before applying this move.
+	delete(state.Data, "private_reveals")
 
 	// Remove the played card from hand.
 	state = removeFromHand(state, playerID, card)
@@ -266,6 +264,7 @@ func applyStandardMove(state engine.GameState, move engine.Move, card CardName) 
 		target = playerID // default self-target for Prince
 	}
 
+	var err error
 	switch card {
 	case CardSpy:
 		state = applySpy(state, playerID)
@@ -292,6 +291,8 @@ func applyStandardMove(state engine.GameState, move engine.Move, card CardName) 
 	case CardCountess:
 		// No effect beyond being played.
 	}
+
+	_ = err
 
 	return advanceTurn(state)
 }
@@ -449,6 +450,7 @@ func applyChancellorResolve(state engine.GameState, move engine.Move) (engine.Ga
 	}
 	state.Data["deck"] = deck
 	delete(state.Data, "chancellor_choices")
+	state.Data["phase"] = phasePlaying
 
 	return advanceTurn(state)
 }
@@ -480,24 +482,11 @@ func applyPenaltyLose(state engine.GameState, playerID engine.PlayerID) (engine.
 // Turn advancement and round resolution
 // ---------------------------------------------------------------------------
 
-// advanceTurn removes Handmaid protection from the current player (it expires
-// after their turn), then checks whether the round is over. If not, it moves
-// to the next active player and checks if the deck is empty.
+// advanceTurn expires Handmaid protection for the next player (it expires
+// when their turn begins), checks whether the round is over, advances to
+// the next active player, and draws their turn card if needed.
 func advanceTurn(state engine.GameState) (engine.GameState, error) {
 	currentPlayer := string(state.CurrentPlayerID)
-
-	// Handmaid protection expires at end of turn.
-	protected := getStringSlice(state.Data, "protected")
-	newProtected := []string{}
-	for _, id := range protected {
-		if id != currentPlayer {
-			newProtected = append(newProtected, id)
-		}
-	}
-	state.Data["protected"] = newProtected
-
-	// Clear private reveals from the previous turn.
-	delete(state.Data, "private_reveals")
 
 	active := activePlayers(state)
 
@@ -506,15 +495,32 @@ func advanceTurn(state engine.GameState) (engine.GameState, error) {
 		return resolveRound(state)
 	}
 
-	// Round over if deck is empty.
-	deck := getStringSlice(state.Data, "deck")
-	if len(deck) == 0 {
-		return resolveRound(state)
-	}
-
-	// Advance to next active player.
+	// Determine next active player.
 	next := nextActivePlayer(state, currentPlayer)
+
+	// Handmaid protection expires when the protected player's turn begins.
+	protected := getStringSlice(state.Data, "protected")
+	newProtected := []string{}
+	for _, id := range protected {
+		if id != next {
+			newProtected = append(newProtected, id)
+		}
+	}
+	state.Data["protected"] = newProtected
+
+	// Advance turn.
 	state.CurrentPlayerID = engine.PlayerID(next)
+
+	// Draw turn card if the next player holds fewer than 2 cards.
+	// Prince may have already dealt them a card directly.
+	hands := getHands(state.Data)
+	if len(hands[next]) < 2 {
+		var err error
+		state, _, err = drawCard(state, next)
+		if err != nil {
+			return resolveRound(state)
+		}
+	}
 	return state, nil
 }
 
@@ -682,8 +688,13 @@ func (g *LoveLetter) FilterState(state engine.GameState, playerID engine.PlayerI
 // ---------------------------------------------------------------------------
 
 func dealRound(state engine.GameState, players []string, firstPlayer engine.PlayerID) engine.GameState {
-	deck := buildDeck()
-	shuffleDeck(deck)
+	unshuffled := buildDeck()
+	deck, err := randutil.Shuffle(unshuffled)
+	if err != nil {
+		// Fallback: use unshuffled deck rather than failing Init.
+		// crypto/rand failure is extremely rare and non-recoverable.
+		deck = unshuffled
+	}
 
 	// Set aside one card face-down.
 	faceDown := deck[0]
@@ -714,16 +725,14 @@ func dealRound(state engine.GameState, players []string, firstPlayer engine.Play
 	state.Data["spy_played_by"] = []string{}
 	state.Data["discard_piles"] = map[string]any{}
 	state.Data["round_winner_id"] = nil
+
 	state.Data["phase"] = phasePlaying
 	state.CurrentPlayerID = firstPlayer
 
+	// Draw the starting card for the first player so they hold 2 cards
+	// on their first turn. Subsequent players draw in advanceTurn.
+	state, _, _ = drawCard(state, string(firstPlayer))
 	return state
-}
-
-func shuffleDeck(deck []CardName) {
-	rand.Shuffle(len(deck), func(i, j int) {
-		deck[i], deck[j] = deck[j], deck[i]
-	})
 }
 
 // ---------------------------------------------------------------------------

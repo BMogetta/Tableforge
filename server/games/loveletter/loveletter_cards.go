@@ -45,7 +45,7 @@ func cardValue(c CardName) int {
 	return v
 }
 
-// deckComposition lists all 20 cards in the updated edition deck.
+// deckComposition lists all 21 cards in the updated edition deck.
 var deckComposition = []CardName{
 	CardSpy, CardSpy,
 	CardGuard, CardGuard, CardGuard, CardGuard, CardGuard, CardGuard,
