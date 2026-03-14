@@ -50,7 +50,7 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
 
     const off = playerSocket.on((event) => {
       if (event.type === 'match_found') {
-        const payload = event.payload as { match_id: string; quality: number; timeout: number }
+        const payload = event.payload
         setMatchFound(payload.match_id)
       }
 
@@ -59,20 +59,20 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
       }
 
       if (event.type === 'match_ready') {
-        const payload = event.payload as { room_id: string; session_id: string }
+        const payload = event.payload
         clearQueue()
         navigate(`/game/${payload.session_id}`)
       }
 
       if (event.type === 'queue_left') {
-        const payload = event.payload as { reason: string }
+        const payload = event.payload
         if (payload.reason !== 'opponent_declined') {
           clearQueue()
         }
       }
 
       if (event.type === 'queue_joined') {
-        const payload = event.payload as { reason?: string }
+        const payload = event.payload
         if (payload.reason === 'opponent_declined') {
           setQueued(Date.now())
         }

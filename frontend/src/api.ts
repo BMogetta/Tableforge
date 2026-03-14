@@ -44,13 +44,13 @@ export interface Room {
 }
 
 export interface RoomMessage {
-  id: string
+  message_id: string
   room_id: string
   player_id: string
   content: string
   reported: boolean
   hidden: boolean
-  created_at: string
+  timestamp: string
 }
 
 export interface RoomView {

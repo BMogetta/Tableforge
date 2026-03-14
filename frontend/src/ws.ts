@@ -37,13 +37,137 @@ export type WsEventType =
   | 'ws_connected'
   | 'ws_reconnecting'
   | 'ws_disconnected'
-
-export interface WsEvent {
-  type: WsEventType
-  payload: unknown
+ 
+// --- Payload types -----------------------------------------------------------
+ 
+/** Mirrors the MoveResult shape returned by the runtime on move/surrender/game_over. */
+export interface WsPayloadMoveResult {
+  session: { id: string; game_id: string; move_count: number; finished_at?: string }
+  state: { current_player_id: string; data: unknown }
+  is_over: boolean
+  result?: { winner_id?: string; is_draw?: boolean }
 }
+ 
+export interface WsPayloadGameStarted {
+  session: { id: string }
+}
+ 
+export interface WsPayloadRematchVote {
+  votes: number
+  total_players: number
+}
+ 
+export interface WsPayloadRematchReady {
+  room_id: string
+}
+ 
+export interface WsPayloadOwnerChanged {
+  owner_id: string
+}
+ 
+export interface WsPayloadSettingUpdated {
+  key: string
+  value: string
+}
+ 
+export interface WsPayloadPresenceUpdate {
+  player_id: string
+  online: boolean
+}
+ 
+export interface WsPayloadSpectatorCount {
+  spectator_count: number
+}
+ 
+/** Chat message payload — note: uses message_id/timestamp, not id/created_at. */
+export interface WsPayloadChatMessage {
+  message_id: string
+  room_id: string
+  player_id: string
+  content: string
+  reported: boolean
+  hidden: boolean
+  timestamp: string
+}
+ 
+export interface WsPayloadChatMessageHidden {
+  message_id: string
+}
+ 
+export interface WsPayloadQueueJoined {
+  position: number
+  estimated_wait_secs: number
+  /** Present when the server re-queued the player after an opponent decline. */
+  reason?: string
+}
+ 
+export interface WsPayloadQueueLeft {
+  reason: string
+}
+ 
+export interface WsPayloadMatchFound {
+  match_id: string
+  quality: number
+  timeout: number
+}
+ 
+export interface WsPayloadMatchCancelled {
+  match_id: string
+  reason: string
+}
+ 
+export interface WsPayloadMatchReady {
+  room_id: string
+  session_id: string
+}
+ 
+export interface WsPayloadPauseVoteUpdate {
+  votes: string[]
+  required: number
+}
+ 
+export interface WsPayloadResumeVoteUpdate {
+  votes: string[]
+  required: number
+}
+ 
+// --- Discriminated union -----------------------------------------------------
+ 
+export type WsEvent =
+  | { type: 'move_applied';       payload: WsPayloadMoveResult }
+  | { type: 'game_over';          payload: WsPayloadMoveResult }
+  | { type: 'game_started';       payload: WsPayloadGameStarted }
+  | { type: 'rematch_vote';       payload: WsPayloadRematchVote }
+  | { type: 'rematch_ready';      payload: WsPayloadRematchReady }
+  | { type: 'owner_changed';      payload: WsPayloadOwnerChanged }
+  | { type: 'room_closed';        payload: null }
+  | { type: 'player_joined';      payload: unknown } // TODO: type when used
+  | { type: 'player_left';        payload: unknown } // TODO: type when used
+  | { type: 'setting_updated';    payload: WsPayloadSettingUpdated }
+  | { type: 'presence_update';    payload: WsPayloadPresenceUpdate }
+  | { type: 'spectator_joined';   payload: WsPayloadSpectatorCount }
+  | { type: 'spectator_left';     payload: WsPayloadSpectatorCount }
+  | { type: 'chat_message';       payload: WsPayloadChatMessage }
+  | { type: 'chat_message_hidden'; payload: WsPayloadChatMessageHidden }
+  | { type: 'dm_received';        payload: unknown } // TODO: type when used
+  | { type: 'dm_read';            payload: unknown } // TODO: type when used
+  | { type: 'pause_vote_update';  payload: WsPayloadPauseVoteUpdate }
+  | { type: 'session_suspended';  payload: unknown } // TODO: type when used
+  | { type: 'resume_vote_update'; payload: WsPayloadResumeVoteUpdate }
+  | { type: 'session_resumed';    payload: unknown } // TODO: type when used
+  | { type: 'queue_joined';       payload: WsPayloadQueueJoined }
+  | { type: 'queue_left';         payload: WsPayloadQueueLeft }
+  | { type: 'match_found';        payload: WsPayloadMatchFound }
+  | { type: 'match_cancelled';    payload: WsPayloadMatchCancelled }
+  | { type: 'match_ready';        payload: WsPayloadMatchReady }
+  | { type: 'notification_received'; payload: unknown } // TODO: type when used
+  | { type: 'ws_connected';       payload: null }
+  | { type: 'ws_reconnecting';    payload: null }
+  | { type: 'ws_disconnected';    payload: null }
 
 type Handler = (event: WsEvent) => void
+
+// --- RoomSocket --------------------------------------------------------------
 
 export class RoomSocket {
   private ws: WebSocket | null = null
@@ -84,6 +208,7 @@ export class RoomSocket {
         this.attemptCount++
         if (this.attemptCount >= RoomSocket.MAX_ATTEMPTS) {
           this.emit('ws_disconnected')
+          return
         }
         this.emit('ws_reconnecting')
         const delay = Math.min(2 ** this.attemptCount * 1000, RoomSocket.MAX_BACKOFF_MS)
@@ -104,10 +229,24 @@ export class RoomSocket {
     this.ws = null
   }
 
-  private emit(type: WsEventType) {
+  private emit(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
     this.handlers.forEach((h) => h({ type, payload: null }))
   }
 }
+
+// --- PlayerSocket ------------------------------------------------------------
+ 
+/**
+ * PlayerSocket maintains a persistent WebSocket connection to the player's
+ * personal channel (/ws/players/{playerID}). It receives player-scoped events
+ * that are not tied to any specific room:
+ *   match_found, match_cancelled, match_ready,
+ *   queue_joined, queue_left,
+ *   dm_received, dm_read,
+ *   notification_received
+ *
+ * Connect once on login and close on logout.
+ */
 
 export class PlayerSocket {
   private ws: WebSocket | null = null
@@ -165,7 +304,7 @@ export class PlayerSocket {
     this.ws = null
   }
 
-  private emit(type: WsEventType) {
+  private emit(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
     this.handlers.forEach((h) => h({ type, payload: null }))
   }
 }

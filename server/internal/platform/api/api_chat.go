@@ -71,6 +71,8 @@ func handleSendRoomMessage(st store.Store, hub *ws.Hub) http.HandlerFunc {
 				"room_id":    msg.RoomID,
 				"player_id":  msg.PlayerID,
 				"content":    msg.Content,
+				"reported":   msg.Reported,
+				"hidden":     msg.Hidden,
 				"timestamp":  msg.CreatedAt,
 			},
 		})

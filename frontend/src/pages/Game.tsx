@@ -86,11 +86,11 @@ export default function Game() {
         qc.invalidateQueries({ queryKey: keys.session(sessionId!) })
       }
       if (event.type === 'presence_update') {
-        const payload = event.payload as { player_id: string; online: boolean }
+        const payload = event.payload
         setPlayerPresence(payload.player_id, payload.online)
       }
       if (event.type === 'move_applied') {
-        const payload = event.payload as MoveResult
+        const payload = event.payload
         qc.setQueryData(keys.session(sessionId!), {
           session: payload.session,
           state: payload.state,
@@ -98,7 +98,7 @@ export default function Game() {
         })
       }
       if (event.type === 'game_over') {
-        const payload = event.payload as MoveResult
+        const payload = event.payload
         qc.setQueryData(keys.session(sessionId!), {
           session: payload.session,
           state: payload.state,
@@ -109,14 +109,14 @@ export default function Game() {
         else if (payload.result?.is_draw) setIsDraw(true)
       }
       if (event.type === 'rematch_vote') {
-        const payload = event.payload as { votes: number; total_players: number }
+        const payload = event.payload
         setRematchVotes(payload.votes)
         setTotalPlayers(payload.total_players)
       }
       if (event.type === 'rematch_ready') {
         // All players voted — navigate back to the lobby.
         // The room is already in waiting state with settings preserved.
-        const payload = event.payload as { room_id: string }
+        const payload = event.payload
         navigate(`/rooms/${payload.room_id}`)
       }
     })

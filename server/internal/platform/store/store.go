@@ -170,25 +170,25 @@ type RematchVote struct {
 // RoomMessage is a single chat message in a room.
 // Messages are auditable and never deleted; managers may hide them.
 type RoomMessage struct {
-	ID        uuid.UUID `json:"id"`
+	ID        uuid.UUID `json:"message_id"`
 	RoomID    uuid.UUID `json:"room_id"`
 	PlayerID  uuid.UUID `json:"player_id"`
 	Content   string    `json:"content"`
 	Reported  bool      `json:"reported"`
 	Hidden    bool      `json:"hidden"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"timestamp"` // TODO rename CreatedAt to Timestamp for clarity, and be consistent across all models
 }
 
 // DirectMessage is a private message between two players.
 type DirectMessage struct {
-	ID         uuid.UUID  `json:"id"`
+	ID         uuid.UUID  `json:"message_id"`
 	SenderID   uuid.UUID  `json:"sender_id"`
 	ReceiverID uuid.UUID  `json:"receiver_id"`
 	Content    string     `json:"content"`
 	ReadAt     *time.Time `json:"read_at,omitempty"`
 	Reported   bool       `json:"reported"`
 	Hidden     bool       `json:"hidden"`
-	CreatedAt  time.Time  `json:"created_at"`
+	CreatedAt  time.Time  `json:"timestamp"` // TODO rename CreatedAt to Timestamp for clarity, and be consistent across all models
 }
 
 // PlayerMute records that MuterID has muted MutedID.

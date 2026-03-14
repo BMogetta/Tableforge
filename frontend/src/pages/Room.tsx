@@ -78,14 +78,14 @@ export default function Room() {
       }
 
       if (event.type === 'game_started') {
-        const payload = event.payload as { session: { id: string } }
+        const payload = event.payload
         if (!starting) {
           navigate(`/game/${payload.session.id}`)
         }
       }
 
       if (event.type === 'owner_changed') {
-        const payload = event.payload as { owner_id: string }
+        const payload = event.payload
         setOwnerId(payload.owner_id)
         refresh()
       }
@@ -95,17 +95,17 @@ export default function Room() {
       }
 
       if (event.type === 'setting_updated') {
-        const payload = event.payload as { key: string; value: string }
+        const payload = event.payload
         setSettings((prev) => ({ ...prev, [payload.key]: payload.value }))
       }
 
       if (event.type === 'spectator_joined' || event.type === 'spectator_left') {
-        const payload = event.payload as { spectator_count: number }
+        const payload = event.payload
         setSpectatorCount(payload.spectator_count)
       }
 
       if (event.type === 'presence_update') {
-        const payload = event.payload as { player_id: string; online: boolean }
+        const payload = event.payload
         setPlayerPresence(payload.player_id, payload.online)
       }
     })

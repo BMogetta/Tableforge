@@ -32,26 +32,17 @@ export default function ChatSidebar({ roomId, open, onToggle }: Props) {
     if (!socket) return
     const off = socket.on((event) => {
       if (event.type === 'chat_message') {
-        const payload = event.payload as { message_id: string; player_id: string; content: string; room_id: string; timestamp: string }
-        const msg: RoomMessage = {
-          id: payload.message_id,
-          room_id: payload.room_id,
-          player_id: payload.player_id,
-          content: payload.content,
-          created_at: payload.timestamp,
-          reported: false,
-          hidden: false,
-        }
+        const msg = event.payload
         qc.setQueryData<RoomMessage[]>(keys.roomMessages(roomId), (prev = []) => {
           // Deduplicate by id in case the HTTP resync already added it
-          if (prev.some((m) => m.id === msg.id)) return prev
+          if (prev.some((m) => m.message_id === msg.message_id)) return prev
           return [...prev, msg]
         })
       }
       if (event.type === 'chat_message_hidden') {
-        const { message_id } = event.payload as { message_id: string }
+        const { message_id } = event.payload
         qc.setQueryData<RoomMessage[]>(keys.roomMessages(roomId), (prev = []) =>
-          prev.map((m) => m.id === message_id ? { ...m, hidden: true } : m)
+          prev.map((m) => m.message_id === message_id ? { ...m, hidden: true } : m)
         )
       }
     })
@@ -100,7 +91,7 @@ export default function ChatSidebar({ roomId, open, onToggle }: Props) {
               <p className={styles.empty}>No messages yet.</p>
             ) : (
               visibleMessages.map((msg) => (
-                <ChatMessage key={msg.id} msg={msg} isSelf={msg.player_id === player.id} />
+                <ChatMessage key={msg.message_id} msg={msg} isSelf={msg.player_id === player.id} />
               ))
             )}
             <div ref={bottomRef} />
@@ -142,8 +133,8 @@ interface ChatMessageProps {
 }
 
 function ChatMessage({ msg, isSelf }: ChatMessageProps) {
-  const time = msg.created_at
-    ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const time = msg.timestamp
+    ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : ''
 
   return (
