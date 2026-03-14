@@ -79,7 +79,7 @@ type moveRequest struct {
 }
 
 // POST /api/v1/sessions/{sessionID}/move
-func handleMove(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
+func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
 		if err != nil {
@@ -105,10 +105,8 @@ func handleMove(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 		if result.IsOver {
 			eventType = ws.EventGameOver
 		}
-		hub.Broadcast(result.Session.RoomID, ws.Event{
-			Type:    eventType,
-			Payload: result,
-		})
+		players, _ := st.ListRoomPlayers(r.Context(), result.Session.RoomID)
+		rt.BroadcastMove(r.Context(), hub, result, eventType, players)
 		movesTotal.WithLabelValues(result.Session.GameID).Inc()
 		if result.IsOver {
 			activeSessions.Dec()
@@ -162,7 +160,7 @@ type surrenderRequest struct {
 }
 
 // POST /api/v1/sessions/{sessionID}/surrender
-func handleSurrender(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
+func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
 		if err != nil {
@@ -184,10 +182,8 @@ func handleSurrender(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 			writeRuntimeError(w, err)
 			return
 		}
-		hub.Broadcast(result.Session.RoomID, ws.Event{
-			Type:    ws.EventGameOver,
-			Payload: result,
-		})
+		players, _ := st.ListRoomPlayers(r.Context(), result.Session.RoomID)
+		rt.BroadcastMove(r.Context(), hub, result, ws.EventGameOver, players)
 		activeSessions.Dec()
 		writeJSON(w, http.StatusOK, result)
 	}

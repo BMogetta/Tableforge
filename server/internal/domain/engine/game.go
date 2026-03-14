@@ -78,3 +78,16 @@ type Game interface {
 type Registry interface {
 	Get(id string) (Game, error)
 }
+
+// StateFilter is an optional interface a Game can implement when different
+// players must receive different views of the same game state.
+// If a game does not implement this interface, the full state is broadcast
+// to all players unchanged.
+//
+// FilterState must return a state safe to send to playerID:
+//   - strip other players' hands from the returned state
+//   - strip chancellor_choices when playerID is not the active player
+//   - spectators pass playerID == "" and receive a view with all hands empty
+type StateFilter interface {
+	FilterState(state GameState, playerID PlayerID) GameState
+}

@@ -33,7 +33,8 @@ const (
 	// update the spectator count in real time.
 	EventSpectatorJoined EventType = "spectator_joined"
 	EventSpectatorLeft   EventType = "spectator_left"
-	// EventPresenceUpdated is broadcast to all room clients when a player connects or disconnects, so clients can update the player list in real time. The payload is a list of currently connected player IDs.
+	// EventPresenceUpdated is broadcast to all room clients when a player
+	// connects or disconnects.
 	EventPresenceUpdated EventType = "presence_update"
 	// EventChatMessage is broadcast to all room clients (including spectators)
 	// when a player sends a chat message.
@@ -78,8 +79,7 @@ const (
 	EventNotificationReceived EventType = "notification_received"
 )
 
-// spectatorOnlyEvents are never sent to spectators.
-// Currently only rematch_vote — spectators cannot vote and don't need the tally.
+// spectatorBlocklist lists events that are never delivered to spectator clients.
 var spectatorBlocklist = map[EventType]bool{
 	EventRematchVote:      true,
 	EventPauseVoteUpdate:  true,
@@ -88,10 +88,18 @@ var spectatorBlocklist = map[EventType]bool{
 	EventSessionResumed:   true,
 }
 
-// Event is the envelope sent to all clients in a room.
+// Event is the envelope sent to clients in a room.
 type Event struct {
 	Type    EventType `json:"type"`
 	Payload any       `json:"payload"`
+}
+
+// filteredEnvelope is used internally when publishing via Redis to carry both
+// the player-facing and spectator-facing payloads in a single pub/sub message.
+// The s (spectator_only) flag tells listenRoom which fanout path to use.
+type filteredEnvelope struct {
+	S    bool            `json:"s,omitempty"` // true → deliver only to spectators
+	Data json.RawMessage `json:"d"`
 }
 
 // Hub manages per-room client sets and broadcasts events.
@@ -105,7 +113,7 @@ type Hub struct {
 	pmu     sync.RWMutex
 	players map[uuid.UUID]map[*Client]struct{}
 
-	rdb *redis.Client // nil → single-instance mode (original behaviour)
+	rdb *redis.Client // nil → single-instance mode
 }
 
 func NewHub() *Hub {
@@ -138,7 +146,6 @@ func (h *Hub) subscribe(roomID uuid.UUID, c *Client) {
 	}
 	h.rooms[roomID][c] = struct{}{}
 
-	// If this is the first local client for the room, start a Redis subscription.
 	if h.rdb != nil && len(h.rooms[roomID]) == 1 {
 		go h.listenRoom(roomID)
 	}
@@ -173,9 +180,9 @@ func (h *Hub) SpectatorCount(roomID uuid.UUID) int {
 	return count
 }
 
-// Broadcast publishes an event. In Redis mode the message is published to
-// the Redis channel; listenRoom delivers it to local clients.
-// In single-instance mode it fans out directly.
+// Broadcast publishes an event to all clients in a room (players + spectators),
+// respecting the spectatorBlocklist. Use BroadcastFiltered when players and
+// spectators need different state payloads (e.g. games with private hands).
 func (h *Hub) Broadcast(roomID uuid.UUID, event Event) {
 	if h == nil {
 		return
@@ -188,7 +195,12 @@ func (h *Hub) Broadcast(roomID uuid.UUID, event Event) {
 	}
 
 	if h.rdb != nil {
-		if err := h.rdb.Publish(context.Background(), channelKey(roomID), data).Err(); err != nil {
+		env, err := json.Marshal(filteredEnvelope{S: false, Data: data})
+		if err != nil {
+			log.Printf("ws: marshal broadcast envelope: %v", err)
+			return
+		}
+		if err := h.rdb.Publish(context.Background(), channelKey(roomID), env).Err(); err != nil {
 			log.Printf("ws: redis publish: %v", err)
 		}
 		return
@@ -197,8 +209,58 @@ func (h *Hub) Broadcast(roomID uuid.UUID, event Event) {
 	h.fanout(roomID, event.Type, data)
 }
 
+// BroadcastFiltered sends playerEvent to non-spectator clients and
+// spectatorEvent to spectator clients in the same room.
+// Use this for games with private state (e.g. Love Letter hands).
+// Events in spectatorBlocklist are still suppressed for spectators.
+func (h *Hub) BroadcastFiltered(roomID uuid.UUID, playerEvent Event, spectatorEvent Event) {
+	if h == nil {
+		return
+	}
+
+	var playerData []byte
+	if playerEvent.Payload != nil {
+		var err error
+		playerData, err = json.Marshal(playerEvent)
+		if err != nil {
+			log.Printf("ws: BroadcastFiltered marshal player event: %v", err)
+			return
+		}
+	}
+	spectatorData, err := json.Marshal(spectatorEvent)
+	if err != nil {
+		log.Printf("ws: BroadcastFiltered marshal spectator event: %v", err)
+		return
+	}
+
+	if h.rdb != nil {
+		// Publish player payload (s=false) and spectator payload (s=true) separately.
+		// listenRoom routes each to the correct client set.
+		playerEnv, err := json.Marshal(filteredEnvelope{S: false, Data: playerData})
+		if err != nil {
+			log.Printf("ws: BroadcastFiltered marshal player envelope: %v", err)
+			return
+		}
+		spectatorEnv, err := json.Marshal(filteredEnvelope{S: true, Data: spectatorData})
+		if err != nil {
+			log.Printf("ws: BroadcastFiltered marshal spectator envelope: %v", err)
+			return
+		}
+		if err := h.rdb.Publish(context.Background(), channelKey(roomID), playerEnv).Err(); err != nil {
+			log.Printf("ws: redis publish player event: %v", err)
+		}
+		if err := h.rdb.Publish(context.Background(), channelKey(roomID), spectatorEnv).Err(); err != nil {
+			log.Printf("ws: redis publish spectator event: %v", err)
+		}
+		return
+	}
+
+	h.fanoutFiltered(roomID, playerEvent.Type, playerData, spectatorData)
+}
+
 // listenRoom subscribes to the Redis channel for roomID and fans out messages
 // to local clients. It exits when there are no more local clients for the room.
+// Messages are wrapped in filteredEnvelope to support BroadcastFiltered routing.
 func (h *Hub) listenRoom(roomID uuid.UUID) {
 	sub := h.rdb.Subscribe(context.Background(), channelKey(roomID))
 	defer sub.Close()
@@ -211,13 +273,29 @@ func (h *Hub) listenRoom(roomID uuid.UUID) {
 		if !active {
 			return
 		}
-		// In Redis mode we don't have the EventType at fanout time, so we
-		// re-parse just the type field for spectator filtering.
-		var envelope struct {
+
+		var env filteredEnvelope
+		if err := json.Unmarshal([]byte(msg.Payload), &env); err != nil {
+			log.Printf("ws: listenRoom unmarshal envelope: %v", err)
+			continue
+		}
+
+		// Parse the event type for spectatorBlocklist checks.
+		var header struct {
 			Type EventType `json:"type"`
 		}
-		_ = json.Unmarshal([]byte(msg.Payload), &envelope)
-		h.fanout(roomID, envelope.Type, []byte(msg.Payload))
+		_ = json.Unmarshal(env.Data, &header)
+
+		if env.S {
+			// Spectator-only payload from BroadcastFiltered.
+			h.fanoutSpectatorsOnly(roomID, header.Type, env.Data)
+		} else {
+			// Player payload — or a plain Broadcast (s=false, goes to everyone).
+			// For BroadcastFiltered the spectator payload arrives separately (s=true).
+			// For plain Broadcast there is no separate spectator message, so
+			// non-spectators get this and spectators also get it (unless blocklisted).
+			h.fanout(roomID, header.Type, env.Data)
+		}
 	}
 }
 
@@ -238,6 +316,64 @@ func (h *Hub) fanout(roomID uuid.UUID, eventType EventType, data []byte) {
 		case c.send <- data:
 		default:
 			log.Printf("ws: dropping slow client in room %s", roomID)
+			close(c.send)
+		}
+	}
+}
+
+// fanoutFiltered delivers playerData to non-spectators and spectatorData to
+// spectators. Events in spectatorBlocklist are suppressed for spectators.
+func (h *Hub) fanoutFiltered(roomID uuid.UUID, eventType EventType, playerData, spectatorData []byte) {
+	h.mu.RLock()
+	clients := h.rooms[roomID]
+	h.mu.RUnlock()
+
+	blocked := spectatorBlocklist[eventType]
+
+	for c := range clients {
+		if c.spectator {
+			if blocked {
+				continue
+			}
+			select {
+			case c.send <- spectatorData:
+			default:
+				log.Printf("ws: dropping slow spectator in room %s", roomID)
+				close(c.send)
+			}
+		} else {
+			if playerData == nil {
+				continue
+			}
+			select {
+			case c.send <- playerData:
+			default:
+				log.Printf("ws: dropping slow client in room %s", roomID)
+				close(c.send)
+			}
+		}
+	}
+}
+
+// fanoutSpectatorsOnly delivers data only to spectator clients in a room.
+// Used by listenRoom when processing a spectator-only envelope (s=true).
+func (h *Hub) fanoutSpectatorsOnly(roomID uuid.UUID, eventType EventType, data []byte) {
+	h.mu.RLock()
+	clients := h.rooms[roomID]
+	h.mu.RUnlock()
+
+	if spectatorBlocklist[eventType] {
+		return
+	}
+
+	for c := range clients {
+		if !c.spectator {
+			continue
+		}
+		select {
+		case c.send <- data:
+		default:
+			log.Printf("ws: dropping slow spectator in room %s", roomID)
 			close(c.send)
 		}
 	}

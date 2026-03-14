@@ -113,13 +113,13 @@ func NewRouter(
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
 		r.Get("/sessions/{sessionID}/events", handleGetSessionEvents(eventStore))
-		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub))
+		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub, st))
 		r.Post("/sessions/{sessionID}/rematch", handleRematch(rt, hub))
 		r.Post("/sessions/{sessionID}/pause", handleVotePause(rt, hub))
 		r.Post("/sessions/{sessionID}/resume", handleVoteResume(rt, hub))
 		r.With(requireRole(store.RoleManager)).Delete("/sessions/{sessionID}", handleForceCloseSession(st, hub))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
-		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub))
+		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub, st))
 
 		// Direct messages
 		r.Post("/players/{playerID}/dm", handleSendDM(st, hub))

@@ -73,6 +73,54 @@ func (svc *Service) StartSession(session store.GameSession) {
 	}
 }
 
+// BroadcastMove fans out a MoveResult to all clients in the room.
+// For games that implement engine.StateFilter, each player receives a filtered
+// view of the state via BroadcastToPlayer, and spectators receive their own
+// filtered view via BroadcastFiltered. Falls back to a single hub.Broadcast
+// for games without private state (e.g. TicTacToe).
+//
+// players must be the full list of room players (non-spectators). Obtain it
+// from store.ListRoomPlayers before calling this method.
+func (svc *Service) BroadcastMove(
+	ctx context.Context,
+	hub *ws.Hub,
+	result MoveResult,
+	eventType ws.EventType,
+	players []store.RoomPlayer,
+) {
+	game, err := svc.registry.Get(result.Session.GameID)
+	if err != nil {
+		hub.Broadcast(result.Session.RoomID, ws.Event{Type: eventType, Payload: result})
+		return
+	}
+
+	sf, ok := game.(engine.StateFilter)
+	if !ok {
+		hub.Broadcast(result.Session.RoomID, ws.Event{Type: eventType, Payload: result})
+		return
+	}
+
+	// Per-player filtered broadcast via the player channel.
+	for _, p := range players {
+		filtered := result
+		filtered.State = sf.FilterState(result.State, engine.PlayerID(p.PlayerID.String()))
+		hub.BroadcastToPlayer(p.PlayerID, ws.Event{Type: eventType, Payload: filtered})
+	}
+
+	// Spectator view: playerID "" signals an empty-hands view.
+	spectatorResult := result
+	spectatorResult.State = sf.FilterState(result.State, engine.PlayerID(""))
+
+	// Players were already notified via BroadcastToPlayer above.
+	// BroadcastFiltered here delivers the spectator-filtered payload to
+	// spectator clients on the room channel. playerData nil skips non-spectators.
+	hub.BroadcastFiltered(
+		result.Session.RoomID,
+		ws.Event{Type: eventType, Payload: nil},
+		ws.Event{Type: eventType, Payload: spectatorResult},
+	)
+}
+
 // ApplyMove validates and applies a player move to the given session.
 func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID, payload map[string]any) (MoveResult, error) {
 	session, err := svc.store.GetGameSession(ctx, sessionID)
@@ -318,7 +366,7 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 	}
 
 	if _, err := svc.store.CreateGameResult(ctx, store.CreateGameResultParams{
-		SessionID: sessionID,
+		SessionID: session.ID,
 		GameID:    session.GameID,
 		WinnerID:  opponentID,
 		IsDraw:    false,
