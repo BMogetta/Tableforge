@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,7 +23,6 @@ type Limiter struct {
 
 // New creates a production-ready Limiter.
 // It uses a real Redis-backed script runner and the system clock.
-// This function preserves the original public API.
 func New(rdb *redis.Client, limit int, window time.Duration) *Limiter {
 	return &Limiter{
 		runner:   newRedisScriptRunner(rdb),
@@ -82,7 +82,12 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 		w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(reset, 10))
 
 		if !allowed {
-			http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(map[string]any{
+				"error":    "rate limit exceeded",
+				"reset_at": reset,
+			})
 			return
 		}
 

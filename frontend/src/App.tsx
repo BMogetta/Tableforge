@@ -10,6 +10,8 @@ import Admin from './pages/Admin'
 import { lazy } from 'react'
 import SessionHistory from './pages/SessionHistory'
 import { emitErrorLog } from './telemetry'
+import { ToastProvider } from './components/ui/Toast'
+import RateLimited from './pages/RateLimited'
 const TestError = lazy(() => import('./pages/TestError'))
 
 // --- Error boundary ----------------------------------------------------------
@@ -30,8 +32,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Errors are also captured by the window.onerror handler in telemetry.ts,
-    // but logging here ensures we catch render-phase errors specifically.
     console.error('ErrorBoundary caught:', error, info.componentStack)
     emitErrorLog(error.message, {
       'error.type': 'react.boundary',
@@ -121,16 +121,12 @@ export default function App() {
     auth.me()
       .then((p) => {
         setPlayer(p)
-        // Open the player channel WS so queue and DM events are received
-        // immediately after login, regardless of which page the player is on.
         connectPlayerSocket(wsPlayerUrl(p.id))
       })
       .catch(() => setPlayer(null))
       .finally(() => setLoading(false))
   }, [])
 
-  // Close the player socket on logout (when player transitions null→non-null
-  // is handled above; null means logged out).
   useEffect(() => {
     if (!player) {
       disconnectPlayerSocket()
@@ -141,29 +137,32 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <ErrorBoundary>
-        <Routes>
-          <Route path="/login" element={player ? <Navigate to="/" replace /> : <Login />} />
-          <Route path="/" element={<RequireAuth><Lobby /></RequireAuth>} />
-          <Route path="/rooms/:roomId" element={<RequireAuth><Room /></RequireAuth>} />
-          <Route path="/game/:sessionId" element={<RequireAuth><Game /></RequireAuth>} />
-          <Route path="/sessions/:sessionId/history" element={<RequireAuth><SessionHistory /></RequireAuth>} />
-          <Route
-            path="/admin"
-            element={
-              <RequireAuth>
-                <RequireRole role="manager">
-                  <Admin />
-                </RequireRole>
-              </RequireAuth>
-            }
-          />
-          {import.meta.env.VITE_TEST_MODE === 'true' && (
-            <Route path="/test/error" element={<TestError />} />
-          )}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </ErrorBoundary>
+      <ToastProvider>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/login" element={player ? <Navigate to="/" replace /> : <Login />} />
+            <Route path="/" element={<RequireAuth><Lobby /></RequireAuth>} />
+            <Route path="/rooms/:roomId" element={<RequireAuth><Room /></RequireAuth>} />
+            <Route path="/game/:sessionId" element={<RequireAuth><Game /></RequireAuth>} />
+            <Route path="/sessions/:sessionId/history" element={<RequireAuth><SessionHistory /></RequireAuth>} />
+            <Route
+              path="/admin"
+              element={
+                <RequireAuth>
+                  <RequireRole role="manager">
+                    <Admin />
+                  </RequireRole>
+                </RequireAuth>
+              }
+            />
+            <Route path="/rate-limited" element={<RateLimited />} />
+            {import.meta.env.VITE_TEST_MODE === 'true' && (
+              <Route path="/test/error" element={<TestError />} />
+            )}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
+      </ToastProvider>
     </BrowserRouter>
   )
 }

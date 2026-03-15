@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { rooms, bots, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting, type BotProfile } from '../api'
+import { ok, error, catchToAppError, type AppError } from '../helpers/errors'
+import { useToast } from '../components/ui/Toast'
+import ErrorMessage from '../components/ui/ErrorMessage'
 import RoomSettings from '../components/room/RoomSettings'
 import ChatSidebar from '../components/room/ChatSidebar'
 import styles from './Room.module.css'
@@ -17,10 +20,11 @@ export default function Room() {
   const setIsSpectator = useAppStore((s) => s.setIsSpectator)
   const setSpectatorCount = useAppStore((s) => s.setSpectatorCount)
   const navigate = useNavigate()
+  const toast = useToast()
 
   const [view, setView] = useState<RoomView | null>(null)
-  const [error, setError] = useState('')
   const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<AppError | null>(null)
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('connecting')
   const [ownerId, setOwnerId] = useState<string | null>(null)
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -30,7 +34,7 @@ export default function Room() {
   const [botProfiles, setBotProfiles] = useState<BotProfile[]>([])
   const [selectedProfile, setSelectedProfile] = useState('medium')
   const [addingBot, setAddingBot] = useState(false)
-  const [botError, setBotError] = useState('')
+  const [botError, setBotError] = useState<AppError | null>(null)
   const [gameHasBotAdapter, setGameHasBotAdapter] = useState(false)
   const [removingBotId, setRemovingBotId] = useState<string | null>(null)
 
@@ -42,15 +46,13 @@ export default function Room() {
     rooms.get(roomId!).then((v) => {
       setView(v)
       setSettings(v.settings ?? {})
-    }).catch(() => setError('Room not found'))
-  }, [roomId])
+    }).catch((e) => {
+      // Room fetch failure is unexpected — show in toast since there's no
+      // obvious inline location at this point (view may be null).
+      toast.showError(catchToAppError(e))
+    })
+  }, [roomId, toast])
 
-  // Connect the global socket when entering the room.
-  // wsRoomUrl includes the player_id so the server can resolve participant vs spectator.
-  // Do NOT close on unmount — Game.tsx reuses the same socket instance.
-  // joinRoom is intentionally omitted from deps — it is a stable Zustand action
-  // that never changes identity. Including it would cause the effect to re-run
-  // on every store update, closing and reopening the socket unnecessarily.
   useEffect(() => {
     joinRoom(roomId!, wsRoomUrl(roomId!, player.id))
   }, [roomId, player.id])
@@ -133,13 +135,19 @@ export default function Room() {
 
   async function handleStart() {
     setStarting(true)
-    try {
-      const session = await rooms.start(roomId!, player.id)
-      navigate(`/game/${session.id}`)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to start game')
+    setStartError(null)
+
+    const [err, session] = await rooms.start(roomId!, player.id)
+      .then((s) => ok(s))
+      .catch((e) => error(catchToAppError(e)))
+
+    if (err) {
+      setStartError(err)
       setStarting(false)
+      return
     }
+
+    navigate(`/game/${session.id}`)
   }
 
   async function handleLeave() {
@@ -150,27 +158,36 @@ export default function Room() {
 
   async function handleAddBot() {
     setAddingBot(true)
-    setBotError('')
-    try {
-      await bots.add(roomId!, player.id, selectedProfile)
+    setBotError(null)
+
+    const [err] = await bots.add(roomId!, player.id, selectedProfile)
+      .then((p) => ok(p))
+      .catch((e) => error(catchToAppError(e)))
+
+    if (err) {
+      setBotError(err)
+    } else {
       refresh()
-    } catch (e: unknown) {
-      setBotError(e instanceof Error ? e.message : 'Failed to add bot')
-    } finally {
-      setAddingBot(false)
     }
+
+    setAddingBot(false)
   }
 
   async function handleRemoveBot(botId: string) {
     setRemovingBotId(botId)
-    try {
-      await bots.remove(roomId!, player.id, botId)
+
+    const [err] = await bots.remove(roomId!, player.id, botId)
+      .then(() => ok(null))
+      .catch((e) => error(catchToAppError(e)))
+
+    if (err) {
+      // Remove is a transient action with no inline location — use toast.
+      toast.showError(err)
+    } else {
       refresh()
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to remove bot')
-    } finally {
-      setRemovingBotId(null)
     }
+
+    setRemovingBotId(null)
   }
 
   function handleSettingChange(key: string, value: string) {
@@ -230,7 +247,9 @@ export default function Room() {
                   {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
                   <span className={styles.playerName}>
                     {p.username}
-                    {p.is_bot && <span className="badge badge-muted" style={{ marginLeft: 6 }}>Bot</span>}
+                    {p.is_bot && (
+                      <span className="badge badge-muted" style={{ marginLeft: 6 }}>Bot</span>
+                    )}
                   </span>
                   {p.id === ownerId && <span className="badge badge-amber">Host</span>}
                   {p.id === player.id && <span className="badge badge-muted">You</span>}
@@ -298,7 +317,7 @@ export default function Room() {
                     {addingBot ? 'Adding...' : 'Add Bot'}
                   </button>
                 </div>
-                {botError && <p className={styles.error}>{botError}</p>}
+                <ErrorMessage error={botError} />
               </section>
             </>
           )}
@@ -369,7 +388,7 @@ export default function Room() {
             )}
           </div>
 
-          {error && <p className={styles.error}>{error}</p>}
+          <ErrorMessage error={startError} />
         </div>
 
         <ChatSidebar

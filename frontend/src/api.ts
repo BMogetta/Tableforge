@@ -259,6 +259,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         const body = await res.json().catch(() => ({}))
         span.setStatus({ code: SpanStatusCode.ERROR, message: `HTTP ${res.status}` })
         span.end()
+        // Redirect to dedicated page on rate limit so the user gets clear feedback.
+        if (res.status === 429) {
+          window.location.href = '/rate-limited'
+        }
+        
         throw new ApiError(res.status, body.error ?? res.statusText)
       }
 
