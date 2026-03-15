@@ -13,6 +13,7 @@ type Player struct {
 	ID        uuid.UUID  `json:"id"`
 	Username  string     `json:"username"`
 	Role      PlayerRole `json:"role"`
+	IsBot     bool       `json:"is_bot"`
 	AvatarURL *string    `json:"avatar_url,omitempty"`
 	CreatedAt time.Time  `json:"created_at"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
@@ -297,6 +298,9 @@ type Store interface {
 	GetPlayerByUsername(ctx context.Context, username string) (Player, error)
 	UpdatePlayerAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error
 	SoftDeletePlayer(ctx context.Context, id uuid.UUID) error
+
+	// Bots
+	CreateBotPlayer(ctx context.Context, username string) (Player, error)
 
 	// Admin — allowed emails
 	ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error)

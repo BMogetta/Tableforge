@@ -30,6 +30,10 @@ type BotMove string
 
 // BotAdapter is the bridge between the MCTS engine and a specific game.
 // Each game must implement this interface to enable bot support.
+//
+// Contract for Search callers: always check IsTerminal before calling
+// Search. Search returns ErrNoMoves if ValidMoves returns empty, but
+// the canonical guard is IsTerminal.
 type BotAdapter interface {
 	// ValidMoves returns all legal moves for the current player in state s.
 	// The returned slice must be non-nil and non-empty for non-terminal states.
@@ -56,4 +60,11 @@ type BotAdapter interface {
 	// know. For games with no hidden information (TicTacToe), this is an
 	// identity function that returns s unchanged.
 	Determinize(s BotGameState, observer engine.PlayerID) BotGameState
+
+	// RolloutPolicy selects a move during a simulation rollout.
+	// moves is guaranteed non-empty when called.
+	// The default (random) implementation is sufficient for most games;
+	// adapters may override this for guided (heuristic) playouts.
+	// The Personality field in BotConfig can inform heuristic weight.
+	RolloutPolicy(s BotGameState, moves []BotMove) BotMove
 }

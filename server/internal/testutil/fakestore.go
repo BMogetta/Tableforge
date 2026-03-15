@@ -51,7 +51,14 @@ func NewFakeStore() *FakeStore {
 // --- Players -----------------------------------------------------------------
 
 func (f *FakeStore) CreatePlayer(_ context.Context, username string) (store.Player, error) {
-	p := store.Player{ID: uuid.New(), Username: username, CreatedAt: time.Now()}
+	p := store.Player{ID: uuid.New(), Username: username, IsBot: false, CreatedAt: time.Now()}
+	f.Players[p.ID] = p
+	return p, nil
+}
+
+// CreateBotPlayer inserts a player with IsBot = true.
+func (f *FakeStore) CreateBotPlayer(_ context.Context, username string) (store.Player, error) {
+	p := store.Player{ID: uuid.New(), Username: username, IsBot: true, CreatedAt: time.Now()}
 	f.Players[p.ID] = p
 	return p, nil
 }

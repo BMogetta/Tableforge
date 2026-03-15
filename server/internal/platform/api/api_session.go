@@ -110,6 +110,14 @@ func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFu
 		movesTotal.WithLabelValues(result.Session.GameID).Inc()
 		if result.IsOver {
 			activeSessions.Dec()
+		} else {
+			// If the next player is a registered bot, fire its move
+			// asynchronously. This is a no-op if no bot is registered
+			// for the next player.
+			nextPlayerUUID, parseErr := uuid.Parse(string(result.State.CurrentPlayerID))
+			if parseErr == nil {
+				rt.MaybeFireBot(r.Context(), hub, sessionID, nextPlayerUUID)
+			}
 		}
 		writeJSON(w, http.StatusOK, result)
 	}

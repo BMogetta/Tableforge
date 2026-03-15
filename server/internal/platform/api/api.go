@@ -97,6 +97,7 @@ func NewRouter(
 
 		r.Get("/games", handleListGames)
 		r.Get("/leaderboard", handleGetLeaderboard(st))
+		r.Get("/bots/profiles", handleListBotProfiles())
 
 		r.Post("/players", handleCreatePlayer(st))
 		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
@@ -110,6 +111,8 @@ func NewRouter(
 		r.Post("/rooms/{roomID}/leave", handleLeaveRoom(lobbyService, hub))
 		r.Post("/rooms/{roomID}/start", handleStartGame(lobbyService, rt, hub))
 		r.Put("/rooms/{roomID}/settings/{key}", handleUpdateRoomSetting(lobbyService, hub))
+		r.Post("/rooms/{roomID}/bots", handleAddBot(rt, hub, st))
+		r.Delete("/rooms/{roomID}/bots/{botID}", handleRemoveBot(rt, hub, st))
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
 		r.Get("/sessions/{sessionID}/events", handleGetSessionEvents(eventStore))

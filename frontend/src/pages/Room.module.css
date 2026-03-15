@@ -213,3 +213,54 @@
   background: var(--success);
   box-shadow: 0 0 4px var(--success);
 }
+
+/* Bot section */
+.botSection {
+  margin: 4px 0;
+}
+
+.botRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.botSelect {
+  flex: 1;
+  padding: 7px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.botSelect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.removeBotBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  transition: color 0.15s, background 0.15s;
+}
+
+.removeBotBtn:hover {
+  color: var(--danger);
+  background: rgba(220, 50, 50, 0.1);
+}
+
+.removeBotBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -41,8 +41,8 @@ func (s *PGStore) Exec(ctx context.Context, sql string) error {
 func (s *PGStore) CreatePlayer(ctx context.Context, username string) (Player, error) {
 	row := s.pool.QueryRow(ctx,
 		`INSERT INTO players (username)
-		 VALUES ($1)
-		 RETURNING id, username, avatar_url, role, created_at, deleted_at`,
+         VALUES ($1)
+         RETURNING id, username, avatar_url, role, is_bot, created_at, deleted_at`,
 		username,
 	)
 	return scanPlayer(row)
@@ -50,7 +50,7 @@ func (s *PGStore) CreatePlayer(ctx context.Context, username string) (Player, er
 
 func (s *PGStore) GetPlayer(ctx context.Context, id uuid.UUID) (Player, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, username, avatar_url, role, created_at, deleted_at
+		`SELECT id, username, avatar_url, role, is_bot, created_at, deleted_at
 		 FROM players WHERE id = $1 AND deleted_at IS NULL`,
 		id,
 	)
@@ -59,7 +59,7 @@ func (s *PGStore) GetPlayer(ctx context.Context, id uuid.UUID) (Player, error) {
 
 func (s *PGStore) GetPlayerByUsername(ctx context.Context, username string) (Player, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, username, avatar_url, role, created_at, deleted_at
+		`SELECT id, username, avatar_url, role, is_bot, created_at, deleted_at
 		 FROM players WHERE username = $1 AND deleted_at IS NULL`,
 		username,
 	)
@@ -83,6 +83,16 @@ func (s *PGStore) SoftDeletePlayer(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("SoftDeletePlayer: %w", err)
 	}
 	return nil
+}
+
+func (s *PGStore) CreateBotPlayer(ctx context.Context, username string) (Player, error) {
+	row := s.pool.QueryRow(ctx,
+		`INSERT INTO players (username, is_bot)
+         VALUES ($1, TRUE)
+         RETURNING id, username, avatar_url, role, is_bot, created_at, deleted_at`,
+		username,
+	)
+	return scanPlayer(row)
 }
 
 func (s *PGStore) UpdateRoomOwner(ctx context.Context, roomID, newOwnerID uuid.UUID) error {
@@ -173,7 +183,7 @@ func (s *PGStore) RemoveAllowedEmail(ctx context.Context, email string) error {
 // ListPlayers returns all non-deleted players.
 func (s *PGStore) ListPlayers(ctx context.Context) ([]Player, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, username, avatar_url, role, created_at, deleted_at
+		`SELECT id, username, avatar_url, role, is_bot, created_at, deleted_at
 		 FROM players
 		 WHERE deleted_at IS NULL
 		 ORDER BY created_at DESC`,
@@ -675,7 +685,7 @@ func (s *PGStore) UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthPar
 		 VALUES ($1, $2)
 		 ON CONFLICT (username) DO UPDATE
 		   SET avatar_url = EXCLUDED.avatar_url
-		 RETURNING id, username, avatar_url, role, created_at, deleted_at`,
+		 RETURNING id, username, avatar_url, role, is_bot, created_at, deleted_at`,
 		params.Username, params.AvatarURL,
 	)
 	player, err := scanPlayer(row)
@@ -888,7 +898,7 @@ type scanner interface {
 
 func scanPlayer(row scanner) (Player, error) {
 	var p Player
-	if err := row.Scan(&p.ID, &p.Username, &p.AvatarURL, &p.Role, &p.CreatedAt, &p.DeletedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.Username, &p.AvatarURL, &p.Role, &p.IsBot, &p.CreatedAt, &p.DeletedAt); err != nil {
 		return Player{}, fmt.Errorf("scanPlayer: %w", err)
 	}
 	return p, nil

@@ -9,6 +9,7 @@ export interface Player {
   id: string
   username: string
   role: 'player' | 'manager' | 'owner'
+  is_bot: boolean 
   avatar_url?: string
   created_at: string
 }
@@ -138,6 +139,15 @@ export interface QueuePosition {
   estimated_wait_secs: number
 }
 
+export interface BotProfile {
+  name: string
+  iterations: number
+  determinizations: number
+  exploration_c: number
+  aggressiveness: number
+  risk_aversion: number
+}
+
 export interface SessionEvent {
   id: string
   session_id: string
@@ -254,6 +264,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
       span.setStatus({ code: SpanStatusCode.OK })
       span.end()
+
+      if (res.status === 204 || res.headers.get('content-length') === '0') {
+        return undefined as T
+      }
+
       return res.json() as Promise<T>
     } catch (err) {
       if (!(err instanceof ApiError)) {
@@ -626,6 +641,22 @@ export const queue = {
     request<void>('/queue/decline', {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, match_id: matchId }),
+    }),
+}
+
+// --- Bot profiles ------------------------------------------------------------
+
+export const bots = {
+  profiles: () => request<BotProfile[]>('/bots/profiles'),
+  add: (roomId: string, playerId: string, profile: string) =>
+    request<Player>(`/rooms/${roomId}/bots`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId, profile }),
+    }),
+  remove: (roomId: string, playerId: string, botId: string) =>
+    request<void>(`/rooms/${roomId}/bots/${botId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ player_id: playerId }),
     }),
 }
 

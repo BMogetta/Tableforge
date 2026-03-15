@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
-import { rooms, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting } from '../api'
+import { rooms, bots, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting, type BotProfile } from '../api'
 import RoomSettings from '../components/room/RoomSettings'
 import ChatSidebar from '../components/room/ChatSidebar'
 import styles from './Room.module.css'
@@ -26,6 +26,13 @@ export default function Room() {
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [settingDescriptors, setSettingDescriptors] = useState<LobbySetting[]>([])
   const [chatOpen, setChatOpen] = useState(true)
+
+  const [botProfiles, setBotProfiles] = useState<BotProfile[]>([])
+  const [selectedProfile, setSelectedProfile] = useState('medium')
+  const [addingBot, setAddingBot] = useState(false)
+  const [botError, setBotError] = useState('')
+  const [gameHasBotAdapter, setGameHasBotAdapter] = useState(false)
+  const [removingBotId, setRemovingBotId] = useState<string | null>(null)
 
   const spectatorCount = useAppStore((s) => s.spectatorCount)
   const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
@@ -63,6 +70,17 @@ export default function Room() {
       if (game) setSettingDescriptors(game.settings)
     }).catch(() => {})
   }, [view?.room.game_id])
+
+  // Load bot profiles once. Also check whether this game has a bot adapter
+  // by attempting to add — we determine support optimistically: if profiles
+  // exist we show the UI and let the server reject unsupported games.
+  useEffect(() => {
+    bots.profiles().then((profiles) => {
+      setBotProfiles(profiles)
+      setGameHasBotAdapter(profiles.length > 0)
+      if (profiles.length > 0) setSelectedProfile(profiles[0].name)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!socket) return
@@ -130,6 +148,31 @@ export default function Room() {
     navigate('/')
   }
 
+  async function handleAddBot() {
+    setAddingBot(true)
+    setBotError('')
+    try {
+      await bots.add(roomId!, player.id, selectedProfile)
+      refresh()
+    } catch (e: unknown) {
+      setBotError(e instanceof Error ? e.message : 'Failed to add bot')
+    } finally {
+      setAddingBot(false)
+    }
+  }
+
+  async function handleRemoveBot(botId: string) {
+    setRemovingBotId(botId)
+    try {
+      await bots.remove(roomId!, player.id, botId)
+      refresh()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to remove bot')
+    } finally {
+      setRemovingBotId(null)
+    }
+  }
+
   function handleSettingChange(key: string, value: string) {
     setSettings((prev) => ({ ...prev, [key]: value }))
   }
@@ -143,6 +186,8 @@ export default function Room() {
   const isOwner = !isSpectator && ownerId === player.id
   const canStart = isOwner && view.players.length >= 2
   const isPrivate = settings['room_visibility'] === 'private'
+  const hasOpenSlot = view.players.length < room.max_players
+  const canAddBot = isOwner && hasOpenSlot && gameHasBotAdapter && botProfiles.length > 0
 
   const visibleDescriptors = settingDescriptors.filter((s) => {
     if (s.key === 'first_mover_seat') {
@@ -183,9 +228,22 @@ export default function Room() {
                     data-testid={`presence-dot-${p.id}`}
                   />
                   {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
-                  <span className={styles.playerName}>{p.username}</span>
+                  <span className={styles.playerName}>
+                    {p.username}
+                    {p.is_bot && <span className="badge badge-muted" style={{ marginLeft: 6 }}>Bot</span>}
+                  </span>
                   {p.id === ownerId && <span className="badge badge-amber">Host</span>}
                   {p.id === player.id && <span className="badge badge-muted">You</span>}
+                  {isOwner && p.is_bot && (
+                    <button
+                      className={styles.removeBotBtn}
+                      disabled={removingBotId === p.id}
+                      onClick={() => handleRemoveBot(p.id)}
+                      title="Remove bot"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
               {Array.from({ length: room.max_players - view.players.length }).map((_, i) => (
@@ -213,6 +271,37 @@ export default function Room() {
             values={settings}
             onSettingChange={handleSettingChange}
           />
+
+          {canAddBot && (
+            <>
+              <hr className="divider" />
+              <section className={styles.botSection}>
+                <p className="label">Add Bot</p>
+                <div className={styles.botRow}>
+                  <select
+                    className={styles.botSelect}
+                    value={selectedProfile}
+                    disabled={addingBot}
+                    onChange={(e) => setSelectedProfile(e.target.value)}
+                  >
+                    {botProfiles.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name.charAt(0).toUpperCase() + p.name.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn btn-secondary"
+                    disabled={addingBot}
+                    onClick={handleAddBot}
+                  >
+                    {addingBot ? 'Adding...' : 'Add Bot'}
+                  </button>
+                </div>
+                {botError && <p className={styles.error}>{botError}</p>}
+              </section>
+            </>
+          )}
 
           <hr className="divider" />
 

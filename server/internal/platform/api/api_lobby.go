@@ -223,6 +223,17 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 			Type:    ws.EventGameStarted,
 			Payload: map[string]any{"session": session},
 		})
+
+		// If the first player to move is a registered bot, fire immediately.
+		var initialState struct {
+			CurrentPlayerID string `json:"current_player_id"`
+		}
+		if err := json.Unmarshal(session.State, &initialState); err == nil {
+			if firstPlayer, err := uuid.Parse(initialState.CurrentPlayerID); err == nil {
+				rt.MaybeFireBot(r.Context(), hub, session.ID, firstPlayer)
+			}
+		}
+
 		writeJSON(w, http.StatusOK, session)
 		activeSessions.Inc()
 	}

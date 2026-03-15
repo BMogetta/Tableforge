@@ -39,11 +39,17 @@ type Service struct {
 	timer        *TurnTimer
 	events       *events.Store
 	ratingEngine *rating.Engine
+	bots         *botRegistry
 }
 
 // New creates a new runtime Service.
 func New(st store.Store, registry engine.Registry, ev *events.Store) *Service {
-	return &Service{store: st, registry: registry, events: ev}
+	return &Service{
+		store:    st,
+		registry: registry,
+		events:   ev,
+		bots:     newBotRegistry(),
+	}
 }
 
 // SetTimer attaches a TurnTimer to the service.
@@ -100,19 +106,14 @@ func (svc *Service) BroadcastMove(
 		return
 	}
 
-	// Build the player ID list for BroadcastToRoom.
 	playerIDs := make([]uuid.UUID, len(players))
 	for i, p := range players {
 		playerIDs[i] = p.PlayerID
 	}
 
-	// Spectator view: playerID "" signals an empty-hands view.
 	spectatorResult := result
 	spectatorResult.State = sf.FilterState(result.State, engine.PlayerID(""))
 
-	// BroadcastToRoom delivers a per-player filtered payload via the room
-	// channel (single-instance) or per-player Redis channels (multi-instance),
-	// and the spectator payload to spectator clients on the room channel.
 	hub.BroadcastToRoom(
 		result.Session.RoomID,
 		playerIDs,
@@ -450,6 +451,13 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 
 	if err := svc.store.UpsertRematchVote(ctx, sessionID, playerID); err != nil {
 		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: upsert vote: %w", err)
+	}
+
+	// Auto-vote for any registered bots in the room so they never block rematch consensus.
+	for _, p := range players {
+		if _, isBot := svc.bots.get(p.PlayerID); isBot {
+			_ = svc.store.UpsertRematchVote(ctx, sessionID, p.PlayerID)
+		}
 	}
 
 	if svc.events != nil {
