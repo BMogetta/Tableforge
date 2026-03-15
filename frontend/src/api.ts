@@ -70,9 +70,18 @@ export interface GameSession {
   room_id: string
   game_id: string
   state: unknown
+  mode: 'casual' | 'ranked'
   move_count: number
+  suspend_count: number
+  suspended_at?: string
+  suspended_reason?: string
+  pause_votes: string[]
+  resume_votes: string[]
+  turn_timeout_secs?: number
+  last_move_at: string
   started_at: string
   finished_at?: string
+  deleted_at?: string
 }
 
 export interface GameResult {

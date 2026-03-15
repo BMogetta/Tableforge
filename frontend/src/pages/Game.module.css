@@ -86,8 +86,13 @@
   color: var(--text-secondary);
 }
 
-.win { color: var(--amber) !important; font-weight: 500; }
+.win  { color: var(--amber)  !important; font-weight: 500; }
 .lose { color: var(--danger) !important; }
+
+.suspended {
+  color: var(--amber-dim) !important;
+  font-style: italic;
+}
 
 /* Board */
 .boardWrapper {
@@ -179,7 +184,9 @@
 .gameOver {
   display: flex;
   justify-content: center;
+  gap: 8px;
   padding-top: 8px;
+  flex-wrap: wrap;
 }
 
 .presenceDot {
@@ -194,4 +201,87 @@
 .presenceDot[data-online='true'] {
   background: var(--success);
   box-shadow: 0 0 4px var(--success);
+}
+
+.opponentPresence {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Pause / resume
+   --------------------------------------------------------------------------- */
+
+/* Vote overlay — appears between status bar and board during an active pause vote */
+.voteOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(212, 168, 83, 0.2);
+  border-radius: var(--radius);
+  animation: fadeIn 200ms ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.voteTitle {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.voteCount {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.voteWaiting {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Suspended screen — replaces the board when the game is paused */
+.suspendedScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  animation: fadeIn 250ms ease forwards;
+}
+
+.suspendedIcon {
+  font-size: 32px;
+  opacity: 0.5;
+}
+
+.suspendedTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.15em;
+  color: var(--amber-dim);
+  text-transform: uppercase;
+}
+
+.suspendedBody {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 280px;
+  line-height: 1.6;
 }

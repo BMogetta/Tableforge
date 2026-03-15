@@ -47,11 +47,15 @@ export default function Room() {
       setView(v)
       setSettings(v.settings ?? {})
     }).catch((e) => {
-      // Room fetch failure is unexpected — show in toast since there's no
-      // obvious inline location at this point (view may be null).
-      toast.showError(catchToAppError(e))
+      const err = catchToAppError(e)
+      // If the room no longer exists, go home instead of looping toasts.
+      if (err.reason === 'NOT_FOUND') {
+        navigate('/')
+      } else {
+        toast.showError(err)
+      }
     })
-  }, [roomId, toast])
+  }, [roomId, toast, navigate])
 
   useEffect(() => {
     joinRoom(roomId!, wsRoomUrl(roomId!, player.id))
@@ -238,7 +242,7 @@ export default function Room() {
             </p>
             <div className={styles.playerList}>
               {view.players.map((p) => (
-                <div key={p.id} className={styles.playerRow}>
+                <div key={p.id} className={styles.playerRow} data-testid={p.is_bot ? `bot-row-${p.id}` : `player-row-${p.id}`}>
                   <span
                     className={styles.presenceDot}
                     data-online={String(presenceMap[p.id] ?? false)}
@@ -255,6 +259,7 @@ export default function Room() {
                   {p.id === player.id && <span className="badge badge-muted">You</span>}
                   {isOwner && p.is_bot && (
                     <button
+                      data-testid={`remove-bot-btn-${p.id}`}
                       className={styles.removeBotBtn}
                       disabled={removingBotId === p.id}
                       onClick={() => handleRemoveBot(p.id)}
@@ -298,6 +303,7 @@ export default function Room() {
                 <p className="label">Add Bot</p>
                 <div className={styles.botRow}>
                   <select
+                    data-testid="add-bot-select"
                     className={styles.botSelect}
                     value={selectedProfile}
                     disabled={addingBot}
@@ -310,6 +316,7 @@ export default function Room() {
                     ))}
                   </select>
                   <button
+                    data-testid="add-bot-btn"
                     className="btn btn-secondary"
                     disabled={addingBot}
                     onClick={handleAddBot}

@@ -24,7 +24,7 @@ export default defineConfig({
       name: 'game-tests',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
-      testMatch: /\/(game|lobby)\.spec\.ts/,
+      testMatch: /\/(game|lobby|bot)\.spec\.ts/,
     },
     {
       name: 'chat-tests',

@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store'
 import { sessions, rooms, type GameSession } from '../api'
+import { catchToAppError, type AppError } from '../helpers/errors'
+import { useToast } from '../components/ui/Toast'
+import ErrorMessage from '../components/ui/ErrorMessage'
 import { keys } from '../queryClient'
 import TicTacToeBoard, { type TicTacToeState } from '../components/TicTacToe'
 import LoveLetter, { type LoveLetterState } from '../components/loveletter/LoveLetter'
@@ -76,10 +79,10 @@ export default function Game() {
   const playerSocket = useAppStore((s) => s.playerSocket)
   const leaveRoom = useAppStore((s) => s.leaveRoom)
   const isSpectator = useAppStore((s) => s.isSpectator)
-  const spectatorCount = useAppStore((s) => s.spectatorCount)
   const presenceMap = useAppStore((s) => s.presenceMap)
   const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
   const navigate = useNavigate()
+  const toast = useToast()
   const qc = useQueryClient()
 
   const [isOver, setIsOver] = useState(false)
@@ -89,6 +92,16 @@ export default function Game() {
   const [rematchVotes, setRematchVotes] = useState(0)
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [votedRematch, setVotedRematch] = useState(false)
+  const [moveError, setMoveError] = useState<AppError | null>(null)
+
+  // Pause / resume state
+  const [isSuspended, setIsSuspended] = useState(false)
+  const [pauseVotes, setPauseVotes] = useState<string[]>([])
+  const [pauseRequired, setPauseRequired] = useState(0)
+  const [resumeVotes, setResumeVotes] = useState<string[]>([])
+  const [resumeRequired, setResumeRequired] = useState(0)
+  const [votedPause, setVotedPause] = useState(false)
+  const [votedResume, setVotedResume] = useState(false)
 
   useEffect(() => {
     setIsOver(false)
@@ -98,10 +111,16 @@ export default function Game() {
     setRematchVotes(0)
     setTotalPlayers(0)
     setShowSurrenderModal(false)
+    setMoveError(null)
+    setIsSuspended(false)
+    setPauseVotes([])
+    setPauseRequired(0)
+    setResumeVotes([])
+    setResumeRequired(0)
+    setVotedPause(false)
+    setVotedResume(false)
   }, [sessionId])
 
-  // Fetch session state on mount. Poll every 3s as a fallback for missed WS events.
-  // Polling stops once finished_at is set.
   const { data, error: loadError } = useQuery({
     queryKey: keys.session(sessionId!),
     queryFn: () => sessions.get(sessionId!),
@@ -116,13 +135,20 @@ export default function Game() {
   const session = data?.session ?? null
   const gameData = data?.state ?? null
 
-  // Fetch room players for games that need usernames (e.g. Love Letter).
-  // Skipped until session is loaded so we have the room_id.
+  // Sync suspended state from initial fetch — covers the "return tomorrow" case
+  // where the player navigates back to an already-suspended session.
+  useEffect(() => {
+    if (!session) return
+    if (session.suspended_at) {
+      setIsSuspended(true)
+    }
+  }, [session?.id, session?.suspended_at])
+
   const { data: roomData } = useQuery({
     queryKey: keys.room(session?.room_id ?? ''),
     queryFn: () => rooms.get(session!.room_id),
     enabled: !!session?.room_id,
-    staleTime: Infinity, // players don't change during a session
+    staleTime: Infinity,
   })
 
   const roomPlayers = roomData?.players.map((p) => ({
@@ -130,7 +156,6 @@ export default function Game() {
     username: p.username,
   })) ?? []
 
-  // Sync game-over state from fetch (covers page refresh and missed WS events).
   useEffect(() => {
     if (!data?.session?.finished_at) return
     setIsOver(true)
@@ -139,17 +164,13 @@ export default function Game() {
     else if (result?.is_draw) setIsDraw(true)
   }, [data?.session?.finished_at, (data as any)?.result])
 
-  // Shared handler for move_applied / game_over payloads.
-  // Deduplicates by move_count to handle delivery from both room and player
-  // channels (Redis mode delivers filtered state via player channel for games
-  // with private state such as Love Letter).
   function handleMovePayload(payload: WsPayloadMoveResult, type: 'move_applied' | 'game_over') {
     const current = qc.getQueryData<MoveResult>(keys.session(sessionId!))
     if (
       current?.session?.move_count !== undefined &&
       payload.session.move_count <= current.session.move_count
     ) {
-      return // already processed
+      return
     }
     if (type === 'move_applied') {
       qc.setQueryData(keys.session(sessionId!), {
@@ -169,7 +190,6 @@ export default function Game() {
     }
   }
 
-  // Room socket — all games, all events except filtered move events in Redis mode.
   useEffect((): (() => void) | void => {
     if (!socket) return
     const off = socket.on((event) => {
@@ -192,14 +212,28 @@ export default function Game() {
       if (event.type === 'rematch_ready') {
         navigate(`/rooms/${event.payload.room_id}`)
       }
+      if (event.type === 'pause_vote_update') {
+        setPauseVotes(event.payload.votes ?? [])
+        setPauseRequired(event.payload.required ?? 0)
+      }
+      if (event.type === 'session_suspended') {
+        setIsSuspended(true)
+        setPauseVotes([])
+      }
+      if (event.type === 'resume_vote_update') {
+        setResumeVotes(event.payload.votes ?? [])
+        setResumeRequired(event.payload.required ?? 0)
+      }
+      if (event.type === 'session_resumed') {
+        setIsSuspended(false)
+        setResumeVotes([])
+        setVotedPause(false)
+        setVotedResume(false)
+      }
     })
     return () => off()
   }, [socket, sessionId, qc, navigate])
 
-  // Player socket — receives filtered move_applied / game_over for games with
-  // private state (Love Letter) in Redis multi-instance mode. The room socket
-  // handles the same events in single-instance mode, so deduplication by
-  // move_count ensures no double processing.
   useEffect((): (() => void) | void => {
     if (!playerSocket) return
     const off = playerSocket.on((event) => {
@@ -217,6 +251,7 @@ export default function Game() {
     mutationFn: (payload: Record<string, unknown>) =>
       sessions.move(sessionId!, player.id, payload),
     onSuccess: (res) => {
+      setMoveError(null)
       qc.setQueryData(keys.session(sessionId!), {
         session: res.session,
         state: res.state,
@@ -224,15 +259,21 @@ export default function Game() {
       })
       if (res.is_over) setIsOver(true)
     },
+    onError: (e) => {
+      setMoveError(catchToAppError(e))
+    },
   })
 
   const surrender = useMutation({
     mutationFn: () => sessions.surrender(sessionId!, player.id),
     onSuccess: () => {
-      // The game_over WS event will update state. Close modal and leave.
       setShowSurrenderModal(false)
       leaveRoom()
       navigate('/')
+    },
+    onError: (e) => {
+      toast.showError(catchToAppError(e))
+      setShowSurrenderModal(false)
     },
   })
 
@@ -242,7 +283,33 @@ export default function Game() {
       setVotedRematch(true)
       setRematchVotes(res.votes)
       setTotalPlayers(res.total_players)
-      // When all players have voted, the rematch_ready WS event handles navigation.
+    },
+    onError: (e) => {
+      toast.showError(catchToAppError(e))
+    },
+  })
+
+  const pauseMutation = useMutation({
+    mutationFn: () => sessions.pause(sessionId!, player.id),
+    onSuccess: (res) => {
+      setVotedPause(true)
+      setPauseVotes(res.votes)
+      setPauseRequired(res.required)
+    },
+    onError: (e) => {
+      toast.showError(catchToAppError(e))
+    },
+  })
+
+  const resumeMutation = useMutation({
+    mutationFn: () => sessions.resume(sessionId!, player.id),
+    onSuccess: (res) => {
+      setVotedResume(true)
+      setResumeVotes(res.votes)
+      setResumeRequired(res.required)
+    },
+    onError: (e) => {
+      toast.showError(catchToAppError(e))
     },
   })
 
@@ -260,20 +327,25 @@ export default function Game() {
     return (
       <div className={styles.centered}>
         {loadError
-          ? <p style={{ color: 'var(--danger)', fontSize: 13 }}>Failed to load game.</p>
+          ? <ErrorMessage error={catchToAppError(loadError)} />
           : <p className="pulse" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Loading game...</p>
         }
       </div>
     )
   }
 
-  const isMyTurn = !isSpectator && gameData.current_player_id === player.id && !isOver
+  const isMyTurn = !isSpectator && gameData.current_player_id === player.id && !isOver && !isSuspended
+  const canPause = !isSpectator && !isOver && !isSuspended && !votedPause
+  const canResume = !isSpectator && isSuspended && !votedResume
 
   let statusText = ''
   if (isSpectator) {
-    if (winnerId) statusText = 'Game over'
+    if (isSuspended) statusText = 'Game paused'
+    else if (winnerId) statusText = 'Game over'
     else if (isDraw) statusText = 'Draw!'
     else statusText = 'Watching...'
+  } else if (isSuspended) {
+    statusText = 'Game paused'
   } else if (winnerId) {
     statusText = winnerId === player.id ? 'You won!' : 'You lost.'
   } else if (isDraw) {
@@ -301,20 +373,28 @@ export default function Game() {
             <span className={styles.gameId}>{session.game_id}</span>
             <span className={styles.moveCount}>Move {session.move_count}</span>
           </div>
+          {canPause && (
+            <button
+              data-testid="pause-btn"
+              className="btn btn-ghost"
+              onClick={() => pauseMutation.mutate()}
+              disabled={pauseMutation.isPending}
+              style={{ padding: '4px 10px', fontSize: 11 }}
+            >
+              ⏸ Pause
+            </button>
+          )}
         </header>
 
         <div className={styles.status}>
-          <div className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver ? styles.dotOver : ''}`} />
+          <div className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver || isSuspended ? styles.dotOver : ''}`} />
           <span
             data-testid="game-status"
-            className={`${styles.statusText} ${winnerId === player.id ? styles.win : ''} ${winnerId && winnerId !== player.id ? styles.lose : ''}`}
+            className={`${styles.statusText} ${winnerId === player.id ? styles.win : ''} ${winnerId && winnerId !== player.id ? styles.lose : ''} ${isSuspended ? styles.suspended : ''}`}
           >
             {statusText}
           </span>
-          {!isSpectator && (() => {
-            // Use the first opponent from roomPlayers for the presence indicator.
-            // presenceMap may not have an entry yet (defaults to false until
-            // the first presence_update WS event arrives).
+          {!isSpectator && !isSuspended && (() => {
             const opponentId = roomPlayers.find((p) => p.id !== player.id)?.id ?? null
             if (!opponentId) return null
             const opponentOnline = presenceMap[opponentId] ?? false
@@ -333,30 +413,84 @@ export default function Game() {
           })()}
         </div>
 
-        <div className={styles.boardWrapper}>
-          {Renderer ? (
-            <Renderer
-              gameId={session.game_id}
-              gameData={gameData}
-              localPlayerId={player.id}
-              onMove={(payload) => move.mutate(payload)}
-              // Spectators and players whose turn it isn't are both disabled.
-              disabled={isSpectator || !isMyTurn || move.isPending}
-              isOver={isOver}
-              players={roomPlayers}
-            />
-          ) : (
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              No renderer available for game: {session.game_id}
+        {/* Pause vote overlay — shown while a pause vote is in progress */}
+        {!isSuspended && pauseVotes.length > 0 && (
+          <div className={styles.voteOverlay} data-testid="pause-vote-overlay">
+            <p className={styles.voteTitle}>Pause requested</p>
+            <p className={styles.voteCount}>
+              {pauseVotes.length} / {pauseRequired} voted
             </p>
-          )}
-        </div>
-
-        {move.error && (
-          <p className={styles.error}>
-            {move.error instanceof Error ? move.error.message : 'Invalid move'}
-          </p>
+            {!isSpectator && !votedPause && (
+              <button
+                data-testid="vote-pause-btn"
+                className="btn btn-ghost"
+                onClick={() => pauseMutation.mutate()}
+                disabled={pauseMutation.isPending}
+              >
+                Vote to Pause
+              </button>
+            )}
+            {votedPause && (
+              <p className={styles.voteWaiting}>Waiting for opponent…</p>
+            )}
+          </div>
         )}
+
+        {/* Suspended screen — replaces the board when game is paused */}
+        {isSuspended ? (
+          <div className={styles.suspendedScreen} data-testid="suspended-screen">
+            <span className={styles.suspendedIcon}>⏸</span>
+            <p className={styles.suspendedTitle}>Game Paused</p>
+            <p className={styles.suspendedBody}>
+              All players must vote to resume the game.
+            </p>
+            {resumeVotes.length > 0 && (
+              <p className={styles.voteCount} data-testid="resume-vote-count">
+                {resumeVotes.length} / {resumeRequired} voted to resume
+              </p>
+            )}
+            {canResume && (
+              <button
+                data-testid="vote-resume-btn"
+                className="btn btn-primary"
+                onClick={() => resumeMutation.mutate()}
+                disabled={resumeMutation.isPending}
+              >
+                Vote to Resume
+              </button>
+            )}
+            {votedResume && (
+              <p className={styles.voteWaiting}>Waiting for opponent…</p>
+            )}
+            <button
+              className="btn btn-ghost"
+              onClick={handleBackToLobby}
+              style={{ marginTop: 8 }}
+            >
+              ← Back to Lobby
+            </button>
+          </div>
+        ) : (
+          <div className={styles.boardWrapper}>
+            {Renderer ? (
+              <Renderer
+                gameId={session.game_id}
+                gameData={gameData}
+                localPlayerId={player.id}
+                onMove={(payload) => move.mutate(payload)}
+                disabled={isSpectator || !isMyTurn || move.isPending}
+                isOver={isOver}
+                players={roomPlayers}
+              />
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                No renderer available for game: {session.game_id}
+              </p>
+            )}
+          </div>
+        )}
+
+        {moveError && <ErrorMessage error={moveError} />}
 
         {isOver && (
           <div className={styles.gameOver}>
@@ -366,7 +500,6 @@ export default function Game() {
             <button className="btn btn-ghost" data-testid="view-replay-btn" onClick={handleViewReplay}>
               View Replay
             </button>
-            {/* Spectators do not get a rematch button — only participants vote. */}
             {!isSpectator && (
               <button
                 className="btn btn-primary"
@@ -385,6 +518,7 @@ export default function Game() {
           </div>
         )}
       </div>
+
       {showSurrenderModal && (
         <SurrenderModal
           onConfirm={() => surrender.mutate()}
