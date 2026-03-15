@@ -1,20 +1,47 @@
 import { useEffect, useState, Component, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAppStore } from './store'
-import { auth, wsPlayerUrl } from './api'
+import { auth, wsPlayerUrl, playerSettings } from './api'
+import { type ResolvedSettings } from './store'
 import Login from './pages/Login'
 import Lobby from './pages/Lobby'
 import Room from './pages/Room'
 import Game from './pages/Game'
 import Admin from './pages/Admin'
+import RateLimited from './pages/RateLimited'
 import { lazy } from 'react'
 import SessionHistory from './pages/SessionHistory'
 import { emitErrorLog } from './telemetry'
 import { ToastProvider } from './components/ui/Toast'
-import RateLimited from './pages/RateLimited'
 const TestError = lazy(() => import('./pages/TestError'))
 
-// --- Error boundary ----------------------------------------------------------
+const SETTINGS_CACHE_KEY = 'tf:settings'
+
+// ---------------------------------------------------------------------------
+// Settings helpers
+// ---------------------------------------------------------------------------
+
+function loadSettingsFromCache(): ResolvedSettings | null {
+  try {
+    const raw = localStorage.getItem(SETTINGS_CACHE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as ResolvedSettings
+  } catch {
+    return null
+  }
+}
+
+function saveSettingsToCache(settings: ResolvedSettings) {
+  try {
+    localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(settings))
+  } catch {
+    // localStorage may be unavailable in private browsing — fail silently.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Error boundary
+// ---------------------------------------------------------------------------
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -94,7 +121,9 @@ function ErrorScreen({ error, onReset }: { error: Error; onReset: () => void }) 
   )
 }
 
-// --- Auth guards -------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Auth guards
+// ---------------------------------------------------------------------------
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const player = useAppStore((s) => s.player)
@@ -111,10 +140,12 @@ function RequireRole({ role, children }: { role: 'manager' | 'owner'; children: 
   return <>{children}</>
 }
 
-// --- App ---------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
 
 export default function App() {
-  const { player, setPlayer, connectPlayerSocket, disconnectPlayerSocket } = useAppStore()
+  const { player, setPlayer, connectPlayerSocket, disconnectPlayerSocket, hydrateSettings, setSettings } = useAppStore()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -122,6 +153,23 @@ export default function App() {
       .then((p) => {
         setPlayer(p)
         connectPlayerSocket(wsPlayerUrl(p.id))
+
+        // 1. Hydrate from localStorage cache immediately — no flash.
+        const cached = loadSettingsFromCache()
+        if (cached) {
+          setSettings(cached)
+        }
+
+        // 2. Fetch from backend in background — updates store and refreshes cache.
+        // Runs regardless of cache hit so cross-device changes are picked up.
+        playerSettings.get(p.id)
+          .then((raw) => {
+            hydrateSettings(raw)
+            saveSettingsToCache(useAppStore.getState().settings)
+          })
+          .catch(() => {
+            // Settings fetch failure is non-fatal — cached or default values remain.
+          })
       })
       .catch(() => setPlayer(null))
       .finally(() => setLoading(false))
@@ -167,7 +215,9 @@ export default function App() {
   )
 }
 
-// --- Splash ------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Splash
+// ---------------------------------------------------------------------------
 
 function Splash() {
   return (

@@ -1,4 +1,4 @@
--- Migration: session_events
+-- 002_session_events.sql
 -- Stores the persisted event log for each game session.
 -- Events are first written to a Redis Stream while the session is active,
 -- then bulk-inserted here when the session ends and the stream is deleted.

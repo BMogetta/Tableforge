@@ -13,38 +13,40 @@ var ErrNotFound = errors.New("not found")
 
 // FakeStore is an in-memory implementation of store.Store for use in tests.
 type FakeStore struct {
-	Players        map[uuid.UUID]store.Player
-	Rooms          map[uuid.UUID]store.Room
-	RoomPlayers    map[uuid.UUID][]store.RoomPlayer
-	RoomSettings   map[uuid.UUID]map[string]string
-	Sessions       map[uuid.UUID]store.GameSession
-	Moves          map[uuid.UUID][]store.Move
-	AllowedEmails  map[string]store.AllowedEmail
-	GameResults    map[uuid.UUID]store.GameResult
-	RematchVotes   map[uuid.UUID][]store.RematchVote
-	RoomMessages   map[uuid.UUID][]store.RoomMessage
-	DirectMessages map[uuid.UUID]store.DirectMessage
-	PlayerMutes    map[uuid.UUID][]store.PlayerMute
-	Ratings        map[string]store.Rating
-	Notifications  map[uuid.UUID]store.Notification
+	Players           map[uuid.UUID]store.Player
+	Rooms             map[uuid.UUID]store.Room
+	RoomPlayers       map[uuid.UUID][]store.RoomPlayer
+	RoomSettings      map[uuid.UUID]map[string]string
+	Sessions          map[uuid.UUID]store.GameSession
+	Moves             map[uuid.UUID][]store.Move
+	AllowedEmails     map[string]store.AllowedEmail
+	GameResults       map[uuid.UUID]store.GameResult
+	RematchVotes      map[uuid.UUID][]store.RematchVote
+	RoomMessages      map[uuid.UUID][]store.RoomMessage
+	DirectMessages    map[uuid.UUID]store.DirectMessage
+	PlayerMutes       map[uuid.UUID][]store.PlayerMute
+	Ratings           map[string]store.Rating
+	Notifications     map[uuid.UUID]store.Notification
+	PlayerSettingsMap map[uuid.UUID]store.PlayerSettings
 }
 
 func NewFakeStore() *FakeStore {
 	return &FakeStore{
-		Players:        make(map[uuid.UUID]store.Player),
-		Rooms:          make(map[uuid.UUID]store.Room),
-		RoomPlayers:    make(map[uuid.UUID][]store.RoomPlayer),
-		RoomSettings:   make(map[uuid.UUID]map[string]string),
-		Sessions:       make(map[uuid.UUID]store.GameSession),
-		Moves:          make(map[uuid.UUID][]store.Move),
-		AllowedEmails:  make(map[string]store.AllowedEmail),
-		GameResults:    make(map[uuid.UUID]store.GameResult),
-		RematchVotes:   make(map[uuid.UUID][]store.RematchVote),
-		RoomMessages:   make(map[uuid.UUID][]store.RoomMessage),
-		DirectMessages: make(map[uuid.UUID]store.DirectMessage),
-		PlayerMutes:    make(map[uuid.UUID][]store.PlayerMute),
-		Ratings:        make(map[string]store.Rating),
-		Notifications:  make(map[uuid.UUID]store.Notification),
+		Players:           make(map[uuid.UUID]store.Player),
+		Rooms:             make(map[uuid.UUID]store.Room),
+		RoomPlayers:       make(map[uuid.UUID][]store.RoomPlayer),
+		RoomSettings:      make(map[uuid.UUID]map[string]string),
+		Sessions:          make(map[uuid.UUID]store.GameSession),
+		Moves:             make(map[uuid.UUID][]store.Move),
+		AllowedEmails:     make(map[string]store.AllowedEmail),
+		GameResults:       make(map[uuid.UUID]store.GameResult),
+		RematchVotes:      make(map[uuid.UUID][]store.RematchVote),
+		RoomMessages:      make(map[uuid.UUID][]store.RoomMessage),
+		DirectMessages:    make(map[uuid.UUID]store.DirectMessage),
+		PlayerMutes:       make(map[uuid.UUID][]store.PlayerMute),
+		Ratings:           make(map[string]store.Rating),
+		Notifications:     make(map[uuid.UUID]store.Notification),
+		PlayerSettingsMap: make(map[uuid.UUID]store.PlayerSettings),
 	}
 }
 
@@ -872,6 +874,32 @@ func (f *FakeStore) SetNotificationAction(_ context.Context, id uuid.UUID, actio
 	n.ActionTaken = &action
 	f.Notifications[id] = n
 	return nil
+}
+
+// --- Player settings ---------------------------------------------------------
+
+func (f *FakeStore) GetPlayerSettings(_ context.Context, playerID uuid.UUID) (store.PlayerSettings, error) {
+	// FakeStore does not persist settings between calls — always return defaults.
+	// Tests that need specific settings should call UpsertPlayerSettings first.
+	settings, ok := f.PlayerSettingsMap[playerID]
+	if !ok {
+		return store.PlayerSettings{
+			PlayerID:  playerID,
+			Settings:  store.DefaultPlayerSettings(),
+			UpdatedAt: time.Time{},
+		}, nil
+	}
+	return settings, nil
+}
+
+func (f *FakeStore) UpsertPlayerSettings(_ context.Context, playerID uuid.UUID, settings store.PlayerSettingMap) (store.PlayerSettings, error) {
+	ps := store.PlayerSettings{
+		PlayerID:  playerID,
+		Settings:  settings,
+		UpdatedAt: time.Now(),
+	}
+	f.PlayerSettingsMap[playerID] = ps
+	return ps, nil
 }
 
 // --- Exec (used by test migrations) ------------------------------------------

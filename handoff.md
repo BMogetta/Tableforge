@@ -1,4 +1,4 @@
-## Tableforge — Session Handoff
+# Tableforge — Session Handoff
 
 ## Rules for every session
 - **Read before writing.** Ask for the file, read it, propose changes, confirm, only then write.
@@ -12,10 +12,10 @@
 
 ## Stack
 - **Backend:** Go 1.23, chi, pgx/v5, Redis, JWT auth, WebSocket hub
-- **Frontend:** React + TypeScript, Vite, CSS Modules, TanStack Query
+- **Frontend:** React + TypeScript, Vite, CSS Modules, TanStack Query, `@tanstack/react-pacer`
 - **Infra:** Docker Compose, Caddy (reverse proxy + Cloudflare tunnel)
 - **Observability:** OpenTelemetry + Jaeger (traces) + Prometheus (metrics) + Loki/Promtail (logs), all in Grafana
-- **Tests:** Playwright E2E (70 tests, all passing), Go unit tests (all passing), Vitest unit tests (all passing)
+- **Tests:** Playwright E2E (70+ tests, all passing), Go unit tests (all passing), Vitest unit tests (all passing)
 
 ---
 
@@ -29,7 +29,7 @@
 - Private rooms: code hidden in lobby, owner sees code
 - WebSockets: hub with Redis pub/sub for multi-instance fanout, per-player channels (`BroadcastToPlayer`), dedicated `/ws/players/{playerID}` endpoint; `BroadcastToRoom` for per-client filtered state (Love Letter hands)
 - Admin: roles (player/manager/owner), allowed emails, leaderboard (Elo-based, per-game)
-- Rate limiting via Redis
+- Rate limiting via Redis — returns JSON `{"error":"rate limit exceeded","reset_at":N}` on 429
 - Event sourcing: Redis Streams (active) → Postgres `session_events` (finished)
 - Session history & replay: event log + board reconstruction slider
 - Player presence: Redis SETEX + heartbeat, `presence_update` WS event
@@ -38,29 +38,41 @@
 - Matchmaking: Redis-backed ranked queue, snake draft, spread relaxation, match confirmation flow, progressive ban system
 - Room chat: store + API + WS + UI complete (`ChatSidebar` in `Room.tsx`)
 - Player mutes: store + API complete — **UI pending**
-- Session pause/resume: store + runtime + API + WS complete — **UI pending**
+- Session pause/resume: store + runtime + API + WS + **UI complete**
 - Direct messages: store + API + WS complete — **UI pending**
 - Notifications: store + domain service + API + WS complete; bell icon + badge in `LobbyHeader` — **full notification UI pending**
 - Matchmaking queue: Redis-backed, store + API + WS + background ticker + frontend queue status in `NewGamePanel` — player channel WS drives real-time state updates
+- **Bot system: Sessions A–F complete** — fill bots, MCTS, TicTacToe adapter, runtime integration, UI
+- **Player settings: store + API + frontend complete** — persisted as JSONB, merged over defaults at read time, debounced sync via `@tanstack/react-pacer`
+- **Error-as-value pattern: implemented** — `src/helpers/errors.ts`, `ErrorMessage` component, `Toast` system; `Room.tsx` and `Game.tsx` migrated; remaining pages pending
 
-### Bot system (Session A — complete)
-- `internal/bot/game.go` — `BotGameState` interface, `BotMove` type, `BotAdapter` interface
-- `internal/bot/state.go` — `concreteState` wrapping `engine.GameState`; `Clone()` via JSON round-trip; `MoveFromPayload` / `BotMove.Payload()` helpers
-- `internal/bot/config.go` — `BotConfig`, `PersonalityProfile`, built-in profiles (easy/medium/hard/aggressive), `DefaultConfig()` and `ConfigFromProfile()` with env var overrides
-- `internal/bot/state_test.go` — Clone independence, nested map isolation, double round-trip, BotMove serialization
-- `internal/bot/config_test.go` — profile defaults, env var overrides, invalid env var fallback, profile validation
+### Bot system (Sessions A–F complete)
+- `internal/bot/game.go` — `BotGameState`, `BotMove`, `BotAdapter` interfaces; `RolloutPolicy` on `BotAdapter`
+- `internal/bot/state.go` — `concreteState`, `Clone()` via JSON round-trip, `MoveFromPayload`/`BotMove.Payload()`
+- `internal/bot/config.go` — `BotConfig`, `PersonalityProfile`, built-in profiles (easy/medium/hard/aggressive)
+- `internal/bot/player.go` — `BotPlayer{ID, GameID, Adapter, Config, Search SearchFunc}`, `DecideMove()`
+- `internal/bot/mcts/` — IS-MCTS: `node.go`, `mcts.go`, `Search()`, `RandomRolloutPolicy()`
+- `internal/bot/adapter/registry.go` — `New(gameID)` returns adapter or error
+- `internal/bot/adapter/tictactoe/` — full `BotAdapter` implementation, bot-vs-bot test
+- `internal/domain/runtime/runtime_bot.go` — `botRegistry` (sync.RWMutex), `RegisterBot`, `UnregisterBot`, `MaybeFireBot`; called from `handleMove` after broadcast and from `handleStartGame` for first-move bots
+- `internal/platform/api/api_bots.go` — `handleListBotProfiles`, `handleAddBot`, `handleRemoveBot`
+- Fill bots: ephemeral, `is_bot=TRUE`, username `"bot:<profile>:<8-char-uuid>"`
+- Bot registry is in-memory only — lost on server restart
+- `VoteRematch` auto-votes for all registered bots to prevent rematch deadlock
 
-### Frontend (last session)
-- `Game.tsx` — `GAME_RENDERERS` registry; player socket listener for `move_applied`/`game_over` with deduplication by `move_count`; room query for player usernames; presence indicator uses `roomPlayers`
-- `NewGamePanel.tsx` — `data-testid="game-option-{id}"` on game selector buttons
-- Love Letter renderer components: `CardDisplay`, `HandDisplay`, `TargetPicker`, `ChancellorModal`, `PlayerBoard`, `RoundSummary`, `LoveLetter` (root)
-- Vitest configured (`vitest/config`, jsdom, `src/test/setup.ts`)
-- `src/components/loveletter/__tests__/CardDisplay.test.tsx` — 8 tests
-- `src/components/loveletter/__tests__/HandDisplay.test.tsx` — 7 tests
-- `src/components/loveletter/__tests__/TargetPicker.test.tsx` — 8 tests
-- `src/components/loveletter/__tests__/ChancellorModal.test.tsx` — 6 tests
-- `src/components/loveletter/__tests__/PlayerBoard.test.tsx` — 13 tests
-- E2E helpers updated: all `create-room-btn` usages click `game-option-tictactoe` first
+### Frontend (this session)
+- `src/helpers/errors.ts` — `Result<S,E>`, `ok`, `error`, `AppError`, `ApiErrorReason`, `toAppError`, `catchToAppError`, `generateCode`; dev shows raw message, prod shows friendly message + `ERR_XXXX` code
+- `src/components/ui/Toast.tsx` + `.module.css` — `ToastProvider`, `useToast`, `showError/showWarning/showInfo`; max 3 toasts, 4s auto-dismiss, progress bar
+- `src/components/ui/ErrorMessage.tsx` + `.module.css` — inline error display; dev shows reason badge + status + raw message, prod shows friendly message + code
+- `src/components/ui/Settings.tsx` + `.module.css` — full settings panel; toggle, select, volume rows; debounced backend sync via `useDebouncedCallback`; optimistic update + localStorage cache
+- `src/pages/RateLimited.tsx` — 60s countdown, auto-redirect to `/`, "Try Now" button
+- `src/pages/Room.tsx` — migrated to error-as-value; `data-testid` on bot UI elements (`add-bot-btn`, `add-bot-select`, `bot-row-{id}`, `remove-bot-btn-{id}`)
+- `src/pages/Game.tsx` — migrated to error-as-value; full pause/resume UI: pause button in header, vote overlay, suspended screen with resume voting; syncs `suspended_at` from initial fetch for "return tomorrow" case
+- `src/pages/Game.module.css` — added `.suspended`, `.voteOverlay`, `.voteTitle`, `.voteCount`, `.voteWaiting`, `.suspendedScreen`, `.suspendedIcon`, `.suspendedTitle`, `.suspendedBody`
+- `src/store.ts` — settings slice: `settings: ResolvedSettings`, `hydrateSettings`, `updateSetting`, `setSettings`; `ResolvedSettings = Required<PlayerSettingMap>`
+- `src/api.ts` — `GameSession` fully typed (all backend fields); `PlayerSettingMap`, `PlayerSettings`, `DEFAULT_SETTINGS`, `playerSettings` namespace (`get`, `update`); `request<T>` handles 204 (no body) and redirects 429 to `/rate-limited`
+- `src/App.tsx` — `ToastProvider` wraps `ErrorBoundary`; settings loaded on mount (localStorage cache first, backend fetch in background); `RateLimited` route added
+- `src/components/lobby/LobbyHeader.tsx` — settings gear icon button + modal (top-right, click-outside to close)
 
 ---
 
@@ -79,7 +91,9 @@ server/
 │       ├── 002_session_events.sql
 │       ├── 003_chat_ratings_moderation.sql
 │       ├── 004_notifications.sql
-│       └── 005_ratings_game_id.sql
+│       ├── 005_ratings_game_id.sql
+│       ├── 006_bot_players.sql         ← is_bot column on players
+│       └── 007_player_settings.sql     ← player_settings JSONB table
 ├── games/
 │   ├── tictactoe/
 │   └── loveletter/
@@ -88,11 +102,24 @@ server/
 │       └── loveletter_settings.go
 ├── internal/
 │   ├── bot/
-│   │   ├── game.go          ← BotGameState, BotMove, BotAdapter interfaces
-│   │   ├── state.go         ← concreteState, Clone, MoveFromPayload
-│   │   ├── config.go        ← BotConfig, PersonalityProfile, profiles
+│   │   ├── game.go ← BotGameState, BotMove, BotAdapter interfaces
+│   │   ├── state.go ← concreteState, Clone, MoveFromPayload
+│   │   ├── config.go ← BotConfig, PersonalityProfile, profiles
+│   │   ├── player.go
 │   │   ├── state_test.go
-│   │   └── config_test.go
+│   │   ├── config_test.go
+│   │   ├── player_test.go
+│   │   ├── adapter/
+│   │   │   ├── registry.go
+│   │   │   └── tictactoe/
+│   │   │       ├── adapter.go
+│   │   │       └── adapter_test.go
+│   │   └── mcts/
+│   │       ├── node.go
+│   │       ├── mcts.go
+│   │       ├── export_test.go
+│   │       ├── node_test.go
+│   │       └── engine_test.go
 │   ├── domain/
 │   │   ├── engine/
 │   │   ├── lobby/
@@ -101,8 +128,10 @@ server/
 │   │   ├── rating/
 │   │   └── runtime/
 │   │       ├── runtime.go
+│   │       ├── runtime_bot.go
 │   │       ├── runtime_pause.go
 │   │       ├── runtime_rating.go
+│   │       ├── runtime_bot_test.go     ← registry, MaybeFireBot, VotePause, VoteResume
 │   │       └── turn_timer.go
 │   ├── platform/
 │   │   ├── api/
@@ -116,12 +145,16 @@ server/
 │   │   │   ├── api_pause.go
 │   │   │   ├── api_queue.go
 │   │   │   ├── api_notifications.go
+│   │   │   ├── api_bots.go
+│   │   │   ├── api_player_settings.go
 │   │   │   ├── api_test.go
 │   │   │   ├── api_chat_test.go
 │   │   │   ├── api_mutes_test.go
 │   │   │   ├── api_dm_test.go
 │   │   │   ├── api_pause_test.go
-│   │   │   └── api_notifications_test.go
+│   │   │   ├── api_notifications_test.go
+│   │   │   ├── api_bots_test.go
+│   │   │   └── api_player_settings_test.go
 │   │   ├── auth/
 │   │   ├── events/
 │   │   ├── mathutil/
@@ -131,16 +164,22 @@ server/
 │   │   │   └── queue_test.go
 │   │   ├── randutil/
 │   │   ├── ratelimit/
+│   │   │   ├── ratelimit.go            ← 429 now returns JSON
+│   │   │   ├── clock.go
+│   │   │   ├── script.go
+│   │   │   └── ratelimit_test.go
 │   │   ├── store/
-│   │   │   ├── store.go
+│   │   │   ├── store.go                ← PlayerSettings, PlayerSettingMap, DefaultPlayerSettings
 │   │   │   ├── pg.go
 │   │   │   ├── pg_chat.go
 │   │   │   ├── pg_mutes.go
 │   │   │   ├── pg_ratings.go
 │   │   │   ├── pg_pause.go
 │   │   │   ├── pg_notifications.go
+│   │   │   ├── pg_player_settings.go   ← GetPlayerSettings, UpsertPlayerSettings, mergeSettings
 │   │   │   ├── pg_test.go
-│   │   │   └── pg_chat_test.go
+│   │   │   ├── pg_chat_test.go
+│   │   │   └── pg_player_settings_test.go
 │   │   ├── telemetry/
 │   │   └── ws/
 │   │       ├── hub.go
@@ -148,14 +187,25 @@ server/
 │   │       ├── ws.go
 │   │       └── ws_player_handler.go
 │   └── testutil/
-│       └── fakestore.go
+│       └── fakestore.go                ← PlayerSettingsMap field, GetPlayerSettings, UpsertPlayerSettings
 frontend/
 ├── src/
+│   ├── helpers/
+│   │   ├── errors.ts                   ← Result, ok, error, AppError, toAppError, catchToAppError
+│   │   └── errors.test.ts
 │   ├── components/
 │   │   ├── SurrenderModal.tsx + .module.css
 │   │   ├── TicTacToe.tsx + .module.css
+│   │   ├── ui/
+│   │   │   ├── Toast.tsx + .module.css
+│   │   │   ├── ErrorMessage.tsx + .module.css
+│   │   │   ├── Settings.tsx + .module.css
+│   │   │   └── __tests__/
+│   │   │       ├── Toast.test.tsx
+│   │   │       ├── ErrorMessage.test.tsx
+│   │   │       └── Settings.test.tsx
 │   │   ├── lobby/
-│   │   │   ├── LobbyHeader.tsx + .module.css
+│   │   │   ├── LobbyHeader.tsx + .module.css   ← settings gear + modal
 │   │   │   ├── NewGamePanel.tsx + .module.css
 │   │   │   ├── OpenRooms.tsx + .module.css
 │   │   │   ├── LeaderboardPanel.tsx + .module.css
@@ -181,16 +231,19 @@ frontend/
 │   │   └── setup.ts
 │   ├── pages/
 │   │   ├── Lobby.tsx + .module.css
-│   │   ├── Room.tsx + .module.css
-│   │   └── Game.tsx + .module.css
-│   ├── api.ts
+│   │   ├── Room.tsx + .module.css      ← error-as-value, bot testids
+│   │   ├── Game.tsx + .module.css      ← error-as-value, pause/resume UI
+│   │   ├── RateLimited.tsx             ← new, 60s countdown
+│   │   └── __tests__/
+│   │       └── RateLimited.test.tsx
+│   ├── api.ts                          ← GameSession fully typed, playerSettings, DEFAULT_SETTINGS
+│   ├── store.ts                        ← settings slice added
+│   ├── store.settings.test.ts
 │   ├── ws.ts
-│   ├── store.ts
 │   └── queryClient.ts
 └── tests/
     └── e2e/
-        ├── chat.spec.ts
-        ├── leaderboard.spec.ts
+        ├── bot.spec.ts                 ← new: bot full game, remove/replace bot
         └── ...
 ```
 
@@ -205,7 +258,7 @@ frontend/
 - **WS hub** uses Redis pub/sub for multi-instance fanout (`NewHubWithRedis`)
 - **Per-player WS channel** — `hub_player.go` exposes `BroadcastToPlayer(playerID, event)`; `ws_player_handler.go` serves `/ws/players/{playerID}`; used for DMs, queue events, notifications; `PlayerSocket` in frontend connects on login
 - **`BroadcastToRoom`** — `hub.go` exposes `BroadcastToRoom(roomID, playerIDs, eventFn, spectatorEvent)`; calls `eventFn(playerID)` per non-spectator client in single-instance mode; publishes to each player's Redis channel in multi-instance mode; spectator payload goes to room channel with `filteredEnvelope{S: true}`; used by `BroadcastMove` for games implementing `StateFilter`
-- - **`BroadcastFiltered`** — `hub.go` exposes `BroadcastFiltered(roomID, playerEvent, spectatorEvent)`; used for uniform player payloads with a different spectator payload; `playerEvent.Payload == nil` skips non-spectators
+- **`BroadcastFiltered`** — `hub.go` exposes `BroadcastFiltered(roomID, playerEvent, spectatorEvent)`; used for uniform player payloads with a different spectator payload; `playerEvent.Payload == nil` skips non-spectators
 - **`StateFilter` interface** — optional `engine.Game` extension; if implemented, `BroadcastMove` calls `FilterState(state, playerID)` per player via `BroadcastToRoom`, and `FilterState(state, "")` for spectators; TicTacToe does not implement it; Love Letter does
 - **`TurnTimeoutHandler` interface** — optional `engine.Game` extension; if implemented, `turn_timer.go` delegates timeout to `ApplyMove` with the game-provided payload instead of applying platform-level penalty directly; Love Letter returns `{"card":"penalty_lose"}`
 - **`GAME_RENDERERS` registry** — `Game.tsx` uses `Record<string, RendererComponent>` instead of a switch; renderers defined as named components outside `Game` to avoid remount on render
@@ -213,13 +266,27 @@ frontend/
 - **Bot package lives in `internal/bot/`** — not in `domain/` (pure business logic) nor `platform/` (infrastructure); it is an application layer that depends on `domain/engine` but not on store, ws, or api
 - **`BotMove` is a JSON string** — serialized form of `map[string]any` payload; comparable, usable as map key; round-trips via `MoveFromPayload` / `BotMove.Payload()`
 - **`Clone()` uses JSON round-trip** — same encoding the runtime uses for Postgres persistence; correct by definition; optimize with hand-written clone per game if profiling shows bottleneck
-- **Bot `PlayerID` is `uuid.UUID`** — bots are registered as real `store.Player` rows so `AddPlayerToRoom` works unchanged; naming convention (e.g. username prefix `"bot:"`) distinguishes them from human players
+- **Bot `PlayerID` is `uuid.UUID`** — bots are registered as real `store.Player` rows (`is_bot=TRUE`) so `AddPlayerToRoom` works unchanged; username convention `"bot:<profile>:<8-char-uuid>"`
+- **`bot.ErrNoMoves` defined in `internal/bot`** — re-exported as `mcts.ErrNoMoves` to avoid import cycle
+- **`SearchFunc` injected into `BotPlayer`** — breaks `bot` ↔ `mcts` import cycle
+- **`MaybeFireBot` called in two places** — `handleMove` (after human move broadcast) and `handleStartGame` (for first-move bots); both pass `currentPlayerID` from game state
+- **Bot registry is in-memory only** — lost on server restart; re-registered via `POST /rooms/{id}/bots`
+- **`VoteRematch` auto-votes for registered bots** — prevents rematch deadlock when bot is in room
+- **`player_settings` stored as JSONB** — single row per player; application layer merges stored values over `DefaultPlayerSettings()` at read time; nil pointer fields mean "use default"
+- **Settings cache key** `'tf:settings'` in localStorage — hydrated immediately on app start; backend fetch runs in background to pick up cross-device changes
+- **Settings debounce** — `useDebouncedCallback` from `@tanstack/react-pacer` with 600ms wait; optimistic update in store + localStorage write are immediate
+- **`ResolvedSettings = Required<PlayerSettingMap>`** — all keys guaranteed non-optional after merging; store always holds a `ResolvedSettings`
+- **Error-as-value pattern** — `Result<S,E>` tuple `[E,null]|[null,S]`; `reason` discriminant enables exhaustive switch; `catchToAppError(e)` converts unknown caught values; new code must use this pattern; migrate existing code when touching it
+- **Dev vs prod error display** — dev: raw server message; prod: friendly message + deterministic `ERR_XXXX` code (first 4 chars of `btoa(reason+status)`)
+- **Toast for background/transient errors** — errors with no inline DOM location (remove bot, refresh failure) go to toast; action errors with a clear location use `ErrorMessage` inline
+- **`request<T>` 204 handling** — returns `undefined as T` for 204/empty responses instead of calling `.json()`
+- **`request<T>` 429 handling** — sets `window.location.href = '/rate-limited'` after ending the OTel span; `throw` after redirect is unreachable but kept for type safety
 - **Spectator access** via `room_settings.allow_spectators` — no SpectatorLink table
 - **`state_after`** in moves is `[]byte` → base64 in JSON → `atob()` on frontend
 - **Room settings** — generic KV table `room_settings(room_id, key, value)`, defaults on `CreateRoom`
 - **`domain/` packages are pure** — no deps on store, ws, or any other internal package
 - **Mutes are server-side** — persisted in `player_mutes`, survive across sessions
-- - **Chat mute toggle** (mute entire room chat) is UI-only local state — not persisted
+- **Chat mute toggle** (mute entire room chat) is UI-only local state — not persisted
 - **Ratings are per-game** — `ratings` table has composite PK `(player_id, game_id)`; `game_id` required on all rating endpoints
 - **`mmr` never reaches the frontend** — `RatingLeaderboardEntry` excludes it; leaderboard shows `display_rating` only
 - **`applyRatings` never returns an error** — rating failure must not roll back a completed match; errors are logged only
@@ -238,50 +305,57 @@ frontend/
 - **`RankedGameID` is exported** from `queue.go` — used by `fakestore` tests
 - **Queue ban formula** — `min(5 * 5^(offense-1), 1440)` minutes; threshold: 3 declines within 1 hour
 - **Match confirmation window** — 30s TTL on `queue:pending:{matchID}`; both players must explicitly accept
-- - **Declining a match** drops the player from the queue and applies a penalty; accepting player is re-queued automatically
-- **`miniredis`** used for Redis unit tests in `platform/queue/queue_test.go` only
+- **Declining a match** drops the player from the queue and applies a penalty; accepting player is re-queued automatically
+- **`miniredis` not extracted to `testutil`**
 - **`joinRoom` omitted from `useEffect` deps in `Room.tsx`** — stable Zustand action
 - **Queue state persists across navigation** — stored in Zustand
-- **Love Letter deck has 21 cards** — updated edition: Spy×2, Guard×6, Priest×2, Baron×2, Handmaid×2, Prince×2, Chancellor×2, King×1, Countess×1, Princess×1
-- **Love Letter draw model** — active player always holds 2 cards; `dealRound` draws first player's turn card; `advanceTurn` draws for next player; skips draw if next player already holds 2 cards
+- **Love Letter deck has 21 cards** — updated edition
+- **Love Letter draw model** — active player always holds 2 cards
 - **Love Letter `private_reveals`** — cleared at start of next `applyStandardMove`
-- **Love Letter Handmaid expiry** — protection removed from *next* player at start of `advanceTurn`
+- **Love Letter Handmaid expiry** — protection removed from next player at start of `advanceTurn`
 - **Love Letter `penalty_lose`** — synthetic card; bypasses validation; eliminates active player; used by `TurnTimeoutHandler`
 - **Love Letter state persists in Postgres** — Redis caching deferred
 
 ---
 
-## Bot system — pending sessions
+## Bot system — status
 
-| Session | Work |
+| Session | Status |
 |---|---|
-| B — Core MCTS | `internal/bot/mcts/node.go`, `mcts.go`, `engine.go` with mock adapter and tests |
-| C — TicTacToe adapter | `internal/bot/adapter/tictactoe/adapter.go`; Determinize = identity; bot-vs-bot test |
-| D — Love Letter adapter | `internal/bot/adapter/loveletter/adapter.go`; Determinize samples hidden hand |
-| E — BotPlayer & integration | `BotPlayer`, hook in runtime post-`ApplyMove`, `POST /rooms/{id}/bots` |
-| F — Config & API | env var loading complete; `GET /bots/profiles`; frontend bot creation UI |
+| A — Interfaces & config | ✅ complete |
+| B — Core MCTS | ✅ complete |
+| C — TicTacToe adapter | ✅ complete |
+| D — Love Letter adapter | ❌ pending |
+| E — BotPlayer & integration | ✅ complete |
+| F — Config & API + frontend | ✅ complete |
 
 ---
 
 ## Store — models
 
-### Added in 003
-- `SessionMode` — `"casual"` | `"ranked"`
-- `RoomMessage`, `DirectMessage`, `PlayerMute`, `Rating`
-- `GameSession` gains: `Mode SessionMode`, `PauseVotes []string`, `ResumeVotes []string`
+### Added in 006
+- `players.is_bot BOOLEAN NOT NULL DEFAULT FALSE`
+- `Store.CreateBotPlayer(ctx, username)` — inserts with `is_bot=TRUE`
 
-### Added in 004
-- `Notification` — `ID, PlayerID, Type, Payload (JSONB), ActionTaken, ActionExpiresAt, ReadAt, CreatedAt`
-- `NotificationType` — `"friend_request"` | `"room_invitation"` | `"ban_issued"`
-- `BanReason` — `"decline_threshold"` | `"moderator"`
-- `NotificationPayloadFriendRequest`, `NotificationPayloadRoomInvitation`, `NotificationPayloadBanIssued`
-- `CreateNotificationParams`
-- `ErrNotificationActionExpired` in `pg_notifications.go`
+### Added in 007
+```sql
+CREATE TABLE player_settings (
+    player_id  UUID PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+    settings   JSONB NOT NULL DEFAULT '{}',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+- `PlayerSettings{PlayerID, Settings PlayerSettingMap, UpdatedAt}`
+- `PlayerSettingMap` — pointer fields for all settings (nil = use default)
+- `DefaultPlayerSettings()` — canonical defaults; theme=dark, language=en, all notifications on, all volumes 1.0
+- `Store.GetPlayerSettings(ctx, playerID)` — returns stored merged over defaults; returns all defaults if no row exists
+- `Store.UpsertPlayerSettings(ctx, playerID, settings)` — atomic ON CONFLICT DO UPDATE
+- `mergeSettings(defaults, stored)` — in `pg_player_settings.go`; only non-nil stored fields override defaults
 
-### Added in 005
-- `Rating` gains `GameID string`
-- `RatingLeaderboardEntry` — `PlayerID, GameID, Username, AvatarURL, DisplayRating, GamesPlayed, WinStreak, LossStreak, UpdatedAt`
-- `ratings` composite PK `(player_id, game_id)`; index on `(game_id, display_rating DESC)`
+### `scanPlayer` column order in `pg.go` — do not reorder
+```
+id, username, avatar_url, role, is_bot, created_at, deleted_at
+```
 
 ### `scanSession` column order in `pg.go` — do not reorder
 ```
@@ -296,9 +370,10 @@ turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 | `pg.go` | players, rooms, sessions, moves, stats |
 | `pg_chat.go` | `SaveRoomMessage`, `GetRoomMessages`, `HideRoomMessage`, `ReportRoomMessage`, `SaveDM`, `GetDMHistory`, `MarkDMRead`, `GetUnreadDMCount`, `ReportDM` |
 | `pg_mutes.go` | `MutePlayer`, `UnmutePlayer`, `GetMutedPlayers` |
-| `pg_ratings.go` | `GetRating(ctx, playerID, gameID)`, `UpsertRating`, `GetRatingLeaderboard(ctx, gameID, limit)` |
+| `pg_ratings.go` | `GetRating`, `UpsertRating`, `GetRatingLeaderboard` |
 | `pg_pause.go` | `VotePause`, `ClearPauseVotes`, `VoteResume`, `ClearResumeVotes`, `ForceCloseSession` |
 | `pg_notifications.go` | `CreateNotification`, `GetNotification`, `ListNotifications`, `MarkNotificationRead`, `SetNotificationAction` |
+| `pg_player_settings.go` | `GetPlayerSettings`, `UpsertPlayerSettings`, `mergeSettings` |
 
 ---
 
@@ -335,10 +410,7 @@ turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 | `match_ready` | player | `room_id, session_id` |
 | `notification_received` | player | full `store.Notification` |
 
-### Notes on `move_applied` / `game_over` for games with private state
-For games implementing `engine.StateFilter` (e.g. Love Letter), `BroadcastToRoom` delivers a per-player filtered payload to each non-spectator client and a spectator-filtered payload to spectators — all via the room channel in single-instance mode. In Redis multi-instance mode, per-player payloads are published to each player's personal Redis channel (`ws:player:{id}`), and the spectator payload to the room channel. The frontend always listens to both the room socket and the player socket for `move_applied`/`game_over`, deduplicating by `move_count`.
-
-### Spectator blocklist (events NOT delivered to spectators)
+### Spectator blocklist
 `pause_vote_update`, `session_suspended`, `resume_vote_update`, `session_resumed`, `rematch_vote`, `rematch_ready`
 
 ---
@@ -348,7 +420,7 @@ For games implementing `engine.StateFilter` (e.g. Love Letter), `BroadcastToRoom
 ### Implemented
 ```
 GET  /api/v1/games
-GET  /api/v1/leaderboard?game_id=tictactoe&limit=N   ← game_id required
+GET  /api/v1/leaderboard?game_id=tictactoe&limit=N ← game_id required
 
 POST /api/v1/players
 GET  /api/v1/players/{playerID}/sessions
@@ -360,6 +432,8 @@ POST /api/v1/players/{playerID}/dm
 GET  /api/v1/players/{playerID}/dm/{otherPlayerID}
 GET  /api/v1/players/{playerID}/dm/unread
 GET  /api/v1/players/{playerID}/notifications?include_read=false&player_id={id}
+GET  /api/v1/players/{playerID}/settings
+PUT  /api/v1/players/{playerID}/settings
 
 POST /api/v1/rooms
 GET  /api/v1/rooms
@@ -372,6 +446,8 @@ POST /api/v1/rooms/{roomID}/messages
 GET  /api/v1/rooms/{roomID}/messages
 POST /api/v1/rooms/{roomID}/messages/{messageID}/report
 DEL  /api/v1/rooms/{roomID}/messages/{messageID}   ← manager only
+POST /api/v1/rooms/{roomID}/bots
+DEL  /api/v1/rooms/{roomID}/bots/{botID}
 
 GET  /api/v1/sessions/{sessionID}
 GET  /api/v1/sessions/{sessionID}/events
@@ -381,7 +457,7 @@ POST /api/v1/sessions/{sessionID}/surrender
 POST /api/v1/sessions/{sessionID}/rematch
 POST /api/v1/sessions/{sessionID}/pause
 POST /api/v1/sessions/{sessionID}/resume
-DEL  /api/v1/sessions/{sessionID}                  ← manager only (force close)
+DEL  /api/v1/sessions/{sessionID}                  ← manager only
 
 POST /api/v1/dm/{messageID}/read
 POST /api/v1/notifications/{notificationID}/read
@@ -393,6 +469,8 @@ DEL  /api/v1/queue
 POST /api/v1/queue/accept
 POST /api/v1/queue/decline
 
+GET  /api/v1/bots/profiles
+
 GET    /api/v1/admin/allowed-emails
 POST   /api/v1/admin/allowed-emails
 DELETE /api/v1/admin/allowed-emails/{email}
@@ -400,7 +478,7 @@ GET    /api/v1/admin/players
 PUT    /api/v1/admin/players/{playerID}/role
 
 WS /ws/rooms/{roomID}?player_id={id}
-WS /ws/players/{playerID}              ← player channel for queue/DM/notification/filtered-move events
+WS /ws/players/{playerID} ← player channel for queue/DM/notification/filtered-move events
 ```
 
 ---
@@ -414,34 +492,21 @@ All namespaces use a shared `request<T>(path, init)` helper (no axios).
 | `players` | `stats`, `sessions` |
 | `sessions` | `get`, `move`, `surrender`, `rematch`, `pause`, `resume`, `forceClose`, `events`, `history` |
 | `rooms` | `create`, `list`, `get`, `join`, `leave`, `start`, `updateSetting`, `messages`, `sendMessage` |
+| `bots` | `profiles`, `add`, `remove` |
+| `playerSettings` | `get`, `update` |
 | `dm` | `send`, `history`, `unreadCount`, `markRead`, `report` |
 | `mutes` | `mute`, `unmute`, `list` |
 | `queue` | `join`, `leave`, `accept`, `decline` |
 | `notifications` | `list`, `markRead`, `accept`, `decline` |
-| `leaderboard` | `get(gameId, limit)` — returns `Rating[]` |
+| `leaderboard` | `get(gameId, limit)` |
 | `gameRegistry` | `list` |
 | `admin` | `listEmails`, `addEmail`, `removeEmail`, `listPlayers`, `setRole` |
 
 ### Interfaces exported from `api.ts`
-`Player`, `RoomViewPlayer`, `AllowedEmail`, `Room`, `RoomView`, `GameSession`, `GameResult`, `Move`, `PlayerStats`, `Rating`, `PlayerMute`, `DirectMessage`, `QueuePosition`, `SessionEvent`, `RoomMessage`, `SettingOption`, `LobbySetting`, `GameInfo`, `Notification`, `NotificationType`, `NotificationPayloadFriendRequest`, `NotificationPayloadRoomInvitation`, `NotificationPayloadBanIssued`
+`Player`, `RoomViewPlayer`, `AllowedEmail`, `Room`, `RoomView`, `GameSession` (fully typed), `GameResult`, `Move`, `PlayerStats`, `Rating`, `PlayerMute`, `DirectMessage`, `QueuePosition`, `SessionEvent`, `RoomMessage`, `SettingOption`, `LobbySetting`, `GameInfo`, `Notification`, `NotificationType`, `BotProfile`, `PlayerSettingMap`, `PlayerSettings`
 
-### Utility functions exported from `api.ts`
-`wsRoomUrl(roomId, playerId)`, `wsPlayerUrl(playerId)`
-
----
-
-## `queryClient.ts` — key factory
-```ts
-keys = {
-  rooms, room, games, gameConfig,
-  leaderboard(gameId?),
-  session, player,
-  adminEmails, adminPlayers,
-  notifications(playerId),
-  dmUnread(playerId),
-  roomMessages(roomId),
-}
-```
+### Constants exported from `api.ts`
+`DEFAULT_SETTINGS: Required<PlayerSettingMap>` — mirrors `store.DefaultPlayerSettings()`
 
 ---
 
@@ -468,6 +533,12 @@ queueStatus: 'idle' | 'queued' | 'match_found'
 queueJoinedAt: number | null
 matchId: string | null
 setQueued(joinedAt), setMatchFound(matchId), clearQueue()
+
+// Settings
+settings: ResolvedSettings             // Required<PlayerSettingMap>, always fully populated
+hydrateSettings(raw: PlayerSettings)   // merges stored over defaults, call on API response
+updateSetting(key, value)              // optimistic update
+setSettings(settings)                  // bulk replace, used for localStorage cache restore
 ```
 
 ---
@@ -495,12 +566,17 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 |---|---|---|---|
 | Love Letter renderer | ✅ | ✅ | Components built, Vitest coverage, E2E pending |
 | Player mutes | ✅ | ❌ | Mute/unmute from chat panel; mute list in profile |
-| Session pause/resume | ✅ | ❌ | Pause button, vote overlay, suspended screen |
+| Session pause/resume | ✅ | ✅ | Complete — pause button, vote overlay, suspended screen, return-tomorrow support |
 | Direct messages | ✅ | ❌ | Inbox, conversation view, unread badge |
 | Notifications full UI | ✅ | ⚠️ | Badge done; inline accept/decline pending |
 | Friends system | ❌ | ❌ | `NotifyFriendRequest` implemented but no endpoint calls it |
-| Match found sound | — | ❌ | Placeholder sound on `match_found` WS event |
-| Bot creation UI | ❌ | ❌ | Pending session F |
+| Bot creation UI | ✅ | ✅ | Add/remove bot in Room.tsx; profile select |
+| Error-as-value migration | — | ⚠️ | `Room.tsx` and `Game.tsx` migrated; `Lobby.tsx`, `Admin.tsx`, other pages pending |
+| Audio system | — | ❌ | Volume sliders are stubs — stored but not applied |
+| `reduce_motion` CSS | — | ❌ | Setting stored but not applied to CSS animations |
+| `show_move_hints` / `confirm_move` in Game | — | ❌ | Settings stored but not wired to `Game.tsx` logic |
+| Named bots | ❌ | ❌ | Persistent bots with elo; separate from fill bots |
+| Love Letter bot adapter | ❌ | — | Session D — `Determinize` samples hidden hand |
 
 ---
 
@@ -516,6 +592,7 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 - **Notification hooks** — `NotifyFriendRequest` and `NotifyRoomInvitation` implemented but nothing calls them
 - **`miniredis` not extracted to `testutil`**
 - **`handleStartGame` hardcodes `SessionModeCasual`**
+- **Bot registry is in-memory** — lost on server restart; bots must be re-registered; consider persisting active bot assignments in Redis or a new table
 
 ### Frontend
 - **Love Letter E2E** — no Playwright tests for gameplay
@@ -523,4 +600,9 @@ setQueued(joinedAt), setMatchFound(matchId), clearQueue()
 - **WS lifecycle coupled to navigation** — direct navigation to `/game/:id` leaves `socket = null`
 - **Auth outside React Query** — `auth.me()` in `useEffect`, no caching
 - **Polling + WebSocket redundancy** — intentional safety net
-- **Error handling — migrate to error-as-value** — `src/helpers/errors.ts` exports `ok<S>()` and `error<R, E>()` that return a `Result<S, E>` tuple. New code must use this pattern instead of try/catch. When touching existing code, migrate it. The `reason` string discriminant on error objects enables exhaustive switch handling enforced by TypeScript (`err satisfies never` in the default branch). Convention: when wrapping `ApiError` from `api.ts`, include the HTTP status in the error object (e.g. `{ reason: "UNAUTHORIZED", status: 401 }`) so callers can distinguish error kinds without inspecting message strings.
+- **Error-as-value migration incomplete** — `Lobby.tsx`, `Admin.tsx`, and other pages still use try/catch; migrate when touching
+- **`bot.spec.ts` first test may be flaky** — `TestBotPlaysFullGame` assumes P1 wins top row before bot blocks; bot with `easy` profile (100 iterations) may occasionally block; consider asserting game ends rather than P1 wins
+- **Audio volume controls are stubs** — `Settings.tsx` renders disabled sliders; no audio system exists yet
+- **`reduce_motion` not applied** — stored in settings but no CSS class toggling or `prefers-reduced-motion` override implemented
+- **`show_move_hints` / `confirm_move`** — stored in settings but `Game.tsx` does not read them from the store yet
+- **Settings cache key `'tf:settings'`** — no versioning or migration strategy if `PlayerSettingMap` shape changes; stale cache could cause type mismatches

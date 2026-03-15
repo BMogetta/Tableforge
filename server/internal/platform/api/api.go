@@ -103,6 +103,8 @@ func NewRouter(
 		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
 		r.Get("/players/{playerID}/stats", handleGetPlayerStats(st))
 		r.Get("/players/{playerID}/notifications", handleListNotifications(notificationSvc))
+		r.Get("/players/{playerID}/settings", handleGetPlayerSettings(st))
+		r.Put("/players/{playerID}/settings", handleUpsertPlayerSettings(st))
 
 		r.Post("/rooms", handleCreateRoom(lobbyService))
 		r.Get("/rooms", handleListRooms(lobbyService))

@@ -1,8 +1,13 @@
 import { create } from 'zustand'
-import type { Player } from './api'
+import type { Player, PlayerSettingMap, PlayerSettings } from './api'
+import { DEFAULT_SETTINGS } from './api'
 import { PlayerSocket, RoomSocket } from './ws'
 
 export type QueueStatus = 'idle' | 'queued' | 'match_found'
+
+// Resolved settings — all keys are guaranteed non-optional after merging
+// stored values over DEFAULT_SETTINGS.
+export type ResolvedSettings = Required<PlayerSettingMap>
 
 interface AppState {
   player: Player | null
@@ -55,40 +60,92 @@ interface AppState {
   setPlayerPresence: (playerId: string, online: boolean) => void
 
   // --- Queue state -----------------------------------------------------------
- 
+
   /**
    * Current matchmaking queue status for the player.
    * Persists across navigation so the player can queue and browse the app.
-   * - idle:        not in queue
-   * - queued:      waiting for a match
-   * - match_found: a match has been proposed, awaiting confirmation
    */
   queueStatus: QueueStatus
- 
   /**
    * Timestamp (Date.now()) when the player joined the queue.
    * Used to calculate elapsed wait time from any page.
    * Null when queueStatus is 'idle'.
    */
   queueJoinedAt: number | null
- 
   /**
    * The match ID proposed by the server when queueStatus is 'match_found'.
    * Required to call queue.accept() / queue.decline().
    * Null otherwise.
    */
-  matchId: string | null
- 
+ matchId: string | null
   /** Set queue status to 'queued' and record the join timestamp. */
   setQueued: (joinedAt: number) => void
- 
   /** Set queue status to 'match_found' and record the match ID. */
-  setMatchFound: (matchId: string) => void
- 
-  /** Reset all queue state back to idle. */
+setMatchFound: (matchId: string) => void
   clearQueue: () => void
+
+  // --- Settings state --------------------------------------------------------
+
+  /**
+   * Resolved player settings — stored values merged over DEFAULT_SETTINGS.
+   * All keys are guaranteed non-optional.
+   *
+   * Load order on app start:
+   *   1. localStorage cache (instant, no flash)
+   *   2. Backend fetch in background (updates store + refreshes cache)
+   *
+   * On change:
+   *   1. Optimistic update in store (immediate)
+   *   2. localStorage write (immediate)
+   *   3. Debounced PUT to backend (500ms)
+   */
+  settings: ResolvedSettings
+
+  /**
+   * Hydrates the settings store from a raw PlayerSettings API response.
+   * Merges stored values over DEFAULT_SETTINGS so all keys are always present.
+   */
+  hydrateSettings: (raw: PlayerSettings) => void
+
+  /**
+   * Applies a partial settings update optimistically.
+   * Callers are responsible for debouncing the backend sync.
+   */
+  updateSetting: <K extends keyof PlayerSettingMap>(key: K, value: PlayerSettingMap[K]) => void
+
+  /**
+   * Replaces all settings at once — used when loading from localStorage cache.
+   */
+  setSettings: (settings: ResolvedSettings) => void
 }
 
+// NOTE: Settings persistence is currently handled manually via localStorage
+// (see App.tsx: loadSettingsFromCache / saveSettingsToCache) and a debounced
+// PUT to the backend in Settings.tsx.
+//
+// An alternative would be zustand/middleware `persist`:
+//
+//   import { persist } from 'zustand/middleware'
+//   export const useAppStore = create(persist(
+//     (set, get) => ({ ... }),
+//     {
+//       name: 'tf:settings',
+//       partialize: (state) => ({ settings: state.settings }),
+//     }
+//   ))
+//
+// Implications of switching to `persist`:
+//   + Eliminates the manual localStorage read/write boilerplate
+//   + Built-in rehydration on store init (no need for setSettings in App.tsx)
+//   + Supports versioning (migrate: fn) for schema changes
+//   - Requires extracting settings into a separate store — `partialize` works
+//     but mixing volatile state (sockets, presenceMap) with persisted state
+//     in the same store is fragile and harder to reason about
+//   - The debounced backend sync in Settings.tsx still needs to exist regardless
+//     (persist only handles localStorage, not cross-device sync)
+//
+// Recommended path: if the store grows further, extract a dedicated
+// useSettingsStore with `persist`, and keep useAppStore for volatile state.
 export const useAppStore = create<AppState>((set, get) => ({
   player: null,
   setPlayer: (player) => set({ player }),
@@ -107,7 +164,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().playerSocket?.close()
     set({ playerSocket: null })
   },
-  
+
   isSpectator: false,
   setIsSpectator: (value) => set({ isSpectator: value }),
 
@@ -133,11 +190,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       presenceMap: { ...state.presenceMap, [playerId]: online },
     })),
 
-// Queue
+  // Queue
   queueStatus: 'idle',
   queueJoinedAt: null,
   matchId: null,
   setQueued: (joinedAt) => set({ queueStatus: 'queued', queueJoinedAt: joinedAt, matchId: null }),
   setMatchFound: (matchId) => set({ queueStatus: 'match_found', matchId }),
   clearQueue: () => set({ queueStatus: 'idle', queueJoinedAt: null, matchId: null }),
+
+  // Settings
+  settings: { ...DEFAULT_SETTINGS },
+
+  hydrateSettings: (raw: PlayerSettings) => {
+    const merged: ResolvedSettings = { ...DEFAULT_SETTINGS, ...raw.settings }
+    set({ settings: merged })
+  },
+
+  updateSetting: (key, value) =>
+    set((state) => ({
+      settings: { ...state.settings, [key]: value },
+    })),
+
+  setSettings: (settings) => set({ settings }),
 }))

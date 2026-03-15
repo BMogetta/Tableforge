@@ -57,6 +57,7 @@ func newTestStore(t *testing.T) store.Store {
 		"../../../db/migrations/004_notifications.sql",
 		"../../../db/migrations/005_ratings_game_id.sql",
 		"../../../db/migrations/006_bot_players.sql",
+		"../../../db/migrations/007_player_settings.sql",
 	} {
 		migration, err := os.ReadFile(path)
 		if err != nil {

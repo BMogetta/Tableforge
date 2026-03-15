@@ -13,8 +13,10 @@ type Player struct {
 	ID        uuid.UUID  `json:"id"`
 	Username  string     `json:"username"`
 	Role      PlayerRole `json:"role"`
-	IsBot     bool       `json:"is_bot"`
 	AvatarURL *string    `json:"avatar_url,omitempty"`
+	// IsBot is true for fill bots and named bots.
+	// Set at insert time via CreateBotPlayer — never mutated after creation.
+	IsBot     bool       `json:"is_bot"`
 	CreatedAt time.Time  `json:"created_at"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
@@ -26,6 +28,83 @@ const (
 	RoleManager PlayerRole = "manager"
 	RoleOwner   PlayerRole = "owner"
 )
+
+// PlayerSettings holds all configurable preferences for a player.
+// Stored as a single JSONB row in player_settings.
+// The application layer merges stored values over DefaultPlayerSettings() at
+// read time, so the schema never needs updating for new keys.
+type PlayerSettings struct {
+	PlayerID  uuid.UUID        `json:"player_id"`
+	Settings  PlayerSettingMap `json:"settings"`
+	UpdatedAt time.Time        `json:"updated_at"`
+}
+
+// PlayerSettingMap is the flat key/value map serialized into the JSONB column.
+// All fields are pointers — nil means "use the application default".
+type PlayerSettingMap struct {
+	// Appearance
+	Theme        *string `json:"theme,omitempty"`         // "dark" | "light" | "system"
+	Language     *string `json:"language,omitempty"`      // "en" | "es" | ...
+	ReduceMotion *bool   `json:"reduce_motion,omitempty"` // disable CSS animations
+	FontSize     *string `json:"font_size,omitempty"`     // "small" | "medium" | "large"
+
+	// Notifications
+	NotifyDM            *bool `json:"notify_dm,omitempty"`
+	NotifyGameInvite    *bool `json:"notify_game_invite,omitempty"`
+	NotifyFriendRequest *bool `json:"notify_friend_request,omitempty"`
+	NotifySound         *bool `json:"notify_sound,omitempty"`
+
+	// Audio (stubs — no audio system yet; stored but not applied)
+	MuteAll             *bool    `json:"mute_all,omitempty"`
+	VolumeMaster        *float64 `json:"volume_master,omitempty"`
+	VolumeSFX           *float64 `json:"volume_sfx,omitempty"`
+	VolumeUI            *float64 `json:"volume_ui,omitempty"`
+	VolumeNotifications *float64 `json:"volume_notifications,omitempty"`
+	VolumeMusic         *float64 `json:"volume_music,omitempty"`
+
+	// Gameplay
+	ShowMoveHints    *bool `json:"show_move_hints,omitempty"`
+	ConfirmMove      *bool `json:"confirm_move,omitempty"`
+	ShowTimerWarning *bool `json:"show_timer_warning,omitempty"`
+
+	// Privacy
+	ShowOnlineStatus *bool   `json:"show_online_status,omitempty"`
+	AllowDMs         *string `json:"allow_dms,omitempty"` // "anyone" | "friends_only" | "nobody"
+}
+
+// DefaultPlayerSettings returns the canonical defaults applied when a key is
+// absent from the stored settings.
+func DefaultPlayerSettings() PlayerSettingMap {
+	t := true
+	f := false
+	dark := "dark"
+	en := "en"
+	medium := "medium"
+	anyone := "anyone"
+	vol1 := 1.0
+
+	return PlayerSettingMap{
+		Theme:               &dark,
+		Language:            &en,
+		ReduceMotion:        &f,
+		FontSize:            &medium,
+		NotifyDM:            &t,
+		NotifyGameInvite:    &t,
+		NotifyFriendRequest: &t,
+		NotifySound:         &t,
+		MuteAll:             &f,
+		VolumeMaster:        &vol1,
+		VolumeSFX:           &vol1,
+		VolumeUI:            &vol1,
+		VolumeNotifications: &vol1,
+		VolumeMusic:         &vol1,
+		ShowMoveHints:       &t,
+		ConfirmMove:         &f,
+		ShowTimerWarning:    &t,
+		ShowOnlineStatus:    &t,
+		AllowDMs:            &anyone,
+	}
+}
 
 type AddAllowedEmailParams struct {
 	Email     string
@@ -61,8 +140,6 @@ type RoomPlayer struct {
 	JoinedAt time.Time `json:"joined_at"`
 }
 
-// RoomSetting is a single key/value setting for a room.
-// Settings are stored in the room_settings table and scoped to a room.
 type RoomSetting struct {
 	RoomID    uuid.UUID `json:"room_id"`
 	Key       string    `json:"key"`
@@ -294,13 +371,19 @@ type CreateNotificationParams struct {
 type Store interface {
 	// Players
 	CreatePlayer(ctx context.Context, username string) (Player, error)
+	// CreateBotPlayer inserts a player with is_bot = TRUE.
+	CreateBotPlayer(ctx context.Context, username string) (Player, error)
 	GetPlayer(ctx context.Context, id uuid.UUID) (Player, error)
 	GetPlayerByUsername(ctx context.Context, username string) (Player, error)
 	UpdatePlayerAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error
 	SoftDeletePlayer(ctx context.Context, id uuid.UUID) error
 
-	// Bots
-	CreateBotPlayer(ctx context.Context, username string) (Player, error)
+	// Player settings
+	// GetPlayerSettings returns the stored settings merged over DefaultPlayerSettings().
+	// If no row exists for the player, returns a PlayerSettings with all defaults.
+	GetPlayerSettings(ctx context.Context, playerID uuid.UUID) (PlayerSettings, error)
+	// UpsertPlayerSettings replaces the settings JSONB for the player atomically.
+	UpsertPlayerSettings(ctx context.Context, playerID uuid.UUID, settings PlayerSettingMap) (PlayerSettings, error)
 
 	// Admin — allowed emails
 	ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error)
@@ -321,7 +404,6 @@ type Store interface {
 	DeleteRoom(ctx context.Context, roomID uuid.UUID) error
 
 	// Room settings
-	// GetRoomSettings returns all settings for a room as a key/value map.
 	GetRoomSettings(ctx context.Context, roomID uuid.UUID) (map[string]string, error)
 	// SetRoomSetting upserts a single setting for a room.
 	// The caller (lobby.validateSetting) is responsible for validating the key and value
@@ -411,21 +493,16 @@ type Store interface {
 	ClearResumeVotes(ctx context.Context, sessionID uuid.UUID) error
 	ForceCloseSession(ctx context.Context, sessionID uuid.UUID) error
 
-	// CreateNotification inserts a new notification and returns the created row.
+	// Notifications
 	CreateNotification(ctx context.Context, params CreateNotificationParams) (Notification, error)
-
-	// GetNotification fetches a single notification by ID.
 	GetNotification(ctx context.Context, id uuid.UUID) (Notification, error)
-
 	// ListNotifications returns notifications for a player.
 	// If includeRead is false, only unread notifications are returned.
 	// Read notifications older than readCutoff are excluded even if includeRead is true.
 	ListNotifications(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]Notification, error)
-
 	// MarkNotificationRead sets read_at to now for the given notification.
 	// No-op if already read.
 	MarkNotificationRead(ctx context.Context, id uuid.UUID) error
-
 	// SetNotificationAction records an accepted or declined action on a notification.
 	// Returns an error if action_expires_at has passed or action_taken is already set.
 	SetNotificationAction(ctx context.Context, id uuid.UUID, action string) error

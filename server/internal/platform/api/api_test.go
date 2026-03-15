@@ -62,12 +62,29 @@ func (g *stubGame) ApplyMove(s engine.GameState, _ engine.Move) (engine.GameStat
 }
 func (g *stubGame) IsOver(_ engine.GameState) (bool, engine.Result) { return false, engine.Result{} }
 
+type stubTicTacToeGame struct{}
+
+func (g *stubTicTacToeGame) ID() string      { return "tictactoe" }
+func (g *stubTicTacToeGame) Name() string    { return "TicTacToe" }
+func (g *stubTicTacToeGame) MinPlayers() int { return 2 }
+func (g *stubTicTacToeGame) MaxPlayers() int { return 2 }
+func (g *stubTicTacToeGame) Init(players []engine.Player) (engine.GameState, error) {
+	return engine.GameState{CurrentPlayerID: players[0].ID, Data: map[string]any{}}, nil
+}
+func (g *stubTicTacToeGame) ValidateMove(_ engine.GameState, _ engine.Move) error { return nil }
+func (g *stubTicTacToeGame) ApplyMove(s engine.GameState, _ engine.Move) (engine.GameState, error) {
+	return s, nil
+}
+func (g *stubTicTacToeGame) IsOver(_ engine.GameState) (bool, engine.Result) {
+	return false, engine.Result{}
+}
+
 // --- Test helpers ------------------------------------------------------------
 
 func newTestRouter(t *testing.T) (http.Handler, *fakeStore) {
 	t.Helper()
 	s := newFakeStore()
-	reg := newFakeRegistry(&stubGame{})
+	reg := newFakeRegistry(&stubGame{}, &stubTicTacToeGame{})
 	svc := lobby.New(s, reg)
 	rt := runtime.New(s, reg, nil)
 	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil, nil, nil), s

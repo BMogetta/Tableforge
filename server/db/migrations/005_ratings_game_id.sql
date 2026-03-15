@@ -1,3 +1,4 @@
+-- 005_ratings_game_id.sql
 -- Adds game_id to the ratings table so leaderboards are scoped per game.
 -- Drops the player_id-only primary key and replaces it with a composite
 -- (player_id, game_id) so a player can hold one rating entry per game.

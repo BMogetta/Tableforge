@@ -28,6 +28,66 @@ export interface AllowedEmail {
   created_at: string
 }
 
+export interface PlayerSettingMap {
+  // Appearance
+  theme?: 'dark' | 'light' | 'system'
+  language?: string
+  reduce_motion?: boolean
+  font_size?: 'small' | 'medium' | 'large'
+
+  // Notifications
+  notify_dm?: boolean
+  notify_game_invite?: boolean
+  notify_friend_request?: boolean
+  notify_sound?: boolean
+
+  // Audio (stubs — no audio system yet)
+  mute_all?: boolean
+  volume_master?: number        // 0.0–1.0
+  volume_sfx?: number
+  volume_ui?: number
+  volume_notifications?: number
+  volume_music?: number
+
+  // Gameplay
+  show_move_hints?: boolean
+  confirm_move?: boolean
+  show_timer_warning?: boolean
+
+  // Privacy
+  show_online_status?: boolean
+  allow_dms?: 'anyone' | 'friends_only' | 'nobody'
+}
+
+export interface PlayerSettings {
+  player_id: string
+  settings: PlayerSettingMap
+  updated_at: string
+}
+
+/** Canonical application defaults — mirrors store.DefaultPlayerSettings(). */
+export const DEFAULT_SETTINGS: Required<PlayerSettingMap> = {
+  theme: 'dark',
+  language: 'en',
+  reduce_motion: false,
+  font_size: 'medium',
+  notify_dm: true,
+  notify_game_invite: true,
+  notify_friend_request: true,
+  notify_sound: true,
+  mute_all: false,
+  volume_master: 1.0,
+  volume_sfx: 1.0,
+  volume_ui: 1.0,
+  volume_notifications: 1.0,
+  volume_music: 1.0,
+  show_move_hints: true,
+  confirm_move: false,
+  show_timer_warning: true,
+  show_online_status: true,
+  allow_dms: 'anyone',
+}
+
 export interface Room {
   id: string
   /**
@@ -326,6 +386,18 @@ export const auth = {
 export const players = {
   stats: (id: string) => request<PlayerStats>(`/players/${id}/stats`),
   sessions: (id: string) => request<GameSession[]>(`/players/${id}/sessions`),
+}
+
+// --- Player settings ---------------------------------------------------------
+
+export const playerSettings = {
+  get: (playerId: string) =>
+    request<PlayerSettings>(`/players/${playerId}/settings`),
+  update: (playerId: string, settings: PlayerSettingMap) =>
+    request<PlayerSettings>(`/players/${playerId}/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
 }
 
 // --- Rooms -------------------------------------------------------------------
