@@ -1,4 +1,4 @@
-import {CardDisplay,  type CardName } from './CardDisplay'
+import { CardDisplay, type CardName } from './CardDisplay'
 import styles from './PlayerBoard.module.css'
 
 interface Props {

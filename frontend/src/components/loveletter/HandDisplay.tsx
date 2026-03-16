@@ -1,4 +1,4 @@
-import {CardDisplay,  type CardName } from './CardDisplay'
+import { CardDisplay, type CardName } from './CardDisplay'
 import styles from './HandDisplay.module.css'
 
 interface Props {
@@ -14,13 +14,7 @@ interface Props {
   blockedCards?: CardName[]
 }
 
-export function HandDisplay({
-  cards,
-  selectedCard,
-  disabled,
-  onSelect,
-  blockedCards = [],
-}: Props) {
+export function HandDisplay({ cards, selectedCard, disabled, onSelect, blockedCards = [] }: Props) {
   if (cards.length === 0) {
     return (
       <div className={styles.empty}>

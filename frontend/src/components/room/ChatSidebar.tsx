@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { rooms, mutes, type RoomMessage, type RoomViewPlayer } from '../../api'
+import { rooms, mutes, type RoomMessage, type RoomViewPlayer } from '../../lib/api'
 import { useAppStore } from '../../store'
 import { catchToAppError } from '../../utils/errors'
 import { useToast } from '../ui/Toast'
-import { keys } from '../../queryClient'
+import { keys } from '../../lib/queryClient'
 import styles from './ChatSidebar.module.css'
 
 interface Props {

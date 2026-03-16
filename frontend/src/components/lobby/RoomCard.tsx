@@ -1,4 +1,4 @@
-import type { RoomView } from '../../api'
+import type { RoomView } from '../../lib/api'
 import styles from './RoomCard.module.css'
 
 interface Props {

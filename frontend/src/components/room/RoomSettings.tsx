@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { rooms, type LobbySetting } from '../../api'
+import { rooms, type LobbySetting } from '../../lib/api'
 import styles from './RoomSettings.module.css'
 
 interface Props {

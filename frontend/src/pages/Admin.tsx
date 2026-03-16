@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '../store'
-import { admin, type AllowedEmail, type Player } from '../api'
+import { admin, type AllowedEmail, type Player } from '../lib/api'
 import styles from './Admin.module.css'
 
 type Tab = 'emails' | 'players' | 'observability'

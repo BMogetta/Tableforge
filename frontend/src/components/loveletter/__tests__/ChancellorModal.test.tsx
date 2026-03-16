@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import ChancellorModal from '../ChancellorModal'
+import { ChancellorModal } from '../ChancellorModal'
 import type { CardName } from '../CardDisplay'
 
 const choices: CardName[] = ['spy', 'guard', 'priest']

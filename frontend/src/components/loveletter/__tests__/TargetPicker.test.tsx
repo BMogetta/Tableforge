@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import TargetPicker from '../TargetPicker'
+import { TargetPicker } from '../TargetPicker'
 import type { CardName } from '../CardDisplay'
 
 const opponents = [

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import RateLimited from '../RateLimited'
+import { RateLimited } from '../RateLimited'
 
 // Mock useNavigate so we can assert navigation calls.
 const mockNavigate = vi.fn()

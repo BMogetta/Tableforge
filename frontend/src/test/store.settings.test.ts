@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useAppStore } from '../store'
-import { DEFAULT_SETTINGS, type PlayerSettings } from '../api'
+import { DEFAULT_SETTINGS, type PlayerSettings } from '../lib/api'
 
 // Reset store state before each test so tests are independent.
 beforeEach(() => {

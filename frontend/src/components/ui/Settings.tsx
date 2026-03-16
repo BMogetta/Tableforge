@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
 import { useAppStore } from '../../store'
-import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap } from '../../api'
+import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap } from '../../lib/api'
 import { catchToAppError } from '../../utils/errors'
 import { useToast } from './Toast'
 import styles from './Settings.module.css'

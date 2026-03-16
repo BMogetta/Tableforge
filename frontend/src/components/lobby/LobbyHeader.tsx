@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { notifications, dm, auth } from '../../api'
+import { notifications, dm, auth } from '../../lib/api'
 import { useAppStore } from '../../store'
-import { keys } from '../../queryClient'
-import {Settings} from '../ui/Settings'
+import { keys } from '../../lib/queryClient'
+import { Settings } from '../ui/Settings'
 import styles from './LobbyHeader.module.css'
 
 interface Props {

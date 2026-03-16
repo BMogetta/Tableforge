@@ -14,13 +14,7 @@ interface Props {
   disabled: boolean
 }
 
-export function TicTacToeBoard({
-  state,
-  currentPlayerId,
-  localPlayerId,
-  onMove,
-  disabled,
-}: Props) {
+export function TicTacToeBoard({ state, currentPlayerId, localPlayerId, onMove, disabled }: Props) {
   const { board, marks } = state
   const localMark = marks[localPlayerId]
   const isMyTurn = currentPlayerId === localPlayerId && !disabled

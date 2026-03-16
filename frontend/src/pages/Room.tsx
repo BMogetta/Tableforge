@@ -11,12 +11,12 @@ import {
   type LobbySetting,
   type BotProfile,
   type RoomViewPlayer,
-} from '../api'
+} from '../lib/api'
 import { ok, error, catchToAppError, type AppError } from '../utils/errors'
 import { useToast } from '../components/ui/Toast'
-import {ErrorMessage} from '../components/ui/ErrorMessage'
-import {RoomSettings} from '../components/room/RoomSettings'
-import {ChatSidebar} from '../components/room/ChatSidebar'
+import { ErrorMessage } from '../components/ui/ErrorMessage'
+import { RoomSettings } from '../components/room/RoomSettings'
+import { ChatSidebar } from '../components/room/ChatSidebar'
 import styles from './Room.module.css'
 
 type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'

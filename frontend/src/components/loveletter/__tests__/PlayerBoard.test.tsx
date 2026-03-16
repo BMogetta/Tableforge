@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import PlayerBoard from '../PlayerBoard'
+import { PlayerBoard } from '../PlayerBoard'
 import type { CardName } from '../CardDisplay'
 
 const baseProps = {

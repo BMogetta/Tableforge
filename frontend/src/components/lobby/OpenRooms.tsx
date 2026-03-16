@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { rooms } from '../../api'
-import { keys } from '../../queryClient'
-import {RoomCard} from './RoomCard'
+import { rooms } from '../../lib/api'
+import { keys } from '../../lib/queryClient'
+import { RoomCard } from './RoomCard'
 import styles from './OpenRooms.module.css'
 
 export function OpenRooms() {

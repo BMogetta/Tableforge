@@ -35,26 +35,26 @@
       "correctness": {
         "noUnusedVariables": "warn",
         "useExhaustiveDependencies": "warn",
-				"useIsNan": "error",
-				"useJsonImportAttributes": "on"
+        "useIsNan": "error",
+        "useJsonImportAttributes": "on"
       },
-			"nursery": "warn",
+      "nursery": "warn",
       "style": {
         "useBlockStatements": "error",
-				"noDefaultExport":"error",
-				"noNamespace":"warn",
-				"noImplicitBoolean": "warn",
-				"useNumericSeparators":"warn",
-				"noUnusedTemplateLiteral": "warn",
-				"noUselessElse":"on",
-				"useCollapsedElseIf": "on",
-				"useConst": "on",
-				"useReactFunctionComponents": "error",
+        "noDefaultExport": "error",
+        "noNamespace": "warn",
+        "noImplicitBoolean": "warn",
+        "useNumericSeparators": "warn",
+        "noUnusedTemplateLiteral": "warn",
+        "noUselessElse": "on",
+        "useCollapsedElseIf": "on",
+        "useConst": "on",
+        "useReactFunctionComponents": "error",
         "noNonNullAssertion": "off"
       },
       "performance": {
         "noDelete": "off",
-				"useTopLevelRegex": "error"
+        "useTopLevelRegex": "error"
       }
     }
   },

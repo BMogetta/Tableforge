@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { rooms, queue, type GameInfo } from '../../api'
+import { rooms, queue, type GameInfo } from '../../lib/api'
 import { useAppStore } from '../../store'
-import { keys } from '../../queryClient'
+import { keys } from '../../lib/queryClient'
 import styles from './NewGamePanel.module.css'
 
 type Tab = 'casual' | 'ranked'

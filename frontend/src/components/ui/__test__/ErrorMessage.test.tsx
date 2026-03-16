@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import {ErrorMessage} from '../ErrorMessage'
+import { ErrorMessage } from '../ErrorMessage'
 import type { AppError } from '../../../utils/errors'
 
 const devError: AppError = {

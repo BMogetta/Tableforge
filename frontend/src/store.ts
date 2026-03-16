@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import type { Player, PlayerSettingMap, PlayerSettings } from './api'
-import { DEFAULT_SETTINGS } from './api'
-import { PlayerSocket, RoomSocket } from './ws'
+import type { Player, PlayerSettingMap, PlayerSettings } from './lib/api'
+import { DEFAULT_SETTINGS } from './lib/api'
+import { PlayerSocket, RoomSocket } from './lib/ws'
 
 export type QueueStatus = 'idle' | 'queued' | 'match_found'
 

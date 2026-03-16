@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { type CardName } from './CardDisplay'
-import {HandDisplay} from './HandDisplay'
-import {TargetPicker} from './TargetPicker'
-import {ChancellorModal} from './ChancellorModal'
-import {PlayerBoard} from './PlayerBoard'
-import {RoundSummary} from './RoundSummary'
+import { HandDisplay } from './HandDisplay'
+import { TargetPicker } from './TargetPicker'
+import { ChancellorModal } from './ChancellorModal'
+import { PlayerBoard } from './PlayerBoard'
+import { RoundSummary } from './RoundSummary'
 import styles from './LoveLetter.module.css'
 
 // ---------------------------------------------------------------------------

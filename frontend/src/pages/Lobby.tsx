@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { auth, gameRegistry } from '../api'
+import { auth, gameRegistry } from '../lib/api'
 import { useAppStore } from '../store'
-import { keys } from '../queryClient'
-import {LobbyHeader} from '../components/lobby/LobbyHeader'
-import {NewGamePanel} from '../components/lobby/NewGamePanel'
-import {OpenRooms} from '../components/lobby/OpenRooms'
-import {LeaderboardPanel} from '../components/lobby/LeaderboardPanel'
+import { keys } from '../lib/queryClient'
+import { LobbyHeader } from '../components/lobby/LobbyHeader'
+import { NewGamePanel } from '../components/lobby/NewGamePanel'
+import { OpenRooms } from '../components/lobby/OpenRooms'
+import { LeaderboardPanel } from '../components/lobby/LeaderboardPanel'
 import styles from './Lobby.module.css'
 
 export function Lobby() {

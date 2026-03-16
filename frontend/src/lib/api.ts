@@ -1,6 +1,6 @@
 // All types mirror the Go store models.
 
-import { tracer } from './telemetry'
+import { tracer } from '../telemetry'
 import { SpanStatusCode, context, propagation } from '@opentelemetry/api'
 
 // --- Types -------------------------------------------------------------------
