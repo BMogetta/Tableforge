@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import { useAppStore } from '../../../store'
+import { useAppStore } from '../../../stores/store'
 import { DEFAULT_SETTINGS } from '../../../lib/api'
 import { Settings } from '../Settings'
 import { ToastProvider } from '../Toast'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { auth, gameRegistry } from '../lib/api'
-import { useAppStore } from '../store'
+import { useAppStore } from '../stores/store'
 import { keys } from '../lib/queryClient'
 import { LobbyHeader } from '../components/lobby/LobbyHeader'
 import { NewGamePanel } from '../components/lobby/NewGamePanel'

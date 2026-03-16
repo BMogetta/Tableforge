@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAppStore } from '../store'
+import { useAppStore } from '../stores/store'
 import { admin, type AllowedEmail, type Player } from '../lib/api'
 import styles from './Admin.module.css'
 

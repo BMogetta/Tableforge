@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms, mutes, type RoomMessage, type RoomViewPlayer } from '../../lib/api'
-import { useAppStore } from '../../store'
+import { useAppStore } from '../../stores/store'
 import { catchToAppError } from '../../utils/errors'
 import { useToast } from '../ui/Toast'
 import { keys } from '../../lib/queryClient'

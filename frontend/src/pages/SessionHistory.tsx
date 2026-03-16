@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useAppStore } from '../store'
+import { useAppStore } from '../stores/store'
 import { SessionEvent, sessions, type Move } from '../lib/api'
 import { keys } from '../lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../components/TicTacToe'

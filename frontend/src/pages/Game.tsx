@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useAppStore } from '../store'
+import { useAppStore } from '../stores/store'
 import { sessions, rooms, type GameSession } from '../lib/api'
 import { catchToAppError, type AppError } from '../utils/errors'
 import { useToast } from '../components/ui/Toast'

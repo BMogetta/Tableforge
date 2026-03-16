@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useAppStore } from '../store'
+import { useAppStore } from '../stores/store'
 import { DEFAULT_SETTINGS, type PlayerSettings } from '../lib/api'
 
 // Reset store state before each test so tests are independent.

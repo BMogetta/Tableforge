@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
-import { useAppStore } from '../../store'
+import { useAppStore } from '../../stores/store'
 import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap } from '../../lib/api'
 import { catchToAppError } from '../../utils/errors'
 import { useToast } from './Toast'

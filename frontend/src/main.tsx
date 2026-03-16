@@ -1,6 +1,6 @@
 // Telemetry must be imported before React and the app so the providers
 // are registered before any fetch calls or renders happen.
-import { initWebVitals, initErrorHandler } from './telemetry'
+import { initWebVitals, initErrorHandler } from './lib/telemetry'
 initErrorHandler()
 initWebVitals()
 
