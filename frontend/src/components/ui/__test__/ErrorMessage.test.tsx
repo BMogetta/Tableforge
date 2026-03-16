@@ -69,13 +69,15 @@ describe('ErrorMessage', () => {
     })
 
     it('does not show raw pg message', () => {
-      render(<ErrorMessage error={{ ...prodError, message: 'The requested resource was not found.' }} />)
+      render(
+        <ErrorMessage error={{ ...prodError, message: 'The requested resource was not found.' }} />,
+      )
       expect(screen.queryByText(/pg/)).toBeNull()
     })
   })
 
   it('accepts optional className', () => {
-    const { container } = render(<ErrorMessage error={devError} className="custom" />)
+    const { container } = render(<ErrorMessage error={devError} className='custom' />)
     expect(container.firstChild).toHaveClass('custom')
   })
 })

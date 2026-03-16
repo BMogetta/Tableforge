@@ -77,11 +77,11 @@ interface AppState {
    * Required to call queue.accept() / queue.decline().
    * Null otherwise.
    */
- matchId: string | null
+  matchId: string | null
   /** Set queue status to 'queued' and record the join timestamp. */
   setQueued: (joinedAt: number) => void
   /** Set queue status to 'match_found' and record the match ID. */
-setMatchFound: (matchId: string) => void
+  setMatchFound: (matchId: string) => void
   clearQueue: () => void
 
   // --- Settings state --------------------------------------------------------
@@ -148,7 +148,7 @@ setMatchFound: (matchId: string) => void
 // useSettingsStore with `persist`, and keep useAppStore for volatile state.
 export const useAppStore = create<AppState>((set, get) => ({
   player: null,
-  setPlayer: (player) => set({ player }),
+  setPlayer: player => set({ player }),
 
   socket: null,
   activeRoomId: null,
@@ -166,10 +166,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   isSpectator: false,
-  setIsSpectator: (value) => set({ isSpectator: value }),
+  setIsSpectator: value => set({ isSpectator: value }),
 
   spectatorCount: 0,
-  setSpectatorCount: (count) => set({ spectatorCount: count }),
+  setSpectatorCount: count => set({ spectatorCount: count }),
 
   joinRoom: (roomId: string, wsUrl: string) => {
     // Close existing socket if switching rooms.
@@ -181,12 +181,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   leaveRoom: () => {
     get().socket?.close()
-    set({ socket: null, activeRoomId: null, isSpectator: false, spectatorCount: 0, presenceMap: {} })
+    set({
+      socket: null,
+      activeRoomId: null,
+      isSpectator: false,
+      spectatorCount: 0,
+      presenceMap: {},
+    })
   },
 
   presenceMap: {},
   setPlayerPresence: (playerId, online) =>
-    set((state) => ({
+    set(state => ({
       presenceMap: { ...state.presenceMap, [playerId]: online },
     })),
 
@@ -194,8 +200,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   queueStatus: 'idle',
   queueJoinedAt: null,
   matchId: null,
-  setQueued: (joinedAt) => set({ queueStatus: 'queued', queueJoinedAt: joinedAt, matchId: null }),
-  setMatchFound: (matchId) => set({ queueStatus: 'match_found', matchId }),
+  setQueued: joinedAt => set({ queueStatus: 'queued', queueJoinedAt: joinedAt, matchId: null }),
+  setMatchFound: matchId => set({ queueStatus: 'match_found', matchId }),
   clearQueue: () => set({ queueStatus: 'idle', queueJoinedAt: null, matchId: null }),
 
   // Settings
@@ -207,9 +213,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateSetting: (key, value) =>
-    set((state) => ({
+    set(state => ({
       settings: { ...state.settings, [key]: value },
     })),
 
-  setSettings: (settings) => set({ settings }),
+  setSettings: settings => set({ settings }),
 }))

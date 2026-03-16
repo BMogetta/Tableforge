@@ -46,7 +46,7 @@ export default function TargetPicker({
   onSelectGuess,
 }: Props) {
   const allUnavailable = opponents.every(
-    (p) => eliminatedIds.includes(p.id) || protectedIds.includes(p.id)
+    p => eliminatedIds.includes(p.id) || protectedIds.includes(p.id),
   )
 
   return (
@@ -59,7 +59,7 @@ export default function TargetPicker({
           </span>
         )}
         <div className={styles.targets}>
-          {opponents.map((p) => {
+          {opponents.map(p => {
             const isEliminated = eliminatedIds.includes(p.id)
             const isProtected = protectedIds.includes(p.id)
             const unavailable = isEliminated || isProtected
@@ -72,18 +72,16 @@ export default function TargetPicker({
                   styles.targetBtn,
                   isSelected ? styles.selected : '',
                   unavailable ? styles.unavailable : '',
-                ].filter(Boolean).join(' ')}
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 onClick={() => !unavailable && onSelectTarget(p.id)}
                 disabled={unavailable}
                 aria-pressed={isSelected}
               >
                 <span className={styles.targetName}>{p.username}</span>
-                {isProtected && (
-                  <span className={styles.tag}>Protected</span>
-                )}
-                {isEliminated && (
-                  <span className={styles.tag}>Eliminated</span>
-                )}
+                {isProtected && <span className={styles.tag}>Protected</span>}
+                {isEliminated && <span className={styles.tag}>Eliminated</span>}
               </button>
             )
           })}
@@ -96,10 +94,12 @@ export default function TargetPicker({
           <select
             className={styles.guessSelect}
             value={selectedGuess ?? ''}
-            onChange={(e) => onSelectGuess(e.target.value as CardName)}
+            onChange={e => onSelectGuess(e.target.value as CardName)}
           >
-            <option value="" disabled>Select a card…</option>
-            {GUARD_GUESS_OPTIONS.map((card) => (
+            <option value='' disabled>
+              Select a card…
+            </option>
+            {GUARD_GUESS_OPTIONS.map(card => (
               <option key={card} value={card}>
                 {CARD_META[card].value} — {CARD_META[card].label}
               </option>

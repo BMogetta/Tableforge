@@ -1,7 +1,17 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
-import { rooms, bots, mutes, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting, type BotProfile, type RoomViewPlayer } from '../api'
+import {
+  rooms,
+  bots,
+  mutes,
+  gameRegistry,
+  wsRoomUrl,
+  type RoomView,
+  type LobbySetting,
+  type BotProfile,
+  type RoomViewPlayer,
+} from '../api'
 import { ok, error, catchToAppError, type AppError } from '../helpers/errors'
 import { useToast } from '../components/ui/Toast'
 import ErrorMessage from '../components/ui/ErrorMessage'
@@ -13,12 +23,12 @@ type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
 export default function Room() {
   const { roomId } = useParams<{ roomId: string }>()
-  const player = useAppStore((s) => s.player)!
-  const joinRoom = useAppStore((s) => s.joinRoom)
-  const socket = useAppStore((s) => s.socket)
-  const leaveRoom = useAppStore((s) => s.leaveRoom)
-  const setIsSpectator = useAppStore((s) => s.setIsSpectator)
-  const setSpectatorCount = useAppStore((s) => s.setSpectatorCount)
+  const player = useAppStore(s => s.player)!
+  const joinRoom = useAppStore(s => s.joinRoom)
+  const socket = useAppStore(s => s.socket)
+  const leaveRoom = useAppStore(s => s.leaveRoom)
+  const setIsSpectator = useAppStore(s => s.setIsSpectator)
+  const setSpectatorCount = useAppStore(s => s.setSpectatorCount)
   const navigate = useNavigate()
   const toast = useToast()
 
@@ -38,9 +48,9 @@ export default function Room() {
   const [gameHasBotAdapter, setGameHasBotAdapter] = useState(false)
   const [removingBotId, setRemovingBotId] = useState<string | null>(null)
 
-  const spectatorCount = useAppStore((s) => s.spectatorCount)
-  const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
-  const presenceMap = useAppStore((s) => s.presenceMap)
+  const spectatorCount = useAppStore(s => s.spectatorCount)
+  const setPlayerPresence = useAppStore(s => s.setPlayerPresence)
+  const presenceMap = useAppStore(s => s.presenceMap)
 
   // --- Mute state (elevated from ChatSidebar so the player dropdown can also
   //     trigger mutes without going through the chat input) -------------------
@@ -52,19 +62,24 @@ export default function Room() {
   const [muteAll, setMuteAll] = useState(false)
 
   function handleMute(targetId: string) {
-    setMutedIds((prev) => new Set([...prev, targetId]))
+    setMutedIds(prev => new Set([...prev, targetId]))
   }
 
   function handleUnmute(targetId: string) {
-    setMutedIds((prev) => {
+    setMutedIds(prev => {
       const next = new Set(prev)
       next.delete(targetId)
       return next
     })
   }
 
-  function handleMuteAll() { setMuteAll(true) }
-  function handleUnmuteAll() { setMuteAll(false); setMutedIds(new Set()) }
+  function handleMuteAll() {
+    setMuteAll(true)
+  }
+  function handleUnmuteAll() {
+    setMuteAll(false)
+    setMutedIds(new Set())
+  }
 
   // --- Player dropdown -------------------------------------------------------
 
@@ -83,17 +98,19 @@ export default function Room() {
   }, [])
 
   async function handleBlock(targetId: string) {
-    const [err] = await mutes.mute(player.id, targetId)
+    const [err] = await mutes
+      .mute(player.id, targetId)
       .then(() => ok(null))
-      .catch((e) => error(catchToAppError(e)))
+      .catch(e => error(catchToAppError(e)))
     if (err) toast.showError(err)
     setOpenDropdownId(null)
   }
 
   async function handleUnblock(targetId: string) {
-    const [err] = await mutes.unmute(player.id, targetId)
+    const [err] = await mutes
+      .unmute(player.id, targetId)
       .then(() => ok(null))
-      .catch((e) => error(catchToAppError(e)))
+      .catch(e => error(catchToAppError(e)))
     if (err) toast.showError(err)
     setOpenDropdownId(null)
   }
@@ -101,18 +118,21 @@ export default function Room() {
   // ---------------------------------------------------------------------------
 
   const refresh = useCallback(() => {
-    rooms.get(roomId!).then((v) => {
-      setView(v)
-      setSettings(v.settings ?? {})
-    }).catch((e) => {
-      const err = catchToAppError(e)
-      // If the room no longer exists, go home instead of looping toasts.
-      if (err.reason === 'NOT_FOUND') {
-        navigate('/')
-      } else {
-        toast.showError(err)
-      }
-    })
+    rooms
+      .get(roomId!)
+      .then(v => {
+        setView(v)
+        setSettings(v.settings ?? {})
+      })
+      .catch(e => {
+        const err = catchToAppError(e)
+        // If the room no longer exists, go home instead of looping toasts.
+        if (err.reason === 'NOT_FOUND') {
+          navigate('/')
+        } else {
+          toast.showError(err)
+        }
+      })
   }, [roomId, toast, navigate])
 
   useEffect(() => {
@@ -122,36 +142,42 @@ export default function Room() {
   useEffect(() => {
     if (!view) return
     setOwnerId(view.room.owner_id)
-    const participant = view.players.some((p) => p.id === player.id)
+    const participant = view.players.some(p => p.id === player.id)
     setIsSpectator(!participant)
   }, [view, player.id, setIsSpectator])
 
   // Load game setting descriptors once we know the game_id.
   useEffect(() => {
     if (!view) return
-    gameRegistry.list().then((games) => {
-      const game = games.find((g) => g.id === view.room.game_id)
-      if (game) setSettingDescriptors(game.settings)
-    }).catch(() => {})
+    gameRegistry
+      .list()
+      .then(games => {
+        const game = games.find(g => g.id === view.room.game_id)
+        if (game) setSettingDescriptors(game.settings)
+      })
+      .catch(() => {})
   }, [view?.room.game_id])
 
   // Load bot profiles once. Also check whether this game has a bot adapter
   // by attempting to add — we determine support optimistically: if profiles
   // exist we show the UI and let the server reject unsupported games.
   useEffect(() => {
-    bots.profiles().then((profiles) => {
-      setBotProfiles(profiles)
-      setGameHasBotAdapter(profiles.length > 0)
-      if (profiles.length > 0) setSelectedProfile(profiles[0].name)
-    }).catch(() => {})
+    bots
+      .profiles()
+      .then(profiles => {
+        setBotProfiles(profiles)
+        setGameHasBotAdapter(profiles.length > 0)
+        if (profiles.length > 0) setSelectedProfile(profiles[0].name)
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
     if (!socket) return
     refresh()
 
-    const off = socket.on((event) => {
-      if (event.type === 'ws_connected')    setSocketStatus('connected')
+    const off = socket.on(event => {
+      if (event.type === 'ws_connected') setSocketStatus('connected')
       if (event.type === 'ws_reconnecting') setSocketStatus('reconnecting')
       if (event.type === 'ws_disconnected') setSocketStatus('disconnected')
 
@@ -178,7 +204,7 @@ export default function Room() {
 
       if (event.type === 'setting_updated') {
         const payload = event.payload
-        setSettings((prev) => ({ ...prev, [payload.key]: payload.value }))
+        setSettings(prev => ({ ...prev, [payload.key]: payload.value }))
       }
 
       if (event.type === 'spectator_joined' || event.type === 'spectator_left') {
@@ -199,9 +225,10 @@ export default function Room() {
     setStarting(true)
     setStartError(null)
 
-    const [err, session] = await rooms.start(roomId!, player.id)
-      .then((s) => ok(s))
-      .catch((e) => error(catchToAppError(e)))
+    const [err, session] = await rooms
+      .start(roomId!, player.id)
+      .then(s => ok(s))
+      .catch(e => error(catchToAppError(e)))
 
     if (err) {
       setStartError(err)
@@ -222,9 +249,10 @@ export default function Room() {
     setAddingBot(true)
     setBotError(null)
 
-    const [err] = await bots.add(roomId!, player.id, selectedProfile)
-      .then((p) => ok(p))
-      .catch((e) => error(catchToAppError(e)))
+    const [err] = await bots
+      .add(roomId!, player.id, selectedProfile)
+      .then(p => ok(p))
+      .catch(e => error(catchToAppError(e)))
 
     if (err) {
       setBotError(err)
@@ -238,9 +266,10 @@ export default function Room() {
   async function handleRemoveBot(botId: string) {
     setRemovingBotId(botId)
 
-    const [err] = await bots.remove(roomId!, player.id, botId)
+    const [err] = await bots
+      .remove(roomId!, player.id, botId)
       .then(() => ok(null))
-      .catch((e) => error(catchToAppError(e)))
+      .catch(e => error(catchToAppError(e)))
 
     if (err) {
       // Remove is a transient action with no inline location — use toast.
@@ -253,14 +282,14 @@ export default function Room() {
   }
 
   function handleSettingChange(key: string, value: string) {
-    setSettings((prev) => ({ ...prev, [key]: value }))
+    setSettings(prev => ({ ...prev, [key]: value }))
   }
 
   if (!view) return <LoadingScreen />
 
   const { room } = view
 
-  const isParticipant = view.players.some((p) => p.id === player.id)
+  const isParticipant = view.players.some(p => p.id === player.id)
   const isSpectator = !isParticipant
   const isOwner = !isSpectator && ownerId === player.id
   const canStart = isOwner && view.players.length >= 2
@@ -268,7 +297,7 @@ export default function Room() {
   const hasOpenSlot = view.players.length < room.max_players
   const canAddBot = isOwner && hasOpenSlot && gameHasBotAdapter && botProfiles.length > 0
 
-  const visibleDescriptors = settingDescriptors.filter((s) => {
+  const visibleDescriptors = settingDescriptors.filter(s => {
     if (s.key === 'first_mover_seat') {
       return settings['first_mover_policy'] === 'fixed'
     }
@@ -284,22 +313,24 @@ export default function Room() {
           <header className={styles.header}>
             <div>
               <p className={styles.gameLabel}>{room.game_id}</p>
-              <h1 data-testid="room-code" className={styles.code}>{room.code}</h1>
+              <h1 data-testid='room-code' className={styles.code}>
+                {room.code}
+              </h1>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="badge badge-amber">Waiting</span>
-              {isSpectator && <span className="badge badge-muted">Spectating</span>}
+              <span className='badge badge-amber'>Waiting</span>
+              {isSpectator && <span className='badge badge-muted'>Spectating</span>}
             </div>
           </header>
 
-          <hr className="divider" />
+          <hr className='divider' />
 
           <section className={styles.playersSection}>
-            <p className="label" data-testid="player-count">
+            <p className='label' data-testid='player-count'>
               Players ({view.players.length}/{room.max_players})
             </p>
             <div className={styles.playerList}>
-              {view.players.map((p) => {
+              {view.players.map(p => {
                 const isSelf = p.id === player.id
                 const isDropdownOpen = openDropdownId === p.id
                 const isMuted = mutedIds.has(p.id)
@@ -315,7 +346,7 @@ export default function Room() {
                       data-online={String(presenceMap[p.id] ?? false)}
                       data-testid={`presence-dot-${p.id}`}
                     />
-                    {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
+                    {p.avatar_url && <img src={p.avatar_url} alt='' className={styles.avatar} />}
 
                     {/* Username — clickable for other human players to open the
                         action dropdown (mute, block, add friend, send DM) */}
@@ -331,7 +362,9 @@ export default function Room() {
                         >
                           {p.username}
                           {isMuted && (
-                            <span className={styles.mutedIndicator} title="Locally muted">🔇</span>
+                            <span className={styles.mutedIndicator} title='Locally muted'>
+                              🔇
+                            </span>
                           )}
                         </button>
 
@@ -339,8 +372,14 @@ export default function Room() {
                           <PlayerDropdown
                             target={p}
                             isMuted={isMuted}
-                            onMute={() => { handleMute(p.id); setOpenDropdownId(null) }}
-                            onUnmute={() => { handleUnmute(p.id); setOpenDropdownId(null) }}
+                            onMute={() => {
+                              handleMute(p.id)
+                              setOpenDropdownId(null)
+                            }}
+                            onUnmute={() => {
+                              handleUnmute(p.id)
+                              setOpenDropdownId(null)
+                            }}
                             onBlock={() => handleBlock(p.id)}
                             onUnblock={() => handleUnblock(p.id)}
                           />
@@ -350,20 +389,22 @@ export default function Room() {
                       <span className={styles.playerName}>
                         {p.username}
                         {p.is_bot && (
-                          <span className="badge badge-muted" style={{ marginLeft: 6 }}>Bot</span>
+                          <span className='badge badge-muted' style={{ marginLeft: 6 }}>
+                            Bot
+                          </span>
                         )}
                       </span>
                     )}
 
-                    {p.id === ownerId && <span className="badge badge-amber">Host</span>}
-                    {isSelf && <span className="badge badge-muted">You</span>}
+                    {p.id === ownerId && <span className='badge badge-amber'>Host</span>}
+                    {isSelf && <span className='badge badge-muted'>You</span>}
                     {isOwner && p.is_bot && (
                       <button
                         data-testid={`remove-bot-btn-${p.id}`}
                         className={styles.removeBotBtn}
                         disabled={removingBotId === p.id}
                         onClick={() => handleRemoveBot(p.id)}
-                        title="Remove bot"
+                        title='Remove bot'
                       >
                         ×
                       </button>
@@ -380,13 +421,13 @@ export default function Room() {
             </div>
 
             {spectatorCount > 0 && (
-              <p className={styles.spectatorCount} data-testid="spectator-count">
+              <p className={styles.spectatorCount} data-testid='spectator-count'>
                 👁 {spectatorCount} watching
               </p>
             )}
           </section>
 
-          <hr className="divider" />
+          <hr className='divider' />
 
           <RoomSettings
             roomId={roomId!}
@@ -399,26 +440,26 @@ export default function Room() {
 
           {canAddBot && (
             <>
-              <hr className="divider" />
+              <hr className='divider' />
               <section className={styles.botSection}>
-                <p className="label">Add Bot</p>
+                <p className='label'>Add Bot</p>
                 <div className={styles.botRow}>
                   <select
-                    data-testid="add-bot-select"
+                    data-testid='add-bot-select'
                     className={styles.botSelect}
                     value={selectedProfile}
                     disabled={addingBot}
-                    onChange={(e) => setSelectedProfile(e.target.value)}
+                    onChange={e => setSelectedProfile(e.target.value)}
                   >
-                    {botProfiles.map((p) => (
+                    {botProfiles.map(p => (
                       <option key={p.name} value={p.name}>
                         {p.name.charAt(0).toUpperCase() + p.name.slice(1)}
                       </option>
                     ))}
                   </select>
                   <button
-                    data-testid="add-bot-btn"
-                    className="btn btn-secondary"
+                    data-testid='add-bot-btn'
+                    className='btn btn-secondary'
                     disabled={addingBot}
                     onClick={handleAddBot}
                   >
@@ -430,20 +471,22 @@ export default function Room() {
             </>
           )}
 
-          <hr className="divider" />
+          <hr className='divider' />
 
           {isParticipant && (
             <div className={styles.shareSection}>
               {isPrivate ? (
                 <>
-                  <p className="label">🔒 Private Room</p>
+                  <p className='label'>🔒 Private Room</p>
                   <p className={styles.privateNote}>
                     Share the room code privately — it won't appear in the public lobby.
                   </p>
                   <div className={styles.codeBox}>
-                    <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
+                    <span data-testid='room-code-display' className={styles.codeDisplay}>
+                      {room.code}
+                    </span>
                     <button
-                      className="btn btn-ghost"
+                      className='btn btn-ghost'
                       style={{ padding: '4px 10px', fontSize: 11 }}
                       onClick={() => navigator.clipboard.writeText(room.code)}
                     >
@@ -453,11 +496,13 @@ export default function Room() {
                 </>
               ) : (
                 <>
-                  <p className="label">Invite Code</p>
+                  <p className='label'>Invite Code</p>
                   <div className={styles.codeBox}>
-                    <span data-testid="room-code-display" className={styles.codeDisplay}>{room.code}</span>
+                    <span data-testid='room-code-display' className={styles.codeDisplay}>
+                      {room.code}
+                    </span>
                     <button
-                      className="btn btn-ghost"
+                      className='btn btn-ghost'
                       style={{ padding: '4px 10px', fontSize: 11 }}
                       onClick={() => navigator.clipboard.writeText(room.code)}
                     >
@@ -469,29 +514,39 @@ export default function Room() {
             </div>
           )}
 
-          {isParticipant && <hr className="divider" />}
+          {isParticipant && <hr className='divider' />}
 
           <div className={styles.actions}>
             {isSpectator ? (
-              <button className="btn btn-danger" onClick={() => navigate('/')}>Leave</button>
+              <button className='btn btn-danger' onClick={() => navigate('/')}>
+                Leave
+              </button>
             ) : isOwner ? (
               <>
                 <button
-                  data-testid="start-game-btn"
+                  data-testid='start-game-btn'
                   data-can-start={canStart}
-                  className="btn btn-primary"
+                  className='btn btn-primary'
                   onClick={handleStart}
                   disabled={!canStart || starting}
                   style={{ flex: 1 }}
                 >
-                  {starting ? 'Starting...' : canStart ? 'Start Game' : `Need ${2 - view.players.length} more player(s)`}
+                  {starting
+                    ? 'Starting...'
+                    : canStart
+                      ? 'Start Game'
+                      : `Need ${2 - view.players.length} more player(s)`}
                 </button>
-                <button className="btn btn-danger" onClick={handleLeave}>Leave</button>
+                <button className='btn btn-danger' onClick={handleLeave}>
+                  Leave
+                </button>
               </>
             ) : (
               <>
                 <p className={styles.waitingHost}>Waiting for host to start the game...</p>
-                <button className="btn btn-danger" onClick={handleLeave}>Leave</button>
+                <button className='btn btn-danger' onClick={handleLeave}>
+                  Leave
+                </button>
               </>
             )}
           </div>
@@ -502,7 +557,7 @@ export default function Room() {
         <ChatSidebar
           roomId={roomId!}
           open={chatOpen}
-          onToggle={() => setChatOpen((v) => !v)}
+          onToggle={() => setChatOpen(v => !v)}
           mutedIds={mutedIds}
           muteAll={muteAll}
           onMute={handleMute}
@@ -527,7 +582,14 @@ interface PlayerDropdownProps {
   onUnblock: () => void
 }
 
-function PlayerDropdown({ target, isMuted, onMute, onUnmute, onBlock, onUnblock }: PlayerDropdownProps) {
+function PlayerDropdown({
+  target,
+  isMuted,
+  onMute,
+  onUnmute,
+  onBlock,
+  onUnblock,
+}: PlayerDropdownProps) {
   return (
     <div className={styles.dropdown}>
       {isMuted ? (
@@ -547,10 +609,10 @@ function PlayerDropdown({ target, isMuted, onMute, onUnmute, onBlock, onUnblock 
       </button>
       <hr className={styles.dropdownDivider} />
       {/* Stubs — enabled when friends system and DMs UI are implemented */}
-      <button className={styles.dropdownItem} disabled title="Coming soon">
+      <button className={styles.dropdownItem} disabled title='Coming soon'>
         👤 Add Friend
       </button>
-      <button className={styles.dropdownItem} disabled title="Coming soon">
+      <button className={styles.dropdownItem} disabled title='Coming soon'>
         ✉ Send DM
       </button>
     </div>
@@ -563,9 +625,15 @@ function ConnectionBanner({ status }: { status: SocketStatus }) {
   if (status === 'connected') return null
 
   const config: Record<Exclude<SocketStatus, 'connected'>, { text: string; className: string }> = {
-    connecting:   { text: 'Connecting...',                          className: styles.bannerConnecting },
-    reconnecting: { text: 'Connection lost — reconnecting...',      className: styles.bannerReconnecting },
-    disconnected: { text: 'Disconnected. Please refresh the page.', className: styles.bannerDisconnected },
+    connecting: { text: 'Connecting...', className: styles.bannerConnecting },
+    reconnecting: {
+      text: 'Connection lost — reconnecting...',
+      className: styles.bannerReconnecting,
+    },
+    disconnected: {
+      text: 'Disconnected. Please refresh the page.',
+      className: styles.bannerDisconnected,
+    },
   }
 
   const { text, className } = config[status]
@@ -582,8 +650,12 @@ function ConnectionBanner({ status }: { status: SocketStatus }) {
 
 function LoadingScreen() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-      <p className="pulse" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Loading room...</p>
+    <div
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}
+    >
+      <p className='pulse' style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
+        Loading room...
+      </p>
     </div>
   )
 }

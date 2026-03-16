@@ -34,7 +34,9 @@ export default function PlayerBoard({
         isEliminated ? styles.eliminated : '',
         isCurrentTurn ? styles.activeTurn : '',
         isLocal ? styles.local : '',
-      ].filter(Boolean).join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       <div className={styles.header}>
         <div className={styles.nameRow}>
@@ -44,17 +46,17 @@ export default function PlayerBoard({
         </div>
         <div className={styles.badges}>
           {isProtected && (
-            <span className={styles.badge} data-variant="protected">
+            <span className={styles.badge} data-variant='protected'>
               Shielded
             </span>
           )}
           {isEliminated && (
-            <span className={styles.badge} data-variant="eliminated">
+            <span className={styles.badge} data-variant='eliminated'>
               Eliminated
             </span>
           )}
           {hasPlayedSpy && (
-            <span className={styles.badge} data-variant="spy">
+            <span className={styles.badge} data-variant='spy'>
               Spy
             </span>
           )}
@@ -78,11 +80,7 @@ export default function PlayerBoard({
             <span className={styles.empty}>—</span>
           ) : (
             discardPile.map((card, i) => (
-              <CardDisplay
-                key={`${card}-${i}`}
-                card={card}
-                className={styles.discardCard}
-              />
+              <CardDisplay key={`${card}-${i}`} card={card} className={styles.discardCard} />
             ))
           )}
         </div>

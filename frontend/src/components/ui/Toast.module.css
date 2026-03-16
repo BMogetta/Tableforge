@@ -26,14 +26,26 @@
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(16px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* Variant borders */
-.error   { border-left: 3px solid var(--danger); }
-.warning { border-left: 3px solid var(--amber); }
-.info    { border-left: 3px solid #4a9eff; }
+.error {
+  border-left: 3px solid var(--danger);
+}
+.warning {
+  border-left: 3px solid var(--amber);
+}
+.info {
+  border-left: 3px solid #4a9eff;
+}
 
 .icon {
   font-size: 12px;
@@ -41,9 +53,15 @@
   margin-top: 1px;
 }
 
-.error   .icon { color: var(--danger); }
-.warning .icon { color: var(--amber); }
-.info    .icon { color: #4a9eff; }
+.error .icon {
+  color: var(--danger);
+}
+.warning .icon {
+  color: var(--amber);
+}
+.info .icon {
+  color: #4a9eff;
+}
 
 .body {
   flex: 1;
@@ -85,11 +103,21 @@
   animation: shrink linear forwards;
 }
 
-.error   .progressBar { color: var(--danger); }
-.warning .progressBar { color: var(--amber); }
-.info    .progressBar { color: #4a9eff; }
+.error .progressBar {
+  color: var(--danger);
+}
+.warning .progressBar {
+  color: var(--amber);
+}
+.info .progressBar {
+  color: #4a9eff;
+}
 
 @keyframes shrink {
-  from { transform: scaleX(1); }
-  to   { transform: scaleX(0); }
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }

@@ -114,12 +114,16 @@ test.describe('Lobby', () => {
 
     // Play full game — P1 wins.
     const moves = [
-      { player: p1, cell: 0 }, { player: p2, cell: 3 },
-      { player: p1, cell: 1 }, { player: p2, cell: 4 },
+      { player: p1, cell: 0 },
+      { player: p2, cell: 3 },
+      { player: p1, cell: 1 },
+      { player: p2, cell: 4 },
       { player: p1, cell: 2 },
     ]
     for (const { player, cell } of moves) {
-      await expect(player.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
+      await expect(player.getByTestId('game-status')).toContainText('Your turn', {
+        timeout: 10_000,
+      })
       await player.locator(`[data-cell="${cell}"]`).click()
     }
     await expect(p1.getByTestId('game-status')).toContainText('You won', { timeout: 10_000 })

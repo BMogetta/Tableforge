@@ -5,11 +5,11 @@ import { useState, useEffect } from 'react'
 export type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
 const BREAKPOINTS: { name: Breakpoint; minWidth: number }[] = [
-  { name: 'xl',  minWidth: 1280 },
-  { name: 'lg',  minWidth: 1024 },
-  { name: 'md',  minWidth: 768  },
-  { name: 'sm',  minWidth: 640  },
-  { name: 'xs',  minWidth: 0    },
+  { name: 'xl', minWidth: 1280 },
+  { name: 'lg', minWidth: 1024 },
+  { name: 'md', minWidth: 768 },
+  { name: 'sm', minWidth: 640 },
+  { name: 'xs', minWidth: 0 },
 ]
 
 function getCurrentBreakpoint(): Breakpoint {
@@ -52,9 +52,9 @@ export function useBreakpoint(): BreakpointState {
 
   return {
     breakpoint,
-    isMobile:   ORDER[breakpoint] < ORDER['sm'],
-    isTablet:   ORDER[breakpoint] >= ORDER['sm'] && ORDER[breakpoint] < ORDER['lg'],
-    isDesktop:  ORDER[breakpoint] >= ORDER['lg'],
-    isAtLeast:  (bp: Breakpoint) => ORDER[breakpoint] >= ORDER[bp],
+    isMobile: ORDER[breakpoint] < ORDER['sm'],
+    isTablet: ORDER[breakpoint] >= ORDER['sm'] && ORDER[breakpoint] < ORDER['lg'],
+    isDesktop: ORDER[breakpoint] >= ORDER['lg'],
+    isAtLeast: (bp: Breakpoint) => ORDER[breakpoint] >= ORDER[bp],
   }
 }

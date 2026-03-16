@@ -12,21 +12,14 @@ describe('HandDisplay', () => {
         selectedCard={null}
         disabled={false}
         onSelect={vi.fn()}
-      />
+      />,
     )
     expect(screen.getByText('Guard')).toBeInTheDocument()
     expect(screen.getByText('Priest')).toBeInTheDocument()
   })
 
   it('shows empty message when hand is empty', () => {
-    render(
-      <HandDisplay
-        cards={[]}
-        selectedCard={null}
-        disabled={false}
-        onSelect={vi.fn()}
-      />
-    )
+    render(<HandDisplay cards={[]} selectedCard={null} disabled={false} onSelect={vi.fn()} />)
     expect(screen.getByText('No cards in hand')).toBeInTheDocument()
   })
 
@@ -39,7 +32,7 @@ describe('HandDisplay', () => {
         selectedCard={null}
         disabled={false}
         onSelect={onSelect}
-      />
+      />,
     )
     await user.click(screen.getAllByRole('button')[0])
     expect(onSelect).toHaveBeenCalledWith('guard')
@@ -54,7 +47,7 @@ describe('HandDisplay', () => {
         selectedCard={null}
         disabled={true}
         onSelect={onSelect}
-      />
+      />,
     )
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(onSelect).not.toHaveBeenCalled()
@@ -67,7 +60,7 @@ describe('HandDisplay', () => {
         selectedCard={'guard'}
         disabled={false}
         onSelect={vi.fn()}
-      />
+      />,
     )
     const cards = screen.getAllByTestId('card-display')
     expect(cards[0]).toHaveAttribute('data-selected', 'true')
@@ -82,7 +75,7 @@ describe('HandDisplay', () => {
         disabled={false}
         onSelect={vi.fn()}
         blockedCards={['king']}
-      />
+      />,
     )
     expect(screen.getByText('Must play Countess')).toBeInTheDocument()
   })
@@ -97,7 +90,7 @@ describe('HandDisplay', () => {
         disabled={false}
         onSelect={onSelect}
         blockedCards={['king']}
-      />
+      />,
     )
     // Only countess should be clickable — king is blocked.
     const buttons = screen.getAllByRole('button')

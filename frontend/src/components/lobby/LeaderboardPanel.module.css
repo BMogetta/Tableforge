@@ -1,4 +1,5 @@
-.section {}
+.section {
+}
 
 .title {
   font-family: var(--font-display);
@@ -38,8 +39,12 @@
   color: var(--text-secondary);
 }
 
-.table tr:last-child td { border-bottom: none; }
-.table tr:hover td { background: var(--bg-elevated); }
+.table tr:last-child td {
+  border-bottom: none;
+}
+.table tr:hover td {
+  background: var(--bg-elevated);
+}
 
 .rank {
   color: var(--text-muted) !important;
@@ -47,9 +52,15 @@
   width: 24px;
 }
 
-.table tr:nth-child(1) .rank { color: var(--amber) !important; }
-.table tr:nth-child(2) .rank { color: var(--text-secondary) !important; }
-.table tr:nth-child(3) .rank { color: #8b6914 !important; }
+.table tr:nth-child(1) .rank {
+  color: var(--amber) !important;
+}
+.table tr:nth-child(2) .rank {
+  color: var(--text-secondary) !important;
+}
+.table tr:nth-child(3) .rank {
+  color: #8b6914 !important;
+}
 
 .player {
   display: flex;
@@ -69,5 +80,9 @@
   font-size: 12px;
 }
 
-.win  { color: var(--success) !important; }
-.loss { color: var(--danger) !important; }
+.win {
+  color: var(--success) !important;
+}
+.loss {
+  color: var(--danger) !important;
+}

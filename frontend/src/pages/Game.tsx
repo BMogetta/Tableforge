@@ -46,12 +46,19 @@ const TicTacToeRenderer: RendererComponent = ({ gameData, localPlayerId, onMove,
     state={gameData.data as TicTacToeState}
     currentPlayerId={gameData.current_player_id}
     localPlayerId={localPlayerId}
-    onMove={(cell) => onMove({ cell })}
+    onMove={cell => onMove({ cell })}
     disabled={disabled}
   />
 )
 
-const LoveLetterRenderer: RendererComponent = ({ gameData, localPlayerId, onMove, disabled, isOver, players }) => (
+const LoveLetterRenderer: RendererComponent = ({
+  gameData,
+  localPlayerId,
+  onMove,
+  disabled,
+  isOver,
+  players,
+}) => (
   <LoveLetter
     state={gameData.data as LoveLetterState}
     currentPlayerId={gameData.current_player_id}
@@ -74,13 +81,13 @@ const GAME_RENDERERS: Record<string, RendererComponent> = {
 
 export default function Game() {
   const { sessionId } = useParams<{ sessionId: string }>()
-  const player = useAppStore((s) => s.player)!
-  const socket = useAppStore((s) => s.socket)
-  const playerSocket = useAppStore((s) => s.playerSocket)
-  const leaveRoom = useAppStore((s) => s.leaveRoom)
-  const isSpectator = useAppStore((s) => s.isSpectator)
-  const presenceMap = useAppStore((s) => s.presenceMap)
-  const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
+  const player = useAppStore(s => s.player)!
+  const socket = useAppStore(s => s.socket)
+  const playerSocket = useAppStore(s => s.playerSocket)
+  const leaveRoom = useAppStore(s => s.leaveRoom)
+  const isSpectator = useAppStore(s => s.isSpectator)
+  const presenceMap = useAppStore(s => s.presenceMap)
+  const setPlayerPresence = useAppStore(s => s.setPlayerPresence)
   const navigate = useNavigate()
   const toast = useToast()
   const qc = useQueryClient()
@@ -126,7 +133,7 @@ export default function Game() {
     queryFn: () => sessions.get(sessionId!),
     refetchOnWindowFocus: false,
     staleTime: 0,
-    refetchInterval: (query) => {
+    refetchInterval: query => {
       const d = query.state.data as { session?: { finished_at?: string } } | undefined
       return d?.session?.finished_at ? false : 3_000
     },
@@ -151,10 +158,11 @@ export default function Game() {
     staleTime: Infinity,
   })
 
-  const roomPlayers = roomData?.players.map((p) => ({
-    id: p.id,
-    username: p.username,
-  })) ?? []
+  const roomPlayers =
+    roomData?.players.map(p => ({
+      id: p.id,
+      username: p.username,
+    })) ?? []
 
   useEffect(() => {
     if (!data?.session?.finished_at) return
@@ -192,7 +200,7 @@ export default function Game() {
 
   useEffect((): (() => void) | void => {
     if (!socket) return
-    const off = socket.on((event) => {
+    const off = socket.on(event => {
       if (event.type === 'ws_connected') {
         qc.invalidateQueries({ queryKey: keys.session(sessionId!) })
       }
@@ -236,7 +244,7 @@ export default function Game() {
 
   useEffect((): (() => void) | void => {
     if (!playerSocket) return
-    const off = playerSocket.on((event) => {
+    const off = playerSocket.on(event => {
       if (event.type === 'move_applied') {
         handleMovePayload(event.payload, 'move_applied')
       }
@@ -248,9 +256,8 @@ export default function Game() {
   }, [playerSocket, sessionId, qc])
 
   const move = useMutation({
-    mutationFn: (payload: Record<string, unknown>) =>
-      sessions.move(sessionId!, player.id, payload),
-    onSuccess: (res) => {
+    mutationFn: (payload: Record<string, unknown>) => sessions.move(sessionId!, player.id, payload),
+    onSuccess: res => {
       setMoveError(null)
       qc.setQueryData(keys.session(sessionId!), {
         session: res.session,
@@ -259,7 +266,7 @@ export default function Game() {
       })
       if (res.is_over) setIsOver(true)
     },
-    onError: (e) => {
+    onError: e => {
       setMoveError(catchToAppError(e))
     },
   })
@@ -271,7 +278,7 @@ export default function Game() {
       leaveRoom()
       navigate('/')
     },
-    onError: (e) => {
+    onError: e => {
       toast.showError(catchToAppError(e))
       setShowSurrenderModal(false)
     },
@@ -279,36 +286,36 @@ export default function Game() {
 
   const rematch = useMutation({
     mutationFn: () => sessions.rematch(sessionId!, player.id),
-    onSuccess: (res) => {
+    onSuccess: res => {
       setVotedRematch(true)
       setRematchVotes(res.votes)
       setTotalPlayers(res.total_players)
     },
-    onError: (e) => {
+    onError: e => {
       toast.showError(catchToAppError(e))
     },
   })
 
   const pauseMutation = useMutation({
     mutationFn: () => sessions.pause(sessionId!, player.id),
-    onSuccess: (res) => {
+    onSuccess: res => {
       setVotedPause(true)
       setPauseVotes(res.votes)
       setPauseRequired(res.required)
     },
-    onError: (e) => {
+    onError: e => {
       toast.showError(catchToAppError(e))
     },
   })
 
   const resumeMutation = useMutation({
     mutationFn: () => sessions.resume(sessionId!, player.id),
-    onSuccess: (res) => {
+    onSuccess: res => {
       setVotedResume(true)
       setResumeVotes(res.votes)
       setResumeRequired(res.required)
     },
-    onError: (e) => {
+    onError: e => {
       toast.showError(catchToAppError(e))
     },
   })
@@ -326,15 +333,19 @@ export default function Game() {
   if (!session || !gameData) {
     return (
       <div className={styles.centered}>
-        {loadError
-          ? <ErrorMessage error={catchToAppError(loadError)} />
-          : <p className="pulse" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>Loading game...</p>
-        }
+        {loadError ? (
+          <ErrorMessage error={catchToAppError(loadError)} />
+        ) : (
+          <p className='pulse' style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
+            Loading game...
+          </p>
+        )}
       </div>
     )
   }
 
-  const isMyTurn = !isSpectator && gameData.current_player_id === player.id && !isOver && !isSuspended
+  const isMyTurn =
+    !isSpectator && gameData.current_player_id === player.id && !isOver && !isSuspended
   const canPause = !isSpectator && !isOver && !isSuspended && !votedPause
   const canResume = !isSpectator && isSuspended && !votedResume
 
@@ -363,8 +374,10 @@ export default function Game() {
       <div className={styles.panel}>
         <header className={styles.header}>
           <button
-            className="btn btn-ghost"
-            onClick={() => isOver || isSpectator ? handleBackToLobby() : setShowSurrenderModal(true)}
+            className='btn btn-ghost'
+            onClick={() =>
+              isOver || isSpectator ? handleBackToLobby() : setShowSurrenderModal(true)
+            }
             style={{ padding: '4px 10px', fontSize: 11 }}
           >
             ← Lobby
@@ -375,8 +388,8 @@ export default function Game() {
           </div>
           {canPause && (
             <button
-              data-testid="pause-btn"
-              className="btn btn-ghost"
+              data-testid='pause-btn'
+              className='btn btn-ghost'
               onClick={() => pauseMutation.mutate()}
               disabled={pauseMutation.isPending}
               style={{ padding: '4px 10px', fontSize: 11 }}
@@ -387,86 +400,80 @@ export default function Game() {
         </header>
 
         <div className={styles.status}>
-          <div className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver || isSuspended ? styles.dotOver : ''}`} />
+          <div
+            className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver || isSuspended ? styles.dotOver : ''}`}
+          />
           <span
-            data-testid="game-status"
+            data-testid='game-status'
             className={`${styles.statusText} ${winnerId === player.id ? styles.win : ''} ${winnerId && winnerId !== player.id ? styles.lose : ''} ${isSuspended ? styles.suspended : ''}`}
           >
             {statusText}
           </span>
-          {!isSpectator && !isSuspended && (() => {
-            const opponentId = roomPlayers.find((p) => p.id !== player.id)?.id ?? null
-            if (!opponentId) return null
-            const opponentOnline = presenceMap[opponentId] ?? false
-            return (
-              <span className={styles.opponentPresence} data-testid="opponent-presence">
-                <span
-                  className={styles.presenceDot}
-                  data-online={String(opponentOnline)}
-                  data-testid="opponent-presence-dot"
-                />
-                <span data-testid="opponent-presence-text">
-                  {opponentOnline ? 'Opponent online' : 'Opponent offline'}
+          {!isSpectator &&
+            !isSuspended &&
+            (() => {
+              const opponentId = roomPlayers.find(p => p.id !== player.id)?.id ?? null
+              if (!opponentId) return null
+              const opponentOnline = presenceMap[opponentId] ?? false
+              return (
+                <span className={styles.opponentPresence} data-testid='opponent-presence'>
+                  <span
+                    className={styles.presenceDot}
+                    data-online={String(opponentOnline)}
+                    data-testid='opponent-presence-dot'
+                  />
+                  <span data-testid='opponent-presence-text'>
+                    {opponentOnline ? 'Opponent online' : 'Opponent offline'}
+                  </span>
                 </span>
-              </span>
-            )
-          })()}
+              )
+            })()}
         </div>
 
         {/* Pause vote overlay — shown while a pause vote is in progress */}
         {!isSuspended && pauseVotes.length > 0 && (
-          <div className={styles.voteOverlay} data-testid="pause-vote-overlay">
+          <div className={styles.voteOverlay} data-testid='pause-vote-overlay'>
             <p className={styles.voteTitle}>Pause requested</p>
             <p className={styles.voteCount}>
               {pauseVotes.length} / {pauseRequired} voted
             </p>
             {!isSpectator && !votedPause && (
               <button
-                data-testid="vote-pause-btn"
-                className="btn btn-ghost"
+                data-testid='vote-pause-btn'
+                className='btn btn-ghost'
                 onClick={() => pauseMutation.mutate()}
                 disabled={pauseMutation.isPending}
               >
                 Vote to Pause
               </button>
             )}
-            {votedPause && (
-              <p className={styles.voteWaiting}>Waiting for opponent…</p>
-            )}
+            {votedPause && <p className={styles.voteWaiting}>Waiting for opponent…</p>}
           </div>
         )}
 
         {/* Suspended screen — replaces the board when game is paused */}
         {isSuspended ? (
-          <div className={styles.suspendedScreen} data-testid="suspended-screen">
+          <div className={styles.suspendedScreen} data-testid='suspended-screen'>
             <span className={styles.suspendedIcon}>⏸</span>
             <p className={styles.suspendedTitle}>Game Paused</p>
-            <p className={styles.suspendedBody}>
-              All players must vote to resume the game.
-            </p>
+            <p className={styles.suspendedBody}>All players must vote to resume the game.</p>
             {resumeVotes.length > 0 && (
-              <p className={styles.voteCount} data-testid="resume-vote-count">
+              <p className={styles.voteCount} data-testid='resume-vote-count'>
                 {resumeVotes.length} / {resumeRequired} voted to resume
               </p>
             )}
             {canResume && (
               <button
-                data-testid="vote-resume-btn"
-                className="btn btn-primary"
+                data-testid='vote-resume-btn'
+                className='btn btn-primary'
                 onClick={() => resumeMutation.mutate()}
                 disabled={resumeMutation.isPending}
               >
                 Vote to Resume
               </button>
             )}
-            {votedResume && (
-              <p className={styles.voteWaiting}>Waiting for opponent…</p>
-            )}
-            <button
-              className="btn btn-ghost"
-              onClick={handleBackToLobby}
-              style={{ marginTop: 8 }}
-            >
+            {votedResume && <p className={styles.voteWaiting}>Waiting for opponent…</p>}
+            <button className='btn btn-ghost' onClick={handleBackToLobby} style={{ marginTop: 8 }}>
               ← Back to Lobby
             </button>
           </div>
@@ -477,7 +484,7 @@ export default function Game() {
                 gameId={session.game_id}
                 gameData={gameData}
                 localPlayerId={player.id}
-                onMove={(payload) => move.mutate(payload)}
+                onMove={payload => move.mutate(payload)}
                 disabled={isSpectator || !isMyTurn || move.isPending}
                 isOver={isOver}
                 players={roomPlayers}
@@ -494,16 +501,20 @@ export default function Game() {
 
         {isOver && (
           <div className={styles.gameOver}>
-            <button className="btn btn-ghost" onClick={handleBackToLobby}>
+            <button className='btn btn-ghost' onClick={handleBackToLobby}>
               Back to Lobby
             </button>
-            <button className="btn btn-ghost" data-testid="view-replay-btn" onClick={handleViewReplay}>
+            <button
+              className='btn btn-ghost'
+              data-testid='view-replay-btn'
+              onClick={handleViewReplay}
+            >
               View Replay
             </button>
             {!isSpectator && (
               <button
-                className="btn btn-primary"
-                data-testid="rematch-btn"
+                className='btn btn-primary'
+                data-testid='rematch-btn'
                 onClick={() => rematch.mutate()}
                 disabled={votedRematch || rematch.isPending}
               >
@@ -511,8 +522,7 @@ export default function Game() {
                   ? `Waiting for opponent… (${rematchVotes}/${totalPlayers})`
                   : rematchVotes > 0
                     ? `Rematch (${rematchVotes}/${totalPlayers} voted)`
-                    : 'Rematch'
-                }
+                    : 'Rematch'}
               </button>
             )}
           </div>

@@ -37,9 +37,9 @@ export type WsEventType =
   | 'ws_connected'
   | 'ws_reconnecting'
   | 'ws_disconnected'
- 
+
 // --- Payload types -----------------------------------------------------------
- 
+
 /** Mirrors the MoveResult shape returned by the runtime on move/surrender/game_over. */
 export interface WsPayloadMoveResult {
   session: { id: string; game_id: string; move_count: number; finished_at?: string }
@@ -47,38 +47,38 @@ export interface WsPayloadMoveResult {
   is_over: boolean
   result?: { winner_id?: string; is_draw?: boolean }
 }
- 
+
 export interface WsPayloadGameStarted {
   session: { id: string }
 }
- 
+
 export interface WsPayloadRematchVote {
   votes: number
   total_players: number
 }
- 
+
 export interface WsPayloadRematchReady {
   room_id: string
 }
- 
+
 export interface WsPayloadOwnerChanged {
   owner_id: string
 }
- 
+
 export interface WsPayloadSettingUpdated {
   key: string
   value: string
 }
- 
+
 export interface WsPayloadPresenceUpdate {
   player_id: string
   online: boolean
 }
- 
+
 export interface WsPayloadSpectatorCount {
   spectator_count: number
 }
- 
+
 /** Chat message payload — note: uses message_id/timestamp, not id/created_at. */
 export interface WsPayloadChatMessage {
   message_id: string
@@ -89,81 +89,81 @@ export interface WsPayloadChatMessage {
   hidden: boolean
   timestamp: string
 }
- 
+
 export interface WsPayloadChatMessageHidden {
   message_id: string
 }
- 
+
 export interface WsPayloadQueueJoined {
   position: number
   estimated_wait_secs: number
   /** Present when the server re-queued the player after an opponent decline. */
   reason?: string
 }
- 
+
 export interface WsPayloadQueueLeft {
   reason: string
 }
- 
+
 export interface WsPayloadMatchFound {
   match_id: string
   quality: number
   timeout: number
 }
- 
+
 export interface WsPayloadMatchCancelled {
   match_id: string
   reason: string
 }
- 
+
 export interface WsPayloadMatchReady {
   room_id: string
   session_id: string
 }
- 
+
 export interface WsPayloadPauseVoteUpdate {
   votes: string[]
   required: number
 }
- 
+
 export interface WsPayloadResumeVoteUpdate {
   votes: string[]
   required: number
 }
- 
+
 // --- Discriminated union -----------------------------------------------------
- 
+
 export type WsEvent =
-  | { type: 'move_applied';       payload: WsPayloadMoveResult }
-  | { type: 'game_over';          payload: WsPayloadMoveResult }
-  | { type: 'game_started';       payload: WsPayloadGameStarted }
-  | { type: 'rematch_vote';       payload: WsPayloadRematchVote }
-  | { type: 'rematch_ready';      payload: WsPayloadRematchReady }
-  | { type: 'owner_changed';      payload: WsPayloadOwnerChanged }
-  | { type: 'room_closed';        payload: null }
-  | { type: 'player_joined';      payload: unknown } // TODO: type when used
-  | { type: 'player_left';        payload: unknown } // TODO: type when used
-  | { type: 'setting_updated';    payload: WsPayloadSettingUpdated }
-  | { type: 'presence_update';    payload: WsPayloadPresenceUpdate }
-  | { type: 'spectator_joined';   payload: WsPayloadSpectatorCount }
-  | { type: 'spectator_left';     payload: WsPayloadSpectatorCount }
-  | { type: 'chat_message';       payload: WsPayloadChatMessage }
+  | { type: 'move_applied'; payload: WsPayloadMoveResult }
+  | { type: 'game_over'; payload: WsPayloadMoveResult }
+  | { type: 'game_started'; payload: WsPayloadGameStarted }
+  | { type: 'rematch_vote'; payload: WsPayloadRematchVote }
+  | { type: 'rematch_ready'; payload: WsPayloadRematchReady }
+  | { type: 'owner_changed'; payload: WsPayloadOwnerChanged }
+  | { type: 'room_closed'; payload: null }
+  | { type: 'player_joined'; payload: unknown } // TODO: type when used
+  | { type: 'player_left'; payload: unknown } // TODO: type when used
+  | { type: 'setting_updated'; payload: WsPayloadSettingUpdated }
+  | { type: 'presence_update'; payload: WsPayloadPresenceUpdate }
+  | { type: 'spectator_joined'; payload: WsPayloadSpectatorCount }
+  | { type: 'spectator_left'; payload: WsPayloadSpectatorCount }
+  | { type: 'chat_message'; payload: WsPayloadChatMessage }
   | { type: 'chat_message_hidden'; payload: WsPayloadChatMessageHidden }
-  | { type: 'dm_received';        payload: unknown } // TODO: type when used
-  | { type: 'dm_read';            payload: unknown } // TODO: type when used
-  | { type: 'pause_vote_update';  payload: WsPayloadPauseVoteUpdate }
-  | { type: 'session_suspended';  payload: unknown } // TODO: type when used
+  | { type: 'dm_received'; payload: unknown } // TODO: type when used
+  | { type: 'dm_read'; payload: unknown } // TODO: type when used
+  | { type: 'pause_vote_update'; payload: WsPayloadPauseVoteUpdate }
+  | { type: 'session_suspended'; payload: unknown } // TODO: type when used
   | { type: 'resume_vote_update'; payload: WsPayloadResumeVoteUpdate }
-  | { type: 'session_resumed';    payload: unknown } // TODO: type when used
-  | { type: 'queue_joined';       payload: WsPayloadQueueJoined }
-  | { type: 'queue_left';         payload: WsPayloadQueueLeft }
-  | { type: 'match_found';        payload: WsPayloadMatchFound }
-  | { type: 'match_cancelled';    payload: WsPayloadMatchCancelled }
-  | { type: 'match_ready';        payload: WsPayloadMatchReady }
+  | { type: 'session_resumed'; payload: unknown } // TODO: type when used
+  | { type: 'queue_joined'; payload: WsPayloadQueueJoined }
+  | { type: 'queue_left'; payload: WsPayloadQueueLeft }
+  | { type: 'match_found'; payload: WsPayloadMatchFound }
+  | { type: 'match_cancelled'; payload: WsPayloadMatchCancelled }
+  | { type: 'match_ready'; payload: WsPayloadMatchReady }
   | { type: 'notification_received'; payload: unknown } // TODO: type when used
-  | { type: 'ws_connected';       payload: null }
-  | { type: 'ws_reconnecting';    payload: null }
-  | { type: 'ws_disconnected';    payload: null }
+  | { type: 'ws_connected'; payload: null }
+  | { type: 'ws_reconnecting'; payload: null }
+  | { type: 'ws_disconnected'; payload: null }
 
 type Handler = (event: WsEvent) => void
 
@@ -193,10 +193,10 @@ export class RoomSocket {
       this.emit('ws_connected')
     }
 
-    this.ws.onmessage = (e) => {
+    this.ws.onmessage = e => {
       try {
         const event: WsEvent = JSON.parse(e.data)
-        this.handlers.forEach((h) => h(event))
+        this.handlers.forEach(h => h(event))
       } catch {
         // ignore malformed messages
       }
@@ -219,7 +219,9 @@ export class RoomSocket {
 
   on(handler: Handler): () => void {
     this.handlers.add(handler)
-    return () => { this.handlers.delete(handler) }
+    return () => {
+      this.handlers.delete(handler)
+    }
   }
 
   close() {
@@ -230,12 +232,12 @@ export class RoomSocket {
   }
 
   private emit(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
-    this.handlers.forEach((h) => h({ type, payload: null }))
+    this.handlers.forEach(h => h({ type, payload: null }))
   }
 }
 
 // --- PlayerSocket ------------------------------------------------------------
- 
+
 /**
  * PlayerSocket maintains a persistent WebSocket connection to the player's
  * personal channel (/ws/players/{playerID}). It receives player-scoped events
@@ -268,10 +270,10 @@ export class PlayerSocket {
       this.emit('ws_connected')
     }
 
-    this.ws.onmessage = (e) => {
+    this.ws.onmessage = e => {
       try {
         const event: WsEvent = JSON.parse(e.data)
-        this.handlers.forEach((h) => h(event))
+        this.handlers.forEach(h => h(event))
       } catch {
         // ignore malformed messages
       }
@@ -294,7 +296,9 @@ export class PlayerSocket {
 
   on(handler: Handler): () => void {
     this.handlers.add(handler)
-    return () => { this.handlers.delete(handler) }
+    return () => {
+      this.handlers.delete(handler)
+    }
   }
 
   close() {
@@ -305,6 +309,6 @@ export class PlayerSocket {
   }
 
   private emit(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
-    this.handlers.forEach((h) => h({ type, payload: null }))
+    this.handlers.forEach(h => h({ type, payload: null }))
   }
 }

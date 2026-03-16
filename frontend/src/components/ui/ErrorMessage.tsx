@@ -20,7 +20,7 @@ export default function ErrorMessage({ error, className }: Props) {
   const isDev = import.meta.env.DEV
 
   return (
-    <div className={`${styles.root} ${className ?? ''}`} role="alert">
+    <div className={`${styles.root} ${className ?? ''}`} role='alert'>
       {isDev ? (
         <>
           <span className={styles.reason}>{error.reason}</span>

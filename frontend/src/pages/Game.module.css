@@ -77,8 +77,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .statusText {
@@ -86,8 +91,13 @@
   color: var(--text-secondary);
 }
 
-.win  { color: var(--amber)  !important; font-weight: 500; }
-.lose { color: var(--danger) !important; }
+.win {
+  color: var(--amber) !important;
+  font-weight: 500;
+}
+.lose {
+  color: var(--danger) !important;
+}
 
 .suspended {
   color: var(--amber-dim) !important;
@@ -136,12 +146,22 @@
 }
 
 @keyframes symbolIn {
-  from { transform: scale(0.4); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.symbolX { color: var(--amber); }
-.symbolO { color: var(--text-secondary); }
+.symbolX {
+  color: var(--amber);
+}
+.symbolO {
+  color: var(--text-secondary);
+}
 
 .hoverSymbol {
   font-size: 32px;
@@ -150,7 +170,9 @@
   transition: opacity var(--transition);
 }
 
-.cellHoverable:hover .hoverSymbol { opacity: 1; }
+.cellHoverable:hover .hoverSymbol {
+  opacity: 1;
+}
 
 /* Grid lines */
 .gridLines {
@@ -198,7 +220,7 @@
   transition: background 0.3s;
 }
 
-.presenceDot[data-online='true'] {
+.presenceDot[data-online="true"] {
   background: var(--success);
   box-shadow: 0 0 4px var(--success);
 }
@@ -230,8 +252,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .voteTitle {

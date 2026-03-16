@@ -19,7 +19,9 @@
   gap: 12px;
 }
 
-.logoIcon { font-size: 20px; }
+.logoIcon {
+  font-size: 20px;
+}
 
 .logoText {
   font-family: var(--font-display);
@@ -57,7 +59,8 @@
   gap: 32px;
 }
 
-.left, .right {
+.left,
+.right {
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -140,7 +143,9 @@
   gap: 8px;
 }
 
-.joinRow .input { flex: 1; }
+.joinRow .input {
+  flex: 1;
+}
 
 .error {
   margin-top: 8px;
@@ -168,7 +173,9 @@
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  transition: border-color var(--transition), background var(--transition);
+  transition:
+    border-color var(--transition),
+    background var(--transition);
 }
 
 .roomCard:hover {
@@ -238,8 +245,12 @@
   color: var(--text-secondary);
 }
 
-.table tr:last-child td { border-bottom: none; }
-.table tr:hover td { background: var(--bg-elevated); }
+.table tr:last-child td {
+  border-bottom: none;
+}
+.table tr:hover td {
+  background: var(--bg-elevated);
+}
 
 .rank {
   color: var(--text-muted) !important;
@@ -247,6 +258,12 @@
   width: 24px;
 }
 
-.table tr:nth-child(1) .rank { color: var(--amber) !important; }
-.table tr:nth-child(2) .rank { color: var(--text-secondary) !important; }
-.table tr:nth-child(3) .rank { color: #8b6914 !important; }
+.table tr:nth-child(1) .rank {
+  color: var(--amber) !important;
+}
+.table tr:nth-child(2) .rank {
+  color: var(--text-secondary) !important;
+}
+.table tr:nth-child(3) .rank {
+  color: #8b6914 !important;
+}

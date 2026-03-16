@@ -9,7 +9,7 @@ export interface Player {
   id: string
   username: string
   role: 'player' | 'manager' | 'owner'
-  is_bot: boolean 
+  is_bot: boolean
   avatar_url?: string
   created_at: string
 }
@@ -43,7 +43,7 @@ export interface PlayerSettingMap {
 
   // Audio (stubs — no audio system yet)
   mute_all?: boolean
-  volume_master?: number        // 0.0–1.0
+  volume_master?: number // 0.0–1.0
   volume_sfx?: number
   volume_ui?: number
   volume_notifications?: number
@@ -251,7 +251,10 @@ export interface Notification {
   id: string
   player_id: string
   type: NotificationType
-  payload: NotificationPayloadFriendRequest | NotificationPayloadRoomInvitation | NotificationPayloadBanIssued
+  payload:
+    | NotificationPayloadFriendRequest
+    | NotificationPayloadRoomInvitation
+    | NotificationPayloadBanIssued
   action_taken?: string
   action_expires_at?: string
   read_at?: string
@@ -304,7 +307,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase()
   const url = BASE + path
 
-  return tracer.startActiveSpan(`${method} ${url}`, async (span) => {
+  return tracer.startActiveSpan(`${method} ${url}`, async span => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init?.headers as Record<string, string>),
@@ -332,7 +335,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         if (res.status === 429) {
           window.location.href = '/rate-limited'
         }
-        
+
         throw new ApiError(res.status, body.error ?? res.statusText)
       }
 
@@ -359,7 +362,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message)
   }
 }
@@ -370,13 +376,14 @@ export class ApiError extends Error {
 // to be traced like normal API calls.
 
 export const auth = {
-  me: () => fetch('/auth/me', { credentials: 'include' }).then(async res => {
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      throw new ApiError(res.status, body.error ?? res.statusText)
-    }
-    return res.json() as Promise<Player>
-  }),
+  me: () =>
+    fetch('/auth/me', { credentials: 'include' }).then(async res => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new ApiError(res.status, body.error ?? res.statusText)
+      }
+      return res.json() as Promise<Player>
+    }),
   logout: () => fetch('/auth/logout', { method: 'POST', credentials: 'include' }),
   loginUrl: '/auth/github',
 }
@@ -391,8 +398,7 @@ export const players = {
 // --- Player settings ---------------------------------------------------------
 
 export const playerSettings = {
-  get: (playerId: string) =>
-    request<PlayerSettings>(`/players/${playerId}/settings`),
+  get: (playerId: string) => request<PlayerSettings>(`/players/${playerId}/settings`),
   update: (playerId: string, settings: PlayerSettingMap) =>
     request<PlayerSettings>(`/players/${playerId}/settings`, {
       method: 'PUT',
@@ -438,8 +444,7 @@ export const rooms = {
       method: 'PUT',
       body: JSON.stringify({ player_id: playerId, value }),
     }),
-  messages: (roomId: string) =>
-    request<RoomMessage[]>(`/rooms/${roomId}/messages`),
+  messages: (roomId: string) => request<RoomMessage[]>(`/rooms/${roomId}/messages`),
   sendMessage: (roomId: string, playerId: string, content: string) =>
     request<RoomMessage>(`/rooms/${roomId}/messages`, {
       method: 'POST',
@@ -495,8 +500,7 @@ export const sessions = {
       { method: 'POST', body: JSON.stringify({ player_id: playerId }) },
     ),
   // Manager only. Broadcasts room_closed to all clients.
-  forceClose: (sessionId: string) =>
-    request<void>(`/sessions/${sessionId}`, { method: 'DELETE' }),
+  forceClose: (sessionId: string) => request<void>(`/sessions/${sessionId}`, { method: 'DELETE' }),
   events: (id: string) => request<SessionEvent[]>(`/sessions/${id}/events`),
   history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
 }
@@ -524,8 +528,7 @@ export const gameRegistry = {
 
 export const admin = {
   // Allowed emails
-  listEmails: () =>
-    request<AllowedEmail[]>('/admin/allowed-emails'),
+  listEmails: () => request<AllowedEmail[]>('/admin/allowed-emails'),
   addEmail: (email: string, role: 'player' | 'manager' = 'player') =>
     request<AllowedEmail>('/admin/allowed-emails', {
       method: 'POST',
@@ -537,8 +540,7 @@ export const admin = {
     }),
 
   // Players
-  listPlayers: () =>
-    request<Player[]>('/admin/players'),
+  listPlayers: () => request<Player[]>('/admin/players'),
   setRole: (playerId: string, role: 'player' | 'manager' | 'owner') =>
     request<void>(`/admin/players/${playerId}/role`, {
       method: 'PUT',

@@ -104,7 +104,9 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
   flex-shrink: 0;
   padding: 0;
 }
@@ -126,7 +128,9 @@
   height: 14px;
   background: var(--text-muted);
   border-radius: 50%;
-  transition: transform var(--transition), background var(--transition);
+  transition:
+    transform var(--transition),
+    background var(--transition);
 }
 
 .toggleOn .toggleThumb {

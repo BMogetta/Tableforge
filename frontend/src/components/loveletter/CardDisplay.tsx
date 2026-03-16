@@ -19,16 +19,40 @@ interface CardMeta {
 }
 
 const CARD_META: Record<CardName, CardMeta> = {
-  spy:        { label: 'Spy',        value: 0, effect: 'If only you played a Spy this round, gain 1 token.' },
-  guard:      { label: 'Guard',      value: 1, effect: 'Name a card. If target holds it, they are eliminated.' },
-  priest:     { label: 'Priest',     value: 2, effect: 'Look at another player\'s hand.' },
-  baron:      { label: 'Baron',      value: 3, effect: 'Compare hands. Lower value is eliminated.' },
-  handmaid:   { label: 'Handmaid',   value: 4, effect: 'Protected from all effects until your next turn.' },
-  prince:     { label: 'Prince',     value: 5, effect: 'Choose a player to discard their hand and draw a new card.' },
-  chancellor: { label: 'Chancellor', value: 6, effect: 'Draw 2 cards. Keep 1, return 2 to the bottom of the deck.' },
-  king:       { label: 'King',       value: 7, effect: 'Trade hands with another player.' },
-  countess:   { label: 'Countess',   value: 8, effect: 'Must be played if you hold the King or Prince.' },
-  princess:   { label: 'Princess',   value: 9, effect: 'If you play or discard this card, you are eliminated.' },
+  spy: { label: 'Spy', value: 0, effect: 'If only you played a Spy this round, gain 1 token.' },
+  guard: {
+    label: 'Guard',
+    value: 1,
+    effect: 'Name a card. If target holds it, they are eliminated.',
+  },
+  priest: { label: 'Priest', value: 2, effect: "Look at another player's hand." },
+  baron: { label: 'Baron', value: 3, effect: 'Compare hands. Lower value is eliminated.' },
+  handmaid: {
+    label: 'Handmaid',
+    value: 4,
+    effect: 'Protected from all effects until your next turn.',
+  },
+  prince: {
+    label: 'Prince',
+    value: 5,
+    effect: 'Choose a player to discard their hand and draw a new card.',
+  },
+  chancellor: {
+    label: 'Chancellor',
+    value: 6,
+    effect: 'Draw 2 cards. Keep 1, return 2 to the bottom of the deck.',
+  },
+  king: { label: 'King', value: 7, effect: 'Trade hands with another player.' },
+  countess: {
+    label: 'Countess',
+    value: 8,
+    effect: 'Must be played if you hold the King or Prince.',
+  },
+  princess: {
+    label: 'Princess',
+    value: 9,
+    effect: 'If you play or discard this card, you are eliminated.',
+  },
 }
 
 interface Props {
@@ -58,7 +82,7 @@ export default function CardDisplay({
 
   return (
     <div
-      data-testid="card-display"
+      data-testid='card-display'
       data-selected={selected}
       data-disabled={disabled}
       data-facedown={faceDown}
@@ -69,11 +93,13 @@ export default function CardDisplay({
         faceDown ? styles.faceDown : '',
         interactive ? styles.interactive : '',
         className,
-      ].filter(Boolean).join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onClick={interactive ? onClick : undefined}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}
-      onKeyDown={interactive ? (e) => e.key === 'Enter' && onClick?.() : undefined}
+      onKeyDown={interactive ? e => e.key === 'Enter' && onClick?.() : undefined}
       aria-pressed={selected}
       aria-disabled={disabled}
     >

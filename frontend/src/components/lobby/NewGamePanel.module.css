@@ -1,4 +1,5 @@
-.section {}
+.section {
+}
 
 .title {
   font-family: var(--font-display);
@@ -76,7 +77,9 @@
   transition: all var(--transition);
 }
 
-.tab:first-child { border-right: 1px solid var(--border); }
+.tab:first-child {
+  border-right: 1px solid var(--border);
+}
 
 .tab:hover {
   color: var(--text-secondary);
@@ -106,7 +109,9 @@
   gap: 8px;
 }
 
-.joinRow .input { flex: 1; }
+.joinRow .input {
+  flex: 1;
+}
 
 /* Ranked */
 .rankedBody {
@@ -156,7 +161,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .matchFound {

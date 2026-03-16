@@ -27,12 +27,12 @@ export default function RoomSettings({
 
   async function handleChange(key: string, value: string) {
     setPending(key)
-    setErrors((e) => ({ ...e, [key]: '' }))
+    setErrors(e => ({ ...e, [key]: '' }))
     try {
       await rooms.updateSetting(roomId, playerId, key, value)
       onSettingChange(key, value)
     } catch (err) {
-      setErrors((e) => ({
+      setErrors(e => ({
         ...e,
         [key]: err instanceof Error ? err.message : 'Failed to save',
       }))
@@ -44,10 +44,10 @@ export default function RoomSettings({
   if (descriptors.length === 0) return null
 
   return (
-    <section className={styles.root} data-testid="lobby-settings">
-      <p className="label">Game Settings</p>
+    <section className={styles.root} data-testid='lobby-settings'>
+      <p className='label'>Game Settings</p>
       <div className={styles.list}>
-        {descriptors.map((setting) => (
+        {descriptors.map(setting => (
           <SettingRow
             key={setting.key}
             setting={setting}
@@ -55,7 +55,7 @@ export default function RoomSettings({
             isOwner={isOwner}
             isPending={pending === setting.key}
             error={errors[setting.key]}
-            onChange={(value) => handleChange(setting.key, value)}
+            onChange={value => handleChange(setting.key, value)}
           />
         ))}
       </div>
@@ -76,15 +76,10 @@ interface RowProps {
 
 function SettingRow({ setting, value, isOwner, isPending, error, onChange }: RowProps) {
   return (
-    <div
-      className={styles.row}
-      data-testid={`setting-row-${setting.key}`}
-    >
+    <div className={styles.row} data-testid={`setting-row-${setting.key}`}>
       <div className={styles.labelGroup}>
         <span className={styles.settingLabel}>{setting.label}</span>
-        {setting.description && (
-          <span className={styles.settingDesc}>{setting.description}</span>
-        )}
+        {setting.description && <span className={styles.settingDesc}>{setting.description}</span>}
       </div>
 
       <div className={styles.control}>
@@ -121,9 +116,9 @@ function SettingControl({ setting, value, isPending, onChange }: ControlProps) {
         value={value}
         disabled={isPending}
         data-testid={`setting-select-${setting.key}`}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
       >
-        {setting.options.map((opt) => (
+        {setting.options.map(opt => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
@@ -135,15 +130,15 @@ function SettingControl({ setting, value, isPending, onChange }: ControlProps) {
   if (setting.type === 'int') {
     return (
       <input
-        type="number"
+        type='number'
         className={styles.input}
         value={value}
         disabled={isPending}
         min={setting.min}
         max={setting.max}
         data-testid={`setting-input-${setting.key}`}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
+        onBlur={e => onChange(e.target.value)}
       />
     )
   }
@@ -156,22 +151,16 @@ function SettingControl({ setting, value, isPending, onChange }: ControlProps) {
 function ReadonlyValue({ setting, value }: { setting: LobbySetting; value: string }) {
   // For select settings, show the human-readable label instead of the raw value.
   if (setting.type === 'select' && setting.options) {
-    const opt = setting.options.find((o) => o.value === value)
+    const opt = setting.options.find(o => o.value === value)
     return (
-      <span
-        className={styles.readonlyValue}
-        data-testid={`setting-value-${setting.key}`}
-      >
+      <span className={styles.readonlyValue} data-testid={`setting-value-${setting.key}`}>
         {opt?.label ?? value}
       </span>
     )
   }
 
   return (
-    <span
-      className={styles.readonlyValue}
-      data-testid={`setting-value-${setting.key}`}
-    >
+    <span className={styles.readonlyValue} data-testid={`setting-value-${setting.key}`}>
       {value}
     </span>
   )

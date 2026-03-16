@@ -14,7 +14,9 @@ import { createPlayerContexts, setupAndStartGame, playFullGame } from './helpers
 // ---------------------------------------------------------------------------
 
 test.describe('LobbySettings UI', () => {
-  test('owner sees first_mover_policy selector with default value "random"', async ({ browser }) => {
+  test('owner sees first_mover_policy selector with default value "random"', async ({
+    browser,
+  }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     // Explicitly select TicTacToe — default game is non-deterministic with
@@ -42,7 +44,9 @@ test.describe('LobbySettings UI', () => {
     await expect(p1).toHaveURL(/\/rooms\//)
 
     // Policy defaults to 'random' — seat row must not be in the DOM.
-    await expect(p1.getByTestId('setting-row-first_mover_seat')).not.toBeVisible({ timeout: 10_000 })
+    await expect(p1.getByTestId('setting-row-first_mover_seat')).not.toBeVisible({
+      timeout: 10_000,
+    })
 
     await p1Ctx.close()
     await p2Ctx.close()
@@ -58,7 +62,9 @@ test.describe('LobbySettings UI', () => {
     await expect(p1).toHaveURL(/\/rooms\//)
 
     // Wait for the settings section to render before interacting.
-    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({ timeout: 10_000 })
+    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Change policy to 'fixed'.
     await p1.getByTestId('setting-select-first_mover_policy').selectOption('fixed')
@@ -70,7 +76,9 @@ test.describe('LobbySettings UI', () => {
     await p2Ctx.close()
   })
 
-  test('first_mover_seat row disappears when policy switches back to "random"', async ({ browser }) => {
+  test('first_mover_seat row disappears when policy switches back to "random"', async ({
+    browser,
+  }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     // Explicitly select TicTacToe — default game is non-deterministic with
@@ -79,14 +87,18 @@ test.describe('LobbySettings UI', () => {
     await p1.getByTestId('create-room-btn').click()
     await expect(p1).toHaveURL(/\/rooms\//)
 
-    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({ timeout: 10_000 })
+    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Switch to 'fixed' so the seat row appears, then switch back.
     await p1.getByTestId('setting-select-first_mover_policy').selectOption('fixed')
     await expect(p1.getByTestId('setting-row-first_mover_seat')).toBeVisible({ timeout: 10_000 })
 
     await p1.getByTestId('setting-select-first_mover_policy').selectOption('random')
-    await expect(p1.getByTestId('setting-row-first_mover_seat')).not.toBeVisible({ timeout: 10_000 })
+    await expect(p1.getByTestId('setting-row-first_mover_seat')).not.toBeVisible({
+      timeout: 10_000,
+    })
 
     await p1Ctx.close()
     await p2Ctx.close()
@@ -107,8 +119,12 @@ test.describe('LobbySettings UI', () => {
     await expect(p2).toHaveURL(/\/rooms\//)
 
     // Wait for both sides to settle before changing the setting.
-    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({ timeout: 10_000 })
-    await expect(p2.getByTestId('setting-value-first_mover_policy')).toBeVisible({ timeout: 10_000 })
+    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({
+      timeout: 10_000,
+    })
+    await expect(p2.getByTestId('setting-value-first_mover_policy')).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Owner changes the policy.
     await p1.getByTestId('setting-select-first_mover_policy').selectOption('fixed')
@@ -116,7 +132,9 @@ test.describe('LobbySettings UI', () => {
     // P2's read-only span must reflect the new value without a page reload.
     // The label rendered for 'fixed' depends on the option list returned by the
     // backend — assert on the underlying test-id value attribute via the span text.
-    await expect(p2.getByTestId('setting-value-first_mover_policy')).not.toContainText('Random', { timeout: 10_000 })
+    await expect(p2.getByTestId('setting-value-first_mover_policy')).not.toContainText('Random', {
+      timeout: 10_000,
+    })
 
     await p1Ctx.close()
     await p2Ctx.close()
@@ -137,7 +155,9 @@ test.describe('LobbySettings UI', () => {
     await expect(p2).toHaveURL(/\/rooms\//)
 
     // P2 must see the readonly span, not an interactive select.
-    await expect(p2.getByTestId('setting-value-first_mover_policy')).toBeVisible({ timeout: 10_000 })
+    await expect(p2.getByTestId('setting-value-first_mover_policy')).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(p2.getByTestId('setting-select-first_mover_policy')).not.toBeVisible()
 
     await p1Ctx.close()
@@ -366,7 +386,9 @@ async function setupRematchLobby(p1: any, p2: any, rematchPolicy: string): Promi
 }
 
 test.describe('Rematch first mover policy', () => {
-  test('winner_first: the winner of the previous game goes first in the rematch', async ({ browser }) => {
+  test('winner_first: the winner of the previous game goes first in the rematch', async ({
+    browser,
+  }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     // P1 wins the first game. With winner_first, P1 must go first in the rematch.
@@ -379,7 +401,9 @@ test.describe('Rematch first mover policy', () => {
     await p2Ctx.close()
   })
 
-  test('loser_first: the loser of the previous game goes first in the rematch', async ({ browser }) => {
+  test('loser_first: the loser of the previous game goes first in the rematch', async ({
+    browser,
+  }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     // P1 wins the first game. With loser_first, P2 must go first in the rematch.
@@ -392,7 +416,9 @@ test.describe('Rematch first mover policy', () => {
     await p2Ctx.close()
   })
 
-  test('fixed: seat 0 goes first in the rematch regardless of previous result', async ({ browser }) => {
+  test('fixed: seat 0 goes first in the rematch regardless of previous result', async ({
+    browser,
+  }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     // P1 wins the first game. With fixed (default seat 0), P1 goes first again.

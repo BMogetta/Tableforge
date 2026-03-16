@@ -33,7 +33,7 @@ export default function RoundSummary({
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setRemaining((r) => {
+      setRemaining(r => {
         if (r <= 100) {
           clearInterval(interval)
           onDismiss()
@@ -45,8 +45,8 @@ export default function RoundSummary({
     return () => clearInterval(interval)
   }, [autoDismissMs, onDismiss])
 
-  const winner = players.find((p) => p.id === winnerId)
-  const spyBonusPlayers = players.filter((p) => p.earnedSpyBonus)
+  const winner = players.find(p => p.id === winnerId)
+  const spyBonusPlayers = players.filter(p => p.earnedSpyBonus)
   const progressPct = (remaining / autoDismissMs) * 100
 
   return (
@@ -55,9 +55,7 @@ export default function RoundSummary({
         <div className={styles.header}>
           <span className={styles.roundLabel}>Round {round} complete</span>
           {winner ? (
-            <h2 className={styles.winnerText}>
-              {winner.username} wins the round
-            </h2>
+            <h2 className={styles.winnerText}>{winner.username} wins the round</h2>
           ) : (
             <h2 className={styles.winnerText}>Round drawn</h2>
           )}
@@ -67,32 +65,26 @@ export default function RoundSummary({
           <div className={styles.spyBonus}>
             <span className={styles.spyLabel}>Spy bonus</span>
             <span className={styles.spyNames}>
-              {spyBonusPlayers.map((p) => p.username).join(', ')} earned +1 token
+              {spyBonusPlayers.map(p => p.username).join(', ')} earned +1 token
             </span>
           </div>
         )}
 
         <div className={styles.standings}>
-          {players.map((p) => (
+          {players.map(p => (
             <div
               key={p.id}
-              className={[
-                styles.playerRow,
-                p.isWinner ? styles.winnerRow : '',
-              ].filter(Boolean).join(' ')}
+              className={[styles.playerRow, p.isWinner ? styles.winnerRow : '']
+                .filter(Boolean)
+                .join(' ')}
             >
               <span className={styles.playerName}>{p.username}</span>
-              {p.handCard && (
-                <span className={styles.handCard}>{p.handCard}</span>
-              )}
+              {p.handCard && <span className={styles.handCard}>{p.handCard}</span>}
               <div className={styles.tokenTrack}>
                 {Array.from({ length: p.tokensToWin }).map((_, i) => (
                   <span
                     key={i}
-                    className={[
-                      styles.token,
-                      i < p.tokens ? styles.tokenFilled : '',
-                    ].join(' ')}
+                    className={[styles.token, i < p.tokens ? styles.tokenFilled : ''].join(' ')}
                   />
                 ))}
               </div>
@@ -105,12 +97,9 @@ export default function RoundSummary({
 
         <div className={styles.footer}>
           <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{ width: `${progressPct}%` }}
-            />
+            <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
           </div>
-          <button className="btn btn-ghost" onClick={onDismiss}>
+          <button className='btn btn-ghost' onClick={onDismiss}>
             Continue
           </button>
         </div>

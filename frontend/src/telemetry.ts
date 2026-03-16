@@ -95,11 +95,11 @@ function recordVital(name: string, value: number, rating: string) {
 }
 
 export function initWebVitals() {
-  onCLS((m) => recordVital('CLS', m.value * 1000, m.rating))
-  onFCP((m) => recordVital('FCP', m.value, m.rating))
-  onLCP((m) => recordVital('LCP', m.value, m.rating))
-  onTTFB((m) => recordVital('TTFB', m.value, m.rating))
-  onINP((m) => recordVital('INP', m.value, m.rating))  // INP replaced FID in v4
+  onCLS(m => recordVital('CLS', m.value * 1000, m.rating))
+  onFCP(m => recordVital('FCP', m.value, m.rating))
+  onLCP(m => recordVital('LCP', m.value, m.rating))
+  onTTFB(m => recordVital('TTFB', m.value, m.rating))
+  onINP(m => recordVital('INP', m.value, m.rating)) // INP replaced FID in v4
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +119,7 @@ export function emitErrorLog(message: string, attrs: Record<string, string>) {
 }
 
 export function initErrorHandler() {
-  window.addEventListener('error', (event) => {
+  window.addEventListener('error', event => {
     emitErrorLog(event.message, {
       'error.type': 'uncaught',
       'error.source': event.filename ?? '',
@@ -129,7 +129,7 @@ export function initErrorHandler() {
     })
   })
 
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener('unhandledrejection', event => {
     const reason = event.reason
     const message =
       reason instanceof Error ? reason.message : String(reason ?? 'Unhandled promise rejection')

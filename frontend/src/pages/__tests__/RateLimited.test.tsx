@@ -5,7 +5,7 @@ import RateLimited from '../RateLimited'
 
 // Mock useNavigate so we can assert navigation calls.
 const mockNavigate = vi.fn()
-vi.mock('react-router-dom', async (importOriginal) => {
+vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router-dom')>()
   return { ...actual, useNavigate: () => mockNavigate }
 })
@@ -14,7 +14,7 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <RateLimited />
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 }
 
@@ -26,7 +26,9 @@ function renderPage() {
  */
 function advanceSeconds(n: number) {
   for (let i = 0; i < n; i++) {
-    act(() => { vi.advanceTimersByTime(1000) })
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
   }
 }
 

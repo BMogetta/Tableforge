@@ -22,7 +22,7 @@ test('leaderboard shows seeded players with display_rating', async ({ browser })
   // game in the registry (tictactoe). If the game selector is visible,
   // click the tictactoe option to be explicit.
   const gameOption = p1.locator(`button`, { hasText: /tictactoe/i })
-  if (await gameOption.count() > 0) {
+  if ((await gameOption.count()) > 0) {
     await gameOption.first().click()
   }
 

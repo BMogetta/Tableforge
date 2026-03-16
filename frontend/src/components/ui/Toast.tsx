@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import type { AppError } from '../../helpers/errors'
 import styles from './Toast.module.css'
 
@@ -43,7 +51,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
   const add = useCallback((item: Omit<ToastItem, 'id'>) => {
-    setToasts((prev) => {
+    setToasts(prev => {
       const next = [...prev, { ...item, id: nextId() }]
       // Keep only the last MAX_TOASTS items
       return next.slice(-MAX_TOASTS)
@@ -51,20 +59,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const remove = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
+    setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const showError = useCallback((err: AppError) => {
-    add({ variant: 'error', message: err.message, code: err.code })
-  }, [add])
+  const showError = useCallback(
+    (err: AppError) => {
+      add({ variant: 'error', message: err.message, code: err.code })
+    },
+    [add],
+  )
 
-  const showWarning = useCallback((message: string) => {
-    add({ variant: 'warning', message })
-  }, [add])
+  const showWarning = useCallback(
+    (message: string) => {
+      add({ variant: 'warning', message })
+    },
+    [add],
+  )
 
-  const showInfo = useCallback((message: string) => {
-    add({ variant: 'info', message })
-  }, [add])
+  const showInfo = useCallback(
+    (message: string) => {
+      add({ variant: 'info', message })
+    },
+    [add],
+  )
 
   return (
     <ToastContext.Provider value={{ showError, showWarning, showInfo }}>
@@ -88,11 +105,17 @@ export function useToast(): ToastContextValue {
 // Container
 // ---------------------------------------------------------------------------
 
-function ToastContainer({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: string) => void }) {
+function ToastContainer({
+  toasts,
+  onDismiss,
+}: {
+  toasts: ToastItem[]
+  onDismiss: (id: string) => void
+}) {
   if (toasts.length === 0) return null
   return (
-    <div className={styles.container} aria-live="polite" aria-atomic="false">
-      {toasts.map((t) => (
+    <div className={styles.container} aria-live='polite' aria-atomic='false'>
+      {toasts.map(t => (
         <ToastCard key={t.id} toast={t} onDismiss={onDismiss} />
       ))}
     </div>
@@ -119,24 +142,22 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: str
   }, [dismiss])
 
   const icon = {
-    error:   '✕',
+    error: '✕',
     warning: '⚠',
-    info:    'ℹ',
+    info: 'ℹ',
   }[toast.variant]
 
   return (
     <div
       className={`${styles.toast} ${styles[toast.variant]}`}
-      role="alert"
+      role='alert'
       onClick={dismiss}
-      title="Click to dismiss"
+      title='Click to dismiss'
     >
       <span className={styles.icon}>{icon}</span>
       <div className={styles.body}>
         <span className={styles.message}>{toast.message}</span>
-        {toast.code && (
-          <span className={styles.code}>{toast.code}</span>
-        )}
+        {toast.code && <span className={styles.code}>{toast.code}</span>}
       </div>
       <div className={styles.progress}>
         <div className={styles.progressBar} style={{ animationDuration: `${AUTO_DISMISS_MS}ms` }} />

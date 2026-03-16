@@ -11,8 +11,14 @@
   top: 0;
 }
 
-.open  { width: 280px; min-width: 280px; }
-.closed { width: 40px; min-width: 40px; }
+.open {
+  width: 280px;
+  min-width: 280px;
+}
+.closed {
+  width: 40px;
+  min-width: 40px;
+}
 
 /* Toggle button */
 .toggle {
@@ -24,7 +30,9 @@
   border-bottom: 1px solid var(--border);
   width: 100%;
   cursor: pointer;
-  transition: color var(--transition), background var(--transition);
+  transition:
+    color var(--transition),
+    background var(--transition);
   white-space: nowrap;
 }
 

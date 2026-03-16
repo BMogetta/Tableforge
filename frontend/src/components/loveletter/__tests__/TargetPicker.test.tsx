@@ -21,7 +21,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     expect(screen.getByText('Player 2')).toBeInTheDocument()
     expect(screen.getByText('Player 3')).toBeInTheDocument()
@@ -40,7 +40,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={onSelectTarget}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     await user.click(screen.getByText('Player 2').closest('button')!)
     expect(onSelectTarget).toHaveBeenCalledWith('p2')
@@ -57,7 +57,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     const p2Btn = screen.getByText('Player 2').closest('button')!
     expect(p2Btn).toBeDisabled()
@@ -75,7 +75,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     const p3Btn = screen.getByText('Player 3').closest('button')!
     expect(p3Btn).toBeDisabled()
@@ -93,7 +93,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     expect(screen.getByText(/no effect/i)).toBeInTheDocument()
   })
@@ -109,7 +109,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     expect(screen.getByText('Guess their card')).toBeInTheDocument()
 
@@ -123,7 +123,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     expect(screen.queryByText('Guess their card')).not.toBeInTheDocument()
   })
@@ -141,7 +141,7 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={onSelectGuess}
-      />
+      />,
     )
     await user.selectOptions(screen.getByRole('combobox'), 'priest')
     expect(onSelectGuess).toHaveBeenCalledWith('priest')
@@ -158,10 +158,10 @@ describe('TargetPicker', () => {
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
-      />
+      />,
     )
     const options = screen.getAllByRole('option')
-    const optionValues = options.map((o) => o.getAttribute('value'))
+    const optionValues = options.map(o => o.getAttribute('value'))
     expect(optionValues).not.toContain('guard')
   })
 })

@@ -15,7 +15,7 @@ export default function ChancellorModal({ choices, onConfirm }: Props) {
   // bottom of the deck. Index 0 = first at bottom, index 1 = second at bottom.
   const [returnOrder, setReturnOrder] = useState<CardName[]>([])
 
-  const remaining = choices.filter((c) => c !== kept)
+  const remaining = choices.filter(c => c !== kept)
 
   function handleKeep(card: CardName) {
     setKept(card)
@@ -25,7 +25,7 @@ export default function ChancellorModal({ choices, onConfirm }: Props) {
   function handleReturn(card: CardName) {
     if (returnOrder.includes(card)) {
       // Deselect — remove from return order.
-      setReturnOrder(returnOrder.filter((c) => c !== card))
+      setReturnOrder(returnOrder.filter(c => c !== card))
       return
     }
     if (returnOrder.length < 2) {
@@ -45,8 +45,8 @@ export default function ChancellorModal({ choices, onConfirm }: Props) {
       <div className={styles.modal}>
         <h2 className={styles.title}>Chancellor</h2>
         <p className={styles.description}>
-          Choose 1 card to keep. The other 2 will be placed at the bottom of
-          the deck — click them in the order you want them stacked.
+          Choose 1 card to keep. The other 2 will be placed at the bottom of the deck — click them
+          in the order you want them stacked.
         </p>
 
         <div className={styles.section}>
@@ -60,11 +60,12 @@ export default function ChancellorModal({ choices, onConfirm }: Props) {
                   disabled={kept !== null && kept !== card && !remaining.includes(card)}
                   onClick={() => handleKeep(card)}
                 />
-                {kept === card && (
-                  <span className={styles.tagKeep}>Keep</span>
-                )}
+                {kept === card && <span className={styles.tagKeep}>Keep</span>}
                 {kept !== null && returnOrder.includes(card) && (
-                  <span className={styles.tagReturn} data-testid={`return-order-${returnOrder.indexOf(card) + 1}`}>
+                  <span
+                    className={styles.tagReturn}
+                    data-testid={`return-order-${returnOrder.indexOf(card) + 1}`}
+                  >
                     {returnOrder.indexOf(card) + 1}
                   </span>
                 )}
@@ -98,9 +99,7 @@ export default function ChancellorModal({ choices, onConfirm }: Props) {
                 )
               })}
             </div>
-            <p className={styles.hint}>
-              Card 1 goes to the bottom, card 2 goes on top of it.
-            </p>
+            <p className={styles.hint}>Card 1 goes to the bottom, card 2 goes on top of it.</p>
           </div>
         )}
 

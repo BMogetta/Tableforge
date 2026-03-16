@@ -10,31 +10,31 @@ import styles from './SessionHistory.module.css'
 // --- Helpers -----------------------------------------------------------------
 
 const EVENT_LABELS: Record<string, string> = {
-  game_started:        'Game started',
-  move_applied:        'Move played',
-  game_over:           'Game over',
-  turn_timeout:        'Turn timed out',
-  player_connected:    'Player connected',
+  game_started: 'Game started',
+  move_applied: 'Move played',
+  game_over: 'Game over',
+  turn_timeout: 'Turn timed out',
+  player_connected: 'Player connected',
   player_disconnected: 'Player disconnected',
-  spectator_joined:    'Spectator joined',
-  spectator_left:      'Spectator left',
-  player_surrendered:  'Player surrendered',
-  rematch_voted:       'Rematch voted',
-  session_suspended:   'Session suspended',
-  session_resumed:     'Session resumed',
+  spectator_joined: 'Spectator joined',
+  spectator_left: 'Spectator left',
+  player_surrendered: 'Player surrendered',
+  rematch_voted: 'Rematch voted',
+  session_suspended: 'Session suspended',
+  session_resumed: 'Session resumed',
 }
 
 const EVENT_ACCENT: Record<string, string> = {
-  game_started:     'var(--amber)',
-  game_over:        'var(--amber)',
-  move_applied:     'var(--text)',
-  turn_timeout:     'var(--danger)',
+  game_started: 'var(--amber)',
+  game_over: 'var(--amber)',
+  move_applied: 'var(--text)',
+  turn_timeout: 'var(--danger)',
   player_surrendered: 'var(--danger)',
   player_connected: 'var(--success)',
   player_disconnected: 'var(--text-muted)',
   spectator_joined: 'var(--text-muted)',
-  spectator_left:   'var(--text-muted)',
-  rematch_voted:    'var(--text)',
+  spectator_left: 'var(--text-muted)',
+  rematch_voted: 'var(--text)',
 }
 
 function formatTime(iso: string): string {
@@ -61,26 +61,28 @@ function EventRow({ event, base, index }: { event: SessionEvent; base: string; i
     <div
       className={`${styles.eventRow} ${open ? styles.eventRowOpen : ''}`}
       style={{ animationDelay: `${index * 30}ms` }}
-      data-testid="event-row"
+      data-testid='event-row'
     >
       <div className={styles.eventMeta}>
         <span className={styles.eventIndex}>{String(index + 1).padStart(3, '0')}</span>
         <span className={styles.eventDot} style={{ background: accent }} />
         <span className={styles.eventTime}>{formatRelative(event.occurred_at, base)}</span>
-        <span className={styles.eventLabel} style={{ color: accent }}>{label}</span>
+        <span className={styles.eventLabel} style={{ color: accent }}>
+          {label}
+        </span>
         {hasPayload && (
           <button
             className={styles.eventToggle}
             onClick={() => setOpen(o => !o)}
-            aria-label="toggle payload"
-            data-testid="event-toggle"
+            aria-label='toggle payload'
+            data-testid='event-toggle'
           >
             {open ? '▲' : '▼'}
           </button>
         )}
       </div>
       {open && hasPayload && (
-        <pre className={styles.eventPayload} data-testid="event-payload">
+        <pre className={styles.eventPayload} data-testid='event-payload'>
           {JSON.stringify(event.payload, null, 2)}
         </pre>
       )}
@@ -116,12 +118,12 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
   const boardState: TicTacToeState | undefined =
     step === 0 && gameId === 'tictactoe'
       ? { board: Array(9).fill('') as string[], marks: {}, players: [] }
-      : stateAfter?.data as TicTacToeState | undefined
+      : (stateAfter?.data as TicTacToeState | undefined)
 
   return (
     <div className={styles.replayRoot}>
       <div className={styles.replayHeader}>
-        <span className={styles.replayStep} data-testid="replay-step-label">
+        <span className={styles.replayStep} data-testid='replay-step-label'>
           {step === 0 ? 'Initial state' : `Move ${step} of ${moves.length}`}
         </span>
         {currentMove && (
@@ -135,18 +137,18 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
         {gameId === 'tictactoe' && boardState ? (
           <TicTacToeBoard
             state={boardState}
-            currentPlayerId=""
-            localPlayerId=""
+            currentPlayerId=''
+            localPlayerId=''
             onMove={() => {}}
             disabled={true}
           />
         ) : (
           <div className={styles.replayNoRenderer}>
-            <span>No visual renderer for <strong>{gameId}</strong>.</span>
+            <span>
+              No visual renderer for <strong>{gameId}</strong>.
+            </span>
             {stateAfter && (
-              <pre className={styles.replayStateJson}>
-                {JSON.stringify(stateAfter, null, 2)}
-              </pre>
+              <pre className={styles.replayStateJson}>{JSON.stringify(stateAfter, null, 2)}</pre>
             )}
           </div>
         )}
@@ -170,7 +172,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
 
         <div className={styles.replaySliderWrap}>
           <input
-            type="range"
+            type='range'
             min={0}
             max={moves.length}
             value={step}
@@ -185,7 +187,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
 
         <button
           className={`btn btn-ghost ${styles.replayBtn}`}
-          data-testid="replay-next-btn"
+          data-testid='replay-next-btn'
           onClick={() => setStep(s => Math.min(moves.length, s + 1))}
           disabled={step === moves.length}
         >
@@ -193,7 +195,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
         </button>
         <button
           className={`btn btn-ghost ${styles.replayBtn}`}
-          data-testid="replay-last-btn"
+          data-testid='replay-last-btn'
           onClick={() => setStep(moves.length)}
           disabled={step === moves.length}
         >
@@ -211,7 +213,7 @@ type Tab = 'events' | 'replay'
 export default function SessionHistory() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
-  const player = useAppStore((s) => s.player)!
+  const player = useAppStore(s => s.player)!
   const [tab, setTab] = useState<Tab>('events')
 
   const { data: sessionData, isLoading: sessionLoading } = useQuery({
@@ -247,20 +249,26 @@ export default function SessionHistory() {
   return (
     <div className={`${styles.root} page-enter`}>
       <div className={styles.container}>
-
         {/* Header */}
         <header className={styles.header}>
-          <button className="btn btn-ghost" data-testid="back-to-lobby-btn" onClick={() => navigate('/')} style={{ fontSize: 11 }}>
+          <button
+            className='btn btn-ghost'
+            data-testid='back-to-lobby-btn'
+            onClick={() => navigate('/')}
+            style={{ fontSize: 11 }}
+          >
             ← Lobby
           </button>
           <div className={styles.headerCenter}>
             <span className={styles.gameLabel}>{session?.game_id ?? '—'}</span>
-            <span className={styles.sessionId}>
-              {sessionId?.slice(0, 8).toUpperCase()}
-            </span>
+            <span className={styles.sessionId}>{sessionId?.slice(0, 8).toUpperCase()}</span>
           </div>
           {session?.finished_at && (
-            <div className={styles.resultBadge} data-testid="result-badge" data-result={isWinner ? 'win' : isDraw ? 'draw' : 'loss'}>
+            <div
+              className={styles.resultBadge}
+              data-testid='result-badge'
+              data-result={isWinner ? 'win' : isDraw ? 'draw' : 'loss'}
+            >
               {isWinner ? 'WIN' : isDraw ? 'DRAW' : result?.winner_id ? 'LOSS' : 'ENDED'}
             </div>
           )}
@@ -271,7 +279,7 @@ export default function SessionHistory() {
           <div className={styles.statsBar}>
             <div className={styles.stat}>
               <span className={styles.statLabel}>Moves</span>
-              <span className={styles.statValue} data-testid="stat-move-count">
+              <span className={styles.statValue} data-testid='stat-move-count'>
                 {session.move_count}
               </span>
             </div>
@@ -287,8 +295,11 @@ export default function SessionHistory() {
                   <span className={styles.statLabel}>Duration</span>
                   <span className={styles.statValue}>
                     {Math.round(
-                      (new Date(session.finished_at).getTime() - new Date(session.started_at).getTime()) / 1000
-                    )}s
+                      (new Date(session.finished_at).getTime() -
+                        new Date(session.started_at).getTime()) /
+                        1000,
+                    )}
+                    s
                   </span>
                 </div>
                 <div className={styles.statDivider} />
@@ -310,14 +321,14 @@ export default function SessionHistory() {
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${tab === 'events' ? styles.tabActive : ''}`}
-            data-testid="tab-events"
+            data-testid='tab-events'
             onClick={() => setTab('events')}
           >
             EVENT LOG
           </button>
           <button
             className={`${styles.tab} ${tab === 'replay' ? styles.tabActive : ''}`}
-            data-testid="tab-replay"
+            data-testid='tab-replay'
             onClick={() => setTab('replay')}
           >
             REPLAY
@@ -327,16 +338,14 @@ export default function SessionHistory() {
         {/* Content */}
         {isLoading ? (
           <div className={styles.loading}>
-            <span className="pulse">Loading session data…</span>
+            <span className='pulse'>Loading session data…</span>
           </div>
         ) : tab === 'events' ? (
           <div className={styles.eventList}>
             {events.length === 0 ? (
               <div className={styles.empty}>No events recorded for this session.</div>
             ) : (
-              events.map((ev, i) => (
-                <EventRow key={ev.id} event={ev} base={baseTime} index={i}/>
-              ))
+              events.map((ev, i) => <EventRow key={ev.id} event={ev} base={baseTime} index={i} />)
             )}
           </div>
         ) : (

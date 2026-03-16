@@ -39,9 +39,7 @@ test.describe('Spectator mode', () => {
     const roomId = p1.url().split('/rooms/')[1]
 
     // allow_spectators defaults to 'no' — the WS upgrade should be rejected.
-    const res = await p3.request.get(
-      `/ws/rooms/${roomId}?player_id=${process.env.TEST_PLAYER3_ID}`
-    )
+    const res = await p3.request.get(`/ws/rooms/${roomId}?player_id=${process.env.TEST_PLAYER3_ID}`)
     expect(res.status()).toBe(403)
 
     await p1Ctx.close()
@@ -293,9 +291,12 @@ test.describe('Private rooms', () => {
     }).toPass({ timeout: 15_000 })
 
     // The private room card must not contain a "Join →" button.
-    const privateCard = p2.locator('[data-testid="room-card"]').filter({
-      has: p2.locator('[data-testid="room-card-private-icon"]'),
-    }).first()
+    const privateCard = p2
+      .locator('[data-testid="room-card"]')
+      .filter({
+        has: p2.locator('[data-testid="room-card-private-icon"]'),
+      })
+      .first()
     await expect(privateCard.getByRole('button', { name: 'Join →' })).not.toBeVisible()
 
     await p1Ctx.close()
@@ -385,7 +386,9 @@ test.describe('Private rooms', () => {
     await setRoomPrivate(p1, roomId)
 
     // Wait for the settings UI to reflect private.
-    await expect(p1.getByTestId('setting-select-room_visibility')).toHaveValue('private', { timeout: 10_000 })
+    await expect(p1.getByTestId('setting-select-room_visibility')).toHaveValue('private', {
+      timeout: 10_000,
+    })
 
     // Flip back to public.
     await p1.getByTestId('setting-select-room_visibility').selectOption('public')

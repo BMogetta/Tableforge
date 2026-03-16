@@ -60,7 +60,9 @@ test.describe('Bot gameplay', () => {
     // Bot responds — status switches to "Your turn" again after the bot moves.
     // We wait for move_count to advance by 2 (P1 move + bot move) which is
     // reflected in the "Move N" counter in the header.
-    await expect(p1.locator('[data-testid="game-status"]')).toContainText('Your turn', { timeout: 10_000 })
+    await expect(p1.locator('[data-testid="game-status"]')).toContainText('Your turn', {
+      timeout: 10_000,
+    })
 
     // Play through to game over — P1 wins the top row, bot fills in between.
     // We use a simple sequence: P1 takes 0,1,2; bot will play somewhere else.

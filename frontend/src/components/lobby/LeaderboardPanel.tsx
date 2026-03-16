@@ -24,7 +24,7 @@ export default function LeaderboardPanel({ gameId }: Props) {
       ) : entries.length === 0 ? (
         <p className={styles.empty}>No ranked games played yet.</p>
       ) : (
-        <table data-testid="leaderboard-table" className={styles.table}>
+        <table data-testid='leaderboard-table' className={styles.table}>
           <thead>
             <tr>
               <th>#</th>
@@ -36,13 +36,11 @@ export default function LeaderboardPanel({ gameId }: Props) {
           </thead>
           <tbody>
             {entries.map((e: Rating, i: number) => (
-              <tr key={e.player_id} data-testid="leaderboard-row">
+              <tr key={e.player_id} data-testid='leaderboard-row'>
                 <td className={styles.rank}>{i + 1}</td>
                 <td>
                   <div className={styles.player}>
-                    {e.avatar_url && (
-                      <img src={e.avatar_url} alt="" className={styles.avatar} />
-                    )}
+                    {e.avatar_url && <img src={e.avatar_url} alt='' className={styles.avatar} />}
                     <span>{e.username}</span>
                   </div>
                 </td>

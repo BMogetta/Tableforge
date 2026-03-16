@@ -23,7 +23,7 @@ setup('authenticate player 1', async ({ browser }) => {
 
   // Hit the test-only login endpoint — sets the session cookie directly.
   const response = await page.request.get(
-    `http://localhost/auth/test-login?player_id=${PLAYER1_ID}`
+    `http://localhost/auth/test-login?player_id=${PLAYER1_ID}`,
   )
   expect(response.status()).toBe(204)
 
@@ -37,7 +37,7 @@ setup('authenticate player 2', async ({ browser }) => {
   const page = await context.newPage()
 
   const response = await page.request.get(
-    `http://localhost/auth/test-login?player_id=${PLAYER2_ID}`
+    `http://localhost/auth/test-login?player_id=${PLAYER2_ID}`,
   )
   expect(response.status()).toBe(204)
 
@@ -51,7 +51,7 @@ setup('authenticate player 3', async ({ browser }) => {
   const page = await context.newPage()
 
   const response = await page.request.get(
-    `http://localhost/auth/test-login?player_id=${PLAYER3_ID}`
+    `http://localhost/auth/test-login?player_id=${PLAYER3_ID}`,
   )
   expect(response.status()).toBe(204)
 

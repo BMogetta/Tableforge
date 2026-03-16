@@ -15,7 +15,8 @@
   gap: 32px;
 }
 
-.left, .right {
+.left,
+.right {
   display: flex;
   flex-direction: column;
   gap: 32px;

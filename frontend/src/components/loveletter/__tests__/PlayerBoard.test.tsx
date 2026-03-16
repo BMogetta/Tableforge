@@ -76,12 +76,7 @@ describe('PlayerBoard', () => {
   })
 
   it('renders discard pile cards', () => {
-    render(
-      <PlayerBoard
-        {...baseProps}
-        discardPile={['guard', 'priest'] as CardName[]}
-      />
-    )
+    render(<PlayerBoard {...baseProps} discardPile={['guard', 'priest'] as CardName[]} />)
     expect(screen.getByText('Guard')).toBeInTheDocument()
     expect(screen.getByText('Priest')).toBeInTheDocument()
   })

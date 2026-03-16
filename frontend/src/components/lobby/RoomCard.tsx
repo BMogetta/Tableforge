@@ -11,18 +11,20 @@ export default function RoomCard({ view, onJoin }: Props) {
   const isPrivate = settings?.room_visibility === 'private'
 
   return (
-    <div data-testid="room-card" className={styles.card}>
+    <div data-testid='room-card' className={styles.card}>
       <div className={styles.info}>
         {isPrivate ? (
           <span
-            data-testid="room-card-private-icon"
+            data-testid='room-card-private-icon'
             className={styles.codePrivate}
-            title="Private room"
+            title='Private room'
           >
             🔒
           </span>
         ) : (
-          <span data-testid="room-card-code" className={styles.code}>{room.code}</span>
+          <span data-testid='room-card-code' className={styles.code}>
+            {room.code}
+          </span>
         )}
         <span className={styles.game}>{room.game_id}</span>
       </div>
@@ -31,7 +33,7 @@ export default function RoomCard({ view, onJoin }: Props) {
           {players.length}/{room.max_players} players
         </span>
         {!isPrivate && (
-          <button className="btn btn-ghost" onClick={onJoin} style={{ padding: '4px 12px' }}>
+          <button className='btn btn-ghost' onClick={onJoin} style={{ padding: '4px 12px' }}>
             Join →
           </button>
         )}

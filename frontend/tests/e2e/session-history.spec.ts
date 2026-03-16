@@ -98,10 +98,12 @@ test.describe('Session history and replay', () => {
     await expect(p1.getByTestId('tab-events')).toBeVisible()
 
     // Should contain game_started and game_over entries.
-    await expect(p1.locator('[data-testid="event-row"]', { hasText: 'Game started' }))
-      .toBeVisible({ timeout: 10_000 })
-    await expect(p1.locator('[data-testid="event-row"]', { hasText: 'Game over' }))
-      .toBeVisible({ timeout: 10_000 })
+    await expect(p1.locator('[data-testid="event-row"]', { hasText: 'Game started' })).toBeVisible({
+      timeout: 10_000,
+    })
+    await expect(p1.locator('[data-testid="event-row"]', { hasText: 'Game over' })).toBeVisible({
+      timeout: 10_000,
+    })
 
     await p1Ctx.close()
     await p2Ctx.close()
@@ -191,7 +193,9 @@ test.describe('Session history and replay', () => {
     await p1.getByTestId('tab-replay').click()
 
     // Step 0 = initial state label.
-    await expect(p1.getByTestId('replay-step-label')).toContainText('Initial state', { timeout: 10_000 })
+    await expect(p1.getByTestId('replay-step-label')).toContainText('Initial state', {
+      timeout: 10_000,
+    })
 
     // All cells should be empty (no X or O text).
     for (let i = 0; i < 9; i++) {
@@ -213,7 +217,9 @@ test.describe('Session history and replay', () => {
     await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
 
     await p1.getByTestId('tab-replay').click()
-    await expect(p1.getByTestId('replay-step-label')).toContainText('Initial state', { timeout: 10_000 })
+    await expect(p1.getByTestId('replay-step-label')).toContainText('Initial state', {
+      timeout: 10_000,
+    })
 
     // Advance to move 1 — P1 played cell 0.
     await p1.getByTestId('replay-next-btn').click()

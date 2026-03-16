@@ -35,9 +35,7 @@ export interface LoveLetterState {
 // Cards that require a target player.
 // ---------------------------------------------------------------------------
 
-const CARDS_REQUIRING_TARGET: CardName[] = [
-  'guard', 'priest', 'baron', 'king',
-]
+const CARDS_REQUIRING_TARGET: CardName[] = ['guard', 'priest', 'baron', 'king']
 
 const CARDS_OPTIONALLY_TARGET: CardName[] = ['prince']
 
@@ -57,7 +55,7 @@ function getBlockedCards(hand: CardName[]): CardName[] {
   if (!hand.includes('countess')) return []
   const hasKingOrPrince = hand.includes('king') || hand.includes('prince')
   if (!hasKingOrPrince) return []
-  return hand.filter((c) => c !== 'countess')
+  return hand.filter(c => c !== 'countess')
 }
 
 // ---------------------------------------------------------------------------
@@ -131,19 +129,18 @@ export default function LoveLetter({
   const target = tokensToWin(state.players.length)
 
   function getUsername(id: string): string {
-    return players.find((p) => p.id === id)?.username ?? id.slice(0, 8)
+    return players.find(p => p.id === id)?.username ?? id.slice(0, 8)
   }
 
   const opponents = state.players
-    .filter((id) => id !== localPlayerId)
-    .map((id) => ({ id, username: getUsername(id) }))
+    .filter(id => id !== localPlayerId)
+    .map(id => ({ id, username: getUsername(id) }))
 
   // Determine whether a target picker should be shown for the selected card.
   const needsTarget = selectedCard
     ? requiresTarget(selectedCard) ||
-      (canTargetSelf(selectedCard) && opponents.some(
-        (o) => !state.eliminated.includes(o.id) && !state.protected.includes(o.id)
-      ))
+      (canTargetSelf(selectedCard) &&
+        opponents.some(o => !state.eliminated.includes(o.id) && !state.protected.includes(o.id)))
     : false
 
   // Whether the current selection is ready to submit.
@@ -165,10 +162,7 @@ export default function LoveLetter({
     onMove(payload)
   }
 
-  function handleChancellorConfirm(
-    keep: CardName,
-    returnCards: [CardName, CardName]
-  ) {
+  function handleChancellorConfirm(keep: CardName, returnCards: [CardName, CardName]) {
     onMove({
       card: 'chancellor_resolve',
       keep,
@@ -186,14 +180,13 @@ export default function LoveLetter({
   // Round summary data
   // ---------------------------------------------------------------------------
 
-  const roundSummaryPlayers = state.players.map((id) => ({
+  const roundSummaryPlayers = state.players.map(id => ({
     id,
     username: getUsername(id),
     tokens: state.tokens[id] ?? 0,
     tokensToWin: target,
     isWinner: id === state.round_winner_id,
-    earnedSpyBonus:
-      state.spy_played_by.length === 1 && state.spy_played_by[0] === id,
+    earnedSpyBonus: state.spy_played_by.length === 1 && state.spy_played_by[0] === id,
   }))
 
   // ---------------------------------------------------------------------------
@@ -209,15 +202,13 @@ export default function LoveLetter({
           {state.deck.length} card{state.deck.length !== 1 ? 's' : ''} remaining
         </span>
         {state.set_aside_visible.length > 0 && (
-          <span className={styles.setAside}>
-            Set aside: {state.set_aside_visible.join(', ')}
-          </span>
+          <span className={styles.setAside}>Set aside: {state.set_aside_visible.join(', ')}</span>
         )}
       </div>
 
       {/* Player boards */}
       <div className={styles.boards}>
-        {state.players.map((id) => (
+        {state.players.map(id => (
           <PlayerBoard
             key={id}
             playerId={id}
@@ -276,7 +267,7 @@ export default function LoveLetter({
       {isMyTurn && selectedCard && (
         <div className={styles.actions}>
           <button
-            className="btn btn-ghost"
+            className='btn btn-ghost'
             onClick={() => {
               setSelectedCard(null)
               setSelectedTarget(null)
@@ -285,11 +276,7 @@ export default function LoveLetter({
           >
             Cancel
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleSubmit}
-            disabled={!isReadyToSubmit()}
-          >
+          <button className='btn btn-primary' onClick={handleSubmit} disabled={!isReadyToSubmit()}>
             Play {selectedCard}
           </button>
         </div>

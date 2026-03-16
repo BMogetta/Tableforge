@@ -25,10 +25,18 @@ function TestHarness() {
 
   return (
     <div>
-      <button data-testid="show-error"      onClick={() => toast.showError(devError)}>Error</button>
-      <button data-testid="show-prod-error" onClick={() => toast.showError(prodError)}>Prod Error</button>
-      <button data-testid="show-warning"    onClick={() => toast.showWarning('watch out')}>Warning</button>
-      <button data-testid="show-info"       onClick={() => toast.showInfo('heads up')}>Info</button>
+      <button data-testid='show-error' onClick={() => toast.showError(devError)}>
+        Error
+      </button>
+      <button data-testid='show-prod-error' onClick={() => toast.showError(prodError)}>
+        Prod Error
+      </button>
+      <button data-testid='show-warning' onClick={() => toast.showWarning('watch out')}>
+        Warning
+      </button>
+      <button data-testid='show-info' onClick={() => toast.showInfo('heads up')}>
+        Info
+      </button>
     </div>
   )
 }
@@ -37,7 +45,7 @@ function renderToast() {
   return render(
     <ToastProvider>
       <TestHarness />
-    </ToastProvider>
+    </ToastProvider>,
   )
 }
 
@@ -47,7 +55,10 @@ function renderToast() {
 
 describe('ToastProvider / useToast', () => {
   beforeEach(() => vi.useFakeTimers())
-  afterEach(() => { vi.runAllTimers(); vi.useRealTimers() })
+  afterEach(() => {
+    vi.runAllTimers()
+    vi.useRealTimers()
+  })
 
   it('throws when used outside provider', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -84,7 +95,9 @@ describe('ToastProvider / useToast', () => {
     fireEvent.click(screen.getByTestId('show-error'))
     expect(screen.getByText('internal server error')).toBeInTheDocument()
 
-    act(() => { vi.advanceTimersByTime(4000) })
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
 
     expect(screen.queryByText('internal server error')).toBeNull()
   })
@@ -93,7 +106,9 @@ describe('ToastProvider / useToast', () => {
     renderToast()
     fireEvent.click(screen.getByTestId('show-error'))
 
-    act(() => { vi.advanceTimersByTime(3999) })
+    act(() => {
+      vi.advanceTimersByTime(3999)
+    })
 
     expect(screen.getByText('internal server error')).toBeInTheDocument()
   })
@@ -129,11 +144,15 @@ describe('ToastProvider / useToast', () => {
     fireEvent.click(screen.getByTestId('show-error'))
 
     // Advance 2 seconds, then add a second toast.
-    act(() => { vi.advanceTimersByTime(2000) })
+    act(() => {
+      vi.advanceTimersByTime(2000)
+    })
     fireEvent.click(screen.getByTestId('show-warning'))
 
     // Advance 2 more seconds — first toast (4s total) should auto-dismiss.
-    act(() => { vi.advanceTimersByTime(2000) })
+    act(() => {
+      vi.advanceTimersByTime(2000)
+    })
 
     expect(screen.queryByText('internal server error')).toBeNull()
     // Second toast added 2s ago — still has 2s left.
@@ -161,7 +180,9 @@ describe('ToastProvider / useToast', () => {
   it('container disappears after all toasts are dismissed', () => {
     renderToast()
     fireEvent.click(screen.getByTestId('show-error'))
-    act(() => { vi.advanceTimersByTime(4000) })
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
     expect(screen.queryByRole('alert')).toBeNull()
   })
 })

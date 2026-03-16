@@ -26,8 +26,8 @@ export default function OpenRooms() {
       ) : roomList.length === 0 ? (
         <p className={styles.empty}>No open rooms. Create one to get started.</p>
       ) : (
-        <div data-testid="lobby-room-list" className={styles.list}>
-          {roomList.map((view) => (
+        <div data-testid='lobby-room-list' className={styles.list}>
+          {roomList.map(view => (
             <RoomCard
               key={view.room.id}
               view={view}

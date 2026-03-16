@@ -24,9 +24,7 @@ export function ok<S>(result: S): Result<S, never> {
  * Wraps an error object into a Result.
  * The `reason` field acts as a discriminant for exhaustive switch handling.
  */
-export function error<const R extends string, E extends { reason: R }>(
-  err: E
-): Result<never, E> {
+export function error<const R extends string, E extends { reason: R }>(err: E): Result<never, E> {
   return [err, null]
 }
 
@@ -40,14 +38,14 @@ export function error<const R extends string, E extends { reason: R }>(
  * in every switch that covers AppError.
  */
 export type ApiErrorReason =
-  | 'UNAUTHORIZED'   // 401
-  | 'FORBIDDEN'      // 403
-  | 'NOT_FOUND'      // 404
-  | 'CONFLICT'       // 409
-  | 'VALIDATION'     // 400
-  | 'SERVER_ERROR'   // 5xx
-  | 'NETWORK_ERROR'  // fetch failed (no response)
-  | 'UNKNOWN'        // fallback
+  | 'UNAUTHORIZED' // 401
+  | 'FORBIDDEN' // 403
+  | 'NOT_FOUND' // 404
+  | 'CONFLICT' // 409
+  | 'VALIDATION' // 400
+  | 'SERVER_ERROR' // 5xx
+  | 'NETWORK_ERROR' // fetch failed (no response)
+  | 'UNKNOWN' // fallback
 
 /**
  * Structured application error.
@@ -90,14 +88,22 @@ function statusToReason(status?: number): ApiErrorReason {
  */
 function friendlyMessage(reason: ApiErrorReason): string {
   switch (reason) {
-    case 'UNAUTHORIZED':  return 'You need to log in to do that.'
-    case 'FORBIDDEN':     return 'You don\'t have permission to do that.'
-    case 'NOT_FOUND':     return 'The requested resource was not found.'
-    case 'CONFLICT':      return 'This action conflicts with the current state.'
-    case 'VALIDATION':    return 'The request was invalid. Check your input.'
-    case 'SERVER_ERROR':  return 'A server error occurred. Please try again.'
-    case 'NETWORK_ERROR': return 'Could not reach the server. Check your connection.'
-    case 'UNKNOWN':       return 'Something went wrong.'
+    case 'UNAUTHORIZED':
+      return 'You need to log in to do that.'
+    case 'FORBIDDEN':
+      return "You don't have permission to do that."
+    case 'NOT_FOUND':
+      return 'The requested resource was not found.'
+    case 'CONFLICT':
+      return 'This action conflicts with the current state.'
+    case 'VALIDATION':
+      return 'The request was invalid. Check your input.'
+    case 'SERVER_ERROR':
+      return 'A server error occurred. Please try again.'
+    case 'NETWORK_ERROR':
+      return 'Could not reach the server. Check your connection.'
+    case 'UNKNOWN':
+      return 'Something went wrong.'
     default:
       reason satisfies never
       return 'Something went wrong.'
@@ -112,7 +118,10 @@ function friendlyMessage(reason: ApiErrorReason): string {
 function generateCode(reason: ApiErrorReason, status?: number): string {
   const raw = reason + (status ?? 0)
   // btoa is available in all modern browsers and Node 16+
-  const encoded = btoa(raw).replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 4)
+  const encoded = btoa(raw)
+    .replace(/[^A-Z0-9]/gi, '')
+    .toUpperCase()
+    .slice(0, 4)
   return `ERR_${encoded}`
 }
 
@@ -146,10 +155,7 @@ export function toAppError(status: number | undefined, rawMessage: string): AppE
 export function catchToAppError(e: unknown): AppError {
   if (e && typeof e === 'object' && 'status' in e && 'message' in e) {
     // Looks like an ApiError from api.ts
-    return toAppError(
-      (e as { status: number }).status,
-      (e as { message: string }).message,
-    )
+    return toAppError((e as { status: number }).status, (e as { message: string }).message)
   }
   if (e instanceof Error) {
     return toAppError(undefined, e.message)

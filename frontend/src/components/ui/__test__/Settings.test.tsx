@@ -17,7 +17,7 @@ vi.mock('@tanstack/react-pacer', () => ({
 
 // Mock the playerSettings API — we test optimistic update independently from
 // the network call.
-vi.mock('../../../api', async (importOriginal) => {
+vi.mock('../../../api', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../api')>()
   return {
     ...actual,
@@ -45,7 +45,11 @@ function renderSettings(onClose = vi.fn()) {
     settings: { ...DEFAULT_SETTINGS },
   })
 
-  return render(<ToastProvider><Settings onClose={onClose} /></ToastProvider>)
+  return render(
+    <ToastProvider>
+      <Settings onClose={onClose} />
+    </ToastProvider>,
+  )
 }
 
 beforeEach(() => {
@@ -75,7 +79,7 @@ describe('Settings rendering', () => {
     // Assert the section heading specifically by checking for the p element.
     const notifHeadings = screen.getAllByText('Notifications')
     expect(notifHeadings.length).toBeGreaterThanOrEqual(1)
-    expect(notifHeadings.some((el) => el.tagName === 'P')).toBe(true)
+    expect(notifHeadings.some(el => el.tagName === 'P')).toBe(true)
     expect(screen.getByText('Audio')).toBeInTheDocument()
     expect(screen.getByText('Privacy')).toBeInTheDocument()
   })
@@ -190,7 +194,9 @@ describe('backend sync', () => {
     renderSettings()
 
     const toggle = screen.getByRole('switch', { name: 'Show Move Hints' })
-    await act(async () => { fireEvent.click(toggle) })
+    await act(async () => {
+      fireEvent.click(toggle)
+    })
 
     expect(playerSettings.update).toHaveBeenCalledOnce()
   })

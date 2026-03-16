@@ -15,13 +15,13 @@ interface Props {
 }
 
 export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
-  const player = useAppStore((s) => s.player)!
-  const playerSocket = useAppStore((s) => s.playerSocket)
-  const queueStatus = useAppStore((s) => s.queueStatus)
-  const queueJoinedAt = useAppStore((s) => s.queueJoinedAt)
-  const setQueued = useAppStore((s) => s.setQueued)
-  const setMatchFound = useAppStore((s) => s.setMatchFound)
-  const clearQueue = useAppStore((s) => s.clearQueue)
+  const player = useAppStore(s => s.player)!
+  const playerSocket = useAppStore(s => s.playerSocket)
+  const queueStatus = useAppStore(s => s.queueStatus)
+  const queueJoinedAt = useAppStore(s => s.queueJoinedAt)
+  const setQueued = useAppStore(s => s.setQueued)
+  const setMatchFound = useAppStore(s => s.setMatchFound)
+  const clearQueue = useAppStore(s => s.clearQueue)
 
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -41,14 +41,16 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
       if (timerRef.current) clearInterval(timerRef.current)
       setElapsed(0)
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
   }, [queueStatus, queueJoinedAt])
 
   // Listen for queue events on the player channel
   useEffect(() => {
     if (!playerSocket) return
 
-    const off = playerSocket.on((event) => {
+    const off = playerSocket.on(event => {
       if (event.type === 'match_found') {
         const payload = event.payload
         setMatchFound(payload.match_id)
@@ -84,7 +86,7 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
 
   const createRoom = useMutation({
     mutationFn: () => rooms.create(effectiveGame, player.id),
-    onSuccess: (view) => {
+    onSuccess: view => {
       qc.invalidateQueries({ queryKey: keys.rooms() })
       navigate(`/rooms/${view.room.id}`)
     },
@@ -92,7 +94,7 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
 
   const joinRoom = useMutation({
     mutationFn: () => rooms.join(joinCode.trim().toUpperCase(), player.id),
-    onSuccess: (view) => navigate(`/rooms/${view.room.id}`),
+    onSuccess: view => navigate(`/rooms/${view.room.id}`),
   })
 
   const joinQueue = useMutation({
@@ -105,11 +107,17 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
     onSuccess: () => clearQueue(),
   })
 
-  const error = createRoom.error?.message || joinRoom.error?.message ||
-    joinQueue.error?.message || leaveQueue.error?.message || ''
+  const error =
+    createRoom.error?.message ||
+    joinRoom.error?.message ||
+    joinQueue.error?.message ||
+    leaveQueue.error?.message ||
+    ''
 
   const formatElapsed = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0')
+    const m = Math.floor(secs / 60)
+      .toString()
+      .padStart(2, '0')
     const s = (secs % 60).toString().padStart(2, '0')
     return `${m}:${s}`
   }
@@ -129,7 +137,9 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
               onClick={() => onGameChange(g.id)}
             >
               {g.name}
-              <span className={styles.playerCount}>{g.min_players}–{g.max_players}p</span>
+              <span className={styles.playerCount}>
+                {g.min_players}–{g.max_players}p
+              </span>
             </button>
           ))}
         </div>
@@ -155,8 +165,8 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
         {tab === 'casual' && (
           <div className={styles.casualBody}>
             <button
-              data-testid="create-room-btn"
-              className="btn btn-primary"
+              data-testid='create-room-btn'
+              className='btn btn-primary'
               onClick={() => createRoom.mutate()}
               disabled={createRoom.isPending || !effectiveGame}
             >
@@ -165,18 +175,18 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
 
             <div className={styles.joinRow}>
               <input
-                data-testid="join-code-input"
-                className="input"
-                placeholder="Room code"
+                data-testid='join-code-input'
+                className='input'
+                placeholder='Room code'
                 value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && joinRoom.mutate()}
+                onChange={e => setJoinCode(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && joinRoom.mutate()}
                 maxLength={6}
                 style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
               />
               <button
-                data-testid="join-btn"
-                className="btn btn-ghost"
+                data-testid='join-btn'
+                className='btn btn-ghost'
                 onClick={() => joinRoom.mutate()}
                 disabled={joinRoom.isPending}
               >
@@ -190,7 +200,7 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
           <div className={styles.rankedBody}>
             {queueStatus === 'idle' && (
               <button
-                className="btn btn-primary"
+                className='btn btn-primary'
                 onClick={() => joinQueue.mutate()}
                 disabled={joinQueue.isPending || !effectiveGame}
               >
@@ -208,7 +218,7 @@ export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: 
                   <span className={styles.queueTimer}>{formatElapsed(elapsed)}</span>
                 </div>
                 <button
-                  className="btn btn-ghost"
+                  className='btn btn-ghost'
                   onClick={() => leaveQueue.mutate()}
                   disabled={leaveQueue.isPending}
                   style={{ width: '100%', marginTop: 8 }}

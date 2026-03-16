@@ -34,12 +34,22 @@
 }
 
 @keyframes symbolIn {
-  from { transform: scale(0.4); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.symbolX { color: var(--amber); }
-.symbolO { color: var(--text-secondary); }
+.symbolX {
+  color: var(--amber);
+}
+.symbolO {
+  color: var(--text-secondary);
+}
 
 .hoverSymbol {
   font-family: var(--font-display);

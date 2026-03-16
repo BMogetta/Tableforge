@@ -45,7 +45,9 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .tab:hover {
@@ -99,7 +101,7 @@
 }
 
 .table tr:hover td {
-  background: var(--surface-hover, rgba(255,255,255,0.03));
+  background: var(--surface-hover, rgba(255, 255, 255, 0.03));
 }
 
 .muted {
@@ -134,17 +136,17 @@
   letter-spacing: 0.05em;
 }
 
-.roleBadge[data-role='owner'] {
+.roleBadge[data-role="owner"] {
   background: rgba(255, 180, 0, 0.15);
   color: var(--amber, #ffb400);
 }
 
-.roleBadge[data-role='manager'] {
+.roleBadge[data-role="manager"] {
   background: rgba(100, 160, 255, 0.15);
   color: #64a0ff;
 }
 
-.roleBadge[data-role='player'] {
+.roleBadge[data-role="player"] {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
 }
@@ -166,7 +168,7 @@
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
 }
 
