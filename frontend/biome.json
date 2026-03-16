@@ -34,14 +34,27 @@
       "recommended": true,
       "correctness": {
         "noUnusedVariables": "warn",
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": "warn",
+				"useIsNan": "error",
+				"useJsonImportAttributes": "on"
       },
+			"nursery": "warn",
       "style": {
         "useBlockStatements": "error",
+				"noDefaultExport":"error",
+				"noNamespace":"warn",
+				"noImplicitBoolean": "warn",
+				"useNumericSeparators":"warn",
+				"noUnusedTemplateLiteral": "warn",
+				"noUselessElse":"on",
+				"useCollapsedElseIf": "on",
+				"useConst": "on",
+				"useReactFunctionComponents": "error",
         "noNonNullAssertion": "off"
       },
       "performance": {
-        "noDelete": "off"
+        "noDelete": "off",
+				"useTopLevelRegex": "error"
       }
     }
   },

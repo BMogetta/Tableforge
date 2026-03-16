@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
 import { useAppStore } from '../../store'
 import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap } from '../../api'
-import { catchToAppError } from '../../helpers/errors'
+import { catchToAppError } from '../../utils/errors'
 import { useToast } from './Toast'
 import styles from './Settings.module.css'
 
@@ -28,7 +28,7 @@ interface Props {
   onClose?: () => void
 }
 
-export default function Settings({ onClose }: Props) {
+export function Settings({ onClose }: Props) {
   const player = useAppStore(s => s.player)!
   const settings = useAppStore(s => s.settings)
   const updateSetting = useAppStore(s => s.updateSetting)

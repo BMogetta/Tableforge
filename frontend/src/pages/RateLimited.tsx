@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 const COUNTDOWN_SECS = 60
 
-export default function RateLimited() {
+export function RateLimited() {
   const navigate = useNavigate()
   const [seconds, setSeconds] = useState(COUNTDOWN_SECS)
 

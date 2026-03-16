@@ -22,7 +22,7 @@ interface Props {
 
 const AUTO_DISMISS_MS = 4_000
 
-export default function RoundSummary({
+export function RoundSummary({
   round,
   winnerId,
   players,

@@ -6,7 +6,7 @@ interface Props {
   isPending: boolean
 }
 
-export default function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
+export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
   return (
     <div className={styles.overlay}>
       <div

@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store'
 import { sessions, rooms, type GameSession } from '../api'
-import { catchToAppError, type AppError } from '../helpers/errors'
+import { catchToAppError, type AppError } from '../utils/errors'
 import { useToast } from '../components/ui/Toast'
-import ErrorMessage from '../components/ui/ErrorMessage'
+import {ErrorMessage} from '../components/ui/ErrorMessage'
 import { keys } from '../queryClient'
-import TicTacToeBoard, { type TicTacToeState } from '../components/TicTacToe'
-import LoveLetter, { type LoveLetterState } from '../components/loveletter/LoveLetter'
+import {TicTacToeBoard,  type TicTacToeState } from '../components/TicTacToe'
+import { LoveLetter, type LoveLetterState } from '../components/loveletter/LoveLetter'
 import styles from './Game.module.css'
-import SurrenderModal from '../components/SurrenderModal'
+import {SurrenderModal} from '../components/SurrenderModal'
 import type { WsPayloadMoveResult } from '../ws'
 
 interface GameData {
@@ -79,7 +79,7 @@ const GAME_RENDERERS: Record<string, RendererComponent> = {
 // Game page
 // ---------------------------------------------------------------------------
 
-export default function Game() {
+export function Game() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const player = useAppStore(s => s.player)!
   const socket = useAppStore(s => s.socket)

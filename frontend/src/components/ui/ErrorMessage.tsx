@@ -1,4 +1,4 @@
-import type { AppError } from '../../helpers/errors'
+import type { AppError } from '../../utils/errors'
 import styles from './ErrorMessage.module.css'
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
  *
  * Returns null when error is null — safe to render unconditionally.
  */
-export default function ErrorMessage({ error, className }: Props) {
+export function ErrorMessage({ error, className }: Props) {
   if (!error) return null
 
   const isDev = import.meta.env.DEV

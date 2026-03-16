@@ -14,7 +14,7 @@ interface Props {
   onSettingChange: (key: string, value: string) => void
 }
 
-export default function RoomSettings({
+export function RoomSettings({
   roomId,
   playerId,
   isOwner,

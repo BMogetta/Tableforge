@@ -14,7 +14,7 @@ interface Props {
   disabled: boolean
 }
 
-export default function TicTacToeBoard({
+export function TicTacToeBoard({
   state,
   currentPlayerId,
   localPlayerId,

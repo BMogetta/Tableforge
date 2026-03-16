@@ -4,14 +4,14 @@ import { useQuery } from '@tanstack/react-query'
 import { notifications, dm, auth } from '../../api'
 import { useAppStore } from '../../store'
 import { keys } from '../../queryClient'
-import Settings from '../ui/Settings'
+import {Settings} from '../ui/Settings'
 import styles from './LobbyHeader.module.css'
 
 interface Props {
   onLogout: () => void
 }
 
-export default function LobbyHeader({ onLogout }: Props) {
+export function LobbyHeader({ onLogout }: Props) {
   const player = useAppStore(s => s.player)!
   const [settingsOpen, setSettingsOpen] = useState(false)
 

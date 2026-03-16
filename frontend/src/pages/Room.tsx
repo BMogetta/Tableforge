@@ -12,16 +12,16 @@ import {
   type BotProfile,
   type RoomViewPlayer,
 } from '../api'
-import { ok, error, catchToAppError, type AppError } from '../helpers/errors'
+import { ok, error, catchToAppError, type AppError } from '../utils/errors'
 import { useToast } from '../components/ui/Toast'
-import ErrorMessage from '../components/ui/ErrorMessage'
-import RoomSettings from '../components/room/RoomSettings'
-import ChatSidebar from '../components/room/ChatSidebar'
+import {ErrorMessage} from '../components/ui/ErrorMessage'
+import {RoomSettings} from '../components/room/RoomSettings'
+import {ChatSidebar} from '../components/room/ChatSidebar'
 import styles from './Room.module.css'
 
 type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
-export default function Room() {
+export function Room() {
   const { roomId } = useParams<{ roomId: string }>()
   const player = useAppStore(s => s.player)!
   const joinRoom = useAppStore(s => s.joinRoom)

@@ -14,7 +14,7 @@ interface Props {
   onGameChange: (id: string) => void
 }
 
-export default function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
+export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
   const player = useAppStore(s => s.player)!
   const playerSocket = useAppStore(s => s.playerSocket)
   const queueStatus = useAppStore(s => s.queueStatus)

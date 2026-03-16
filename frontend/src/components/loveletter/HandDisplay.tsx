@@ -1,4 +1,4 @@
-import CardDisplay, { type CardName } from './CardDisplay'
+import {CardDisplay,  type CardName } from './CardDisplay'
 import styles from './HandDisplay.module.css'
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
   blockedCards?: CardName[]
 }
 
-export default function HandDisplay({
+export function HandDisplay({
   cards,
   selectedCard,
   disabled,

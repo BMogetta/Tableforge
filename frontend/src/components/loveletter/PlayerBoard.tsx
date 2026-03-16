@@ -1,4 +1,4 @@
-import CardDisplay, { type CardName } from './CardDisplay'
+import {CardDisplay,  type CardName } from './CardDisplay'
 import styles from './PlayerBoard.module.css'
 
 interface Props {
@@ -16,7 +16,7 @@ interface Props {
   isCurrentTurn: boolean
 }
 
-export default function PlayerBoard({
+export function PlayerBoard({
   username,
   tokens,
   tokensToWin,

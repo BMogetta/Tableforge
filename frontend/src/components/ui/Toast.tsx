@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { AppError } from '../../helpers/errors'
+import type { AppError } from '../../utils/errors'
 import styles from './Toast.module.css'
 
 // ---------------------------------------------------------------------------

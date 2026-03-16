@@ -35,7 +35,7 @@ const GUARD_GUESS_OPTIONS: CardName[] = [
   'princess',
 ]
 
-export default function TargetPicker({
+export function TargetPicker({
   opponents,
   eliminatedIds,
   protectedIds,

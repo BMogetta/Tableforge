@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { type CardName, CARD_META } from './CardDisplay'
-import CardDisplay from './CardDisplay'
+import {CardDisplay} from './CardDisplay'
 import styles from './ChancellorModal.module.css'
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   onConfirm: (keep: CardName, returnCards: [CardName, CardName]) => void
 }
 
-export default function ChancellorModal({ choices, onConfirm }: Props) {
+export function ChancellorModal({ choices, onConfirm }: Props) {
   const [kept, setKept] = useState<CardName | null>(null)
   // returnOrder holds the 2 cards to return, in the order they'll go to the
   // bottom of the deck. Index 0 = first at bottom, index 1 = second at bottom.

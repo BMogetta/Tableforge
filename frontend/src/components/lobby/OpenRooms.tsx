@@ -2,10 +2,10 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { rooms } from '../../api'
 import { keys } from '../../queryClient'
-import RoomCard from './RoomCard'
+import {RoomCard} from './RoomCard'
 import styles from './OpenRooms.module.css'
 
-export default function OpenRooms() {
+export function OpenRooms() {
   const navigate = useNavigate()
 
   const { data: roomList = [], isLoading } = useQuery({

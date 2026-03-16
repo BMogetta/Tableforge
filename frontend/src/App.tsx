@@ -3,17 +3,18 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAppStore } from './store'
 import { auth, wsPlayerUrl, playerSettings } from './api'
 import { type ResolvedSettings } from './store'
-import Login from './pages/Login'
-import Lobby from './pages/Lobby'
-import Room from './pages/Room'
-import Game from './pages/Game'
-import Admin from './pages/Admin'
-import RateLimited from './pages/RateLimited'
-import { lazy } from 'react'
-import SessionHistory from './pages/SessionHistory'
+import {Login} from './pages/Login'
+import {Lobby} from './pages/Lobby'
+import {Room} from './pages/Room'
+import {Game} from './pages/Game'
+import {Admin} from './pages/Admin'
+import {RateLimited} from './pages/RateLimited'
+import {SessionHistory} from './pages/SessionHistory'
 import { emitErrorLog } from './telemetry'
 import { ToastProvider } from './components/ui/Toast'
-const TestError = lazy(() => import('./pages/TestError'))
+import { lazyNamed } from './utils/lazyNamed'
+
+const TestError = lazyNamed(() => import('./pages/TestError'), 'TestError')
 
 const SETTINGS_CACHE_KEY = 'tf:settings'
 

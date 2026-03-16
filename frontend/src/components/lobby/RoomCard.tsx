@@ -6,7 +6,7 @@ interface Props {
   onJoin: () => void
 }
 
-export default function RoomCard({ view, onJoin }: Props) {
+export function RoomCard({ view, onJoin }: Props) {
   const { room, players, settings } = view
   const isPrivate = settings?.room_visibility === 'private'
 

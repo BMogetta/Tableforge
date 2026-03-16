@@ -5,7 +5,7 @@ import styles from './Admin.module.css'
 
 type Tab = 'emails' | 'players' | 'observability'
 
-export default function Admin() {
+export function Admin() {
   const player = useAppStore(s => s.player)!
   const [tab, setTab] = useState<Tab>('emails')
 

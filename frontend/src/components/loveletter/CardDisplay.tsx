@@ -69,7 +69,7 @@ interface Props {
   className?: string
 }
 
-export default function CardDisplay({
+export function CardDisplay({
   card,
   selected = false,
   disabled = false,

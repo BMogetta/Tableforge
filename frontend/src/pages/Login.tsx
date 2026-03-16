@@ -1,7 +1,7 @@
 import { auth } from '../api'
 import styles from './Login.module.css'
 
-export default function Login() {
+export function Login() {
   const error = new URLSearchParams(window.location.search).get('error')
 
   if (error === 'email_not_allowed') {

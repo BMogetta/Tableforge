@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { auth, gameRegistry } from '../api'
 import { useAppStore } from '../store'
 import { keys } from '../queryClient'
-import LobbyHeader from '../components/lobby/LobbyHeader'
-import NewGamePanel from '../components/lobby/NewGamePanel'
-import OpenRooms from '../components/lobby/OpenRooms'
-import LeaderboardPanel from '../components/lobby/LeaderboardPanel'
+import {LobbyHeader} from '../components/lobby/LobbyHeader'
+import {NewGamePanel} from '../components/lobby/NewGamePanel'
+import {OpenRooms} from '../components/lobby/OpenRooms'
+import {LeaderboardPanel} from '../components/lobby/LeaderboardPanel'
 import styles from './Lobby.module.css'
 
-export default function Lobby() {
+export function Lobby() {
   const setPlayer = useAppStore(s => s.setPlayer)
 
   const [selectedGame, setSelectedGame] = useState('')

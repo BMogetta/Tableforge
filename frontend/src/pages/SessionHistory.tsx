@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../store'
 import { SessionEvent, sessions, type Move } from '../api'
 import { keys } from '../queryClient'
-import TicTacToeBoard, { type TicTacToeState } from '../components/TicTacToe'
+import {TicTacToeBoard,  type TicTacToeState } from '../components/TicTacToe'
 import styles from './SessionHistory.module.css'
 
 // --- Helpers -----------------------------------------------------------------
@@ -210,7 +210,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
 
 type Tab = 'events' | 'replay'
 
-export default function SessionHistory() {
+export function SessionHistory() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
   const player = useAppStore(s => s.player)!

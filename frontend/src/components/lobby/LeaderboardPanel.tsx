@@ -7,7 +7,7 @@ interface Props {
   gameId: string
 }
 
-export default function LeaderboardPanel({ gameId }: Props) {
+export function LeaderboardPanel({ gameId }: Props) {
   const { data: entries = [], isLoading } = useQuery({
     queryKey: keys.leaderboard(gameId),
     queryFn: () => leaderboard.get(gameId, 20),
