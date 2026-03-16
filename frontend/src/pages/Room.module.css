@@ -264,3 +264,82 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Player name button + dropdown */
+.playerNameWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.playerNameBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  transition: color var(--transition);
+}
+
+.playerNameBtn:hover {
+  color: var(--amber);
+}
+
+.mutedIndicator {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  min-width: 180px;
+  padding: 4px 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 120ms ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.dropdownItem:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dropdownItem:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dropdownDivider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}

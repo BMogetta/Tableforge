@@ -30,4 +30,5 @@ export const keys = {
   adminPlayers: ()                => ['admin', 'players'] as const,
   notifications: (playerId: string) => ['notifications', playerId] as const,
   dmUnread:      (playerId: string) => ['dm', playerId, 'unread']  as const,
+  mutes: (playerId: string) => ['mutes', playerId] as const,
 }

@@ -159,6 +159,13 @@ services:
     depends_on:
       - loki
     restart: unless-stopped
+  
+  alertmanager:
+    image: prom/alertmanager
+    volumes:
+      - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
 
 volumes:
   postgres_data:

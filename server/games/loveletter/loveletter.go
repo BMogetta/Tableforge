@@ -290,6 +290,10 @@ func applyStandardMove(state engine.GameState, move engine.Move, card CardName) 
 		state = applyKing(state, playerID, target)
 	case CardCountess:
 		// No effect beyond being played.
+	default:
+		// Unknown card — this should never happen in a valid game but guards
+		// against corrupted payloads reaching the engine.
+		return state, fmt.Errorf("loveletter: unknown card %q", card)
 	}
 
 	_ = err

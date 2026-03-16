@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
-import { rooms, bots, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting, type BotProfile } from '../api'
+import { rooms, bots, mutes, gameRegistry, wsRoomUrl, type RoomView, type LobbySetting, type BotProfile, type RoomViewPlayer } from '../api'
 import { ok, error, catchToAppError, type AppError } from '../helpers/errors'
 import { useToast } from '../components/ui/Toast'
 import ErrorMessage from '../components/ui/ErrorMessage'
@@ -41,6 +41,64 @@ export default function Room() {
   const spectatorCount = useAppStore((s) => s.spectatorCount)
   const setPlayerPresence = useAppStore((s) => s.setPlayerPresence)
   const presenceMap = useAppStore((s) => s.presenceMap)
+
+  // --- Mute state (elevated from ChatSidebar so the player dropdown can also
+  //     trigger mutes without going through the chat input) -------------------
+
+  // Local mutes: in-memory only, reset when the component unmounts.
+  // These do NOT call the backend — use block for persistent mutes.
+  const [mutedIds, setMutedIds] = useState<Set<string>>(new Set())
+  // When true, all messages from other players are hidden regardless of mutedIds.
+  const [muteAll, setMuteAll] = useState(false)
+
+  function handleMute(targetId: string) {
+    setMutedIds((prev) => new Set([...prev, targetId]))
+  }
+
+  function handleUnmute(targetId: string) {
+    setMutedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(targetId)
+      return next
+    })
+  }
+
+  function handleMuteAll() { setMuteAll(true) }
+  function handleUnmuteAll() { setMuteAll(false); setMutedIds(new Set()) }
+
+  // --- Player dropdown -------------------------------------------------------
+
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside.
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdownId(null)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [])
+
+  async function handleBlock(targetId: string) {
+    const [err] = await mutes.mute(player.id, targetId)
+      .then(() => ok(null))
+      .catch((e) => error(catchToAppError(e)))
+    if (err) toast.showError(err)
+    setOpenDropdownId(null)
+  }
+
+  async function handleUnblock(targetId: string) {
+    const [err] = await mutes.unmute(player.id, targetId)
+      .then(() => ok(null))
+      .catch((e) => error(catchToAppError(e)))
+    if (err) toast.showError(err)
+    setOpenDropdownId(null)
+  }
+
+  // ---------------------------------------------------------------------------
 
   const refresh = useCallback(() => {
     rooms.get(roomId!).then((v) => {
@@ -241,35 +299,78 @@ export default function Room() {
               Players ({view.players.length}/{room.max_players})
             </p>
             <div className={styles.playerList}>
-              {view.players.map((p) => (
-                <div key={p.id} className={styles.playerRow} data-testid={p.is_bot ? `bot-row-${p.id}` : `player-row-${p.id}`}>
-                  <span
-                    className={styles.presenceDot}
-                    data-online={String(presenceMap[p.id] ?? false)}
-                    data-testid={`presence-dot-${p.id}`}
-                  />
-                  {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
-                  <span className={styles.playerName}>
-                    {p.username}
-                    {p.is_bot && (
-                      <span className="badge badge-muted" style={{ marginLeft: 6 }}>Bot</span>
+              {view.players.map((p) => {
+                const isSelf = p.id === player.id
+                const isDropdownOpen = openDropdownId === p.id
+                const isMuted = mutedIds.has(p.id)
+
+                return (
+                  <div
+                    key={p.id}
+                    className={styles.playerRow}
+                    data-testid={p.is_bot ? `bot-row-${p.id}` : `player-row-${p.id}`}
+                  >
+                    <span
+                      className={styles.presenceDot}
+                      data-online={String(presenceMap[p.id] ?? false)}
+                      data-testid={`presence-dot-${p.id}`}
+                    />
+                    {p.avatar_url && <img src={p.avatar_url} alt="" className={styles.avatar} />}
+
+                    {/* Username — clickable for other human players to open the
+                        action dropdown (mute, block, add friend, send DM) */}
+                    {!isSelf && !p.is_bot ? (
+                      <div
+                        className={styles.playerNameWrapper}
+                        ref={isDropdownOpen ? dropdownRef : null}
+                      >
+                        <button
+                          className={styles.playerNameBtn}
+                          onClick={() => setOpenDropdownId(isDropdownOpen ? null : p.id)}
+                          title={`Options for ${p.username}`}
+                        >
+                          {p.username}
+                          {isMuted && (
+                            <span className={styles.mutedIndicator} title="Locally muted">🔇</span>
+                          )}
+                        </button>
+
+                        {isDropdownOpen && (
+                          <PlayerDropdown
+                            target={p}
+                            isMuted={isMuted}
+                            onMute={() => { handleMute(p.id); setOpenDropdownId(null) }}
+                            onUnmute={() => { handleUnmute(p.id); setOpenDropdownId(null) }}
+                            onBlock={() => handleBlock(p.id)}
+                            onUnblock={() => handleUnblock(p.id)}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <span className={styles.playerName}>
+                        {p.username}
+                        {p.is_bot && (
+                          <span className="badge badge-muted" style={{ marginLeft: 6 }}>Bot</span>
+                        )}
+                      </span>
                     )}
-                  </span>
-                  {p.id === ownerId && <span className="badge badge-amber">Host</span>}
-                  {p.id === player.id && <span className="badge badge-muted">You</span>}
-                  {isOwner && p.is_bot && (
-                    <button
-                      data-testid={`remove-bot-btn-${p.id}`}
-                      className={styles.removeBotBtn}
-                      disabled={removingBotId === p.id}
-                      onClick={() => handleRemoveBot(p.id)}
-                      title="Remove bot"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
+
+                    {p.id === ownerId && <span className="badge badge-amber">Host</span>}
+                    {isSelf && <span className="badge badge-muted">You</span>}
+                    {isOwner && p.is_bot && (
+                      <button
+                        data-testid={`remove-bot-btn-${p.id}`}
+                        className={styles.removeBotBtn}
+                        disabled={removingBotId === p.id}
+                        onClick={() => handleRemoveBot(p.id)}
+                        title="Remove bot"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
               {Array.from({ length: room.max_players - view.players.length }).map((_, i) => (
                 <div key={i} className={`${styles.playerRow} ${styles.empty}`}>
                   <div className={styles.emptySlot} />
@@ -402,8 +503,56 @@ export default function Room() {
           roomId={roomId!}
           open={chatOpen}
           onToggle={() => setChatOpen((v) => !v)}
+          mutedIds={mutedIds}
+          muteAll={muteAll}
+          onMute={handleMute}
+          onUnmute={handleUnmute}
+          onMuteAll={handleMuteAll}
+          onUnmuteAll={handleUnmuteAll}
+          roomPlayers={view.players}
         />
       </div>
+    </div>
+  )
+}
+
+// --- PlayerDropdown ----------------------------------------------------------
+
+interface PlayerDropdownProps {
+  target: RoomViewPlayer
+  isMuted: boolean
+  onMute: () => void
+  onUnmute: () => void
+  onBlock: () => void
+  onUnblock: () => void
+}
+
+function PlayerDropdown({ target, isMuted, onMute, onUnmute, onBlock, onUnblock }: PlayerDropdownProps) {
+  return (
+    <div className={styles.dropdown}>
+      {isMuted ? (
+        <button className={styles.dropdownItem} onClick={onUnmute}>
+          🔊 Unmute (this session)
+        </button>
+      ) : (
+        <button className={styles.dropdownItem} onClick={onMute}>
+          🔇 Mute (this session)
+        </button>
+      )}
+      <button className={styles.dropdownItem} onClick={onBlock}>
+        🚫 Block
+      </button>
+      <button className={styles.dropdownItem} onClick={onUnblock}>
+        ✓ Unblock
+      </button>
+      <hr className={styles.dropdownDivider} />
+      {/* Stubs — enabled when friends system and DMs UI are implemented */}
+      <button className={styles.dropdownItem} disabled title="Coming soon">
+        👤 Add Friend
+      </button>
+      <button className={styles.dropdownItem} disabled title="Coming soon">
+        ✉ Send DM
+      </button>
     </div>
   )
 }

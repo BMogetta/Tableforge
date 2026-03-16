@@ -160,3 +160,38 @@
   opacity: 0.3;
   cursor: not-allowed;
 }
+
+/* ---------------------------------------------------------------------------
+   sender username above message bubble
+   --------------------------------------------------------------------------- */
+
+.senderName {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--amber-dim);
+  letter-spacing: 0.03em;
+}
+
+/* ---------------------------------------------------------------------------
+   system messages (slash command feedback)
+   --------------------------------------------------------------------------- */
+
+.systemMessage {
+  margin: 4px 14px;
+  padding: 6px 10px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--amber-dim);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.systemLine {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  white-space: pre;
+  line-height: 1.6;
+}

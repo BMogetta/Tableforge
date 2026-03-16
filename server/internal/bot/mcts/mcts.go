@@ -96,11 +96,21 @@ func selectAndExpand(
 			return n, state
 		}
 
+		// Guard: if a non-terminal state has no legal moves, treat it as
+		// terminal to avoid expanding a dead-end node that would panic bestChild.
+		moves := adapter.ValidMoves(state)
+		if len(moves) == 0 {
+			return n, state
+		}
+
 		if !n.isFullyExpanded() {
 			return expand(n, state, adapter)
 		}
 
-		// Fully expanded and non-terminal: descend via UCB1.
+		if len(n.children) == 0 {
+			return n, state
+		}
+
 		best := n.bestChild(explorationC)
 		state = adapter.ApplyMove(state, best.move)
 		n = best

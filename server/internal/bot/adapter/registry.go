@@ -5,6 +5,7 @@ package adapter
 import (
 	"fmt"
 
+	loveletter "github.com/tableforge/server/games/loveletter"
 	"github.com/tableforge/server/internal/bot"
 	tictactoe "github.com/tableforge/server/internal/bot/adapter/tictactoe"
 )
@@ -15,6 +16,8 @@ func New(gameID string) (bot.BotAdapter, error) {
 	switch gameID {
 	case "tictactoe":
 		return tictactoe.New(), nil
+	case "loveletter":
+		return loveletter.New(), nil
 	default:
 		return nil, fmt.Errorf("bot/adapter: no adapter registered for game %q", gameID)
 	}

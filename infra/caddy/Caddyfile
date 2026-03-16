@@ -2,21 +2,60 @@
     admin off
 }
 
-# Cloudflare Tunnel terminates TLS upstream — Caddy listens on plain HTTP internally.
+# Cloudflare Tunnel terminates TLS upstream — Caddy listens on plain HTTP
+# internally. No HSTS or certificate management needed here.
 :80 {
+
+    # ---------------------------------------------------------------------------
+    # Structured logging — JSON format so Promtail can forward to Loki without
+    # any parsing pipeline. Each request produces one JSON line on stdout.
+    # The Docker logging driver captures stdout and Promtail picks it up via
+    # the docker_sd_configs job.
+    # ---------------------------------------------------------------------------
+    log {
+        output stdout
+        format json
+        level  INFO
+    }
+
+    # ---------------------------------------------------------------------------
+    # Request body size limit — reject oversized payloads before they reach Go.
+    # 64KB covers all legitimate API payloads (moves, settings, chat messages).
+    # Raise this limit if avatar uploads or file attachments are ever added.
+    # ---------------------------------------------------------------------------
+    request_body {
+        max_size 64KB
+    }
+
+    # ---------------------------------------------------------------------------
     # Security headers
+    # ---------------------------------------------------------------------------
     header {
-        X-Content-Type-Options        "nosniff"
-        X-Frame-Options               "SAMEORIGIN"
-        X-XSS-Protection              "1; mode=block"
-        Referrer-Policy               "strict-origin-when-cross-origin"
-        Permissions-Policy            "camera=(), microphone=(), geolocation=()"
-        Content-Security-Policy       "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:;"        -Server
+        X-Content-Type-Options   "nosniff"
+        X-Frame-Options          "SAMEORIGIN"
+        X-XSS-Protection         "1; mode=block"
+        Referrer-Policy          "strict-origin-when-cross-origin"
+        Permissions-Policy       "camera=(), microphone=(), geolocation=()"
+
+        # CSP is intentionally permissive while in report-only mode.
+        # Once /csp-reports shows no violations, tighten this and switch
+        # back to Content-Security-Policy.
+        #
+        # To harden: remove 'unsafe-inline' from script-src and style-src,
+        # replace ws: with wss://<your-domain> in connect-src.
+        Content-Security-Policy  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:;"
+
+        # Strip server identification headers to avoid leaking stack details.
+        -Server
         -X-Powered-By
         -Via
     }
 
-    # OpenTelemetry — browser sends OTLP/HTTP here, Caddy forwards to collector
+    # ---------------------------------------------------------------------------
+    # Internal observability services
+    # ---------------------------------------------------------------------------
+
+    # OpenTelemetry — browser sends OTLP/HTTP here, Caddy forwards to collector.
     handle /otlp/* {
         uri strip_prefix /otlp
         reverse_proxy otel-collector:4318
@@ -37,16 +76,21 @@
         reverse_proxy prometheus:9090
     }
 
-    # API and auth routes → game-server
+    # ---------------------------------------------------------------------------
+    # Application routes
+    # ---------------------------------------------------------------------------
+
+    # API and auth routes → game-server.
     reverse_proxy /api/* game-server:8080
     reverse_proxy /auth/* game-server:8080
 
-    # WebSocket → game-server
+    # WebSocket connections → game-server.
+    # Upgrade and Connection headers must be forwarded explicitly.
     reverse_proxy /ws/* game-server:8080 {
-        header_up Upgrade {http.request.header.Upgrade}
+        header_up Upgrade    {http.request.header.Upgrade}
         header_up Connection {http.request.header.Connection}
     }
 
-    # Everything else → frontend
+    # Everything else → frontend dev server or static file server.
     reverse_proxy * frontend:3000
 }

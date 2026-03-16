@@ -8,6 +8,10 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+  # ---------------------------------------------------------------------------
+  # Generic Docker job — scrapes all containers via the Docker socket.
+  # Adds a `container` label derived from the container name.
+  # ---------------------------------------------------------------------------
   - job_name: docker
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
@@ -15,3 +19,49 @@ scrape_configs:
     relabel_configs:
       - source_labels: [__meta_docker_container_name]
         target_label: container
+      # Exclude Caddy — it has its own job with richer labels (level, status).
+      - source_labels: [__meta_docker_container_name]
+        regex: ".*caddy.*"
+        action: drop
+
+  # ---------------------------------------------------------------------------
+  # Caddy access log job — parses the structured JSON logs emitted by Caddy
+  # on stdout and forwards them to Loki with useful labels for querying.
+  #
+  # Each log line produced by Caddy looks like:
+  #   {"level":"info","ts":1234567890,"logger":"http.log.access","msg":"handled request",
+  #    "request":{"method":"GET","uri":"/api/v1/rooms","proto":"HTTP/1.1",...},
+  #    "status":200,"duration":0.003,...}
+  #
+  # Labels added:
+  #   job=caddy           — identifies this as Caddy access logs in Grafana
+  #   container=<name>    — Docker container name (e.g. /tableforge-caddy-1)
+  #   level=<level>       — log level extracted from the JSON (info / error / warn)
+  #   status=<code>       — HTTP status code extracted from the JSON, useful for
+  #                         filtering 4xx/5xx in dashboards
+  # ---------------------------------------------------------------------------
+  - job_name: caddy
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          # Only scrape the Caddy container — avoids double-ingesting logs that
+          # the generic `docker` job above already captures for other containers.
+          - name: name
+            values: ["caddy"]
+    pipeline_stages:
+      # Parse the JSON log line so we can extract fields as labels.
+      - json:
+          expressions:
+            level:  level
+            status: status
+      # Promote extracted fields to Loki labels for efficient filtering.
+      - labels:
+          level:  ""
+          status: ""
+    relabel_configs:
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+      # Static label so all Caddy logs are queryable as {job="caddy"} in Grafana.
+      - target_label: job
+        replacement: caddy
