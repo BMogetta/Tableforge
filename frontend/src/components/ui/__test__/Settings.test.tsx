@@ -17,7 +17,7 @@ vi.mock('@tanstack/react-pacer', () => ({
 
 // Mock the playerSettings API — we test optimistic update independently from
 // the network call.
-vi.mock('../../../api', async importOriginal => {
+vi.mock('../../../lib/api', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../lib/api')>()
   return {
     ...actual,

@@ -1,34 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
 import { RateLimited } from '../RateLimited'
 
-// Mock useNavigate so we can assert navigation calls.
 const mockNavigate = vi.fn()
-vi.mock('react-router-dom', async importOriginal => {
-  const actual = await importOriginal<typeof import('react-router-dom')>()
-  return { ...actual, useNavigate: () => mockNavigate }
-})
+vi.mock('@tanstack/react-router', () => ({
+  useNavigate: () => mockNavigate,
+}))
 
 function renderPage() {
-  return render(
-    <MemoryRouter>
-      <RateLimited />
-    </MemoryRouter>,
-  )
+  act(() => {
+    render(<RateLimited />)
+  })
 }
 
-/**
- * Advance fake timers by `n` seconds, flushing React state after each tick.
- * This is required because the component uses setTimeout in a useEffect with
- * `seconds` as a dependency — each decrement schedules a new timeout, so we
- * must flush React between ticks to trigger the next schedule.
- */
+// The component chains setTimeout calls — each decrement schedules the next,
+// so React must flush between ticks to trigger the subsequent setTimeout.
 function advanceSeconds(n: number) {
   for (let i = 0; i < n; i++) {
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
+    act(() => vi.advanceTimersByTime(1000))
   }
 }
 
@@ -56,10 +45,8 @@ describe('RateLimited', () => {
   it('decrements the countdown every second', () => {
     renderPage()
     expect(screen.getByText('60')).toBeInTheDocument()
-
     advanceSeconds(1)
     expect(screen.getByText('59')).toBeInTheDocument()
-
     advanceSeconds(1)
     expect(screen.getByText('58')).toBeInTheDocument()
   })
@@ -79,13 +66,13 @@ describe('RateLimited', () => {
   it('navigates to / when countdown reaches 0', () => {
     renderPage()
     advanceSeconds(60)
-    expect(mockNavigate).toHaveBeenCalledWith('/')
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/' })
   })
 
   it('navigates to / immediately when Try Now is clicked', () => {
     renderPage()
     fireEvent.click(screen.getByText('Try Now'))
-    expect(mockNavigate).toHaveBeenCalledWith('/')
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/' })
   })
 
   it('does not navigate before countdown ends', () => {

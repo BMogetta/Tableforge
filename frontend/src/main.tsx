@@ -6,17 +6,42 @@ initWebVitals()
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
+import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { routeTree } from './routeTree.gen'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { pacerDevtoolsPlugin } from '@tanstack/react-pacer-devtools'
+//import { TanStackRouterDevtoolsInProd } from '@tanstack/react-router-devtools'
 import { queryClient } from './lib/queryClient'
 import './styles/global.css'
+
+const router = createRouter({ routeTree })
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+  }
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      <RouterProvider router={router} />
+      <TanStackDevtools
+        plugins={[
+          {
+            name: 'TanStack Query',
+            render: <ReactQueryDevtoolsPanel />,
+          },
+          {
+            name: 'TanStack Router',
+            render: <TanStackRouterDevtools router={router} />,
+          },
+          pacerDevtoolsPlugin(),
+        ]}
+      ></TanStackDevtools>
     </QueryClientProvider>
   </StrictMode>,
 )

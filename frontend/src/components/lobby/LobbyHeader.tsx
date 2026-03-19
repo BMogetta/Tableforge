@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { notifications, dm, auth } from '../../lib/api'
 import { useAppStore } from '../../stores/store'
 import { keys } from '../../lib/queryClient'
 import { Settings } from '../ui/Settings'
 import styles from './LobbyHeader.module.css'
+import { Link } from '@tanstack/react-router'
 
 interface Props {
   onLogout: () => void

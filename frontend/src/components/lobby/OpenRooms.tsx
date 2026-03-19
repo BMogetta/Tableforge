@@ -1,9 +1,9 @@
-import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { rooms } from '../../lib/api'
 import { keys } from '../../lib/queryClient'
 import { RoomCard } from './RoomCard'
 import styles from './OpenRooms.module.css'
+import { useNavigate } from '@tanstack/react-router'
 
 export function OpenRooms() {
   const navigate = useNavigate()
@@ -31,7 +31,7 @@ export function OpenRooms() {
             <RoomCard
               key={view.room.id}
               view={view}
-              onJoin={() => navigate(`/rooms/${view.room.id}`)}
+              onJoin={() => navigate({ to: `/rooms/${view.room.id}` })}
             />
           ))}
         </div>

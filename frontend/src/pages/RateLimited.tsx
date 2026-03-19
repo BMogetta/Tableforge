@@ -1,5 +1,5 @@
+import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 const COUNTDOWN_SECS = 60
 
@@ -9,7 +9,7 @@ export function RateLimited() {
 
   useEffect(() => {
     if (seconds <= 0) {
-      navigate('/')
+      navigate({ to: '/' })
       return
     }
     const id = setTimeout(() => setSeconds(s => s - 1), 1000)
@@ -92,7 +92,11 @@ export function RateLimited() {
         </span>
       </div>
 
-      <button className='btn btn-ghost' onClick={() => navigate('/')} style={{ marginTop: 8 }}>
+      <button
+        className='btn btn-ghost'
+        onClick={() => navigate({ to: '/' })}
+        style={{ marginTop: 8 }}
+      >
         Try Now
       </button>
     </div>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
 import { sessions, rooms, type GameSession } from '../lib/api'
@@ -12,6 +11,7 @@ import { LoveLetter, type LoveLetterState } from '../components/loveletter/LoveL
 import styles from './Game.module.css'
 import { SurrenderModal } from '../components/SurrenderModal'
 import type { WsPayloadMoveResult } from '../lib/ws'
+import { useNavigate } from '@tanstack/react-router'
 
 interface GameData {
   current_player_id: string
@@ -79,8 +79,7 @@ const GAME_RENDERERS: Record<string, RendererComponent> = {
 // Game page
 // ---------------------------------------------------------------------------
 
-export function Game() {
-  const { sessionId } = useParams<{ sessionId: string }>()
+export function Game({ sessionId }: { sessionId: string }) {
   const player = useAppStore(s => s.player)!
   const socket = useAppStore(s => s.socket)
   const playerSocket = useAppStore(s => s.playerSocket)
@@ -218,7 +217,7 @@ export function Game() {
         setTotalPlayers(event.payload.total_players)
       }
       if (event.type === 'rematch_ready') {
-        navigate(`/rooms/${event.payload.room_id}`)
+        navigate({ to: `/rooms/${event.payload.room_id}` })
       }
       if (event.type === 'pause_vote_update') {
         setPauseVotes(event.payload.votes ?? [])
@@ -276,7 +275,7 @@ export function Game() {
     onSuccess: () => {
       setShowSurrenderModal(false)
       leaveRoom()
-      navigate('/')
+      navigate({ to: '/' })
     },
     onError: e => {
       toast.showError(catchToAppError(e))
@@ -322,12 +321,12 @@ export function Game() {
 
   function handleBackToLobby() {
     leaveRoom()
-    navigate('/')
+    navigate({ to: '/' })
   }
 
   function handleViewReplay() {
     leaveRoom()
-    navigate(`/sessions/${sessionId}/history`)
+    navigate({ to: `/sessions/${sessionId}/history` })
   }
 
   if (!session || !gameData) {

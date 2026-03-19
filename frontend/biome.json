@@ -20,7 +20,8 @@
       "!**/public",
       "!**/playwright-report",
       "!**/test-results",
-      "!**/tsconfig.*"
+      "!**/tsconfig.*",
+      "!**/routeTree.gen.ts"
     ]
   },
   "linter": {

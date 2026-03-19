@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms, queue, type GameInfo } from '../../lib/api'
 import { useAppStore } from '../../stores/store'
 import { keys } from '../../lib/queryClient'
 import styles from './NewGamePanel.module.css'
+import { useNavigate } from '@tanstack/react-router'
 
 type Tab = 'casual' | 'ranked'
 
@@ -63,7 +63,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
       if (event.type === 'match_ready') {
         const payload = event.payload
         clearQueue()
-        navigate(`/game/${payload.session_id}`)
+        navigate({ to: `/game/${payload.session_id}` })
       }
 
       if (event.type === 'queue_left') {
@@ -88,13 +88,13 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
     mutationFn: () => rooms.create(effectiveGame, player.id),
     onSuccess: view => {
       qc.invalidateQueries({ queryKey: keys.rooms() })
-      navigate(`/rooms/${view.room.id}`)
+      navigate({ to: `/rooms/${view.room.id}` })
     },
   })
 
   const joinRoom = useMutation({
     mutationFn: () => rooms.join(joinCode.trim().toUpperCase(), player.id),
-    onSuccess: view => navigate(`/rooms/${view.room.id}`),
+    onSuccess: view => navigate({ to: `/rooms/${view.room.id}` }),
   })
 
   const joinQueue = useMutation({

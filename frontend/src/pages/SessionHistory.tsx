@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
 import { SessionEvent, sessions, type Move } from '../lib/api'
 import { keys } from '../lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../components/TicTacToe'
 import styles from './SessionHistory.module.css'
+import { useNavigate } from '@tanstack/react-router'
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -210,8 +210,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
 
 type Tab = 'events' | 'replay'
 
-export function SessionHistory() {
-  const { sessionId } = useParams<{ sessionId: string }>()
+export function SessionHistory({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate()
   const player = useAppStore(s => s.player)!
   const [tab, setTab] = useState<Tab>('events')
@@ -254,7 +253,7 @@ export function SessionHistory() {
           <button
             className='btn btn-ghost'
             data-testid='back-to-lobby-btn'
-            onClick={() => navigate('/')}
+            onClick={() => navigate({ to: '/' })}
             style={{ fontSize: 11 }}
           >
             ← Lobby

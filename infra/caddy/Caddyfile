@@ -20,11 +20,11 @@
 
     # ---------------------------------------------------------------------------
     # Request body size limit — reject oversized payloads before they reach Go.
-    # 64KB covers all legitimate API payloads (moves, settings, chat messages).
+    # 128KB covers all legitimate API payloads (moves, settings, chat messages).
     # Raise this limit if avatar uploads or file attachments are ever added.
     # ---------------------------------------------------------------------------
     request_body {
-        max_size 64KB
+        max_size 128KB
     }
 
     # ---------------------------------------------------------------------------
@@ -43,7 +43,7 @@
         #
         # To harden: remove 'unsafe-inline' from script-src and style-src,
         # replace ws: with wss://<your-domain> in connect-src.
-        Content-Security-Policy  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:;"
+        #Content-Security-Policy  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:;"
 
         # Strip server identification headers to avoid leaking stack details.
         -Server

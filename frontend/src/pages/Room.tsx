@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../stores/store'
 import {
   rooms,
@@ -18,11 +17,11 @@ import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { RoomSettings } from '../components/room/RoomSettings'
 import { ChatSidebar } from '../components/room/ChatSidebar'
 import styles from './Room.module.css'
+import { useNavigate } from '@tanstack/react-router'
 
 type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
-export function Room() {
-  const { roomId } = useParams<{ roomId: string }>()
+export function Room({ roomId }: { roomId: string }) {
   const player = useAppStore(s => s.player)!
   const joinRoom = useAppStore(s => s.joinRoom)
   const socket = useAppStore(s => s.socket)
@@ -58,7 +57,6 @@ export function Room() {
   // Local mutes: in-memory only, reset when the component unmounts.
   // These do NOT call the backend — use block for persistent mutes.
   const [mutedIds, setMutedIds] = useState<Set<string>>(new Set())
-  // When true, all messages from other players are hidden regardless of mutedIds.
   const [muteAll, setMuteAll] = useState(false)
 
   function handleMute(targetId: string) {
@@ -80,9 +78,7 @@ export function Room() {
     setMuteAll(false)
     setMutedIds(new Set())
   }
-
   // --- Player dropdown -------------------------------------------------------
-
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -116,10 +112,19 @@ export function Room() {
   }
 
   // ---------------------------------------------------------------------------
+  // Stable refs so refresh and socket effect never re-run due to navigate/toast changing.
+  const navigateRef = useRef(navigate)
+  const toastRef = useRef(toast)
+  useEffect(() => {
+    navigateRef.current = navigate
+  }, [navigate])
+  useEffect(() => {
+    toastRef.current = toast
+  }, [toast])
 
   const refresh = useCallback(() => {
     rooms
-      .get(roomId!)
+      .get(roomId)
       .then(v => {
         setView(v)
         setSettings(v.settings ?? {})
@@ -127,23 +132,26 @@ export function Room() {
       .catch(e => {
         const err = catchToAppError(e)
         // If the room no longer exists, go home instead of looping toasts.
-        if (err.reason === 'NOT_FOUND') {
-          navigate('/')
-        } else {
-          toast.showError(err)
-        }
+        if (err.reason === 'NOT_FOUND') navigateRef.current({ to: '/' })
+        else toastRef.current.showError(err)
       })
-  }, [roomId, toast, navigate])
+  }, [roomId])
 
+  const refreshRef = useRef(refresh)
   useEffect(() => {
-    joinRoom(roomId!, wsRoomUrl(roomId!, player.id))
-  }, [roomId, player.id])
+    refreshRef.current = refresh
+  }, [refresh])
+
+  // Join the room WebSocket once — stable because joinRoom is from zustand
+  // and roomId/player.id don't change while mounted on this route.
+  useEffect(() => {
+    joinRoom(roomId, wsRoomUrl(roomId, player.id))
+  }, [roomId, player.id]) // joinRoom intentionally omitted — zustand actions are stable
 
   useEffect(() => {
     if (!view) return
     setOwnerId(view.room.owner_id)
-    const participant = view.players.some(p => p.id === player.id)
-    setIsSpectator(!participant)
+    setIsSpectator(!view.players.some(p => p.id === player.id))
   }, [view, player.id, setIsSpectator])
 
   // Load game setting descriptors once we know the game_id.
@@ -172,9 +180,17 @@ export function Room() {
       .catch(() => {})
   }, [])
 
+  // startingRef lets the socket handler read the latest value without being
+  // listed as a dependency — prevents the effect from re-running on every
+  // handleStart call, which would re-subscribe and call refresh() again.
+  const startingRef = useRef(starting)
+  useEffect(() => {
+    startingRef.current = starting
+  }, [starting])
+
   useEffect(() => {
     if (!socket) return
-    refresh()
+    refreshRef.current()
 
     const off = socket.on(event => {
       if (event.type === 'ws_connected') setSocketStatus('connected')
@@ -182,51 +198,46 @@ export function Room() {
       if (event.type === 'ws_disconnected') setSocketStatus('disconnected')
 
       if (event.type === 'player_joined' || event.type === 'player_left') {
-        refresh()
+        refreshRef.current()
       }
 
       if (event.type === 'game_started') {
-        const payload = event.payload
-        if (!starting) {
-          navigate(`/game/${payload.session.id}`)
+        if (!startingRef.current) {
+          navigateRef.current({ to: `/game/${event.payload.session.id}` })
         }
       }
 
       if (event.type === 'owner_changed') {
-        const payload = event.payload
-        setOwnerId(payload.owner_id)
-        refresh()
+        setOwnerId(event.payload.owner_id)
+        refreshRef.current()
       }
 
       if (event.type === 'room_closed') {
-        navigate('/')
+        navigateRef.current({ to: '/' })
       }
 
       if (event.type === 'setting_updated') {
-        const payload = event.payload
-        setSettings(prev => ({ ...prev, [payload.key]: payload.value }))
+        setSettings(prev => ({ ...prev, [event.payload.key]: event.payload.value }))
       }
 
       if (event.type === 'spectator_joined' || event.type === 'spectator_left') {
-        const payload = event.payload
-        setSpectatorCount(payload.spectator_count)
+        setSpectatorCount(event.payload.spectator_count)
       }
 
       if (event.type === 'presence_update') {
-        const payload = event.payload
-        setPlayerPresence(payload.player_id, payload.online)
+        setPlayerPresence(event.payload.player_id, event.payload.online)
       }
     })
 
     return () => off()
-  }, [socket, refresh, navigate, starting])
+  }, [socket]) // only socket — all other values accessed via refs
 
   async function handleStart() {
     setStarting(true)
     setStartError(null)
 
     const [err, session] = await rooms
-      .start(roomId!, player.id)
+      .start(roomId, player.id)
       .then(s => ok(s))
       .catch(e => error(catchToAppError(e)))
 
@@ -236,13 +247,13 @@ export function Room() {
       return
     }
 
-    navigate(`/game/${session.id}`)
+    navigate({ to: `/game/${session.id}` })
   }
 
   async function handleLeave() {
-    await rooms.leave(roomId!, player.id).catch(() => {})
+    await rooms.leave(roomId, player.id).catch(() => {})
     leaveRoom()
-    navigate('/')
+    navigate({ to: '/' })
   }
 
   async function handleAddBot() {
@@ -250,15 +261,12 @@ export function Room() {
     setBotError(null)
 
     const [err] = await bots
-      .add(roomId!, player.id, selectedProfile)
+      .add(roomId, player.id, selectedProfile)
       .then(p => ok(p))
       .catch(e => error(catchToAppError(e)))
 
-    if (err) {
-      setBotError(err)
-    } else {
-      refresh()
-    }
+    if (err) setBotError(err)
+    else refreshRef.current()
 
     setAddingBot(false)
   }
@@ -267,16 +275,12 @@ export function Room() {
     setRemovingBotId(botId)
 
     const [err] = await bots
-      .remove(roomId!, player.id, botId)
+      .remove(roomId, player.id, botId)
       .then(() => ok(null))
       .catch(e => error(catchToAppError(e)))
 
-    if (err) {
-      // Remove is a transient action with no inline location — use toast.
-      toast.showError(err)
-    } else {
-      refresh()
-    }
+    if (err) toast.showError(err)
+    else refreshRef.current()
 
     setRemovingBotId(null)
   }
@@ -288,7 +292,6 @@ export function Room() {
   if (!view) return <LoadingScreen />
 
   const { room } = view
-
   const isParticipant = view.players.some(p => p.id === player.id)
   const isSpectator = !isParticipant
   const isOwner = !isSpectator && ownerId === player.id
@@ -298,9 +301,7 @@ export function Room() {
   const canAddBot = isOwner && hasOpenSlot && gameHasBotAdapter && botProfiles.length > 0
 
   const visibleDescriptors = settingDescriptors.filter(s => {
-    if (s.key === 'first_mover_seat') {
-      return settings['first_mover_policy'] === 'fixed'
-    }
+    if (s.key === 'first_mover_seat') return settings['first_mover_policy'] === 'fixed'
     return true
   })
 
@@ -518,7 +519,7 @@ export function Room() {
 
           <div className={styles.actions}>
             {isSpectator ? (
-              <button className='btn btn-danger' onClick={() => navigate('/')}>
+              <button className='btn btn-danger' onClick={() => navigate({ to: '/' })}>
                 Leave
               </button>
             ) : isOwner ? (
