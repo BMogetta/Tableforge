@@ -5,45 +5,41 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-        cors:
-          allowed_origins:
-            - "http://localhost"
-            - "http://localhost:3000"
-          allowed_headers:
-            - "*"
 
 processors:
   batch:
     timeout: 5s
+    send_batch_size: 512
   memory_limiter:
     check_interval: 1s
-    limit_mib: 256
+    limit_mib: 512
 
 exporters:
-  otlp/jaeger:
-    endpoint: jaeger:4317
+  otlp_grpc/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
     tls:
       insecure: true
 
   prometheus:
-    endpoint: "0.0.0.0:8889"
-
-  debug:
-    verbosity: basic
+    endpoint: 0.0.0.0:8889
+    namespace: otel
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp/jaeger, debug]
-
-    metrics:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [prometheus, debug]
-
+      exporters: [otlp_grpc/tempo]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [otlp_http/loki]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]

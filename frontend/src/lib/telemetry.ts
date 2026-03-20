@@ -84,6 +84,34 @@ const loggerProvider = new LoggerProvider({
 const logger = loggerProvider.getLogger('tableforge-frontend')
 
 // ---------------------------------------------------------------------------
+// Console bridge — forwards console.error and console.warn to OTLP logs
+// ---------------------------------------------------------------------------
+export function initConsoleBridge() {
+  const originalError = console.error.bind(console)
+  const originalWarn = console.warn.bind(console)
+
+  console.error = (...args) => {
+    originalError(...args)
+    logger.emit({
+      severityNumber: SeverityNumber.ERROR,
+      severityText: 'ERROR',
+      body: args.map(String).join(' '),
+      attributes: { 'app.source': 'console' },
+    })
+  }
+
+  console.warn = (...args) => {
+    originalWarn(...args)
+    logger.emit({
+      severityNumber: SeverityNumber.WARN,
+      severityText: 'WARN',
+      body: args.map(String).join(' '),
+      attributes: { 'app.source': 'console' },
+    })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Web Vitals — push each metric as a histogram observation
 // ---------------------------------------------------------------------------
 

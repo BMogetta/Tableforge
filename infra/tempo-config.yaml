@@ -1,0 +1,10 @@
+server:
+  http_listen_port: 3200
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/blocks
+    wal:
+      path: /var/tempo/wal

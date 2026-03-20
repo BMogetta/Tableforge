@@ -1,9 +1,14 @@
+include:
+  - docker-compose.monitoring.yml
+
+name: tableforge
 services:
   # ── Application ────────────────────────────────────────────────────────────
   game-server:
     build:
       context: ./server
       dockerfile: Dockerfile
+    container_name: '${COMPOSE_PROJECT_NAME}_game-server'
     ports:
       - "8080:8080"
     environment:
@@ -95,81 +100,30 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── Telemetry ──────────────────────────────────────────────────────────────
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    command: ["--config=/etc/otel/config.yaml"]
-    volumes:
-      - ./infra/otel/config.yaml:/etc/otel/config.yaml
-    ports:
-      - "4317:4317"
-      - "4318:4318"
-    depends_on:
-      - jaeger
-      - prometheus
-    restart: unless-stopped
+networks:
+  observability:
+    driver: bridge
+  default:  # red compartida con el compose principal
+    name: tableforge_default
+    external: true
 
-  jaeger:
-    image: jaegertracing/jaeger:2.4.0
-    ports:
-      - "16686:16686"
-      - "4319:4317"
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus:v2.53.0
-    volumes:
-      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_SERVER_ROOT_URL=http://localhost/grafana
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-    volumes:
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning
-      - grafana_data:/var/lib/grafana
-    ports:
-      - "3001:3000"
-    depends_on:
-      - prometheus
-      - jaeger
-    restart: unless-stopped
-  loki:
-    image: grafana/loki:2.9.0
-    ports:
-      - "3100:3100"
-    volumes:
-      - loki_data:/loki
-    restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:2.9.0
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./infra/promtail/config.yaml:/etc/promtail/config.yaml
-    depends_on:
-      - loki
-    restart: unless-stopped
+  # promtail:
+  #   image: grafana/promtail:2.9.0
+  #   volumes:
+  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - ./infra/promtail/config.yaml:/etc/promtail/config.yaml
+  #   depends_on:
+  #     - loki
+  #   restart: unless-stopped
   
-  alertmanager:
-    image: prom/alertmanager
-    volumes:
-      - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    ports:
-      - "9093:9093"
+  # alertmanager:
+  #   image: prom/alertmanager
+  #   volumes:
+  #     - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+  #   ports:
+  #     - "9093:9093"
 
 volumes:
   postgres_data:
   redis_data:
-  prometheus_data:
-  grafana_data:
-  loki_data:
