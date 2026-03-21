@@ -16,22 +16,11 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func noop(_ context.Context) error { return nil }
 
 func Setup(ctx context.Context, serviceName, otlpEndpoint string) (func(context.Context) error, error) {
-	conn, err := grpc.Dial( //nolint:staticcheck
-		otlpEndpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Printf("telemetry: could not connect to collector at %s, continuing without telemetry: %v", otlpEndpoint, err)
-		return noop, nil
-	}
-
 	res, err := resource.New(ctx,
 		resource.WithAttributes(semconv.ServiceName(serviceName)),
 	)
@@ -41,9 +30,13 @@ func Setup(ctx context.Context, serviceName, otlpEndpoint string) (func(context.
 	}
 
 	// ── Traces ────────────────────────────────────────────────────────────────
-	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
+	traceExporter, err := otlptracegrpc.New(ctx,
+		otlptracegrpc.WithEndpoint(otlpEndpoint),
+		otlptracegrpc.WithInsecure(),
+	)
 	if err != nil {
-		return noop, fmt.Errorf("telemetry: trace exporter: %w", err)
+		log.Printf("telemetry: could not connect to collector at %s, continuing without telemetry: %v", otlpEndpoint, err)
+		return noop, nil
 	}
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(traceExporter),
@@ -53,7 +46,10 @@ func Setup(ctx context.Context, serviceName, otlpEndpoint string) (func(context.
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	// ── Metrics ───────────────────────────────────────────────────────────────
-	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
+	metricExporter, err := otlpmetricgrpc.New(ctx,
+		otlpmetricgrpc.WithEndpoint(otlpEndpoint),
+		otlpmetricgrpc.WithInsecure(),
+	)
 	if err != nil {
 		return noop, fmt.Errorf("telemetry: metric exporter: %w", err)
 	}
@@ -64,7 +60,10 @@ func Setup(ctx context.Context, serviceName, otlpEndpoint string) (func(context.
 	otel.SetMeterProvider(meterProvider)
 
 	// ── Logs ──────────────────────────────────────────────────────────────────
-	logExporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
+	logExporter, err := otlploggrpc.New(ctx,
+		otlploggrpc.WithEndpoint(otlpEndpoint),
+		otlploggrpc.WithInsecure(),
+	)
 	if err != nil {
 		return noop, fmt.Errorf("telemetry: log exporter: %w", err)
 	}

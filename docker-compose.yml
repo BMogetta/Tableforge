@@ -8,9 +8,10 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: '${COMPOSE_PROJECT_NAME}_game-server'
-    ports:
-      - "8080:8080"
+    container_name: 'game-server'
+    networks:
+      - app_network
+      - data_network
     environment:
       - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
       - REDIS_URL=redis://redis:6379
@@ -37,8 +38,9 @@ services:
       dockerfile: Dockerfile
       args:
       - VITE_TEST_MODE=${TEST_MODE:-false}
-    ports:
-      - "3000:3000"
+    container_name: 'frontend'
+    networks:
+      - app_network
     depends_on:
       - game-server
     restart: unless-stopped
@@ -47,6 +49,10 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    container_name: 'seeder'
+    networks:
+      - app_network
+      - data_network
     entrypoint: ["/bin/seeder"]
     environment:
       - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
@@ -58,8 +64,14 @@ services:
 
   caddy:
     image: caddy:2-alpine
+    container_name: 'caddy'
+    networks:
+      - app_network
     ports:
       - "80:80"
+      - "443:443"
+    environment:
+      - GRAFANA_BASICAUTH_HASH=${GRAFANA_BASICAUTH_HASH}
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
     depends_on:
@@ -70,12 +82,13 @@ services:
   # ── Database ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
+    container_name: 'postgres'
     environment:
       POSTGRES_USER: tableforge
-      POSTGRES_PASSWORD: tableforge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: tableforge
-    ports:
-      - "127.0.0.1:5432:5432"
+    networks:
+      - data_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/db/migrations:/docker-entrypoint-initdb.d
@@ -88,9 +101,10 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: 'redis'
     command: redis-server --notify-keyspace-events Ex
-    ports:
-      - "127.0.0.1:6379:6379"
+    networks:
+      - data_network
     volumes:
       - redis_data:/data
     healthcheck:
@@ -100,29 +114,10 @@ services:
       retries: 5
     restart: unless-stopped
 
-networks:
-  observability:
-    driver: bridge
-  default:  # red compartida con el compose principal
-    name: tableforge_default
-    external: true
-
-  # promtail:
-  #   image: grafana/promtail:2.9.0
-  #   volumes:
-  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     - ./infra/promtail/config.yaml:/etc/promtail/config.yaml
-  #   depends_on:
-  #     - loki
-  #   restart: unless-stopped
-  
   # alertmanager:
   #   image: prom/alertmanager
   #   volumes:
   #     - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-  #   ports:
-  #     - "9093:9093"
 
 volumes:
   postgres_data:

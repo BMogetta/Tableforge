@@ -1,7 +1,7 @@
 // All types mirror the Go store models.
 
 import { tracer } from './telemetry'
-import { SpanStatusCode, context, propagation } from '@opentelemetry/api'
+import { SpanKind, SpanStatusCode, context, propagation } from '@opentelemetry/api'
 
 // --- Types -------------------------------------------------------------------
 
@@ -307,7 +307,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase()
   const url = BASE + path
 
-  return tracer.startActiveSpan(`${method} ${url}`, async span => {
+  return tracer.startActiveSpan(`${method} ${url}`, { kind: SpanKind.CLIENT }, async span => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init?.headers as Record<string, string>),
@@ -371,9 +371,9 @@ export class ApiError extends Error {
 }
 
 // --- Auth --------------------------------------------------------------------
-// We don't use the request() helper for auth routes since they have some
-// special handling (e.g. login redirects to GitHub) and we don't want them
-// to be traced like normal API calls.
+// These routes hit /auth/* outside the /api/v1 base path so they bypass
+// the request() helper. Tracing is handled automatically by FetchInstrumentation.
+// The GitHub login is a browser redirect and cannot be traced.
 
 export const auth = {
   me: () =>

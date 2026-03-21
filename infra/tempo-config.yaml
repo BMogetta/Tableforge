@@ -1,6 +1,28 @@
 server:
   http_listen_port: 3200
 
+metrics_generator:
+  ring:
+    kvstore:
+      store: memberlist
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+  registry:
+    external_labels:
+      source: tempo
+  processor:
+    service_graphs:
+      max_items: 10000
+    span_metrics: {}
+  traces_storage:
+    path: /var/tempo/generator/traces
+
+overrides:
+  metrics_generator_processors: [service-graphs, span-metrics]
+
 storage:
   trace:
     backend: local

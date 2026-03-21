@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/domain/lobby"
@@ -147,6 +149,12 @@ func connectRedis(ctx context.Context, rawURL string) (*redis.Client, error) {
 		return nil, err
 	}
 	rdb := redis.NewClient(opts)
+
+	// Habilitar tracing OTel
+	if err := redisotel.InstrumentTracing(rdb); err != nil {
+		return nil, fmt.Errorf("failed to instrument redis: %w", err)
+	}
+
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}

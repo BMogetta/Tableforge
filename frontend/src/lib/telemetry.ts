@@ -10,6 +10,8 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 import { W3CTraceContextPropagator } from '@opentelemetry/core'
 import { SeverityNumber } from '@opentelemetry/api-logs'
 import { onCLS, onFCP, onLCP, onTTFB, onINP } from 'web-vitals'
+import { registerInstrumentations } from '@opentelemetry/instrumentation'
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch'
 
 // ---------------------------------------------------------------------------
 // Shared resource — identifies this service in every signal
@@ -38,6 +40,16 @@ const tracerProvider = new WebTracerProvider({
 
 tracerProvider.register({
   propagator: new W3CTraceContextPropagator(),
+})
+
+registerInstrumentations({
+  instrumentations: [
+    new FetchInstrumentation({
+      propagateTraceHeaderCorsUrls: [/.*/],
+      ignoreUrls: [/\/auth\//],
+    }),
+  ],
+  tracerProvider,
 })
 
 export const tracer = tracerProvider.getTracer('tableforge-frontend')

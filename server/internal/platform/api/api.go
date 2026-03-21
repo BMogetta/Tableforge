@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/riandyrn/otelchi"
 	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/domain/notification"
 	"github.com/tableforge/server/internal/domain/runtime"
@@ -42,6 +43,12 @@ func NewRouter(
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
+	r.Use(otelchi.Middleware("game-server",
+		otelchi.WithChiRoutes(r),
+		otelchi.WithFilter(func(r *http.Request) bool {
+			return r.URL.Path != "/metrics" && r.URL.Path != "/health"
+		}),
+	))
 	r.Use(metricsMiddleware)
 
 	r.Get("/health", handleHealth)
