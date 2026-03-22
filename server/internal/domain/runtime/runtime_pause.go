@@ -59,9 +59,21 @@ func (svc *Service) VotePause(ctx context.Context, sessionID, playerID uuid.UUID
 		return PauseVoteResult{}, ErrNotParticipant
 	}
 
+	if _, err := svc.store.VotePause(ctx, sessionID, playerID); err != nil {
+		return PauseVoteResult{}, fmt.Errorf("VotePause: store vote: %w", err)
+	}
+
+	// Auto-vote for any registered bots so they never block pause consensus.
+	for _, p := range players {
+		if _, isBot := svc.bots.get(p.PlayerID); isBot {
+			_, _ = svc.store.VotePause(ctx, sessionID, p.PlayerID)
+		}
+	}
+
+	// Re-check consensus after bot votes — re-use playerID (idempotent).
 	allVoted, err := svc.store.VotePause(ctx, sessionID, playerID)
 	if err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VotePause: store vote: %w", err)
+		return PauseVoteResult{}, fmt.Errorf("VotePause: recheck: %w", err)
 	}
 
 	if allVoted {
@@ -122,9 +134,21 @@ func (svc *Service) VoteResume(ctx context.Context, sessionID, playerID uuid.UUI
 		return PauseVoteResult{}, ErrNotParticipant
 	}
 
+	if _, err := svc.store.VoteResume(ctx, sessionID, playerID); err != nil {
+		return PauseVoteResult{}, fmt.Errorf("VoteResume: store vote: %w", err)
+	}
+
+	// Auto-vote for any registered bots so they never block resume consensus.
+	for _, p := range players {
+		if _, isBot := svc.bots.get(p.PlayerID); isBot {
+			_, _ = svc.store.VoteResume(ctx, sessionID, p.PlayerID)
+		}
+	}
+
+	// Re-check consensus after bot votes — re-use playerID (idempotent).
 	allVoted, err := svc.store.VoteResume(ctx, sessionID, playerID)
 	if err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VoteResume: store vote: %w", err)
+		return PauseVoteResult{}, fmt.Errorf("VoteResume: recheck: %w", err)
 	}
 
 	if allVoted {
