@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { createPlayerContexts, setupAndStartGame, playFullGame } from './helpers'
+import {
+  createPlayerContexts,
+  setupAndStartGame,
+  playFullGame,
+  waitForSocketConnected,
+} from './helpers'
 
 // ---------------------------------------------------------------------------
 // Settings E2E tests
@@ -274,6 +279,9 @@ test.describe('Turn order enforcement', () => {
     await p2.getByTestId('join-code-input').fill(code!)
     await p2.getByTestId('join-btn').click()
     await expect(p2).toHaveURL(/\/rooms\//)
+
+    await waitForSocketConnected(p2)
+
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
     await p1.getByTestId('start-game-btn').click()
 
@@ -315,6 +323,9 @@ test.describe('Turn order enforcement', () => {
     await p2.getByTestId('join-code-input').fill(code!)
     await p2.getByTestId('join-btn').click()
     await expect(p2).toHaveURL(/\/rooms\//)
+
+    await waitForSocketConnected(p2)
+
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
     await p1.getByTestId('start-game-btn').click()
 
@@ -360,6 +371,9 @@ async function setupRematchLobby(p1: any, p2: any, rematchPolicy: string): Promi
   await p2.getByTestId('join-code-input').fill(code!)
   await p2.getByTestId('join-btn').click()
   await expect(p2).toHaveURL(/\/rooms\//)
+
+  await waitForSocketConnected(p2)
+
   await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
   await p1.getByTestId('start-game-btn').click()
 
@@ -376,6 +390,8 @@ async function setupRematchLobby(p1: any, p2: any, rematchPolicy: string): Promi
   await p2.getByTestId('rematch-btn').click()
   await expect(p1).toHaveURL(/\/rooms\//, { timeout: 15_000 })
   await expect(p2).toHaveURL(/\/rooms\//, { timeout: 10_000 })
+
+  await waitForSocketConnected(p2)
 
   // Owner starts the rematch.
   await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })

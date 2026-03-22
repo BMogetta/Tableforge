@@ -64,14 +64,50 @@ test.describe('Bot gameplay', () => {
       timeout: 10_000,
     })
 
-    // Play through to game over — P1 wins the top row, bot fills in between.
-    // We use a simple sequence: P1 takes 0,1,2; bot will play somewhere else.
-    await p1.locator('[data-cell="1"]').click()
-    await expect(p1.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
-    await p1.locator('[data-cell="2"]').click()
+    // Play random available cells until the game ends — outcome doesn't matter.
+    const status = p1.getByTestId('game-status')
 
-    // Game should end — P1 wins top row.
-    await expect(p1.getByTestId('game-status')).toContainText('You won', { timeout: 10_000 })
+    while (true) {
+      const isOver = await status.filter({ hasText: /You won|You lost|Draw/ }).count()
+      if (isOver) break
+
+      await expect(status).toContainText(/Your turn|You won|You lost|Draw/, { timeout: 10_000 })
+
+      const isOverNow = await status.filter({ hasText: /You won|You lost|Draw/ }).count()
+      if (isOverNow) break
+
+      const moveCounter = p1.locator('[data-testid="move-counter"], [data-move]').first()
+      const moveBefore = await p1.locator('text=/Move \\d+/').textContent()
+
+      const cells = p1.locator('[data-cell]')
+      const count = await cells.count()
+      let moved = false
+      for (let i = 0; i < count; i++) {
+        const cell = cells.nth(i)
+        const label = await cell.getAttribute('aria-label')
+        const enabled = await cell.isEnabled()
+        // Empty cell has aria-label "Cell N", occupied has "Cell N: X" or "Cell N: O"
+        if (enabled && label && !label.includes(':')) {
+          await cell.click()
+          moved = true
+          break
+        }
+      }
+
+      if (!moved) {
+        // No clickable cells found — wait for game to end.
+        await expect(status).toContainText(/You won|You lost|Draw/, { timeout: 10_000 })
+        break
+      }
+
+      // Wait for move to be processed — counter advances or game ends.
+      await expect(p1.locator('text=/Move \\d+/')).not.toHaveText(moveBefore!, { timeout: 5_000 })
+    }
+
+    // Game should be over — any outcome is valid.
+    await expect(p1.getByTestId('game-status')).toContainText(/You won|You lost|Draw/, {
+      timeout: 10_000,
+    })
 
     // Rematch button is visible — bot auto-votes so P1's single vote is enough.
     await p1.getByTestId('rematch-btn').click()

@@ -5,6 +5,7 @@ import {
   enableSpectators,
   setRoomPrivate,
   playFullGame,
+  waitForSocketConnected,
 } from './helpers'
 
 // ---------------------------------------------------------------------------
@@ -132,6 +133,7 @@ test.describe('Spectator mode', () => {
     await p3.goto(`/rooms/${roomId}`)
     await expect(p3.locator('span', { hasText: 'Spectating' })).toBeVisible({ timeout: 10_000 })
 
+    await waitForSocketConnected(p2)
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
     await p1.getByTestId('start-game-btn').click()
     await expect(p1).toHaveURL(/\/game\//)
@@ -177,6 +179,7 @@ test.describe('Spectator mode', () => {
     await p3.goto(`/rooms/${roomId}`)
     await expect(p3.locator('span', { hasText: 'Spectating' })).toBeVisible({ timeout: 10_000 })
 
+    await waitForSocketConnected(p2)
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
     await p1.getByTestId('start-game-btn').click()
     await expect(p1).toHaveURL(/\/game\//)
@@ -223,6 +226,7 @@ test.describe('Spectator mode', () => {
     await p3.goto(`/rooms/${roomId}`)
     await expect(p3.locator('span', { hasText: 'Spectating' })).toBeVisible({ timeout: 10_000 })
 
+    await waitForSocketConnected(p2)
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
     await p1.getByTestId('start-game-btn').click()
     await expect(p1).toHaveURL(/\/game\//)

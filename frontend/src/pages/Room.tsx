@@ -203,7 +203,10 @@ export function Room({ roomId }: { roomId: string }) {
 
       if (event.type === 'game_started') {
         if (!startingRef.current) {
-          navigateRef.current({ to: `/game/${event.payload.session.id}` })
+          navigateRef.current({
+            to: '/game/$sessionId',
+            params: { sessionId: event.payload.session.id },
+          })
         }
       }
 
@@ -247,7 +250,10 @@ export function Room({ roomId }: { roomId: string }) {
       return
     }
 
-    navigate({ to: `/game/${session.id}` })
+    navigate({
+      to: '/game/$sessionId',
+      params: { sessionId: session.id },
+    })
   }
 
   async function handleLeave() {
@@ -306,7 +312,10 @@ export function Room({ roomId }: { roomId: string }) {
   })
 
   return (
-    <div className={`${styles.root} page-enter`}>
+    <div
+      className={`${styles.root} page-enter`}
+      {...(import.meta.env.VITE_TEST_MODE === 'true' && { 'data-socket-status': socketStatus })}
+    >
       <ConnectionBanner status={socketStatus} />
 
       <div className={styles.layout}>

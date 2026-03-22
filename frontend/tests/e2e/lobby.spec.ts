@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { fileURLToPath } from 'url'
 import path from 'path'
-import { createPlayerContexts } from './helpers'
+import { createPlayerContexts, waitForSocketConnected } from './helpers'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PLAYER1_STATE = path.join(__dirname, '.auth/player1.json')
@@ -107,6 +107,9 @@ test.describe('Lobby', () => {
 
     await p2.getByTestId('join-code-input').fill(code!)
     await p2.getByTestId('join-btn').click()
+
+    await waitForSocketConnected(p2)
+
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
     await p1.getByTestId('start-game-btn').click()
     await expect(p1).toHaveURL(/\/game\//)

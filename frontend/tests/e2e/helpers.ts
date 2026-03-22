@@ -39,6 +39,14 @@ export async function createSpectatorContext(browser: Browser) {
   return { p3Ctx, p3 }
 }
 
+// Waits for a player's WebSocket to be fully connected before proceeding.
+// Prevents race conditions where P1 starts the game before P2's WS is ready.
+export async function waitForSocketConnected(page: Page) {
+  await page.waitForFunction(
+    () => document.querySelector('[data-socket-status="connected"]') !== null,
+  )
+}
+
 // P1 creates a room, P2 joins via the room code, P1 starts the game.
 // Both pages are asserted to have navigated to /game/:id before returning.
 //
@@ -64,6 +72,8 @@ export async function setupAndStartGame(p1: Page, p2: Page) {
   await p2.getByTestId('join-code-input').fill(code!)
   await p2.getByTestId('join-btn').click()
   await expect(p2).toHaveURL(/\/rooms\//)
+
+  await waitForSocketConnected(p2)
 
   await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
   await p1.getByTestId('start-game-btn').click()

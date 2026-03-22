@@ -31,11 +31,15 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 5_000 })
-    await expect(p2.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 5_000 })
+    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 5_000,
+    })
+    await expect(p2.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 5_000,
+    })
 
-    await p1.locator('input[placeholder="Message..."]').fill('hello from p1')
-    await p1.locator('input[placeholder="Message..."]').press('Enter')
+    await p1.locator('input[placeholder="Message or /command..."]').fill('hello from p1')
+    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
 
     await expect(chatMessage(p1, 'hello from p1')).toBeVisible({ timeout: 10_000 })
     await expect(chatMessage(p2, 'hello from p1')).toBeVisible({ timeout: 10_000 })
@@ -48,18 +52,22 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 5_000 })
-    await expect(p2.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 5_000 })
+    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 5_000,
+    })
+    await expect(p2.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 5_000,
+    })
 
-    await p1.locator('input[placeholder="Message..."]').fill('msg-alpha')
-    await p1.locator('input[placeholder="Message..."]').press('Enter')
+    await p1.locator('input[placeholder="Message or /command..."]').fill('msg-alpha')
+    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
 
     // Wait for P2 to receive it before P2 replies.
     await expect(chatMessage(p2, 'msg-alpha')).toBeVisible({ timeout: 10_000 })
 
-    await p2.locator('input[placeholder="Message..."]').click()
-    await p2.locator('input[placeholder="Message..."]').fill('msg-beta')
-    await p2.locator('input[placeholder="Message..."]').press('Enter')
+    await p2.locator('input[placeholder="Message or /command..."]').click()
+    await p2.locator('input[placeholder="Message or /command..."]').fill('msg-beta')
+    await p2.locator('input[placeholder="Message or /command..."]').press('Enter')
 
     // Both messages appear on both sides.
     await expect(chatMessage(p2, 'msg-beta')).toBeVisible({ timeout: 10_000 })
@@ -75,13 +83,17 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 5_000 })
+    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 5_000,
+    })
 
     await p1.locator('button[title="Hide chat"]').click()
-    await expect(p1.locator('input[placeholder="Message..."]')).not.toBeVisible()
+    await expect(p1.locator('input[placeholder="Message or /command..."]')).not.toBeVisible()
 
     await p1.locator('button[title="Show chat"]').click()
-    await expect(p1.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 3_000 })
+    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 3_000,
+    })
 
     await p1Ctx.close()
     await p2Ctx.close()
@@ -91,12 +103,14 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 5_000 })
+    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 5_000,
+    })
 
     const sendBtn = p1.locator('button[title="Send"]')
     await expect(sendBtn).toBeDisabled()
 
-    await p1.locator('input[placeholder="Message..."]').press('Enter')
+    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
 
     const messages = p1.locator('[class*="messageBubble"]')
     await expect(messages).toHaveCount(0)
@@ -109,10 +123,12 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message..."]')).toBeVisible({ timeout: 5_000 })
+    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
+      timeout: 5_000,
+    })
 
-    await p1.locator('input[placeholder="Message..."]').fill('persistent-msg')
-    await p1.locator('input[placeholder="Message..."]').press('Enter')
+    await p1.locator('input[placeholder="Message or /command..."]').fill('persistent-msg')
+    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
     await expect(chatMessage(p1, 'persistent-msg')).toBeVisible({ timeout: 5_000 })
 
     // P2 leaves the room properly before navigating away.

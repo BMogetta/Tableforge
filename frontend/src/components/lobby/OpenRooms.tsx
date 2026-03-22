@@ -31,7 +31,12 @@ export function OpenRooms() {
             <RoomCard
               key={view.room.id}
               view={view}
-              onJoin={() => navigate({ to: `/rooms/${view.room.id}` })}
+              onJoin={() =>
+                navigate({
+                  to: '/rooms/$roomId',
+                  params: { roomId: view.room.id },
+                })
+              }
             />
           ))}
         </div>

@@ -217,7 +217,10 @@ export function Game({ sessionId }: { sessionId: string }) {
         setTotalPlayers(event.payload.total_players)
       }
       if (event.type === 'rematch_ready') {
-        navigate({ to: `/rooms/${event.payload.room_id}` })
+        navigate({
+          to: '/rooms/$roomId',
+          params: { roomId: event.payload.room_id },
+        })
       }
       if (event.type === 'pause_vote_update') {
         setPauseVotes(event.payload.votes ?? [])
@@ -326,7 +329,10 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   function handleViewReplay() {
     leaveRoom()
-    navigate({ to: `/sessions/${sessionId}/history` })
+    navigate({
+      to: '/sessions/$sessionId/history',
+      params: { sessionId },
+    })
   }
 
   if (!session || !gameData) {
@@ -344,7 +350,11 @@ export function Game({ sessionId }: { sessionId: string }) {
   }
 
   const isMyTurn =
-    !isSpectator && gameData.current_player_id === player.id && !isOver && !isSuspended
+    !isSpectator &&
+    gameData.current_player_id === player.id &&
+    !isOver &&
+    !session.finished_at &&
+    !isSuspended
   const canPause = !isSpectator && !isOver && !isSuspended && !votedPause
   const canResume = !isSpectator && isSuspended && !votedResume
 

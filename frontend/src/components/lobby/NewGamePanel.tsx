@@ -63,7 +63,10 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
       if (event.type === 'match_ready') {
         const payload = event.payload
         clearQueue()
-        navigate({ to: `/game/${payload.session_id}` })
+        navigate({
+          to: '/game/$sessionId',
+          params: { sessionId: payload.session_id },
+        })
       }
 
       if (event.type === 'queue_left') {
@@ -88,13 +91,20 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
     mutationFn: () => rooms.create(effectiveGame, player.id),
     onSuccess: view => {
       qc.invalidateQueries({ queryKey: keys.rooms() })
-      navigate({ to: `/rooms/${view.room.id}` })
+      navigate({
+        to: '/rooms/$roomId',
+        params: { roomId: view.room.id },
+      })
     },
   })
 
   const joinRoom = useMutation({
     mutationFn: () => rooms.join(joinCode.trim().toUpperCase(), player.id),
-    onSuccess: view => navigate({ to: `/rooms/${view.room.id}` }),
+    onSuccess: view =>
+      navigate({
+        to: '/rooms/$roomId',
+        params: { roomId: view.room.id },
+      }),
   })
 
   const joinQueue = useMutation({

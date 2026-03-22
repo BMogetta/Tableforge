@@ -183,11 +183,14 @@ function NotFound() {
         PAGE NOT FOUND
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, maxWidth: 360, lineHeight: 1.6 }}>
-        The route you're looking for doesn't exist. It may have been moved, deleted, or you may
-        have mistyped the address.
+        The route you're looking for doesn't exist. It may have been moved, deleted, or you may have
+        mistyped the address.
       </p>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className='btn btn-primary' onClick={() => navigate({to: '/', replace: true, ignoreBlocker: true})}>
+        <button
+          className='btn btn-primary'
+          onClick={() => navigate({ to: '/', replace: true, ignoreBlocker: true })}
+        >
           Go to Lobby
         </button>
         <button className='btn btn-ghost' onClick={() => router.history.back()}>
@@ -253,5 +256,5 @@ export const Route = createRootRoute({
   pendingMs: 0,
 
   component: RootComponent,
-  notFoundComponent: NotFound
+  notFoundComponent: NotFound,
 })
