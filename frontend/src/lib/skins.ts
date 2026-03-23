@@ -1,4 +1,5 @@
 export type SkinId = 'obsidian' | 'parchment' | 'slate' | 'ivory'
+export type FontSize = 'small' | 'medium' | 'large'
 
 export interface Skin {
   id: SkinId
@@ -57,4 +58,14 @@ export function getSkin(id: SkinId): Skin {
 export function applySkin(id: SkinId): void {
   const skin = getSkin(id)
   document.documentElement.setAttribute('data-theme', skin.dataTheme)
+}
+
+const FONT_SCALE: Record<FontSize, string> = {
+  small:  '14px',
+  medium: '16px',
+  large:  '18px',
+}
+
+export function applyFontSize(size: FontSize): void {
+  document.documentElement.style.setProperty('--font-scale', String(FONT_SCALE[size]))
 }

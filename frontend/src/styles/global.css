@@ -337,11 +337,13 @@
   --font-display: "Cinzel", serif;
   --font-mono:    "JetBrains Mono", monospace;
 
-  --text-xs:   11px;
-  --text-sm:   12px;
-  --text-base: 14px;
-  --text-lg:   16px;
-  --text-xl:   20px;
+  --font-scale: 1rem;
+
+  --text-xs:   calc(var(--font-scale) * 0.6875);
+  --text-sm:   calc(var(--font-scale) * 0.75);
+  --text-base: calc(var(--font-scale) * 0.875);
+  --text-lg:   calc(var(--font-scale) * 1);
+  --text-xl:   calc(var(--font-scale) * 1.25);
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
@@ -351,8 +353,6 @@
   --line-height-base:   1.6;
   --line-height-loose:  1.8;
 }
-
-
 /* -----------------------------------------------------------------------------
    5. LAYOUT & SHAPE
    ----------------------------------------------------------------------------- */
@@ -391,7 +391,7 @@ body {
   background: var(--color-bg-base);
   color: var(--color-text-primary);
   font-family: var(--font-mono);
-  font-size: var(--text-base);
+  font-size: calc(var(--text-base) * var(--font-scale));
   line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
