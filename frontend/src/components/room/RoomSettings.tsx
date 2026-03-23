@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { rooms, type LobbySetting } from '../../lib/api'
 import styles from './RoomSettings.module.css'
+import { catchToAppError } from '../../utils/errors'
 
 interface Props {
   roomId: string
@@ -34,7 +35,7 @@ export function RoomSettings({
     } catch (err) {
       setErrors(e => ({
         ...e,
-        [key]: err instanceof Error ? err.message : 'Failed to save',
+        [key]: catchToAppError(err).message,
       }))
     } finally {
       setPending(null)

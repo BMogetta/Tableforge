@@ -5,6 +5,7 @@ import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap } from '../../l
 import { catchToAppError } from '../../utils/errors'
 import { useToast } from './Toast'
 import styles from './Settings.module.css'
+import { SKINS } from '../../lib/skins'
 
 // ---------------------------------------------------------------------------
 // Settings cache helpers (mirrors App.tsx)
@@ -80,17 +81,29 @@ export function Settings({ onClose }: Props) {
       <div className={styles.sections}>
         {/* ── Appearance ── */}
         <Section title='Appearance'>
-          <SelectRow
-            label='Theme'
-            description='Interface color scheme'
-            value={settings.theme}
-            options={[
-              { value: 'dark', label: 'Dark' },
-              { value: 'light', label: 'Light (coming soon)', disabled: true },
-              { value: 'system', label: 'System (coming soon)', disabled: true },
-            ]}
-            onChange={v => change('theme', v as PlayerSettingMap['theme'])}
-          />
+          <div className={styles.row}>
+            <div className={styles.rowLabel}>
+              <span>Skin</span>
+              <span className={styles.rowDesc}>Interface appearance</span>
+            </div>
+            <div className={styles.skinPicker}>
+              {SKINS.map(skin => (
+                <button
+                  key={skin.id}
+                  className={`${styles.skinOption} ${settings.theme === skin.id ? styles.skinOptionActive : ''}`}
+                  onClick={() => change('theme', skin.id)}
+                  title={`${skin.name} — ${skin.description}`}
+                  aria-label={skin.name}
+                >
+                  <span
+                    className={styles.skinSwatch}
+                    style={{ background: skin.preview[0], borderColor: skin.preview[2] }}
+                  />
+                  <span className={styles.skinName}>{skin.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <SelectRow
             label='Language'
             description='Display language'

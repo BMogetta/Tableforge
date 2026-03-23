@@ -15,7 +15,7 @@ describe('hydrateSettings', () => {
   it('merges stored values over defaults', () => {
     const raw: PlayerSettings = {
       player_id: 'p1',
-      settings: { theme: 'light', language: 'es' },
+      settings: { theme: 'parchment', language: 'es' },
       updated_at: new Date().toISOString(),
     }
 
@@ -29,7 +29,7 @@ describe('hydrateSettings', () => {
   it('preserves defaults for keys absent in stored settings', () => {
     const raw: PlayerSettings = {
       player_id: 'p1',
-      settings: { theme: 'light' },
+      settings: { theme: 'parchment' },
       updated_at: new Date().toISOString(),
     }
 
@@ -79,7 +79,7 @@ describe('hydrateSettings', () => {
 
 describe('updateSetting', () => {
   it('updates a single string key', () => {
-    useAppStore.getState().updateSetting('theme', 'light')
+    useAppStore.getState().updateSetting('theme', 'parchment')
     expect(useAppStore.getState().settings.theme).toBe('light')
   })
 
@@ -95,7 +95,7 @@ describe('updateSetting', () => {
 
   it('does not affect other keys', () => {
     const before = { ...useAppStore.getState().settings }
-    useAppStore.getState().updateSetting('theme', 'light')
+    useAppStore.getState().updateSetting('theme', 'parchment')
     const after = useAppStore.getState().settings
 
     expect(after.language).toBe(before.language)
@@ -104,7 +104,7 @@ describe('updateSetting', () => {
   })
 
   it('multiple sequential updates accumulate correctly', () => {
-    useAppStore.getState().updateSetting('theme', 'light')
+    useAppStore.getState().updateSetting('theme', 'parchment')
     useAppStore.getState().updateSetting('language', 'es')
     useAppStore.getState().updateSetting('volume_master', 0.3)
 
@@ -123,7 +123,7 @@ describe('setSettings', () => {
   it('replaces the entire settings object', () => {
     const override = {
       ...DEFAULT_SETTINGS,
-      theme: 'light' as const,
+      theme: 'parchment' as const,
       language: 'es',
     }
 
@@ -137,7 +137,7 @@ describe('setSettings', () => {
   it('does not affect other store state', () => {
     const playerBefore = useAppStore.getState().player
 
-    useAppStore.getState().setSettings({ ...DEFAULT_SETTINGS, theme: 'light' })
+    useAppStore.getState().setSettings({ ...DEFAULT_SETTINGS, theme: 'parchment' })
 
     expect(useAppStore.getState().player).toBe(playerBefore)
   })

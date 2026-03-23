@@ -30,7 +30,7 @@ export interface AllowedEmail {
 
 export interface PlayerSettingMap {
   // Appearance
-  theme?: 'dark' | 'light' | 'system'
+  theme?: 'obsidian' | 'parchment' | 'slate' | 'ivory'
   language?: string
   reduce_motion?: boolean
   font_size?: 'small' | 'medium' | 'large'
@@ -67,7 +67,7 @@ export interface PlayerSettings {
 
 /** Canonical application defaults — mirrors store.DefaultPlayerSettings(). */
 export const DEFAULT_SETTINGS: Required<PlayerSettingMap> = {
-  theme: 'dark',
+  theme: 'obsidian',
   language: 'en',
   reduce_motion: false,
   font_size: 'medium',

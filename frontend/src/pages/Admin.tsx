@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '../stores/store'
 import { admin, type AllowedEmail, type Player } from '../lib/api'
+import { catchToAppError, type AppError } from '../utils/errors'
+import { useToast } from '../components/ui/Toast'
 import styles from './Admin.module.css'
 
-type Tab = 'emails' | 'players' | 'observability'
+type Tab = 'emails' | 'players'
 
 export function Admin() {
   const player = useAppStore(s => s.player)!
@@ -34,18 +36,11 @@ export function Admin() {
         >
           Players
         </button>
-        <button
-          className={`${styles.tab} ${tab === 'observability' ? styles.tabActive : ''}`}
-          onClick={() => setTab('observability')}
-        >
-          Observability
-        </button>
       </nav>
 
       <main className={styles.content}>
         {tab === 'emails' && <EmailsPanel callerRole={player.role} />}
         {tab === 'players' && <PlayersPanel callerRole={player.role} callerID={player.id} />}
-        {tab === 'observability' && <ObservabilityPanel />}
       </main>
     </div>
   )
@@ -54,29 +49,30 @@ export function Admin() {
 // --- Emails panel ------------------------------------------------------------
 
 function EmailsPanel({ callerRole }: { callerRole: string }) {
+  const toast = useToast()
   const [entries, setEntries] = useState<AllowedEmail[]>([])
   const [loading, setLoading] = useState(true)
   const [newEmail, setNewEmail] = useState('')
   const [newRole, setNewRole] = useState<'player' | 'manager'>('player')
-  const [error, setError] = useState('')
+  const [addError, setAddError] = useState<AppError | null>(null)
 
   useEffect(() => {
     admin
       .listEmails()
       .then(setEntries)
-      .catch(() => setError('Failed to load emails'))
+      .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
   }, [])
 
   async function handleAdd() {
     if (!newEmail.trim()) return
-    setError('')
+    setAddError(null)
     try {
       const entry = await admin.addEmail(newEmail.trim(), newRole)
       setEntries(prev => [entry, ...prev.filter(e => e.email !== entry.email)])
       setNewEmail('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to add email')
+      setAddError(catchToAppError(e))
     }
   }
 
@@ -85,8 +81,8 @@ function EmailsPanel({ callerRole }: { callerRole: string }) {
     try {
       await admin.removeEmail(email)
       setEntries(prev => prev.filter(e => e.email !== email))
-    } catch {
-      setError('Failed to remove email')
+    } catch (e) {
+      toast.showError(catchToAppError(e))
     }
   }
 
@@ -115,7 +111,7 @@ function EmailsPanel({ callerRole }: { callerRole: string }) {
         </button>
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {addError && <p className={styles.error}>{addError.message}</p>}
 
       {loading ? (
         <p className={styles.empty}>Loading...</p>
@@ -165,15 +161,15 @@ function EmailsPanel({ callerRole }: { callerRole: string }) {
 const ROLES = ['player', 'manager', 'owner'] as const
 
 function PlayersPanel({ callerRole, callerID }: { callerRole: string; callerID: string }) {
+  const toast = useToast()
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
 
   useEffect(() => {
     admin
       .listPlayers()
       .then(setPlayers)
-      .catch(() => setError('Failed to load players'))
+      .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
   }, [])
 
@@ -182,7 +178,7 @@ function PlayersPanel({ callerRole, callerID }: { callerRole: string; callerID: 
       await admin.setRole(playerID, role)
       setPlayers(prev => prev.map(p => (p.id === playerID ? { ...p, role } : p)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update role')
+      toast.showError(catchToAppError(e))
     }
   }
 
@@ -190,8 +186,6 @@ function PlayersPanel({ callerRole, callerID }: { callerRole: string; callerID: 
 
   return (
     <div className={styles.panel}>
-      {error && <p className={styles.error}>{error}</p>}
-
       {loading ? (
         <p className={styles.empty}>Loading...</p>
       ) : (
@@ -241,44 +235,6 @@ function PlayersPanel({ callerRole, callerID }: { callerRole: string; callerID: 
           </tbody>
         </table>
       )}
-    </div>
-  )
-}
-
-// --- Observability panel -----------------------------------------------------
-
-const TOOLS = [
-  { id: 'grafana', label: 'Grafana', url: '/grafana' },
-  { id: 'jaeger', label: 'Jaeger', url: '/jaeger' },
-  { id: 'prometheus', label: 'Prometheus', url: '/prometheus' },
-] as const
-
-function ObservabilityPanel() {
-  const [active, setActive] = useState<string>('grafana')
-  const tool = TOOLS.find(t => t.id === active)!
-
-  return (
-    <div className={styles.observability}>
-      <div className={styles.toolTabs}>
-        {TOOLS.map(t => (
-          <button
-            key={t.id}
-            className={`${styles.toolTab} ${active === t.id ? styles.toolTabActive : ''}`}
-            onClick={() => setActive(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-        <a
-          href={tool.url}
-          target='_blank'
-          rel='noopener noreferrer'
-          className={`btn btn-ghost ${styles.openExternal}`}
-        >
-          Open ↗
-        </a>
-      </div>
-      <iframe key={active} src={tool.url} className={styles.iframe} title={tool.label} />
     </div>
   )
 }

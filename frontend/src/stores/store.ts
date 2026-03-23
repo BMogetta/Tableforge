@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Player, PlayerSettingMap, PlayerSettings } from '../lib/api'
 import { DEFAULT_SETTINGS } from '../lib/api'
 import { PlayerSocket, RoomSocket } from '../lib/ws'
+import { applySkin, type SkinId } from '../lib/skins'
 
 export type QueueStatus = 'idle' | 'queued' | 'match_found'
 
@@ -210,12 +211,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   hydrateSettings: (raw: PlayerSettings) => {
     const merged: ResolvedSettings = { ...DEFAULT_SETTINGS, ...raw.settings }
     set({ settings: merged })
+    if (merged.theme) applySkin(merged.theme as SkinId)
   },
 
-  updateSetting: (key, value) =>
+  updateSetting: (key, value) => {
     set(state => ({
       settings: { ...state.settings, [key]: value },
-    })),
+    }))
+    if (key === 'theme') applySkin(value as SkinId)
+  },
 
   setSettings: settings => set({ settings }),
 }))

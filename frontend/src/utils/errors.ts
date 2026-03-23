@@ -67,7 +67,7 @@ export interface AppError {
 // Conversion helpers
 // ---------------------------------------------------------------------------
 
-const isDev = import.meta.env.DEV
+const isDev = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
 
 /**
  * Maps an HTTP status code to a typed ApiErrorReason.

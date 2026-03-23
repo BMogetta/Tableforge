@@ -52,6 +52,36 @@
   --primitive-sand-400: #7a7568;
   --primitive-sand-700: #3d3c38;
 
+  /* Slate ramp (dark blue-grey surfaces) */
+  --primitive-slate-900: #0b0d12;
+  --primitive-slate-800: #12151e;
+  --primitive-slate-700: #1a1f2e;
+  --primitive-slate-600: #232840;
+  --primitive-slate-500: #2e3450;
+ 
+  /* Indigo ramp (slate accent) */
+  --primitive-indigo-500: #7b8cde;
+  --primitive-indigo-400: #9aaae8;
+  --primitive-indigo-700: #3d4a8a;
+  --primitive-indigo-glow: rgba(123, 140, 222, 0.15);
+ 
+  /* Ivory ramp (warm white surfaces) */
+  --primitive-ivory-50:  #fafaf7;
+  --primitive-ivory-100: #f2f2ec;
+  --primitive-ivory-200: #e8e8de;
+  --primitive-ivory-hover: #dcdcd0;
+ 
+  /* Moss ramp (ivory accent) */
+  --primitive-moss-600: #4a6741;
+  --primitive-moss-700: #354d2f;
+  --primitive-moss-500: #6b8f60;
+  --primitive-moss-glow: rgba(74, 103, 65, 0.12);
+ 
+  /* Charcoal text (ivory skin) */
+  --primitive-charcoal-800: #1e1e1e;
+  --primitive-charcoal-600: #4a4a4a;
+  --primitive-charcoal-400: #888888;
+
   /* Semantic fixed colors */
   --primitive-danger:  #c0392b;
   --primitive-success: #2d6a4f;
@@ -60,7 +90,8 @@
 
 
 /* -----------------------------------------------------------------------------
-   2. SEMANTIC TOKENS — Dark theme (default)
+   2a. SEMANTIC TOKENS — Obsidian skin (default)
+   "The Midnight Tavern" — near-black surfaces, amber gold accent
    ----------------------------------------------------------------------------- */
 
 :root,
@@ -116,7 +147,8 @@
 
 
 /* -----------------------------------------------------------------------------
-   2b. SEMANTIC TOKENS — Light theme (Pergamino)
+   2b. SEMANTIC TOKENS — Parchment skin
+   "The Illuminated Manuscript" — warm cream surfaces, brown ink accent
    ----------------------------------------------------------------------------- */
 
 [data-theme="light"] {
@@ -169,6 +201,116 @@
   --success:        var(--color-success);
 }
 
+/* -----------------------------------------------------------------------------
+   2c. SEMANTIC TOKENS — Slate skin
+   "The Strategy Room" — cold blue-grey dark, indigo accent
+   ----------------------------------------------------------------------------- */
+ 
+[data-theme="slate"] {
+  /* Surfaces */
+  --color-bg-base:     var(--primitive-slate-900);
+  --color-bg-surface:  var(--primitive-slate-800);
+  --color-bg-elevated: var(--primitive-slate-700);
+  --color-bg-hover:    var(--primitive-slate-600);
+ 
+  /* Text */
+  --color-text-primary:   #dde2f0;
+  --color-text-secondary: #8892b0;
+  --color-text-muted:     #4a5070;
+ 
+  /* Borders */
+  --color-border:        rgba(123, 140, 222, 0.1);
+  --color-border-bright: rgba(123, 140, 222, 0.3);
+ 
+  /* Interactive accent — indigo */
+  --color-interactive:       var(--primitive-indigo-500);
+  --color-interactive-hover: var(--primitive-indigo-400);
+  --color-interactive-dim:   var(--primitive-indigo-700);
+  --color-interactive-glow:  var(--primitive-indigo-glow);
+ 
+  /* Semantic states */
+  --color-danger:  #e05555;
+  --color-success: #4caf82;
+  --color-warning: #d4a853;
+ 
+  /* Focus ring */
+  --color-focus-ring: rgba(123, 140, 222, 0.35);
+ 
+  /* Noise overlay */
+  --noise-opacity: 0.3;
+ 
+  /* Legacy aliases */
+  --bg-base:        var(--color-bg-base);
+  --bg-surface:     var(--color-bg-surface);
+  --bg-elevated:    var(--color-bg-elevated);
+  --bg-hover:       var(--color-bg-hover);
+  --text-primary:   var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted:     var(--color-text-muted);
+  --border:         var(--color-border);
+  --border-bright:  var(--color-border-bright);
+  --amber:          var(--color-interactive);
+  --amber-dim:      var(--color-interactive-dim);
+  --amber-glow:     var(--color-interactive-glow);
+  --danger:         var(--color-danger);
+  --success:        var(--color-success);
+}
+ 
+ 
+/* -----------------------------------------------------------------------------
+   2d. SEMANTIC TOKENS — Ivory skin
+   "The Academy Hall" — clean warm white, moss green accent
+   ----------------------------------------------------------------------------- */
+ 
+[data-theme="ivory"] {
+  /* Surfaces */
+  --color-bg-base:     var(--primitive-ivory-50);
+  --color-bg-surface:  var(--primitive-ivory-100);
+  --color-bg-elevated: var(--primitive-ivory-200);
+  --color-bg-hover:    var(--primitive-ivory-hover);
+ 
+  /* Text */
+  --color-text-primary:   var(--primitive-charcoal-800);
+  --color-text-secondary: var(--primitive-charcoal-600);
+  --color-text-muted:     var(--primitive-charcoal-400);
+ 
+  /* Borders */
+  --color-border:        rgba(74, 103, 65, 0.1);
+  --color-border-bright: rgba(74, 103, 65, 0.28);
+ 
+  /* Interactive accent — moss green */
+  --color-interactive:       var(--primitive-moss-600);
+  --color-interactive-hover: var(--primitive-moss-700);
+  --color-interactive-dim:   var(--primitive-moss-500);
+  --color-interactive-glow:  var(--primitive-moss-glow);
+ 
+  /* Semantic states */
+  --color-danger:  #b03020;
+  --color-success: #2d6a4f;
+  --color-warning: #8a6a2e;
+ 
+  /* Focus ring */
+  --color-focus-ring: rgba(74, 103, 65, 0.35);
+ 
+  /* Noise overlay — barely visible on near-white */
+  --noise-opacity: 0.08;
+ 
+  /* Legacy aliases */
+  --bg-base:        var(--color-bg-base);
+  --bg-surface:     var(--color-bg-surface);
+  --bg-elevated:    var(--color-bg-elevated);
+  --bg-hover:       var(--color-bg-hover);
+  --text-primary:   var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted:     var(--color-text-muted);
+  --border:         var(--color-border);
+  --border-bright:  var(--color-border-bright);
+  --amber:          var(--color-interactive);
+  --amber-dim:      var(--color-interactive-dim);
+  --amber-glow:     var(--color-interactive-glow);
+  --danger:         var(--color-danger);
+  --success:        var(--color-success);
+}
 
 /* -----------------------------------------------------------------------------
    3. SPACING SCALE
