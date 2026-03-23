@@ -218,7 +218,7 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 			writeLobbyError(w, err)
 			return
 		}
-		rt.StartSession(session)
+		rt.StartSession(r.Context(), session, hub, runtime.DefaultReadyTimeout)
 		hub.Broadcast(roomID, ws.Event{
 			Type:    ws.EventGameStarted,
 			Payload: map[string]any{"session": session},

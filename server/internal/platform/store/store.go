@@ -160,6 +160,7 @@ type GameSession struct {
 	RoomID          uuid.UUID   `json:"room_id"`
 	GameID          string      `json:"game_id"`
 	Name            *string     `json:"name,omitempty"`
+	ReadyPlayers    []string    `json:"ready_players"`
 	State           []byte      `json:"state"`
 	Mode            SessionMode `json:"mode"`
 	MoveCount       int         `json:"move_count"`
@@ -492,6 +493,10 @@ type Store interface {
 	VoteResume(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
 	ClearResumeVotes(ctx context.Context, sessionID uuid.UUID) error
 	ForceCloseSession(ctx context.Context, sessionID uuid.UUID) error
+
+	// Ready handshake
+	VoteReady(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
+	ClearReadyVotes(ctx context.Context, sessionID uuid.UUID) error
 
 	// Notifications
 	CreateNotification(ctx context.Context, params CreateNotificationParams) (Notification, error)

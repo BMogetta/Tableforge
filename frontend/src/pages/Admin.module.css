@@ -1,229 +1,50 @@
 .root {
   min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-display, monospace);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-.icon {
-  font-size: 20px;
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 2px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.tab {
-  padding: 12px 20px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.tab:hover {
-  color: var(--text);
-}
-
-.tabActive {
-  color: var(--amber);
-  border-bottom-color: var(--amber);
-}
-
-.content {
-  padding: 24px;
-  max-width: 1000px;
-}
-
-/* Panel */
-.panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
-.addRow {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.addRow .input {
+.main {
   flex: 1;
-}
-
-.table {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  max-width: 1100px;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+  margin: 0 auto;
+  padding: var(--space-8);
+  gap: var(--space-8);
 }
 
-.table th {
-  text-align: left;
-  padding: 8px 12px;
-  color: var(--text-muted);
-  font-weight: 500;
-  border-bottom: 1px solid var(--border);
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 }
 
-.table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border-subtle, var(--border));
-}
-
-.table tr:hover td {
-  background: var(--surface-hover, rgba(255, 255, 255, 0.03));
-}
-
-.muted {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.error {
-  color: var(--danger);
-  font-size: 13px;
-}
-
-.empty {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.removeBtn {
-  color: var(--danger) !important;
-  padding: 2px 10px !important;
-  font-size: 12px !important;
-}
-
-/* Role badge */
-.roleBadge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
+/* Friends floating button — fixed bottom-left, currently disabled (coming soon) */
+.friendsBtn {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  cursor: not-allowed;
+  transition: all var(--transition);
 }
 
-.roleBadge[data-role="owner"] {
-  background: rgba(255, 180, 0, 0.15);
-  color: var(--amber, #ffb400);
-}
-
-.roleBadge[data-role="manager"] {
-  background: rgba(100, 160, 255, 0.15);
-  color: #64a0ff;
-}
-
-.roleBadge[data-role="player"] {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
-}
-
-/* Players panel */
-.playerCell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-}
-
-.youBadge {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
-}
-
-.roleSelect {
-  padding: 4px 8px !important;
-  font-size: 12px !important;
-  width: auto !important;
-}
-
-/* Observability */
-.observability {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  height: calc(100vh - 180px);
-}
-
-.toolTabs {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding-bottom: 12px;
-}
-
-.toolTab {
-  padding: 6px 16px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.toolTab:hover {
-  color: var(--text);
-  border-color: var(--text-muted);
-}
-
-.toolTabActive {
-  color: var(--amber);
-  border-color: var(--amber);
-  background: rgba(255, 180, 0, 0.08);
-}
-
-.openExternal {
-  margin-left: auto;
-  font-size: 12px;
-}
-
-.iframe {
-  flex: 1;
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
+.friendsBtn:not(:disabled):hover {
+  border-color: var(--color-border-bright);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-elevated);
 }

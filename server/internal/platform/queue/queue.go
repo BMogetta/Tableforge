@@ -632,7 +632,7 @@ func (s *Service) startMatch(ctx context.Context, playerA, playerB uuid.UUID) er
 		return fmt.Errorf("startMatch: start game: %w", err)
 	}
 
-	s.rt.StartSession(session)
+	s.rt.StartSession(context.Background(), session, s.hub, runtime.DefaultReadyTimeout)
 
 	payload := map[string]any{
 		"room_id":    roomID,

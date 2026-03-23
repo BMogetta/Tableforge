@@ -6,73 +6,17 @@ import { catchToAppError, type AppError } from '../utils/errors'
 import { useToast } from '../components/ui/Toast'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { keys } from '../lib/queryClient'
-import { TicTacToeBoard, type TicTacToeState } from '../components/TicTacToe'
-import { LoveLetter, type LoveLetterState } from '../components/loveletter/LoveLetter'
 import styles from './Game.module.css'
 import { SurrenderModal } from '../components/SurrenderModal'
 import type { WsPayloadMoveResult } from '../lib/ws'
 import { useNavigate } from '@tanstack/react-router'
-
-interface GameData {
-  current_player_id: string
-  data: unknown
-}
+import { GAME_RENDERERS, GameData } from '../games/registry'
 
 interface MoveResult {
   session: GameSession
   state: GameData
   is_over: boolean
   result?: { winner_id?: string; is_draw?: boolean }
-}
-
-// ---------------------------------------------------------------------------
-// Game renderer registry — add new games here.
-// ---------------------------------------------------------------------------
-
-interface RendererProps {
-  gameId: string
-  gameData: GameData
-  localPlayerId: string
-  onMove: (payload: Record<string, unknown>) => void
-  disabled: boolean
-  isOver: boolean
-  players: { id: string; username: string }[]
-}
-
-type RendererComponent = React.FC<RendererProps>
-
-const TicTacToeRenderer: RendererComponent = ({ gameData, localPlayerId, onMove, disabled }) => (
-  <TicTacToeBoard
-    state={gameData.data as TicTacToeState}
-    currentPlayerId={gameData.current_player_id}
-    localPlayerId={localPlayerId}
-    onMove={cell => onMove({ cell })}
-    disabled={disabled}
-  />
-)
-
-const LoveLetterRenderer: RendererComponent = ({
-  gameData,
-  localPlayerId,
-  onMove,
-  disabled,
-  isOver,
-  players,
-}) => (
-  <LoveLetter
-    state={gameData.data as LoveLetterState}
-    currentPlayerId={gameData.current_player_id}
-    localPlayerId={localPlayerId}
-    onMove={onMove}
-    disabled={disabled}
-    isOver={isOver}
-    players={players}
-  />
-)
-
-const GAME_RENDERERS: Record<string, RendererComponent> = {
-  tictactoe: TicTacToeRenderer,
-  loveletter: LoveLetterRenderer,
 }
 
 // ---------------------------------------------------------------------------

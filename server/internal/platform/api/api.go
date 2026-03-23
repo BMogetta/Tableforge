@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
@@ -124,6 +125,7 @@ func NewRouter(
 		r.Delete("/rooms/{roomID}/bots/{botID}", handleRemoveBot(rt, hub, st))
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
+		r.Post("/sessions/{sessionID}/ready", handlePlayerReady(rt, hub, st))
 		r.Get("/sessions/{sessionID}/events", handleGetSessionEvents(eventStore))
 		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub, st))
 		r.Post("/sessions/{sessionID}/rematch", handleRematch(rt, hub))
@@ -290,4 +292,13 @@ func writeRuntimeError(w http.ResponseWriter, err error) {
 	default:
 		writeError(w, http.StatusInternalServerError, "internal error")
 	}
+}
+
+func mustParseUUID(w http.ResponseWriter, r *http.Request, param string) uuid.UUID {
+	id, err := uuid.Parse(chi.URLParam(r, param))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid "+param)
+		return uuid.Nil
+	}
+	return id
 }

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RateLimitedRouteImport } from './routes/rate-limited'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DesignRouteImport } from './routes/design'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TestErrorRouteImport } from './routes/test.error'
@@ -26,6 +27,11 @@ const RateLimitedRoute = RateLimitedRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignRoute = DesignRouteImport.update({
+  id: '/design',
+  path: '/design',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -63,6 +69,7 @@ const SessionsSessionIdHistoryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/design': typeof DesignRoute
   '/login': typeof LoginRoute
   '/rate-limited': typeof RateLimitedRoute
   '/game/$sessionId': typeof GameSessionIdRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/design': typeof DesignRoute
   '/login': typeof LoginRoute
   '/rate-limited': typeof RateLimitedRoute
   '/game/$sessionId': typeof GameSessionIdRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/design': typeof DesignRoute
   '/login': typeof LoginRoute
   '/rate-limited': typeof RateLimitedRoute
   '/game/$sessionId': typeof GameSessionIdRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/design'
     | '/login'
     | '/rate-limited'
     | '/game/$sessionId'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/design'
     | '/login'
     | '/rate-limited'
     | '/game/$sessionId'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/design'
     | '/login'
     | '/rate-limited'
     | '/game/$sessionId'
@@ -127,6 +139,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  DesignRoute: typeof DesignRoute
   LoginRoute: typeof LoginRoute
   RateLimitedRoute: typeof RateLimitedRoute
   GameSessionIdRoute: typeof GameSessionIdRoute
@@ -149,6 +162,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -199,6 +219,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  DesignRoute: DesignRoute,
   LoginRoute: LoginRoute,
   RateLimitedRoute: RateLimitedRoute,
   GameSessionIdRoute: GameSessionIdRoute,

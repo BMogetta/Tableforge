@@ -9,6 +9,7 @@ services:
     networks:
       - monitoring_network
       - app_network
+    profiles: [monitoring]
     depends_on:
       - tempo
       - loki
@@ -23,6 +24,7 @@ services:
       - tempo-data:/var/tempo
     networks:
       - monitoring_network
+    profiles: [monitoring]
 
   # Grafana Loki - log aggregation backend
   loki:
@@ -34,6 +36,7 @@ services:
       - loki-data:/loki
     networks:
       - monitoring_network
+    profiles: [monitoring]
 
   promtail:
     image: grafana/promtail:3.0.0
@@ -49,6 +52,7 @@ services:
       - monitoring_network
       - app_network
     restart: unless-stopped
+    profiles: [monitoring]
 
   # Prometheus - metrics storage and query
   prometheus:
@@ -63,6 +67,7 @@ services:
     networks:
       - monitoring_network
       - app_network
+    profiles: [monitoring]
 
   # Grafana - visualization and dashboards
   grafana:
@@ -84,6 +89,7 @@ services:
       - tempo
       - loki
       - prometheus
+    profiles: [monitoring]
 
 volumes:
   tempo-data:

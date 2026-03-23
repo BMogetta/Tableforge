@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/domain/runtime"
+	"github.com/tableforge/server/internal/platform/auth"
 	"github.com/tableforge/server/internal/platform/events"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
@@ -160,6 +161,43 @@ func handleGetSessionEvents(ev *events.Store) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, evts)
+	}
+}
+
+// GET /api/v1/sessions/{sessionID}/ready
+func handlePlayerReady(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID := mustParseUUID(w, r, "sessionID")
+		if sessionID == uuid.Nil {
+			return
+		}
+		playerID, _ := auth.PlayerIDFromContext(r.Context())
+
+		result, err := rt.VoteReady(r.Context(), sessionID, playerID)
+		if err != nil {
+			writeRuntimeError(w, err)
+			return
+		}
+
+		if result.AllReady {
+			session, err := st.GetGameSession(r.Context(), sessionID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "internal error")
+				return
+			}
+			// Cancel ready timer — all players confirmed in time.
+			// Start turn timer now that the game is truly underway.
+			rt.OnAllReady(r.Context(), session, hub)
+		} else {
+			// Broadcast partial progress so clients can show "waiting" UI.
+			session, _ := st.GetGameSession(r.Context(), sessionID)
+			hub.Broadcast(session.RoomID, ws.Event{
+				Type:    ws.EventPlayerReady,
+				Payload: result,
+			})
+		}
+
+		writeJSON(w, http.StatusOK, result)
 	}
 }
 

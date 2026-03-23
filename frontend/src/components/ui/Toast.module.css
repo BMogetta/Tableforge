@@ -1,11 +1,12 @@
+/* Fixed bottom-right stack — below grain overlay (z-index 9999) */
 .container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 9998; /* below grain overlay (9999) */
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: 9998;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   pointer-events: none;
   width: 320px;
 }
@@ -14,11 +15,11 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px 16px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
   pointer-events: all;
   cursor: pointer;
   overflow: hidden;
@@ -36,32 +37,20 @@
   }
 }
 
-/* Variant borders */
-.error {
-  border-left: 3px solid var(--danger);
-}
-.warning {
-  border-left: 3px solid var(--amber);
-}
-.info {
-  border-left: 3px solid #4a9eff;
-}
+/* Variant left border — color-coded by severity */
+.error   { border-left: 3px solid var(--color-danger); }
+.warning { border-left: 3px solid var(--color-interactive); }
+.info    { border-left: 3px solid var(--color-success); }
 
 .icon {
-  font-size: 12px;
+  font-size: var(--text-sm);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
-.error .icon {
-  color: var(--danger);
-}
-.warning .icon {
-  color: var(--amber);
-}
-.info .icon {
-  color: #4a9eff;
-}
+.error   .icon { color: var(--color-danger); }
+.warning .icon { color: var(--color-interactive); }
+.info    .icon { color: var(--color-success); }
 
 .body {
   flex: 1;
@@ -72,20 +61,20 @@
 }
 
 .message {
-  font-size: 12px;
-  color: var(--text-primary);
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-base);
   word-break: break-word;
 }
 
 .code {
   font-size: 10px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   letter-spacing: 0.08em;
   font-family: var(--font-mono);
 }
 
-/* Progress bar */
+/* Auto-dismiss progress bar — shrinks from full width to 0 over AUTO_DISMISS_MS */
 .progress {
   position: absolute;
   bottom: 0;
@@ -103,21 +92,11 @@
   animation: shrink linear forwards;
 }
 
-.error .progressBar {
-  color: var(--danger);
-}
-.warning .progressBar {
-  color: var(--amber);
-}
-.info .progressBar {
-  color: #4a9eff;
-}
+.error   .progressBar { color: var(--color-danger); }
+.warning .progressBar { color: var(--color-interactive); }
+.info    .progressBar { color: var(--color-success); }
 
 @keyframes shrink {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
 }

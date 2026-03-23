@@ -1,7 +1,7 @@
 .root {
   min-height: 100vh;
-  background: var(--bg);
-  padding: 24px 16px 48px;
+  background: var(--color-bg-base);
+  padding: var(--space-6) var(--space-4) var(--space-12);
 }
 
 .container {
@@ -18,10 +18,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
 }
 
 .headerCenter {
@@ -33,43 +33,44 @@
 
 .gameLabel {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: var(--text-base);
   letter-spacing: 0.2em;
-  color: var(--amber);
+  color: var(--color-interactive);
   text-transform: uppercase;
 }
 
 .sessionId {
   font-size: 9px;
   letter-spacing: 0.15em;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-family: monospace;
 }
 
+/* Result badge — shown in header, varies by outcome */
 .resultBadge {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.2em;
-  padding: 4px 10px;
+  padding: var(--space-1) var(--space-2);
   border-radius: 3px;
   border: 1px solid;
 }
 
 .resultBadge[data-result="win"] {
-  color: var(--amber);
-  border-color: var(--amber);
-  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  color: var(--color-interactive);
+  border-color: var(--color-interactive);
+  background: color-mix(in srgb, var(--color-interactive) 10%, transparent);
 }
 
 .resultBadge[data-result="loss"] {
-  color: var(--danger);
-  border-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }
 
 .resultBadge[data-result="draw"] {
-  color: var(--text-muted);
-  border-color: var(--border);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
 }
 
 /* --- Stats bar ------------------------------------------------------------- */
@@ -78,11 +79,11 @@
   display: flex;
   align-items: center;
   gap: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 12px 20px;
-  margin-bottom: 20px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  margin-bottom: var(--space-5);
   overflow-x: auto;
 }
 
@@ -98,22 +99,22 @@
 .statLabel {
   font-size: 9px;
   letter-spacing: 0.12em;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   text-transform: uppercase;
 }
 
 .statValue {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
   letter-spacing: 0.03em;
 }
 
 .statDivider {
   width: 1px;
   height: 28px;
-  background: var(--border);
-  margin: 0 16px;
+  background: var(--color-border);
+  margin: 0 var(--space-4);
   flex-shrink: 0;
 }
 
@@ -122,31 +123,32 @@
 .tabs {
   display: flex;
   gap: 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-5);
 }
 
 .tab {
   font-family: var(--font-display);
   font-size: 10px;
   letter-spacing: 0.2em;
-  padding: 10px 20px;
+  padding: var(--space-2) var(--space-5);
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   cursor: pointer;
   position: relative;
-  transition: color 0.15s;
+  transition: color var(--transition);
 }
 
 .tab:hover {
-  color: var(--text);
+  color: var(--color-text-primary);
 }
 
 .tabActive {
-  color: var(--amber);
+  color: var(--color-interactive);
 }
 
+/* Active tab underline indicator */
 .tabActive::after {
   content: "";
   position: absolute;
@@ -154,7 +156,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--amber);
+  background: var(--color-interactive);
   border-radius: 2px 2px 0 0;
 }
 
@@ -168,22 +170,22 @@
 
 .eventRow {
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   animation: fadeSlideIn 0.2s ease both;
   transition:
-    border-color 0.15s,
-    background 0.15s;
+    border-color var(--transition),
+    background var(--transition);
 }
 
 .eventRow:hover {
-  background: var(--surface);
-  border-color: var(--border);
+  background: var(--color-bg-surface);
+  border-color: var(--color-border);
 }
 
 .eventRowOpen {
-  background: var(--surface);
-  border-color: var(--border);
+  background: var(--color-bg-surface);
+  border-color: var(--color-border);
 }
 
 @keyframes fadeSlideIn {
@@ -200,14 +202,14 @@
 .eventMeta {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
 }
 
 .eventIndex {
   font-size: 9px;
   font-family: monospace;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   min-width: 28px;
   letter-spacing: 0.05em;
 }
@@ -222,13 +224,13 @@
 .eventTime {
   font-size: 10px;
   font-family: monospace;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   min-width: 52px;
 }
 
 .eventLabel {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.02em;
   flex: 1;
 }
@@ -236,30 +238,31 @@
 .eventToggle {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 8px;
-  padding: 2px 6px;
+  padding: 2px var(--space-2);
   border-radius: 3px;
   transition:
-    color 0.1s,
-    background 0.1s;
+    color var(--transition),
+    background var(--transition);
 }
 
 .eventToggle:hover {
-  color: var(--text);
-  background: var(--border);
+  color: var(--color-text-primary);
+  background: var(--color-border);
 }
 
+/* JSON payload — shown when event row is expanded */
 .eventPayload {
-  padding: 8px 12px 12px 50px;
-  font-size: 11px;
+  padding: var(--space-2) var(--space-3) var(--space-3) 50px;
+  font-size: var(--text-xs);
   font-family: monospace;
-  color: var(--text-muted);
-  line-height: 1.6;
+  color: var(--color-text-muted);
+  line-height: var(--line-height-loose);
   white-space: pre-wrap;
   word-break: break-all;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
   margin: 0;
 }
 
@@ -268,7 +271,7 @@
 .replayRoot {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
   align-items: center;
 }
 
@@ -277,23 +280,23 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .replayStep {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.15em;
-  color: var(--amber);
+  color: var(--color-interactive);
 }
 
 .replayTime {
   font-size: 10px;
   font-family: monospace;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .replayBoard {
@@ -305,17 +308,18 @@
 .replayControls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
 }
 
 .replayBtn {
-  padding: 6px 10px !important;
-  font-size: 12px !important;
+  padding: var(--space-2) var(--space-2) !important;
+  font-size: var(--text-sm) !important;
   flex-shrink: 0;
 }
 
+/* Slider track + thumb — custom styled to match the design system */
 .replaySliderWrap {
   flex: 1;
   position: relative;
@@ -329,7 +333,7 @@
   appearance: none;
   -webkit-appearance: none;
   height: 2px;
-  background: var(--border);
+  background: var(--color-border);
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -342,58 +346,60 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--amber);
+  background: var(--color-interactive);
   cursor: pointer;
-  border: 2px solid var(--bg);
-  box-shadow: 0 0 0 1px var(--amber);
+  border: 2px solid var(--color-bg-base);
+  box-shadow: 0 0 0 1px var(--color-interactive);
 }
 
 .replaySlider::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--amber);
+  background: var(--color-interactive);
   cursor: pointer;
-  border: 2px solid var(--bg);
+  border: 2px solid var(--color-bg-base);
 }
 
+/* Filled portion of the slider track — overlaid behind the thumb */
 .replaySliderFill {
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
   height: 2px;
-  background: var(--amber);
+  background: var(--color-interactive);
   border-radius: 2px;
   pointer-events: none;
   z-index: 0;
 }
 
 .replayEmpty {
-  padding: 40px;
+  padding: var(--space-10);
   text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
+/* Shown when no renderer exists for the game — falls back to raw JSON */
 .replayNoRenderer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 32px;
-  color: var(--text-muted);
-  font-size: 13px;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
 .replayStateJson {
   font-size: 10px;
   font-family: monospace;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   max-width: 480px;
   overflow-x: auto;
   white-space: pre;
@@ -402,16 +408,16 @@
 /* --- Loading / empty ------------------------------------------------------- */
 
 .loading {
-  padding: 48px;
+  padding: var(--space-12);
   text-align: center;
-  color: var(--text-muted);
-  font-size: 12px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
   letter-spacing: 0.1em;
 }
 
 .empty {
-  padding: 48px;
+  padding: var(--space-12);
   text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }

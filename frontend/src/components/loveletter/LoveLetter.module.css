@@ -1,117 +1,33 @@
-.root {
+.hand {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-2) 0 var(--space-4);
+}
+
+.cardSlot {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 16px 0;
+  align-items: center;
+  gap: var(--space-2);
 }
 
-/* Info bar */
+/* Shown when a card in hand cannot be played (e.g. Countess rule) */
+.blockedLabel {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-danger);
+  opacity: 0.8;
+}
 
-.infoBar {
+.empty {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.roundBadge {
-  font-family: var(--font-display);
-  font-size: 12px;
-  color: var(--amber);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.deckCount {
-  font-size: 11px;
-  color: var(--text-secondary);
-  letter-spacing: 0.06em;
-}
-
-.setAside {
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-  text-transform: capitalize;
-}
-
-/* Player boards */
-
-.boards {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* Priest reveal */
-
-.priestReveal {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius);
-  animation: fadeIn 300ms ease forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.priestLabel {
-  font-size: 11px;
-  color: var(--text-secondary);
-  letter-spacing: 0.06em;
-}
-
-.priestCard {
-  font-size: 12px;
-  color: var(--amber);
-  font-weight: 500;
-  text-transform: capitalize;
-  letter-spacing: 0.04em;
-}
-
-/* Hand section */
-
-.handSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sectionLabel {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-/* Target picker */
-
-.pickerSection {
-  padding: 16px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-/* Actions */
-
-.actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
+  justify-content: center;
+  height: 80px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
 }

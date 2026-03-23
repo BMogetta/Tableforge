@@ -1,3 +1,4 @@
+/* Full-screen backdrop */
 .overlay {
   position: fixed;
   inset: 0;
@@ -10,15 +11,15 @@
 }
 
 .modal {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-bright);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-bright);
   border-radius: var(--radius);
   padding: 28px;
   width: 100%;
   max-width: 400px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
   animation: slideUp 200ms ease forwards;
 }
 
@@ -36,32 +37,32 @@
 .header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .roundLabel {
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
 }
 
 .winnerText {
   font-family: var(--font-display);
   font-size: 20px;
-  color: var(--amber);
+  color: var(--color-interactive);
   letter-spacing: 0.06em;
 }
 
-/* Spy bonus */
+/* Spy bonus — awarded when the only surviving spy played it */
 
 .spyBonus {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 12px;
-  background: var(--amber-glow);
-  border: 1px solid rgba(212, 168, 83, 0.2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-interactive-glow);
+  border: 1px solid color-mix(in srgb, var(--color-interactive) 20%, transparent);
   border-radius: var(--radius);
 }
 
@@ -69,41 +70,42 @@
   font-size: 9px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--amber-dim);
+  color: var(--color-interactive-dim);
 }
 
 .spyNames {
-  font-size: 12px;
-  color: var(--text-primary);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
 }
 
-/* Standings */
+/* Standings — shows all players with their hand card and token count */
 
 .standings {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .playerRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
 }
 
+/* Round winner row — amber tinted */
 .winnerRow {
-  border-color: var(--amber-dim);
-  background: var(--amber-glow);
+  border-color: var(--color-interactive-dim);
+  background: var(--color-interactive-glow);
 }
 
 .playerName {
-  font-size: 12px;
-  color: var(--text-primary);
-  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -112,12 +114,12 @@
 
 .handCard {
   font-size: 10px;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   letter-spacing: 0.04em;
   text-transform: capitalize;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 1px 6px;
+  padding: 1px var(--space-2);
 }
 
 .tokenTrack {
@@ -129,42 +131,43 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1px solid var(--amber-dim);
+  border: 1px solid var(--color-interactive-dim);
   background: transparent;
 }
 
 .tokenFilled {
-  background: var(--amber);
-  border-color: var(--amber);
-  box-shadow: 0 0 4px var(--amber-glow);
+  background: var(--color-interactive);
+  border-color: var(--color-interactive);
+  box-shadow: 0 0 4px var(--color-interactive-glow);
 }
 
 .tokenCount {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
   min-width: 28px;
   text-align: right;
 }
 
-/* Footer */
+/* Footer — auto-continue progress bar + action buttons */
 
 .footer {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
+/* Progress bar — shrinks over the auto-continue delay */
 .progressBar {
   width: 100%;
   height: 2px;
-  background: var(--bg-elevated);
+  background: var(--color-bg-elevated);
   border-radius: 1px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: var(--amber-dim);
+  background: var(--color-interactive-dim);
   transition: width 100ms linear;
 }

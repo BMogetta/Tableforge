@@ -3,19 +3,19 @@
 
 .title {
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: var(--text-sm);
   letter-spacing: 0.15em;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
-/* Game selector */
+/* Game selector — pill buttons for choosing which game to create/join */
 .gameSelector {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .gameOption {
@@ -23,107 +23,107 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding: 10px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  color: var(--text-secondary);
-  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: all var(--transition);
 }
 
 .gameOption:hover {
-  border-color: var(--border-bright);
-  color: var(--text-primary);
+  border-color: var(--color-border-bright);
+  color: var(--color-text-primary);
 }
 
 .gameOptionActive {
-  border-color: var(--amber-dim);
-  background: var(--amber-glow);
-  color: var(--amber);
+  border-color: var(--color-interactive-dim);
+  background: var(--color-interactive-glow);
+  color: var(--color-interactive);
 }
 
 .playerCount {
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   letter-spacing: 0.05em;
 }
 
 .gameOptionActive .playerCount {
-  color: var(--amber-dim);
+  color: var(--color-interactive-dim);
 }
 
-/* Tabs */
+/* Tabs — toggle between Casual and Ranked */
 .tabs {
   display: flex;
   gap: 0;
-  margin-bottom: 14px;
-  border: 1px solid var(--border);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   overflow: hidden;
 }
 
 .tab {
   flex: 1;
-  padding: 8px 0;
-  font-size: 11px;
+  padding: var(--space-2) 0;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  background: var(--bg-surface);
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface);
   border: none;
   cursor: pointer;
   transition: all var(--transition);
 }
 
 .tab:first-child {
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--color-border);
 }
 
 .tab:hover {
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-elevated);
 }
 
 .tabActive {
-  color: var(--amber);
-  background: var(--amber-glow);
+  color: var(--color-interactive);
+  background: var(--color-interactive-glow);
 }
 
-/* Body */
 .body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .casualBody {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .joinRow {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .joinRow .input {
   flex: 1;
 }
 
-/* Ranked */
+/* Ranked matchmaking */
 .rankedBody {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
+/* Queue status card — shown while searching for a match */
 .queueStatus {
-  padding: 14px 16px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  padding: var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
 }
 
@@ -136,68 +136,67 @@
 .queueLabel {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .queueTimer {
   font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--amber);
+  font-size: var(--text-sm);
+  color: var(--color-interactive);
   letter-spacing: 0.05em;
 }
 
-/* Spinner */
+/* Animated spinner — shown next to queue label */
 .spinner {
   display: inline-block;
   width: 12px;
   height: 12px;
-  border: 1.5px solid var(--border-bright);
-  border-top-color: var(--amber);
+  border: 1.5px solid var(--color-border-bright);
+  border-top-color: var(--color-interactive);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
+/* Match found card — replaces queue status when opponent is found */
 .matchFound {
-  padding: 14px 16px;
-  background: var(--amber-glow);
-  border: 1px solid var(--amber-dim);
+  padding: var(--space-4);
+  background: var(--color-interactive-glow);
+  border: 1px solid var(--color-interactive-dim);
   border-radius: var(--radius);
 }
 
 .matchFoundLabel {
-  font-size: 13px;
-  color: var(--amber);
-  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--color-interactive);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.05em;
 }
 
 .matchFoundHint {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
 }
 
 .rankedNote {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
   padding-top: 2px;
 }
 
 .ratingWord {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .error {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--danger);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
 }

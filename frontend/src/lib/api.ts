@@ -130,6 +130,7 @@ export interface GameSession {
   room_id: string
   game_id: string
   state: unknown
+  ready_players: string[];
   mode: 'casual' | 'ranked'
   move_count: number
   suspend_count: number
@@ -461,6 +462,11 @@ export const sessions = {
       state: { current_player_id: string; data: unknown }
       result?: GameResult
     }>(`/sessions/${id}`),
+  ready: (sessionId: string, playerId: string) =>
+    request<{ ready_players: string[]; required: number; all_ready: boolean }>(
+      `/sessions/${sessionId}/ready`,
+      { method: 'POST', body: JSON.stringify({ player_id: playerId }) }
+    ),
   move: (sessionId: string, playerId: string, payload: unknown) =>
     request<{
       session: GameSession

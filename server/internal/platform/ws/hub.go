@@ -23,6 +23,8 @@ const (
 	EventRoomClosed   EventType = "room_closed"
 	EventGameStarted  EventType = "game_started"
 	EventRematchVote  EventType = "rematch_vote"
+	EventGameReady    EventType = "game_ready"
+	EventPlayerReady  EventType = "player_ready"
 	// EventRematchReady is broadcast to all clients in the room when every
 	// player has voted for a rematch. The payload contains the room_id so
 	// clients can navigate back to the lobby without a full page reload.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -65,14 +66,48 @@ func (svc *Service) SetRatingEngine(e *rating.Engine) {
 	svc.ratingEngine = e
 }
 
-// StartSession schedules the initial turn timer and appends a game_started event.
+// DefaultReadyTimeout is the time players have to confirm asset loading.
+// Inject a shorter duration in tests to avoid waiting 60 seconds.
+const DefaultReadyTimeout = 60 * time.Second
+
+// StartSession initiates the ready handshake for a newly created session.
+// It auto-confirms any registered bots (they live on the server and need no
+// asset loading), then either:
+//   - calls OnAllReady immediately if all participants are already confirmed
+//     (e.g. a bot-only room), or
+//   - schedules a ready timer that forfeits players who don't confirm within
+//     readyTimeout.
+//
+// The TurnTimer does NOT start here — it starts in OnAllReady once every
+// participant has sent player_ready.
 // Call this from the lobby after creating the session.
-func (svc *Service) StartSession(session store.GameSession) {
-	if svc.timer != nil {
-		svc.timer.Schedule(session)
+func (svc *Service) StartSession(ctx context.Context, session store.GameSession, hub *ws.Hub, readyTimeout time.Duration) {
+	// Auto-confirm bots — they live on the server and need no asset loading.
+	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
+	if err == nil {
+		allReady := false
+		for _, p := range players {
+			if _, isBot := svc.bots.get(p.PlayerID); isBot {
+				ready, _ := svc.store.VoteReady(ctx, session.ID, p.PlayerID)
+				if ready {
+					allReady = true
+				}
+			}
+		}
+		if allReady {
+			// All participants confirmed — skip the ready timer and start immediately.
+			svc.OnAllReady(ctx, session, hub)
+			goto appendEvent
+		}
 	}
+
+	if svc.timer != nil {
+		svc.timer.ScheduleReady(session.ID, readyTimeout)
+	}
+
+appendEvent:
 	if svc.events != nil {
-		svc.events.Append(context.Background(), session.ID, events.TypeGameStarted, nil, map[string]any{
+		svc.events.Append(ctx, session.ID, events.TypeGameStarted, nil, map[string]any{
 			"game_id":           session.GameID,
 			"turn_timeout_secs": session.TurnTimeoutSecs,
 		})
@@ -418,6 +453,22 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 			WinnerID: winnerEngineID,
 		},
 	}, nil
+}
+
+func (svc *Service) OnAllReady(ctx context.Context, session store.GameSession, hub *ws.Hub) {
+	if svc.timer != nil {
+		svc.timer.CancelReady(session.ID)
+		svc.timer.Schedule(session)
+	}
+	if err := svc.store.ClearReadyVotes(ctx, session.ID); err != nil {
+		log.Printf("OnAllReady: clear ready votes %s: %v", session.ID, err)
+	}
+	if hub != nil {
+		hub.Broadcast(session.RoomID, ws.Event{
+			Type:    ws.EventGameReady,
+			Payload: map[string]any{"session_id": session.ID},
+		})
+	}
 }
 
 // ErrNotFinished is returned when a rematch is requested on an active session.

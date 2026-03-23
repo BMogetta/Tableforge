@@ -1,29 +1,235 @@
+/* =============================================================================
+   TABLEFORGE — DESIGN SYSTEM
+   Token architecture:
+     1. Primitives  — raw values, never used directly in components
+     2. Semantic    — roles mapped from primitives, theme-aware
+     3. Component   — specific overrides per component (in .module.css files)
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. PRIMITIVES
+   ----------------------------------------------------------------------------- */
+
 :root {
-  --bg-base: #0a0a0b;
-  --bg-surface: #111114;
-  --bg-elevated: #1a1a1f;
-  --bg-hover: #22222a;
+  /* Amber ramp */
+  --primitive-amber-900: #412402;
+  --primitive-amber-800: #633806;
+  --primitive-amber-700: #854f0b;
+  --primitive-amber-600: #a36610;
+  --primitive-amber-500: #d4a853;
+  --primitive-amber-400: #e8bc6a;
+  --primitive-amber-300: #f0d090;
+  --primitive-amber-100: #faeeda;
+  --primitive-amber-glow: rgba(212, 168, 83, 0.15);
 
-  --amber: #d4a853;
-  --amber-dim: #8a6a2e;
-  --amber-glow: rgba(212, 168, 83, 0.15);
+  /* Ink ramp (light theme accent) */
+  --primitive-ink-900: #150d07;
+  --primitive-ink-800: #2c1810;
+  --primitive-ink-700: #4a2a1a;
+  --primitive-ink-600: #7b4f2e;
+  --primitive-ink-500: #a07050;
+  --primitive-ink-400: #c49878;
+  --primitive-ink-glow: rgba(123, 79, 46, 0.15);
 
-  --text-primary: #e8e4d9;
-  --text-secondary: #7a7568;
-  --text-muted: #3d3c38;
+  /* Parchment ramp (light theme surfaces) */
+  --primitive-parchment-900: #2c2318;
+  --primitive-parchment-800: #6b5a4e;
+  --primitive-parchment-700: #9c8878;
+  --primitive-parchment-600: #b09880;
+  --primitive-parchment-200: #e0d4c0;
+  --primitive-parchment-100: #ede5d6;
+  --primitive-parchment-50:  #f5f0e8;
 
-  --border: rgba(212, 168, 83, 0.12);
-  --border-bright: rgba(212, 168, 83, 0.35);
+  /* Obsidian ramp (dark theme surfaces) */
+  --primitive-obsidian-900: #0a0a0b;
+  --primitive-obsidian-800: #111114;
+  --primitive-obsidian-700: #1a1a1f;
+  --primitive-obsidian-600: #22222a;
+  --primitive-obsidian-500: #2e2e38;
 
-  --danger: #c0392b;
-  --success: #2d6a4f;
+  /* Neutral text ramp */
+  --primitive-sand-100: #e8e4d9;
+  --primitive-sand-400: #7a7568;
+  --primitive-sand-700: #3d3c38;
 
-  --font-display: "Cinzel", serif;
-  --font-mono: "JetBrains Mono", monospace;
-
-  --radius: 2px;
-  --transition: 150ms ease;
+  /* Semantic fixed colors */
+  --primitive-danger:  #c0392b;
+  --primitive-success: #2d6a4f;
+  --primitive-warning: #d4a853;
 }
+
+
+/* -----------------------------------------------------------------------------
+   2. SEMANTIC TOKENS — Dark theme (default)
+   ----------------------------------------------------------------------------- */
+
+:root,
+[data-theme="dark"] {
+  /* Surfaces */
+  --color-bg-base:     var(--primitive-obsidian-900);
+  --color-bg-surface:  var(--primitive-obsidian-800);
+  --color-bg-elevated: var(--primitive-obsidian-700);
+  --color-bg-hover:    var(--primitive-obsidian-600);
+
+  /* Text */
+  --color-text-primary:   var(--primitive-sand-100);
+  --color-text-secondary: var(--primitive-sand-400);
+  --color-text-muted:     var(--primitive-sand-700);
+
+  /* Borders */
+  --color-border:        rgba(212, 168, 83, 0.12);
+  --color-border-bright: rgba(212, 168, 83, 0.35);
+
+  /* Interactive accent */
+  --color-interactive:       var(--primitive-amber-500);
+  --color-interactive-hover: var(--primitive-amber-400);
+  --color-interactive-dim:   var(--primitive-amber-700);
+  --color-interactive-glow:  var(--primitive-amber-glow);
+
+  /* Semantic states */
+  --color-danger:  var(--primitive-danger);
+  --color-success: var(--primitive-success);
+  --color-warning: var(--primitive-warning);
+
+  /* Focus ring */
+  --color-focus-ring: rgba(212, 168, 83, 0.4);
+
+  /* Noise overlay */
+  --noise-opacity: 0.4;
+
+  /* Legacy aliases — kept for backwards compat with existing components */
+  --bg-base:      var(--color-bg-base);
+  --bg-surface:   var(--color-bg-surface);
+  --bg-elevated:  var(--color-bg-elevated);
+  --bg-hover:     var(--color-bg-hover);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted:   var(--color-text-muted);
+  --border:       var(--color-border);
+  --border-bright: var(--color-border-bright);
+  --amber:        var(--color-interactive);
+  --amber-dim:    var(--color-interactive-dim);
+  --amber-glow:   var(--color-interactive-glow);
+  --danger:       var(--color-danger);
+  --success:      var(--color-success);
+}
+
+
+/* -----------------------------------------------------------------------------
+   2b. SEMANTIC TOKENS — Light theme (Pergamino)
+   ----------------------------------------------------------------------------- */
+
+[data-theme="light"] {
+  /* Surfaces */
+  --color-bg-base:     var(--primitive-parchment-50);
+  --color-bg-surface:  var(--primitive-parchment-100);
+  --color-bg-elevated: var(--primitive-parchment-200);
+  --color-bg-hover:    #d6c8b0;
+
+  /* Text */
+  --color-text-primary:   var(--primitive-ink-800);
+  --color-text-secondary: var(--primitive-ink-600);
+  --color-text-muted:     var(--primitive-parchment-600);
+
+  /* Borders */
+  --color-border:        rgba(123, 79, 46, 0.12);
+  --color-border-bright: rgba(123, 79, 46, 0.35);
+
+  /* Interactive accent */
+  --color-interactive:       var(--primitive-ink-600);
+  --color-interactive-hover: var(--primitive-ink-700);
+  --color-interactive-dim:   var(--primitive-ink-500);
+  --color-interactive-glow:  var(--primitive-ink-glow);
+
+  /* Semantic states */
+  --color-danger:  #9b2215;
+  --color-success: #1e4d35;
+  --color-warning: var(--primitive-ink-600);
+
+  /* Focus ring */
+  --color-focus-ring: rgba(123, 79, 46, 0.4);
+
+  /* Noise overlay — subtle on light */
+  --noise-opacity: 0.15;
+
+  /* Legacy aliases */
+  --bg-base:        var(--color-bg-base);
+  --bg-surface:     var(--color-bg-surface);
+  --bg-elevated:    var(--color-bg-elevated);
+  --bg-hover:       var(--color-bg-hover);
+  --text-primary:   var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted:     var(--color-text-muted);
+  --border:         var(--color-border);
+  --border-bright:  var(--color-border-bright);
+  --amber:          var(--color-interactive);
+  --amber-dim:      var(--color-interactive-dim);
+  --amber-glow:     var(--color-interactive-glow);
+  --danger:         var(--color-danger);
+  --success:        var(--color-success);
+}
+
+
+/* -----------------------------------------------------------------------------
+   3. SPACING SCALE
+   ----------------------------------------------------------------------------- */
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+}
+
+
+/* -----------------------------------------------------------------------------
+   4. TYPOGRAPHY SCALE
+   ----------------------------------------------------------------------------- */
+
+:root {
+  --font-display: "Cinzel", serif;
+  --font-mono:    "JetBrains Mono", monospace;
+
+  --text-xs:   11px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-lg:   16px;
+  --text-xl:   20px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold:   600;
+
+  --line-height-tight:  1.4;
+  --line-height-base:   1.6;
+  --line-height-loose:  1.8;
+}
+
+
+/* -----------------------------------------------------------------------------
+   5. LAYOUT & SHAPE
+   ----------------------------------------------------------------------------- */
+
+:root {
+  --radius:     2px;
+  --radius-md:  4px;
+  --radius-lg:  8px;
+  --transition: 150ms ease;
+
+  /* Elevation shadows (light theme only — dark uses borders) */
+  --shadow-sm: 0 1px 3px rgba(44, 24, 16, 0.08);
+  --shadow-md: 0 4px 12px rgba(44, 24, 16, 0.12);
+}
+
+
+/* -----------------------------------------------------------------------------
+   6. RESET
+   ----------------------------------------------------------------------------- */
 
 *,
 *::before,
@@ -40,16 +246,16 @@ body,
 }
 
 body {
-  background: var(--bg-base);
-  color: var(--text-primary);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
   font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: var(--text-base);
+  line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* Grain overlay */
+/* Grain overlay — controlled by --noise-opacity per theme */
 body::before {
   content: "";
   position: fixed;
@@ -57,11 +263,11 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.4;
+  opacity: var(--noise-opacity);
 }
 
 a {
-  color: var(--amber);
+  color: var(--color-interactive);
   text-decoration: none;
 }
 
@@ -77,25 +283,23 @@ input {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-base);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--amber-dim);
-  border-radius: 2px;
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--color-bg-base); }
+::-webkit-scrollbar-thumb { background: var(--color-interactive-dim); border-radius: 2px; }
 
-/* Utility classes */
+
+/* -----------------------------------------------------------------------------
+   7. UTILITY CLASSES
+   ----------------------------------------------------------------------------- */
+
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 10px 20px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   border-radius: var(--radius);
@@ -104,34 +308,41 @@ input {
 }
 
 .btn-primary {
-  background: var(--amber);
-  color: var(--bg-base);
-  border: 1px solid var(--amber);
+  background: var(--color-interactive);
+  color: var(--color-bg-base);
+  border: 1px solid var(--color-interactive);
+}
+.btn-primary:hover {
+  background: var(--color-interactive-hover);
+  box-shadow: 0 0 20px var(--color-interactive-glow);
 }
 
-.btn-primary:hover {
-  background: #e8bc6a;
-  box-shadow: 0 0 20px var(--amber-glow);
+.btn-secondary {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-bright);
+}
+.btn-secondary:hover {
+  background: var(--color-bg-hover);
+  box-shadow: 0 0 12px var(--color-interactive-glow);
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
-
 .btn-ghost:hover {
-  color: var(--text-primary);
-  border-color: var(--border-bright);
-  background: var(--bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-bright);
+  background: var(--color-bg-hover);
 }
 
 .btn-danger {
   background: transparent;
-  color: var(--danger);
+  color: var(--color-danger);
   border: 1px solid rgba(192, 57, 43, 0.3);
 }
-
 .btn-danger:hover {
   background: rgba(192, 57, 43, 0.1);
 }
@@ -141,48 +352,50 @@ input {
   cursor: not-allowed;
 }
 
+/* Form */
 .input {
   width: 100%;
   padding: 10px 14px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  color: var(--text-primary);
-  font-size: 13px;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
   transition: border-color var(--transition);
   outline: none;
 }
-
 .input:focus {
-  border-color: var(--amber-dim);
+  border-color: var(--color-interactive-dim);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
-
-.input::placeholder {
-  color: var(--text-muted);
-}
+.input::placeholder { color: var(--color-text-muted); }
+.input:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .label {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
 }
 
+/* Card */
 .card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 20px;
 }
 
+/* Divider */
 .divider {
   border: none;
-  border-top: 1px solid var(--border);
-  margin: 16px 0;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-4) 0;
 }
 
+/* Badges */
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -191,43 +404,30 @@ input {
   text-transform: uppercase;
   border-radius: var(--radius);
 }
-
 .badge-amber {
-  background: var(--amber-glow);
-  color: var(--amber);
+  background: var(--color-interactive-glow);
+  color: var(--color-interactive);
   border: 1px solid rgba(212, 168, 83, 0.2);
 }
-
 .badge-muted {
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
-/* Page fade-in */
+/* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
 }
 
 .page-enter {
   animation: fadeIn 300ms ease forwards;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
 }
 
 .pulse {

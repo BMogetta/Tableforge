@@ -1,149 +1,33 @@
-.root {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
+.hand {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-2) 0 var(--space-4);
+}
+
+.cardSlot {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: border-color var(--transition);
-  min-width: 160px;
-}
-
-.activeTurn {
-  border-color: var(--amber-dim);
-}
-
-.local {
-  background: var(--bg-elevated);
-}
-
-.eliminated {
-  opacity: 0.45;
-}
-
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.nameRow {
-  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
-.turnIndicator {
-  font-size: 8px;
-  color: var(--amber);
-}
-
-.username {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.youBadge {
+/* Shown when a card in hand cannot be played (e.g. Countess rule) */
+.blockedLabel {
   font-size: 9px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1px 5px;
-  flex-shrink: 0;
-}
-
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.badge {
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: var(--radius);
-  padding: 1px 5px;
-  border: 1px solid;
-}
-
-.badge[data-variant="protected"] {
-  color: #7eb8d4;
-  border-color: rgba(126, 184, 212, 0.3);
-  background: rgba(126, 184, 212, 0.08);
-}
-
-.badge[data-variant="eliminated"] {
-  color: var(--danger);
-  border-color: rgba(192, 57, 43, 0.3);
-  background: rgba(192, 57, 43, 0.08);
-}
-
-.badge[data-variant="spy"] {
-  color: var(--amber-dim);
-  border-color: rgba(212, 168, 83, 0.2);
-  background: var(--amber-glow);
-}
-
-/* Token track */
-
-.tokens {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.token {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid var(--amber-dim);
-  background: transparent;
-  transition: background var(--transition);
-}
-
-.tokenFilled {
-  background: var(--amber);
-  border-color: var(--amber);
-  box-shadow: 0 0 6px var(--amber-glow);
-}
-
-/* Discard pile */
-
-.discardSection {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.discardLabel {
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.discardPile {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.discardCard {
-  width: 48px;
-  height: 70px;
-  font-size: 7px;
+  color: var(--color-danger);
+  opacity: 0.8;
 }
 
 .empty {
-  font-size: 11px;
-  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
 }

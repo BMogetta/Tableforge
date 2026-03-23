@@ -17,6 +17,7 @@ import (
 )
 
 const timerKeyPrefix = "timer:session:"
+const readyTimerKeyPrefix = "timer:ready:"
 
 func timerKey(sessionID uuid.UUID) string {
 	return timerKeyPrefix + sessionID.String()
@@ -66,16 +67,28 @@ func (tt *TurnTimer) Start(ctx context.Context) {
 				return
 			}
 			key := msg.Payload
-			if !strings.HasPrefix(key, timerKeyPrefix) {
+
+			if strings.HasPrefix(key, readyTimerKeyPrefix) {
+				idStr := strings.TrimPrefix(key, readyTimerKeyPrefix)
+				sessionID, err := uuid.Parse(idStr)
+				if err != nil {
+					log.Printf("TurnTimer: invalid session id in ready key %q: %v", key, err)
+					continue
+				}
+				go tt.onReadyTimeout(sessionID)
 				continue
 			}
-			idStr := strings.TrimPrefix(key, timerKeyPrefix)
-			sessionID, err := uuid.Parse(idStr)
-			if err != nil {
-				log.Printf("TurnTimer: invalid session id in key %q: %v", key, err)
+
+			if strings.HasPrefix(key, timerKeyPrefix) {
+				idStr := strings.TrimPrefix(key, timerKeyPrefix)
+				sessionID, err := uuid.Parse(idStr)
+				if err != nil {
+					log.Printf("TurnTimer: invalid session id in key %q: %v", key, err)
+					continue
+				}
+				go tt.onTimeout(sessionID)
 				continue
 			}
-			go tt.onTimeout(sessionID)
 		}
 	}
 }
@@ -272,6 +285,27 @@ func nextPlayerAfter(current engine.PlayerID, players []store.RoomPlayer) engine
 	return current
 }
 
+func readyTimerKey(sessionID uuid.UUID) string {
+	return readyTimerKeyPrefix + sessionID.String()
+}
+
+// ScheduleReady sets a TTL-based timer for the ready handshake.
+// When it expires, players who haven't confirmed are forfeited.
+// timeout is injected so tests can use a shorter duration.
+func (tt *TurnTimer) ScheduleReady(sessionID uuid.UUID, timeout time.Duration) {
+	ctx := context.Background()
+	if err := tt.rdb.Set(ctx, readyTimerKey(sessionID), sessionID.String(), timeout).Err(); err != nil {
+		log.Printf("TurnTimer.ScheduleReady: redis SET %s: %v", sessionID, err)
+	}
+}
+
+func (tt *TurnTimer) CancelReady(sessionID uuid.UUID) {
+	ctx := context.Background()
+	if err := tt.rdb.Del(ctx, readyTimerKey(sessionID)).Err(); err != nil {
+		log.Printf("TurnTimer.CancelReady: redis DEL %s: %v", sessionID, err)
+	}
+}
+
 type TimeoutResult struct {
 	SessionID      uuid.UUID         `json:"session_id"`
 	TimedOutPlayer string            `json:"timed_out_player"`
@@ -314,6 +348,101 @@ func (tt *TurnTimer) applyEngineTimeout(ctx context.Context, session store.GameS
 
 	log.Printf("TurnTimer: session %s engine timeout applied, timed out: %s, is_over: %v",
 		session.ID, timedOutPlayer, result.IsOver)
+}
+
+func (tt *TurnTimer) onReadyTimeout(sessionID uuid.UUID) {
+	ctx := context.Background()
+	session, err := tt.st.GetGameSession(ctx, sessionID)
+	if err != nil || session.FinishedAt != nil {
+		return
+	}
+
+	players, err := tt.st.ListRoomPlayers(ctx, session.RoomID)
+	if err != nil {
+		log.Printf("TurnTimer.onReadyTimeout: list players %s: %v", sessionID, err)
+		return
+	}
+
+	readySet := make(map[string]bool, len(session.ReadyPlayers))
+	for _, id := range session.ReadyPlayers {
+		readySet[id] = true
+	}
+
+	var notReady []uuid.UUID
+	for _, p := range players {
+		if !readySet[p.PlayerID.String()] {
+			notReady = append(notReady, p.PlayerID)
+		}
+	}
+
+	if len(notReady) == 0 {
+		return
+	}
+
+	isDraw := len(notReady) == len(players)
+
+	if err := tt.st.FinishSession(ctx, sessionID); err != nil {
+		log.Printf("TurnTimer.onReadyTimeout: finish session %s: %v", sessionID, err)
+		return
+	}
+	if err := tt.st.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
+		log.Printf("TurnTimer.onReadyTimeout: finish room %s: %v", session.RoomID, err)
+	}
+
+	var winnerID *uuid.UUID
+	resultPlayers := make([]store.GameResultPlayer, len(players))
+	for i, p := range players {
+		outcome := "win"
+		if isDraw {
+			outcome = "draw"
+		} else {
+			absent := false
+			for _, id := range notReady {
+				if id == p.PlayerID {
+					absent = true
+					break
+				}
+			}
+			if absent {
+				outcome = "loss"
+			} else {
+				w := p.PlayerID
+				winnerID = &w
+			}
+		}
+		resultPlayers[i] = store.GameResultPlayer{
+			PlayerID: p.PlayerID,
+			Seat:     p.Seat,
+			Outcome:  outcome,
+		}
+	}
+
+	if _, err := tt.st.CreateGameResult(ctx, store.CreateGameResultParams{
+		SessionID: sessionID,
+		GameID:    session.GameID,
+		WinnerID:  winnerID,
+		IsDraw:    isDraw,
+		EndedBy:   "ready_timeout",
+		Players:   resultPlayers,
+	}); err != nil {
+		log.Printf("TurnTimer.onReadyTimeout: create result %s: %v", sessionID, err)
+	}
+
+	tt.hub.Broadcast(session.RoomID, ws.Event{
+		Type: ws.EventGameOver,
+		Payload: map[string]any{
+			"session": session,
+			"is_over": true,
+			"result": map[string]any{
+				"winner_id": winnerID,
+				"is_draw":   isDraw,
+			},
+			"ended_by": "ready_timeout",
+		},
+	})
+
+	log.Printf("TurnTimer.onReadyTimeout: session %s ended, draw=%v, not_ready=%d",
+		sessionID, isDraw, len(notReady))
 }
 
 var _ = fmt.Sprintf

@@ -1,3 +1,4 @@
+/* Full-screen backdrop — darkens the game behind the modal */
 .overlay {
   position: fixed;
   inset: 0;
@@ -9,33 +10,33 @@
 }
 
 .dialog {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 28px 32px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px var(--space-8);
   width: 360px;
   max-width: 90vw;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .body {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   margin: 0;
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }

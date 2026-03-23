@@ -1,8 +1,10 @@
 export type WsEventType =
   // Game flow
-  | 'move_applied'
-  | 'game_over'
   | 'game_started'
+  | 'game_over'
+  | 'move_applied'
+  | 'player_ready'
+  | 'game_ready'
   | 'rematch_vote'
   | 'rematch_ready'
   // Room
@@ -46,6 +48,16 @@ export interface WsPayloadMoveResult {
   state: { current_player_id: string; data: unknown }
   is_over: boolean
   result?: { winner_id?: string; is_draw?: boolean }
+}
+
+export interface WsPayloadPlayerReady {
+  ready_players: string[]
+  required: number
+  all_ready: boolean
+}
+
+export interface WsPayloadGameReady {
+  session_id: string
 }
 
 export interface WsPayloadGameStarted {
@@ -134,9 +146,11 @@ export interface WsPayloadResumeVoteUpdate {
 // --- Discriminated union -----------------------------------------------------
 
 export type WsEvent =
-  | { type: 'move_applied'; payload: WsPayloadMoveResult }
-  | { type: 'game_over'; payload: WsPayloadMoveResult }
   | { type: 'game_started'; payload: WsPayloadGameStarted }
+  | { type: 'game_over'; payload: WsPayloadMoveResult }
+  | { type: 'player_ready'; payload: WsPayloadPlayerReady }
+  | { type: 'game_ready'; payload: WsPayloadGameReady }
+  | { type: 'move_applied'; payload: WsPayloadMoveResult }
   | { type: 'rematch_vote'; payload: WsPayloadRematchVote }
   | { type: 'rematch_ready'; payload: WsPayloadRematchReady }
   | { type: 'owner_changed'; payload: WsPayloadOwnerChanged }

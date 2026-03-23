@@ -270,6 +270,7 @@ func (f *FakeStore) CreateGameSession(
 		Mode:            mode,
 		PauseVotes:      []string{},
 		ResumeVotes:     []string{},
+		ReadyPlayers:    []string{},
 		StartedAt:       time.Now(),
 		LastMoveAt:      time.Now(),
 		TurnTimeoutSecs: turnTimeoutSecs,
@@ -776,6 +777,34 @@ func (f *FakeStore) ClearResumeVotes(_ context.Context, sessionID uuid.UUID) err
 		return ErrNotFound
 	}
 	gs.ResumeVotes = []string{}
+	f.Sessions[sessionID] = gs
+	return nil
+}
+
+// --- Ready handshake ---------------------------------------------------------
+
+func (f *FakeStore) VoteReady(_ context.Context, sessionID uuid.UUID, playerID uuid.UUID) (bool, error) {
+	gs, ok := f.Sessions[sessionID]
+	if !ok {
+		return false, ErrNotFound
+	}
+	playerStr := playerID.String()
+	for _, v := range gs.ReadyPlayers {
+		if v == playerStr {
+			return f.checkAllVoted(sessionID, gs.ReadyPlayers), nil
+		}
+	}
+	gs.ReadyPlayers = append(gs.ReadyPlayers, playerStr)
+	f.Sessions[sessionID] = gs
+	return f.checkAllVoted(sessionID, gs.ReadyPlayers), nil
+}
+
+func (f *FakeStore) ClearReadyVotes(_ context.Context, sessionID uuid.UUID) error {
+	gs, ok := f.Sessions[sessionID]
+	if !ok {
+		return ErrNotFound
+	}
+	gs.ReadyPlayers = []string{}
 	f.Sessions[sessionID] = gs
 	return nil
 }
