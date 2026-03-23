@@ -47,6 +47,13 @@ export async function waitForSocketConnected(page: Page) {
   )
 }
 
+// Waits for the GameLoading screen to complete and the game board to appear.
+// Must be called after navigating to /game/:id — the loading screen sends
+// POST /ready and waits for game_ready from the server before showing the board.
+export async function waitForGameReady(page: Page) {
+  await page.waitForSelector('[data-testid="game-status"]', { timeout: 20_000 })
+}
+
 // P1 creates a room, P2 joins via the room code, P1 starts the game.
 // Both pages are asserted to have navigated to /game/:id before returning.
 //
@@ -80,6 +87,9 @@ export async function setupAndStartGame(p1: Page, p2: Page) {
 
   await expect(p1).toHaveURL(/\/game\//)
   await expect(p2).toHaveURL(/\/game\//, { timeout: 10_000 })
+  
+  // Wait for both players to complete the ready handshake before returning.
+  await Promise.all([waitForGameReady(p1), waitForGameReady(p2)])
 }
 
 // Enables spectators for a room via the settings API.
@@ -108,6 +118,8 @@ export async function playFullGame(p1: Page, p2: Page) {
     { player: p2, cell: 4 },
     { player: p1, cell: 2 },
   ]
+
+  await Promise.all([waitForGameReady(p1), waitForGameReady(p2)])
 
   for (const { player, cell } of moves) {
     await expect(player.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })

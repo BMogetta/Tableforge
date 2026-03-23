@@ -439,7 +439,7 @@ func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameI
 		`INSERT INTO game_sessions (room_id, game_id, state, turn_timeout_secs, mode)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, room_id, game_id, name, state, mode, move_count, suspend_count,
-                   suspended_at, suspended_reason, pause_votes, resume_votes,
+                   suspended_at, suspended_reason, pause_votes, resume_votes, ready_players,
                    turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at`,
 		roomID, gameID, initialState, turnTimeoutSecs, mode,
 	)
@@ -449,7 +449,7 @@ func (s *PGStore) CreateGameSession(ctx context.Context, roomID uuid.UUID, gameI
 func (s *PGStore) GetGameSession(ctx context.Context, id uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, room_id, game_id, name, state, mode, move_count,
-		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes, ready_players,
 		        turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 		 FROM game_sessions WHERE id = $1 AND deleted_at IS NULL`,
 		id,
@@ -473,7 +473,7 @@ func (s *PGStore) GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameR
 func (s *PGStore) GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, room_id, game_id, name, state, mode, move_count,
-		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes, ready_players,
 		        turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 		 FROM game_sessions
 		 WHERE room_id = $1 AND finished_at IS NULL AND deleted_at IS NULL
@@ -623,7 +623,7 @@ func (s *PGStore) CountFinishedSessions(ctx context.Context, roomID uuid.UUID) (
 func (s *PGStore) GetLastFinishedSession(ctx context.Context, roomID uuid.UUID) (GameSession, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT id, room_id, game_id, name, state, mode, move_count,
-		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+		        suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes, ready_players,
 		        turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 		 FROM game_sessions
 		 WHERE room_id = $1 AND finished_at IS NOT NULL AND deleted_at IS NULL
@@ -927,14 +927,14 @@ func scanRoom(row scanner) (Room, error) {
 // All queries against game_sessions must select columns in this exact order:
 //
 //	id, room_id, game_id, name, state, mode, move_count,
-//	suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes,
+//	suspend_count, suspended_at, suspended_reason, pause_votes, resume_votes, ready_players,
 //	turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 func scanSession(row scanner) (GameSession, error) {
 	var gs GameSession
 	if err := row.Scan(
 		&gs.ID, &gs.RoomID, &gs.GameID, &gs.Name, &gs.State, &gs.Mode,
 		&gs.MoveCount, &gs.SuspendCount, &gs.SuspendedAt, &gs.SuspendedReason,
-		&gs.PauseVotes, &gs.ResumeVotes,
+		&gs.PauseVotes, &gs.ResumeVotes, &gs.ReadyPlayers,
 		&gs.TurnTimeoutSecs, &gs.LastMoveAt, &gs.StartedAt, &gs.FinishedAt, &gs.DeletedAt,
 	); err != nil {
 		return GameSession{}, fmt.Errorf("scanSession: %w", err)

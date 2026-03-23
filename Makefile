@@ -4,27 +4,27 @@
 
 # Start all services in development mode.
 up:
-	docker compose up --build
+	docker compose --profile monitoring up --build
 
 # Start all services with test auth bypass enabled.
 up-test:
-	TEST_MODE=true docker compose up --build
+	TEST_MODE=true docker compose --profile monitoring up --build
 
 # Stop all services and remove containers.
 down:
-	docker compose down
+	docker compose --profile monitoring down
 
 # Rebuild all images without starting.
 build:
-	docker compose build
+	docker compose --profile monitoring build
 
 # Show running containers.
 ps:
-	docker compose ps
+	docker compose --profile monitoring ps
 
 # Tail logs for all services.
 logs:
-	docker compose logs -f
+	docker compose --profile monitoring logs -f
 
 # --- Database ----------------------------------------------------------------
 
@@ -38,7 +38,7 @@ seed:
 # Output: frontend/tests/e2e/.players.json
 seed-test:
 	@mkdir -p frontend/tests/e2e
-	docker compose exec game-server /bin/seed-test > frontend/tests/e2e/.players.json
+	docker compose --profile monitoring exec game-server /bin/seed-test > frontend/tests/e2e/.players.json
 	@echo "Test players created:"
 	@cat frontend/tests/e2e/.players.json
 
@@ -75,4 +75,4 @@ clean-test:
 
 # Remove all docker volumes (wipes the database).
 clean:
-	docker compose down -v
+	docker compose --profile monitoring down -v
