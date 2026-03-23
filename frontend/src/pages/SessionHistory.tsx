@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
 import { SessionEvent, sessions, type Move } from '../lib/api'
 import { keys } from '../lib/queryClient'
-import { TicTacToeBoard, type TicTacToeState } from '../components/TicTacToe'
+import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
 import { useNavigate } from '@tanstack/react-router'
 

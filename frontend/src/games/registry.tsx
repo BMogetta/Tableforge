@@ -1,5 +1,5 @@
-import { TicTacToeBoard, type TicTacToeState } from '../components/TicTacToe'
-import { LoveLetter, type LoveLetterState } from '../components/loveletter/LoveLetter'
+import { TicTacToeBoard, type TicTacToeState } from './tictactoe/components/TicTacToe'
+import { LoveLetter, type LoveLetterState } from './loveletter/components/LoveLetter'
 
 // ---------------------------------------------------------------------------
 // Game renderer registry — add new games here.
