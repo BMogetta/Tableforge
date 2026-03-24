@@ -271,7 +271,7 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 			svc.events.Append(ctx, sessionID, events.TypeGameOver, nil, map[string]any{
 				"winner_id": result.WinnerID,
 				"status":    result.Status,
-				"ended_by":  "win",
+				"ended_by":  store.EndedByNormal,
 			})
 			svc.events.Persist(ctx, sessionID)
 		}
@@ -394,9 +394,9 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 
 	resultPlayers := make([]store.GameResultPlayer, len(players))
 	for i, p := range players {
-		outcome := "loss"
+		outcome := store.OutcomeLoss
 		if opponentID != nil && p.PlayerID == *opponentID {
-			outcome = "win"
+			outcome = store.OutcomeWin
 		}
 		resultPlayers[i] = store.GameResultPlayer{
 			PlayerID: p.PlayerID,
@@ -410,7 +410,7 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		GameID:    session.GameID,
 		WinnerID:  opponentID,
 		IsDraw:    false,
-		EndedBy:   "forfeit",
+		EndedBy:   store.EndedByForfeit,
 		Players:   resultPlayers,
 	}); err != nil {
 		fmt.Printf("Surrender: record game result: %v\n", err)
@@ -427,8 +427,8 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		})
 		svc.events.Append(ctx, sessionID, events.TypeGameOver, nil, map[string]any{
 			"winner_id": opponentID,
-			"status":    "win",
-			"ended_by":  "forfeit",
+			"status":    store.OutcomeWin,
+			"ended_by":  store.EndedByForfeit,
 		})
 		svc.events.Persist(ctx, sessionID)
 	}
@@ -546,12 +546,12 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 // --- Helpers -----------------------------------------------------------------
 
 func buildGameResultParams(session store.GameSession, result engine.Result, players []store.RoomPlayer) store.CreateGameResultParams {
-	endedBy := "draw"
+	endedBy := store.EndedByDraw
 	var winnerID *uuid.UUID
 
 	switch result.Status {
 	case engine.ResultWin:
-		endedBy = "win"
+		endedBy = store.EndedByNormal
 		if result.WinnerID != nil {
 			id, err := uuid.Parse(string(*result.WinnerID))
 			if err == nil {
@@ -559,16 +559,16 @@ func buildGameResultParams(session store.GameSession, result engine.Result, play
 			}
 		}
 	case engine.ResultDraw:
-		endedBy = "draw"
+		endedBy = store.EndedByDraw
 	}
 
 	resultPlayers := make([]store.GameResultPlayer, len(players))
 	for i, p := range players {
-		outcome := "loss"
+		outcome := store.OutcomeLoss
 		if result.Status == engine.ResultDraw {
-			outcome = "draw"
+			outcome = store.OutcomeDraw
 		} else if winnerID != nil && p.PlayerID == *winnerID {
-			outcome = "win"
+			outcome = store.OutcomeWin
 		}
 		resultPlayers[i] = store.GameResultPlayer{
 			PlayerID: p.PlayerID,

@@ -22,7 +22,7 @@ describe('hydrateSettings', () => {
     useAppStore.getState().hydrateSettings(raw)
     const s = useAppStore.getState().settings
 
-    expect(s.theme).toBe('light')
+    expect(s.theme).toBe('parchment')
     expect(s.language).toBe('es')
   })
 
@@ -37,7 +37,7 @@ describe('hydrateSettings', () => {
     const s = useAppStore.getState().settings
 
     // theme overridden
-    expect(s.theme).toBe('light')
+    expect(s.theme).toBe('parchment')
     // everything else stays at default
     expect(s.language).toBe(DEFAULT_SETTINGS.language)
     expect(s.notify_dm).toBe(DEFAULT_SETTINGS.notify_dm)
@@ -80,7 +80,7 @@ describe('hydrateSettings', () => {
 describe('updateSetting', () => {
   it('updates a single string key', () => {
     useAppStore.getState().updateSetting('theme', 'parchment')
-    expect(useAppStore.getState().settings.theme).toBe('light')
+    expect(useAppStore.getState().settings.theme).toBe('parchment')
   })
 
   it('updates a boolean key', () => {
@@ -109,7 +109,7 @@ describe('updateSetting', () => {
     useAppStore.getState().updateSetting('volume_master', 0.3)
 
     const s = useAppStore.getState().settings
-    expect(s.theme).toBe('light')
+    expect(s.theme).toBe('parchment')
     expect(s.language).toBe('es')
     expect(s.volume_master).toBe(0.3)
   })
@@ -124,13 +124,13 @@ describe('setSettings', () => {
     const override = {
       ...DEFAULT_SETTINGS,
       theme: 'parchment' as const,
-      language: 'es',
+      language: 'es' as const,
     }
 
     useAppStore.getState().setSettings(override)
     const s = useAppStore.getState().settings
 
-    expect(s.theme).toBe('light')
+    expect(s.theme).toBe('parchment')
     expect(s.language).toBe('es')
   })
 

@@ -182,7 +182,7 @@ func (tt *TurnTimer) applyLoseGame(ctx context.Context, session store.GameSessio
 		log.Printf("TurnTimer: finish room %s: %v", session.RoomID, err)
 	}
 	resultParams := buildGameResultParams(session, result, players)
-	resultParams.EndedBy = "timeout"
+	resultParams.EndedBy = store.EndedByTimeout
 	if _, err := tt.st.CreateGameResult(ctx, resultParams); err != nil {
 		log.Printf("TurnTimer: create game result for %s: %v", session.ID, err)
 	}
@@ -194,8 +194,8 @@ func (tt *TurnTimer) applyLoseGame(ctx context.Context, session store.GameSessio
 		})
 		tt.events.Append(ctx, session.ID, events.TypeGameOver, nil, map[string]any{
 			"winner_id": winnerID,
-			"status":    "win",
-			"ended_by":  "timeout",
+			"status":    store.OutcomeWin,
+			"ended_by":  store.EndedByTimeout,
 		})
 		tt.events.Persist(ctx, session.ID)
 	}
@@ -392,9 +392,9 @@ func (tt *TurnTimer) onReadyTimeout(sessionID uuid.UUID) {
 	var winnerID *uuid.UUID
 	resultPlayers := make([]store.GameResultPlayer, len(players))
 	for i, p := range players {
-		outcome := "win"
+		outcome := store.OutcomeWin
 		if isDraw {
-			outcome = "draw"
+			outcome = store.OutcomeDraw
 		} else {
 			absent := false
 			for _, id := range notReady {
@@ -404,7 +404,7 @@ func (tt *TurnTimer) onReadyTimeout(sessionID uuid.UUID) {
 				}
 			}
 			if absent {
-				outcome = "loss"
+				outcome = store.OutcomeLoss
 			} else {
 				w := p.PlayerID
 				winnerID = &w
@@ -422,7 +422,7 @@ func (tt *TurnTimer) onReadyTimeout(sessionID uuid.UUID) {
 		GameID:    session.GameID,
 		WinnerID:  winnerID,
 		IsDraw:    isDraw,
-		EndedBy:   "ready_timeout",
+		EndedBy:   store.EndedByReadyTimeout,
 		Players:   resultPlayers,
 	}); err != nil {
 		log.Printf("TurnTimer.onReadyTimeout: create result %s: %v", sessionID, err)
@@ -437,7 +437,7 @@ func (tt *TurnTimer) onReadyTimeout(sessionID uuid.UUID) {
 				"winner_id": winnerID,
 				"is_draw":   isDraw,
 			},
-			"ended_by": "ready_timeout",
+			"ended_by": store.EndedByReadyTimeout,
 		},
 	})
 

@@ -4,6 +4,8 @@ import { useAppStore } from '../../../stores/store'
 import { DEFAULT_SETTINGS } from '../../../lib/api'
 import { Settings } from '../Settings'
 import { ToastProvider } from '../Toast'
+import { SKINS } from '../../../lib/skins'
+import { applySkin } from '../../../lib/skins'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -25,6 +27,14 @@ vi.mock('../../../lib/api', async importOriginal => {
       get: vi.fn(),
       update: vi.fn().mockResolvedValue({ player_id: 'p1', settings: {}, updated_at: '' }),
     },
+  }
+})
+
+vi.mock('../../../lib/skins', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../lib/skins')>()
+  return {
+    ...actual,
+    applySkin: vi.fn(),
   }
 })
 
@@ -93,9 +103,49 @@ describe('Settings rendering', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Toggle controls
+// Skin controls
 // ---------------------------------------------------------------------------
 
+describe('Skin picker', () => {
+  it('renders a button for each skin', () => {
+    renderSettings()
+    SKINS.forEach(skin => {
+      expect(screen.getByRole('button', { name: skin.name })).toBeInTheDocument()
+    })
+  })
+
+  it('marks the current skin as active', () => {
+    // DEFAULT_SETTINGS.theme is 'obsidian'
+    renderSettings()
+    const obsidianBtn = screen.getByRole('button', { name: 'Obsidian' })
+    expect(obsidianBtn.className).toMatch(/skinOptionActive/)
+  })
+
+  it('updates store when a skin is clicked', () => {
+    renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: 'Parchment' }))
+    expect(useAppStore.getState().settings.theme).toBe('parchment')
+  })
+
+  it('calls applySkin with the selected skin id', () => {
+    renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: 'Slate' }))
+    expect(applySkin).toHaveBeenCalledWith('slate')
+  })
+
+  it('only one skin is active at a time', () => {
+    renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: 'Ivory' }))
+    const activeButtons = SKINS.map(s => screen.getByRole('button', { name: s.name })).filter(btn =>
+      btn.className.includes('skinOptionActive'),
+    )
+    expect(activeButtons).toHaveLength(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Toggle controls
+// ---------------------------------------------------------------------------
 describe('ToggleRow', () => {
   it('renders with default checked state', () => {
     renderSettings()
@@ -136,7 +186,7 @@ describe('ToggleRow', () => {
 describe('SelectRow', () => {
   it('renders with default value', () => {
     renderSettings()
-    const select = screen.getByDisplayValue('Dark')
+    const select = screen.getByDisplayValue('Medium')
     expect(select).toBeInTheDocument()
   })
 

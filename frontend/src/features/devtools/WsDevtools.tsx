@@ -1,0 +1,346 @@
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { useWsDevtoolsStore, type CapturedEvent } from './store'
+import type { WsEventType } from '../../lib/ws'
+
+// ---------------------------------------------------------------------------
+// Filter mode
+// ---------------------------------------------------------------------------
+
+const FilterMode = {
+  all: 'all',
+  include: 'include',
+  exclude: 'exclude',
+} as const
+
+type FilterMode = (typeof FilterMode)[keyof typeof FilterMode]
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatTime(ts: number): string {
+  const d = new Date(ts)
+  return (
+    d.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }) +
+    '.' +
+    String(d.getMilliseconds()).padStart(3, '0')
+  )
+}
+
+function sourceLabel(source: CapturedEvent['source']): string {
+  return source === 'room' ? 'room' : 'player'
+}
+
+// ---------------------------------------------------------------------------
+// EventRow
+// ---------------------------------------------------------------------------
+
+interface EventRowProps {
+  event: CapturedEvent
+  isExpanded: boolean
+  onToggle: () => void
+}
+
+function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
+  return (
+    <div
+      data-testid='event-row'
+      data-event-type={event.type}
+      style={{
+        borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+        fontFamily: 'var(--font-mono, monospace)',
+        fontSize: 11,
+      }}
+    >
+      {/* Summary row */}
+      <div
+        data-testid='event-summary'
+        onClick={onToggle}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '5px 10px',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ color: 'var(--color-text-muted, #555)', minWidth: 90 }}>
+          {formatTime(event.timestamp)}
+        </span>
+        <span
+          style={{
+            padding: '1px 5px',
+            borderRadius: 3,
+            fontSize: 9,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            background:
+              event.source === 'room'
+                ? 'var(--color-interactive-glow, rgba(123,140,222,0.15))'
+                : 'rgba(100,200,120,0.12)',
+            color: event.source === 'room' ? 'var(--color-interactive, #7b8cde)' : '#64c878',
+          }}
+          data-testid='event-source'
+        >
+          {sourceLabel(event.source)}
+        </span>
+        <span style={{ flex: 1, color: 'var(--color-text-primary, #e8e4d9)' }}>{event.type}</span>
+        <span style={{ color: 'var(--color-text-muted, #555)', fontSize: 10 }}>
+          {isExpanded ? '▲' : '▼'}
+        </span>
+      </div>
+
+      {/* Expanded payload */}
+      {isExpanded && (
+        <pre
+          data-testid='event-payload'
+          style={{
+            margin: 0,
+            padding: '6px 10px 10px 24px',
+            fontSize: 11,
+            color: 'var(--color-text-secondary, #7a7568)',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+            borderTop: '1px solid var(--color-border, rgba(255,255,255,0.06))',
+          }}
+        >
+          {JSON.stringify(event.payload, null, 2)}
+        </pre>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// WsDevtools
+// ---------------------------------------------------------------------------
+
+/**
+ * WebSocket event inspector panel for TanStack DevTools.
+ *
+ * Features:
+ * - Live event feed from room and player sockets.
+ * - Filter by event type (all / include / exclude).
+ * - Expand any event to inspect its payload.
+ * - Clear all captured events.
+ * - Auto-scroll to latest event (pauses when scrolled up).
+ *
+ * Designed to be rendered inside TanStackDevtools plugins — inherits all
+ * CSS variables from the host, no hardcoded colors or sizes.
+ *
+ * @testability
+ * Use useWsDevtoolsStore.setState({ events: [...] }) to inject events.
+ * Assert event rows, filter behavior, expand/collapse, and clear button.
+ */
+export function WsDevtools() {
+  const events = useWsDevtoolsStore(s => s.events)
+  const clear = useWsDevtoolsStore(s => s.clear)
+
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  const [filterMode, setFilterMode] = useState<FilterMode>(FilterMode.all)
+  const [filterInput, setFilterInput] = useState('')
+  const [autoScroll, setAutoScroll] = useState(true)
+
+  const listRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new events arrive.
+  useEffect(() => {
+    if (!autoScroll || !listRef.current) return
+    listRef.current.scrollTop = listRef.current.scrollHeight
+  }, [events.length, autoScroll])
+
+  // Pause auto-scroll when user scrolls up.
+  function handleScroll() {
+    const el = listRef.current
+    if (!el) return
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 32
+    setAutoScroll(atBottom)
+  }
+
+  // Parse filter input — comma or space separated event type names.
+  const filterTypes = useMemo<WsEventType[]>(() => {
+    return filterInput
+      .split(/[\s,]+/)
+      .map(s => s.trim())
+      .filter(Boolean) as WsEventType[]
+  }, [filterInput])
+
+  // Apply filter to events.
+  const visibleEvents = useMemo(() => {
+    if (filterMode === FilterMode.all || filterTypes.length === 0) return events
+    if (filterMode === FilterMode.include) return events.filter(e => filterTypes.includes(e.type))
+    return events.filter(e => !filterTypes.includes(e.type))
+  }, [events, filterMode, filterTypes])
+
+  function toggleExpand(id: number) {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  return (
+    <div
+      data-testid='ws-devtools'
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
+        fontFamily: 'var(--font-mono, monospace)',
+      }}
+    >
+      {/* Toolbar */}
+      <div
+        data-testid='ws-devtools-toolbar'
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 10px',
+          borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+          flexShrink: 0,
+          flexWrap: 'wrap',
+        }}
+      >
+        {/* Event count */}
+        <span style={{ fontSize: 11, color: 'var(--color-text-muted, #555)', minWidth: 60 }}>
+          {visibleEvents.length} / {events.length} events
+        </span>
+
+        {/* Filter mode toggle */}
+        <div style={{ display: 'flex', gap: 2 }}>
+          {Object.values(FilterMode).map(mode => (
+            <button
+              key={mode}
+              data-testid={`filter-mode-${mode}`}
+              data-active={filterMode === mode}
+              onClick={() => setFilterMode(mode)}
+              style={{
+                padding: '2px 7px',
+                fontSize: 10,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+                borderRadius: 3,
+                cursor: 'pointer',
+                background:
+                  filterMode === mode
+                    ? 'var(--color-interactive-glow, rgba(123,140,222,0.2))'
+                    : 'transparent',
+                color:
+                  filterMode === mode
+                    ? 'var(--color-interactive, #7b8cde)'
+                    : 'var(--color-text-muted, #555)',
+              }}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+
+        {/* Filter input */}
+        {filterMode !== FilterMode.all && (
+          <input
+            data-testid='filter-input'
+            value={filterInput}
+            onChange={e => setFilterInput(e.target.value)}
+            placeholder='move_applied, game_over...'
+            style={{
+              flex: 1,
+              minWidth: 120,
+              padding: '3px 7px',
+              fontSize: 11,
+              border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+              borderRadius: 3,
+              background: 'transparent',
+              color: 'var(--color-text-primary, #e8e4d9)',
+              outline: 'none',
+              fontFamily: 'var(--font-mono, monospace)',
+            }}
+          />
+        )}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Auto-scroll indicator */}
+        <span
+          data-testid='autoscroll-indicator'
+          style={{
+            fontSize: 10,
+            color: autoScroll
+              ? 'var(--color-interactive, #7b8cde)'
+              : 'var(--color-text-muted, #555)',
+          }}
+        >
+          {autoScroll ? '↓ live' : '⏸ paused'}
+        </span>
+
+        {/* Clear button */}
+        <button
+          data-testid='clear-btn'
+          onClick={clear}
+          style={{
+            padding: '2px 8px',
+            fontSize: 10,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+            borderRadius: 3,
+            cursor: 'pointer',
+            background: 'transparent',
+            color: 'var(--color-danger, #c0392b)',
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      {/* Event list */}
+      <div
+        ref={listRef}
+        data-testid='event-list'
+        onScroll={handleScroll}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          minHeight: 0,
+        }}
+      >
+        {visibleEvents.length === 0 ? (
+          <div
+            data-testid='empty-state'
+            style={{
+              padding: '24px 10px',
+              textAlign: 'center',
+              fontSize: 11,
+              color: 'var(--color-text-muted, #555)',
+            }}
+          >
+            {events.length === 0
+              ? 'No events captured yet.'
+              : 'No events match the current filter.'}
+          </div>
+        ) : (
+          visibleEvents.map(event => (
+            <EventRow
+              key={event.id}
+              event={event}
+              isExpanded={expandedIds.has(event.id)}
+              onToggle={() => toggleExpand(event.id)}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}

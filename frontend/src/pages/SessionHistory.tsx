@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
-import { SessionEvent, sessions, type Move } from '../lib/api'
+import { SessionEvent } from '../lib/api'
 import { keys } from '../lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
 import { useNavigate } from '@tanstack/react-router'
+import { sessions } from '../lib/api/sessions'
+import { MoveDTO } from '../lib/api-generated'
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -37,7 +39,8 @@ const EVENT_ACCENT: Record<string, string> = {
   rematch_voted: 'var(--text)',
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string | undefined): string | null {
+  if (!iso) return null
   const d = new Date(iso)
   return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
@@ -92,7 +95,7 @@ function EventRow({ event, base, index }: { event: SessionEvent; base: string; i
 
 // --- Replay ------------------------------------------------------------------
 
-function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
+function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
   const [step, setStep] = useState(0)
 
   if (moves.length === 0) {
@@ -106,7 +109,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
   const currentMove = moves[step - 1] ?? null
   const stateAfter = currentMove
     ? (() => {
-        const raw = (currentMove as Move & { state_after?: string }).state_after
+        const raw = (currentMove as MoveDTO & { state_after?: string }).state_after
         if (!raw) return null
         try {
           return JSON.parse(atob(raw)) as { current_player_id: string; data: unknown }
@@ -243,7 +246,7 @@ export function SessionHistory({ sessionId }: { sessionId: string }) {
 
   // Resolve winner name from player list
   const isWinner = result?.winner_id === player.id
-  const isDraw = result?.status === 'draw'
+  const isDraw = result?.is_draw ?? false
 
   return (
     <div className={`${styles.root} page-enter`}>

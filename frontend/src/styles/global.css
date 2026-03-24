@@ -38,7 +38,7 @@
   --primitive-parchment-600: #b09880;
   --primitive-parchment-200: #e0d4c0;
   --primitive-parchment-100: #ede5d6;
-  --primitive-parchment-50:  #f5f0e8;
+  --primitive-parchment-50: #f5f0e8;
 
   /* Obsidian ramp (dark theme surfaces) */
   --primitive-obsidian-900: #0a0a0b;
@@ -58,36 +58,35 @@
   --primitive-slate-700: #1a1f2e;
   --primitive-slate-600: #232840;
   --primitive-slate-500: #2e3450;
- 
+
   /* Indigo ramp (slate accent) */
   --primitive-indigo-500: #7b8cde;
   --primitive-indigo-400: #9aaae8;
   --primitive-indigo-700: #3d4a8a;
   --primitive-indigo-glow: rgba(123, 140, 222, 0.15);
- 
+
   /* Ivory ramp (warm white surfaces) */
-  --primitive-ivory-50:  #fafaf7;
+  --primitive-ivory-50: #fafaf7;
   --primitive-ivory-100: #f2f2ec;
   --primitive-ivory-200: #e8e8de;
   --primitive-ivory-hover: #dcdcd0;
- 
+
   /* Moss ramp (ivory accent) */
   --primitive-moss-600: #4a6741;
   --primitive-moss-700: #354d2f;
   --primitive-moss-500: #6b8f60;
   --primitive-moss-glow: rgba(74, 103, 65, 0.12);
- 
+
   /* Charcoal text (ivory skin) */
   --primitive-charcoal-800: #1e1e1e;
   --primitive-charcoal-600: #4a4a4a;
   --primitive-charcoal-400: #888888;
 
   /* Semantic fixed colors */
-  --primitive-danger:  #c0392b;
+  --primitive-danger: #c0392b;
   --primitive-success: #2d6a4f;
   --primitive-warning: #d4a853;
 }
-
 
 /* -----------------------------------------------------------------------------
    2a. SEMANTIC TOKENS — Obsidian skin (default)
@@ -97,28 +96,28 @@
 :root,
 [data-theme="dark"] {
   /* Surfaces */
-  --color-bg-base:     var(--primitive-obsidian-900);
-  --color-bg-surface:  var(--primitive-obsidian-800);
+  --color-bg-base: var(--primitive-obsidian-900);
+  --color-bg-surface: var(--primitive-obsidian-800);
   --color-bg-elevated: var(--primitive-obsidian-700);
-  --color-bg-hover:    var(--primitive-obsidian-600);
+  --color-bg-hover: var(--primitive-obsidian-600);
 
   /* Text */
-  --color-text-primary:   var(--primitive-sand-100);
+  --color-text-primary: var(--primitive-sand-100);
   --color-text-secondary: var(--primitive-sand-400);
-  --color-text-muted:     var(--primitive-sand-700);
+  --color-text-muted: var(--primitive-sand-700);
 
   /* Borders */
-  --color-border:        rgba(212, 168, 83, 0.12);
+  --color-border: rgba(212, 168, 83, 0.12);
   --color-border-bright: rgba(212, 168, 83, 0.35);
 
   /* Interactive accent */
-  --color-interactive:       var(--primitive-amber-500);
+  --color-interactive: var(--primitive-amber-500);
   --color-interactive-hover: var(--primitive-amber-400);
-  --color-interactive-dim:   var(--primitive-amber-700);
-  --color-interactive-glow:  var(--primitive-amber-glow);
+  --color-interactive-dim: var(--primitive-amber-700);
+  --color-interactive-glow: var(--primitive-amber-glow);
 
   /* Semantic states */
-  --color-danger:  var(--primitive-danger);
+  --color-danger: var(--primitive-danger);
   --color-success: var(--primitive-success);
   --color-warning: var(--primitive-warning);
 
@@ -129,22 +128,21 @@
   --noise-opacity: 0.4;
 
   /* Legacy aliases — kept for backwards compat with existing components */
-  --bg-base:      var(--color-bg-base);
-  --bg-surface:   var(--color-bg-surface);
-  --bg-elevated:  var(--color-bg-elevated);
-  --bg-hover:     var(--color-bg-hover);
+  --bg-base: var(--color-bg-base);
+  --bg-surface: var(--color-bg-surface);
+  --bg-elevated: var(--color-bg-elevated);
+  --bg-hover: var(--color-bg-hover);
   --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
-  --text-muted:   var(--color-text-muted);
-  --border:       var(--color-border);
+  --text-muted: var(--color-text-muted);
+  --border: var(--color-border);
   --border-bright: var(--color-border-bright);
-  --amber:        var(--color-interactive);
-  --amber-dim:    var(--color-interactive-dim);
-  --amber-glow:   var(--color-interactive-glow);
-  --danger:       var(--color-danger);
-  --success:      var(--color-success);
+  --amber: var(--color-interactive);
+  --amber-dim: var(--color-interactive-dim);
+  --amber-glow: var(--color-interactive-glow);
+  --danger: var(--color-danger);
+  --success: var(--color-success);
 }
-
 
 /* -----------------------------------------------------------------------------
    2b. SEMANTIC TOKENS — Parchment skin
@@ -153,28 +151,28 @@
 
 [data-theme="light"] {
   /* Surfaces */
-  --color-bg-base:     var(--primitive-parchment-50);
-  --color-bg-surface:  var(--primitive-parchment-100);
+  --color-bg-base: var(--primitive-parchment-50);
+  --color-bg-surface: var(--primitive-parchment-100);
   --color-bg-elevated: var(--primitive-parchment-200);
-  --color-bg-hover:    #d6c8b0;
+  --color-bg-hover: #d6c8b0;
 
   /* Text */
-  --color-text-primary:   var(--primitive-ink-800);
+  --color-text-primary: var(--primitive-ink-800);
   --color-text-secondary: var(--primitive-ink-600);
-  --color-text-muted:     var(--primitive-parchment-600);
+  --color-text-muted: var(--primitive-parchment-600);
 
   /* Borders */
-  --color-border:        rgba(123, 79, 46, 0.12);
+  --color-border: rgba(123, 79, 46, 0.12);
   --color-border-bright: rgba(123, 79, 46, 0.35);
 
   /* Interactive accent */
-  --color-interactive:       var(--primitive-ink-600);
+  --color-interactive: var(--primitive-ink-600);
   --color-interactive-hover: var(--primitive-ink-700);
-  --color-interactive-dim:   var(--primitive-ink-500);
-  --color-interactive-glow:  var(--primitive-ink-glow);
+  --color-interactive-dim: var(--primitive-ink-500);
+  --color-interactive-glow: var(--primitive-ink-glow);
 
   /* Semantic states */
-  --color-danger:  #9b2215;
+  --color-danger: #9b2215;
   --color-success: #1e4d35;
   --color-warning: var(--primitive-ink-600);
 
@@ -185,131 +183,130 @@
   --noise-opacity: 0.15;
 
   /* Legacy aliases */
-  --bg-base:        var(--color-bg-base);
-  --bg-surface:     var(--color-bg-surface);
-  --bg-elevated:    var(--color-bg-elevated);
-  --bg-hover:       var(--color-bg-hover);
-  --text-primary:   var(--color-text-primary);
+  --bg-base: var(--color-bg-base);
+  --bg-surface: var(--color-bg-surface);
+  --bg-elevated: var(--color-bg-elevated);
+  --bg-hover: var(--color-bg-hover);
+  --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
-  --text-muted:     var(--color-text-muted);
-  --border:         var(--color-border);
-  --border-bright:  var(--color-border-bright);
-  --amber:          var(--color-interactive);
-  --amber-dim:      var(--color-interactive-dim);
-  --amber-glow:     var(--color-interactive-glow);
-  --danger:         var(--color-danger);
-  --success:        var(--color-success);
+  --text-muted: var(--color-text-muted);
+  --border: var(--color-border);
+  --border-bright: var(--color-border-bright);
+  --amber: var(--color-interactive);
+  --amber-dim: var(--color-interactive-dim);
+  --amber-glow: var(--color-interactive-glow);
+  --danger: var(--color-danger);
+  --success: var(--color-success);
 }
 
 /* -----------------------------------------------------------------------------
    2c. SEMANTIC TOKENS — Slate skin
    "The Strategy Room" — cold blue-grey dark, indigo accent
    ----------------------------------------------------------------------------- */
- 
+
 [data-theme="slate"] {
   /* Surfaces */
-  --color-bg-base:     var(--primitive-slate-900);
-  --color-bg-surface:  var(--primitive-slate-800);
+  --color-bg-base: var(--primitive-slate-900);
+  --color-bg-surface: var(--primitive-slate-800);
   --color-bg-elevated: var(--primitive-slate-700);
-  --color-bg-hover:    var(--primitive-slate-600);
- 
+  --color-bg-hover: var(--primitive-slate-600);
+
   /* Text */
-  --color-text-primary:   #dde2f0;
+  --color-text-primary: #dde2f0;
   --color-text-secondary: #8892b0;
-  --color-text-muted:     #4a5070;
- 
+  --color-text-muted: #4a5070;
+
   /* Borders */
-  --color-border:        rgba(123, 140, 222, 0.1);
+  --color-border: rgba(123, 140, 222, 0.1);
   --color-border-bright: rgba(123, 140, 222, 0.3);
- 
+
   /* Interactive accent — indigo */
-  --color-interactive:       var(--primitive-indigo-500);
+  --color-interactive: var(--primitive-indigo-500);
   --color-interactive-hover: var(--primitive-indigo-400);
-  --color-interactive-dim:   var(--primitive-indigo-700);
-  --color-interactive-glow:  var(--primitive-indigo-glow);
- 
+  --color-interactive-dim: var(--primitive-indigo-700);
+  --color-interactive-glow: var(--primitive-indigo-glow);
+
   /* Semantic states */
-  --color-danger:  #e05555;
+  --color-danger: #e05555;
   --color-success: #4caf82;
   --color-warning: #d4a853;
- 
+
   /* Focus ring */
   --color-focus-ring: rgba(123, 140, 222, 0.35);
- 
+
   /* Noise overlay */
   --noise-opacity: 0.3;
- 
+
   /* Legacy aliases */
-  --bg-base:        var(--color-bg-base);
-  --bg-surface:     var(--color-bg-surface);
-  --bg-elevated:    var(--color-bg-elevated);
-  --bg-hover:       var(--color-bg-hover);
-  --text-primary:   var(--color-text-primary);
+  --bg-base: var(--color-bg-base);
+  --bg-surface: var(--color-bg-surface);
+  --bg-elevated: var(--color-bg-elevated);
+  --bg-hover: var(--color-bg-hover);
+  --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
-  --text-muted:     var(--color-text-muted);
-  --border:         var(--color-border);
-  --border-bright:  var(--color-border-bright);
-  --amber:          var(--color-interactive);
-  --amber-dim:      var(--color-interactive-dim);
-  --amber-glow:     var(--color-interactive-glow);
-  --danger:         var(--color-danger);
-  --success:        var(--color-success);
+  --text-muted: var(--color-text-muted);
+  --border: var(--color-border);
+  --border-bright: var(--color-border-bright);
+  --amber: var(--color-interactive);
+  --amber-dim: var(--color-interactive-dim);
+  --amber-glow: var(--color-interactive-glow);
+  --danger: var(--color-danger);
+  --success: var(--color-success);
 }
- 
- 
+
 /* -----------------------------------------------------------------------------
    2d. SEMANTIC TOKENS — Ivory skin
    "The Academy Hall" — clean warm white, moss green accent
    ----------------------------------------------------------------------------- */
- 
+
 [data-theme="ivory"] {
   /* Surfaces */
-  --color-bg-base:     var(--primitive-ivory-50);
-  --color-bg-surface:  var(--primitive-ivory-100);
+  --color-bg-base: var(--primitive-ivory-50);
+  --color-bg-surface: var(--primitive-ivory-100);
   --color-bg-elevated: var(--primitive-ivory-200);
-  --color-bg-hover:    var(--primitive-ivory-hover);
- 
+  --color-bg-hover: var(--primitive-ivory-hover);
+
   /* Text */
-  --color-text-primary:   var(--primitive-charcoal-800);
+  --color-text-primary: var(--primitive-charcoal-800);
   --color-text-secondary: var(--primitive-charcoal-600);
-  --color-text-muted:     var(--primitive-charcoal-400);
- 
+  --color-text-muted: var(--primitive-charcoal-400);
+
   /* Borders */
-  --color-border:        rgba(74, 103, 65, 0.1);
+  --color-border: rgba(74, 103, 65, 0.1);
   --color-border-bright: rgba(74, 103, 65, 0.28);
- 
+
   /* Interactive accent — moss green */
-  --color-interactive:       var(--primitive-moss-600);
+  --color-interactive: var(--primitive-moss-600);
   --color-interactive-hover: var(--primitive-moss-700);
-  --color-interactive-dim:   var(--primitive-moss-500);
-  --color-interactive-glow:  var(--primitive-moss-glow);
- 
+  --color-interactive-dim: var(--primitive-moss-500);
+  --color-interactive-glow: var(--primitive-moss-glow);
+
   /* Semantic states */
-  --color-danger:  #b03020;
+  --color-danger: #b03020;
   --color-success: #2d6a4f;
   --color-warning: #8a6a2e;
- 
+
   /* Focus ring */
   --color-focus-ring: rgba(74, 103, 65, 0.35);
- 
+
   /* Noise overlay — barely visible on near-white */
   --noise-opacity: 0.08;
- 
+
   /* Legacy aliases */
-  --bg-base:        var(--color-bg-base);
-  --bg-surface:     var(--color-bg-surface);
-  --bg-elevated:    var(--color-bg-elevated);
-  --bg-hover:       var(--color-bg-hover);
-  --text-primary:   var(--color-text-primary);
+  --bg-base: var(--color-bg-base);
+  --bg-surface: var(--color-bg-surface);
+  --bg-elevated: var(--color-bg-elevated);
+  --bg-hover: var(--color-bg-hover);
+  --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
-  --text-muted:     var(--color-text-muted);
-  --border:         var(--color-border);
-  --border-bright:  var(--color-border-bright);
-  --amber:          var(--color-interactive);
-  --amber-dim:      var(--color-interactive-dim);
-  --amber-glow:     var(--color-interactive-glow);
-  --danger:         var(--color-danger);
-  --success:        var(--color-success);
+  --text-muted: var(--color-text-muted);
+  --border: var(--color-border);
+  --border-bright: var(--color-border-bright);
+  --amber: var(--color-interactive);
+  --amber-dim: var(--color-interactive-dim);
+  --amber-glow: var(--color-interactive-glow);
+  --danger: var(--color-danger);
+  --success: var(--color-success);
 }
 
 /* -----------------------------------------------------------------------------
@@ -328,46 +325,44 @@
   --space-12: 48px;
 }
 
-
 /* -----------------------------------------------------------------------------
    4. TYPOGRAPHY SCALE
    ----------------------------------------------------------------------------- */
 
 :root {
   --font-display: "Cinzel", serif;
-  --font-mono:    "JetBrains Mono", monospace;
+  --font-mono: "JetBrains Mono", monospace;
 
   --font-scale: 1rem;
 
-  --text-xs:   calc(var(--font-scale) * 0.6875);
-  --text-sm:   calc(var(--font-scale) * 0.75);
+  --text-xs: calc(var(--font-scale) * 0.6875);
+  --text-sm: calc(var(--font-scale) * 0.75);
   --text-base: calc(var(--font-scale) * 0.875);
-  --text-lg:   calc(var(--font-scale) * 1);
-  --text-xl:   calc(var(--font-scale) * 1.25);
+  --text-lg: calc(var(--font-scale) * 1);
+  --text-xl: calc(var(--font-scale) * 1.25);
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
-  --font-weight-bold:   600;
+  --font-weight-bold: 600;
 
-  --line-height-tight:  1.4;
-  --line-height-base:   1.6;
-  --line-height-loose:  1.8;
+  --line-height-tight: 1.4;
+  --line-height-base: 1.6;
+  --line-height-loose: 1.8;
 }
 /* -----------------------------------------------------------------------------
    5. LAYOUT & SHAPE
    ----------------------------------------------------------------------------- */
 
 :root {
-  --radius:     2px;
-  --radius-md:  4px;
-  --radius-lg:  8px;
+  --radius: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
   --transition: 150ms ease;
 
   /* Elevation shadows (light theme only — dark uses borders) */
   --shadow-sm: 0 1px 3px rgba(44, 24, 16, 0.08);
   --shadow-md: 0 4px 12px rgba(44, 24, 16, 0.12);
 }
-
 
 /* -----------------------------------------------------------------------------
    6. RESET
@@ -425,10 +420,16 @@ input {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--color-bg-base); }
-::-webkit-scrollbar-thumb { background: var(--color-interactive-dim); border-radius: 2px; }
-
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-interactive-dim);
+  border-radius: 2px;
+}
 
 /* -----------------------------------------------------------------------------
    7. UTILITY CLASSES
@@ -510,8 +511,13 @@ input {
   border-color: var(--color-interactive-dim);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
-.input::placeholder { color: var(--color-text-muted); }
-.input:disabled { opacity: 0.4; cursor: not-allowed; }
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+.input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .label {
   display: block;
@@ -559,13 +565,24 @@ input {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .page-enter {

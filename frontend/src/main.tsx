@@ -17,6 +17,8 @@ import { pacerDevtoolsPlugin } from '@tanstack/react-pacer-devtools'
 //import { TanStackRouterDevtoolsInProd } from '@tanstack/react-router-devtools'
 import { queryClient } from './lib/queryClient'
 import './styles/global.css'
+import { useWsDevtools } from './features/devtools/useWsDevtools'
+import { WsDevtools } from './features/devtools/WsDevtools'
 
 const router = createRouter({ routeTree })
 
@@ -26,10 +28,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+function DevtoolsCapture() {
+  useWsDevtools()
+  return null
+}
+
+const isDev = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      {isDev && <DevtoolsCapture />}
       <TanStackDevtools
         plugins={[
           {
@@ -41,6 +51,10 @@ createRoot(document.getElementById('root')!).render(
             render: <TanStackRouterDevtools router={router} />,
           },
           pacerDevtoolsPlugin(),
+          {
+            name: 'WebSocket',
+            render: <WsDevtools />,
+          },
         ]}
       ></TanStackDevtools>
     </QueryClientProvider>

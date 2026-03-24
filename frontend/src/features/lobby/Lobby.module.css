@@ -1,0 +1,276 @@
+.root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top navigation header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.logoIcon {
+  font-size: 20px;
+}
+
+.logoText {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: 0.2em;
+  color: var(--color-interactive);
+}
+
+.playerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-bright);
+}
+
+.username {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Two-column main layout: game list left, actions right */
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-8);
+  gap: var(--space-8);
+}
+
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* Section heading — display font, uppercase, with optional count badge */
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.15em;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Count badge — shown next to section titles (e.g. "Open Rooms 3") */
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--color-interactive-glow);
+  color: var(--color-interactive);
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-interactive) 20%, transparent);
+}
+
+.actionGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Game selector — pill buttons for choosing which game to create/join */
+.gameSelector {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-1);
+}
+
+.gameOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.gameOption:hover {
+  border-color: var(--color-border-bright);
+  color: var(--color-text-primary);
+}
+
+.gameOptionActive {
+  border-color: var(--color-interactive-dim);
+  background: var(--color-interactive-glow);
+  color: var(--color-interactive);
+}
+
+.gamePlayerCount {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.gameOptionActive .gamePlayerCount {
+  color: var(--color-interactive-dim);
+}
+
+.joinRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.joinRow .input {
+  flex: 1;
+}
+
+.error {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  padding: var(--space-6) 0;
+}
+
+.roomList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Room card — single open room in the list */
+.roomCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.roomCard:hover {
+  border-color: var(--color-border-bright);
+  background: var(--color-bg-elevated);
+}
+
+.roomInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roomCode {
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.15em;
+  color: var(--color-interactive);
+}
+
+/* Private room — lock icon shown instead of the join code */
+.roomCodePrivate {
+  font-size: 15px;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.roomGame {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.roomMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.roomPlayers {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Leaderboard table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th {
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: var(--font-weight-normal);
+}
+
+.table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background: var(--color-bg-elevated);
+}
+
+/* Rank column — top 3 get special colors */
+.rank {
+  color: var(--color-text-muted) !important;
+  font-size: var(--text-xs);
+  width: 24px;
+}
+
+.table tr:nth-child(1) .rank {
+  color: var(--color-interactive) !important;
+}
+.table tr:nth-child(2) .rank {
+  color: var(--color-text-secondary) !important;
+}
+.table tr:nth-child(3) .rank {
+  color: var(--color-interactive-dim) !important;
+}

@@ -38,9 +38,15 @@
 }
 
 /* Variant left border — color-coded by severity */
-.error   { border-left: 3px solid var(--color-danger); }
-.warning { border-left: 3px solid var(--color-interactive); }
-.info    { border-left: 3px solid var(--color-success); }
+.error {
+  border-left: 3px solid var(--color-danger);
+}
+.warning {
+  border-left: 3px solid var(--color-interactive);
+}
+.info {
+  border-left: 3px solid var(--color-success);
+}
 
 .icon {
   font-size: var(--text-sm);
@@ -48,9 +54,15 @@
   margin-top: 1px;
 }
 
-.error   .icon { color: var(--color-danger); }
-.warning .icon { color: var(--color-interactive); }
-.info    .icon { color: var(--color-success); }
+.error .icon {
+  color: var(--color-danger);
+}
+.warning .icon {
+  color: var(--color-interactive);
+}
+.info .icon {
+  color: var(--color-success);
+}
 
 .body {
   flex: 1;
@@ -92,11 +104,21 @@
   animation: shrink linear forwards;
 }
 
-.error   .progressBar { color: var(--color-danger); }
-.warning .progressBar { color: var(--color-interactive); }
-.info    .progressBar { color: var(--color-success); }
+.error .progressBar {
+  color: var(--color-danger);
+}
+.warning .progressBar {
+  color: var(--color-interactive);
+}
+.info .progressBar {
+  color: var(--color-success);
+}
 
 @keyframes shrink {
-  from { transform: scaleX(1); }
-  to   { transform: scaleX(0); }
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }

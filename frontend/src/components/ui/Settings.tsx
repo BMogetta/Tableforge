@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
 import { useAppStore } from '../../stores/store'
-import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap } from '../../lib/api'
+import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap, Language } from '../../lib/api'
 import { catchToAppError } from '../../utils/errors'
 import { useToast } from './Toast'
 import styles from './Settings.module.css'
@@ -109,10 +109,10 @@ export function Settings({ onClose }: Props) {
             description='Display language'
             value={settings.language}
             options={[
-              { value: 'en', label: 'English' },
-              { value: 'es', label: 'Español (coming soon)', disabled: true },
+              { value: Language.En, label: 'English' },
+              { value: Language.Es, label: 'Español (coming soon)', disabled: true },
             ]}
-            onChange={v => change('language', v)}
+            onChange={v => change('language', v as Language)}
           />
           <SelectRow
             label='Font Size'

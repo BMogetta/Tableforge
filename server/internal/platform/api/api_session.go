@@ -1,8 +1,10 @@
 package api
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -79,7 +81,17 @@ type moveRequest struct {
 	Payload  map[string]any `json:"payload"`
 }
 
-// POST /api/v1/sessions/{sessionID}/move
+// @Summary  Apply a move
+// @Tags     sessions
+// @Accept   json
+// @Produce  json
+// @Param    sessionID path     string      true "Session UUID"
+// @Param    body      body     moveRequest true "Move payload"
+// @Success  200       {object} MoveResponse
+// @Failure  400       {object} map[string]string
+// @Failure  404       {object} map[string]string
+// @Failure  409       {object} map[string]string
+// @Router   /sessions/{sessionID}/move [post]
 func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -120,11 +132,22 @@ func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFu
 				rt.MaybeFireBot(r.Context(), hub, sessionID, nextPlayerUUID)
 			}
 		}
-		writeJSON(w, http.StatusOK, result)
+		writeJSON(w, http.StatusOK, MoveResponse{
+			Session: sessionToDTO(result.Session),
+			State:   result.State,
+			IsOver:  result.IsOver,
+			Result:  result.Result,
+		})
 	}
 }
 
-// GET /api/v1/sessions/{sessionID}
+// @Summary  Get game session
+// @Tags     sessions
+// @Produce  json
+// @Param    sessionID path     string true "Session UUID"
+// @Success  200       {object} SessionResponse
+// @Failure  404       {object} map[string]string
+// @Router   /sessions/{sessionID} [get]
 func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -137,17 +160,21 @@ func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 			writeRuntimeError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"session": session,
-			"state":   state,
-			"result":  result,
+		writeJSON(w, http.StatusOK, SessionResponse{
+			Session: sessionToDTO(session),
+			State:   state,
+			Result:  result,
 		})
 	}
 }
 
-// GET /api/v1/sessions/{sessionID}/events
-// If the session is still active, reads from the Redis Stream.
-// If the session is finished, reads from Postgres.
+// @Summary  Get session events
+// @Tags     sessions
+// @Produce  json
+// @Param    sessionID path     string true "Session UUID"
+// @Success  200       {array}  SessionEventDTO
+// @Failure  404       {object} map[string]string
+// @Router   /sessions/{sessionID}/events [get]
 func handleGetSessionEvents(ev *events.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -160,11 +187,21 @@ func handleGetSessionEvents(ev *events.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to get events")
 			return
 		}
-		writeJSON(w, http.StatusOK, evts)
+		dtos := make([]SessionEventDTO, len(evts))
+		for i, e := range evts {
+			dtos[i] = sessionEventToDTO(e)
+		}
+		writeJSON(w, http.StatusOK, dtos)
 	}
 }
 
-// GET /api/v1/sessions/{sessionID}/ready
+// @Summary  Vote ready
+// @Tags     sessions
+// @Produce  json
+// @Param    sessionID path     string true "Session UUID"
+// @Success  200       {object} runtime.ReadyVoteResult
+// @Failure  404       {object} map[string]string
+// @Router   /sessions/{sessionID}/ready [post]
 func handlePlayerReady(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := mustParseUUID(w, r, "sessionID")
@@ -205,7 +242,15 @@ type surrenderRequest struct {
 	PlayerID string `json:"player_id"`
 }
 
-// POST /api/v1/sessions/{sessionID}/surrender
+// @Summary  Surrender a game
+// @Tags     sessions
+// @Accept   json
+// @Produce  json
+// @Param    sessionID path     string          true "Session UUID"
+// @Param    body      body     surrenderRequest true "Player ID"
+// @Success  200       {object} MoveResponse
+// @Failure  404       {object} map[string]string
+// @Router   /sessions/{sessionID}/surrender [post]
 func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -231,7 +276,12 @@ func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Hand
 		players, _ := st.ListRoomPlayers(r.Context(), result.Session.RoomID)
 		rt.BroadcastMove(r.Context(), hub, result, ws.EventGameOver, players)
 		activeSessions.Dec()
-		writeJSON(w, http.StatusOK, result)
+		writeJSON(w, http.StatusOK, MoveResponse{
+			Session: sessionToDTO(result.Session),
+			State:   result.State,
+			IsOver:  result.IsOver,
+			Result:  result.Result,
+		})
 	}
 }
 
@@ -239,7 +289,15 @@ type rematchRequest struct {
 	PlayerID string `json:"player_id"`
 }
 
-// POST /api/v1/sessions/{sessionID}/rematch
+// @Summary  Vote for rematch
+// @Tags     sessions
+// @Accept   json
+// @Produce  json
+// @Param    sessionID path     string         true "Session UUID"
+// @Param    body      body     rematchRequest true "Player ID"
+// @Success  200       {object} RematchResponse
+// @Failure  404       {object} map[string]string
+// @Router   /sessions/{sessionID}/rematch [post]
 func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -278,14 +336,20 @@ func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 				},
 			})
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"votes":         len(votes),
-			"total_players": totalPlayers,
+		writeJSON(w, http.StatusOK, RematchResponse{
+			Votes:        len(votes),
+			TotalPlayers: totalPlayers,
 		})
 	}
 }
 
-// GET /api/v1/sessions/{sessionID}/history
+// @Summary  Get session history
+// @Tags     sessions
+// @Produce  json
+// @Param    sessionID path     string true "Session UUID"
+// @Success  200       {array}  MoveDTO
+// @Failure  404       {object} map[string]string
+// @Router   /sessions/{sessionID}/history [get]
 func handleGetSessionHistory(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -298,6 +362,187 @@ func handleGetSessionHistory(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to get history")
 			return
 		}
-		writeJSON(w, http.StatusOK, moves)
+		dtos := make([]MoveDTO, len(moves))
+		for i, m := range moves {
+			dtos[i] = moveToDTO(m)
+		}
+		writeJSON(w, http.StatusOK, dtos)
+	}
+}
+
+// --- Pause / Resume ----------------------------------------------------------
+
+// @Summary  Vote to pause
+// @Tags     sessions
+// @Produce  json
+// @Param    sessionID path     string true "Session UUID"
+// @Success  200       {object} runtime.PauseVoteResult
+// @Failure  404       {object} map[string]string
+// @Failure  409       {object} map[string]string
+// @Router   /sessions/{sessionID}/pause [post]
+func handleVotePause(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+
+		var req struct {
+			PlayerID string `json:"player_id"`
+		}
+		if err := decodeJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		playerID, err := uuid.Parse(req.PlayerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		result, err := rt.VotePause(r.Context(), sessionID, playerID)
+		if err != nil {
+			switch {
+			case errors.Is(err, runtime.ErrSessionNotFound):
+				writeError(w, http.StatusNotFound, err.Error())
+			case errors.Is(err, runtime.ErrGameOver):
+				writeError(w, http.StatusConflict, err.Error())
+			case errors.Is(err, runtime.ErrAlreadyPaused):
+				writeError(w, http.StatusConflict, err.Error())
+			case errors.Is(err, runtime.ErrNotParticipant):
+				writeError(w, http.StatusForbidden, err.Error())
+			default:
+				writeError(w, http.StatusInternalServerError, "internal error")
+			}
+			return
+		}
+
+		session, _, _, err := rt.GetSessionAndState(r.Context(), sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+
+		if result.AllVoted {
+			hub.Broadcast(session.RoomID, ws.Event{
+				Type:    ws.EventSessionSuspended,
+				Payload: map[string]any{"suspended_at": time.Now()},
+			})
+		} else {
+			hub.Broadcast(session.RoomID, ws.Event{
+				Type: ws.EventPauseVoteUpdate,
+				Payload: map[string]any{
+					"votes":    result.Votes,
+					"required": result.Required,
+				},
+			})
+		}
+
+		writeJSON(w, http.StatusOK, result)
+	}
+}
+
+// @Summary  Vote to resume
+// @Tags     sessions
+// @Produce  json
+// @Param    sessionID path     string true "Session UUID"
+// @Success  200       {object} runtime.PauseVoteResult
+// @Failure  404       {object} map[string]string
+// @Failure  409       {object} map[string]string
+// @Router   /sessions/{sessionID}/resume [post]
+func handleVoteResume(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+
+		var req struct {
+			PlayerID string `json:"player_id"`
+		}
+		if err := decodeJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		playerID, err := uuid.Parse(req.PlayerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		result, err := rt.VoteResume(r.Context(), sessionID, playerID)
+		if err != nil {
+			switch {
+			case errors.Is(err, runtime.ErrSessionNotFound):
+				writeError(w, http.StatusNotFound, err.Error())
+			case errors.Is(err, runtime.ErrGameOver):
+				writeError(w, http.StatusConflict, err.Error())
+			case errors.Is(err, runtime.ErrNotSuspended):
+				writeError(w, http.StatusConflict, err.Error())
+			case errors.Is(err, runtime.ErrNotParticipant):
+				writeError(w, http.StatusForbidden, err.Error())
+			default:
+				writeError(w, http.StatusInternalServerError, "internal error")
+			}
+			return
+		}
+
+		session, _, _, err := rt.GetSessionAndState(r.Context(), sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+
+		if result.AllVoted {
+			hub.Broadcast(session.RoomID, ws.Event{
+				Type:    ws.EventSessionResumed,
+				Payload: map[string]any{"resumed_at": time.Now()},
+			})
+		} else {
+			hub.Broadcast(session.RoomID, ws.Event{
+				Type: ws.EventResumeVoteUpdate,
+				Payload: map[string]any{
+					"votes":    result.Votes,
+					"required": result.Required,
+				},
+			})
+		}
+
+		writeJSON(w, http.StatusOK, result)
+	}
+}
+
+// DELETE /api/v1/sessions/{sessionID}
+// Force-closes a suspended session. Manager-only.
+// Broadcasts room_closed so all clients can navigate away.
+func handleForceCloseSession(st store.Store, hub *ws.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+
+		session, err := st.GetGameSession(r.Context(), sessionID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "session not found")
+			return
+		}
+
+		if err := st.ForceCloseSession(r.Context(), sessionID); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to close session")
+			return
+		}
+
+		hub.Broadcast(session.RoomID, ws.Event{
+			Type:    ws.EventRoomClosed,
+			Payload: nil,
+		})
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

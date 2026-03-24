@@ -4,7 +4,20 @@ import { DEFAULT_SETTINGS } from '../lib/api'
 import { PlayerSocket, RoomSocket } from '../lib/ws'
 import { applyFontSize, applySkin, FontSize, type SkinId } from '../lib/skins'
 
-export type QueueStatus = 'idle' | 'queued' | 'match_found'
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+export const QueueStatus = {
+  Idle: 'idle',
+  Queued: 'queued',
+  MatchFound: 'match_found',
+} as const
+export type QueueStatus = (typeof QueueStatus)[keyof typeof QueueStatus]
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 // Resolved settings — all keys are guaranteed non-optional after merging
 // stored values over DEFAULT_SETTINGS.
@@ -67,21 +80,24 @@ interface AppState {
    * Persists across navigation so the player can queue and browse the app.
    */
   queueStatus: QueueStatus
+
   /**
    * Timestamp (Date.now()) when the player joined the queue.
    * Used to calculate elapsed wait time from any page.
-   * Null when queueStatus is 'idle'.
+   * Null when queueStatus is QueueStatus.Idle.
    */
   queueJoinedAt: number | null
+
   /**
-   * The match ID proposed by the server when queueStatus is 'match_found'.
+   * The match ID proposed by the server when queueStatus is QueueStatus.MatchFound.
    * Required to call queue.accept() / queue.decline().
    * Null otherwise.
    */
   matchId: string | null
-  /** Set queue status to 'queued' and record the join timestamp. */
+
+  /** Set queue status to QueueStatus.Queued and record the join timestamp. */
   setQueued: (joinedAt: number) => void
-  /** Set queue status to 'match_found' and record the match ID. */
+  /** Set queue status to QueueStatus.MatchFound and record the match ID. */
   setMatchFound: (matchId: string) => void
   clearQueue: () => void
 
@@ -198,12 +214,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
 
   // Queue
-  queueStatus: 'idle',
+  queueStatus: QueueStatus.Idle,
   queueJoinedAt: null,
   matchId: null,
-  setQueued: joinedAt => set({ queueStatus: 'queued', queueJoinedAt: joinedAt, matchId: null }),
-  setMatchFound: matchId => set({ queueStatus: 'match_found', matchId }),
-  clearQueue: () => set({ queueStatus: 'idle', queueJoinedAt: null, matchId: null }),
+  setQueued: joinedAt =>
+    set({ queueStatus: QueueStatus.Queued, queueJoinedAt: joinedAt, matchId: null }),
+  setMatchFound: matchId => set({ queueStatus: QueueStatus.MatchFound, matchId }),
+  clearQueue: () => set({ queueStatus: QueueStatus.Idle, queueJoinedAt: null, matchId: null }),
 
   // Settings
   settings: { ...DEFAULT_SETTINGS },

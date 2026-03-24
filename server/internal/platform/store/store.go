@@ -222,22 +222,42 @@ type AllowedEmail struct {
 	CreatedAt time.Time  `json:"created_at"`
 }
 
+type EndedBy string
+
+const (
+	EndedByNormal       EndedBy = "win"
+	EndedByDraw         EndedBy = "draw"
+	EndedByForfeit      EndedBy = "forfeit"
+	EndedByTimeout      EndedBy = "timeout"
+	EndedByReadyTimeout EndedBy = "ready_timeout"
+	EndedBySuspended    EndedBy = "suspended"
+)
+
 type GameResult struct {
 	ID           uuid.UUID  `json:"id"`
 	SessionID    uuid.UUID  `json:"session_id"`
 	GameID       string     `json:"game_id"`
 	WinnerID     *uuid.UUID `json:"winner_id,omitempty"`
 	IsDraw       bool       `json:"is_draw"`
-	EndedBy      string     `json:"ended_by"`
+	EndedBy      EndedBy    `json:"ended_by"`
 	DurationSecs *int       `json:"duration_secs,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 }
+
+type Outcome string
+
+const (
+	OutcomeWin     Outcome = "win"
+	OutcomeLoss    Outcome = "loss"
+	OutcomeDraw    Outcome = "draw"
+	OutcomeForgeit Outcome = "forfeit"
+)
 
 type GameResultPlayer struct {
 	ResultID uuid.UUID `json:"result_id"`
 	PlayerID uuid.UUID `json:"player_id"`
 	Seat     int       `json:"seat"`
-	Outcome  string    `json:"outcome"`
+	Outcome  Outcome   `json:"outcome"`
 }
 
 type RematchVote struct {
@@ -548,7 +568,7 @@ type CreateGameResultParams struct {
 	GameID    string
 	WinnerID  *uuid.UUID
 	IsDraw    bool
-	EndedBy   string
+	EndedBy   EndedBy
 	Players   []GameResultPlayer
 }
 

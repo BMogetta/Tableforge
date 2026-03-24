@@ -1,5 +1,17 @@
-export type SkinId = 'obsidian' | 'parchment' | 'slate' | 'ivory'
-export type FontSize = 'small' | 'medium' | 'large'
+export const FontSize = {
+  Small: 'small',
+  Medium: 'medium',
+  Large: 'large',
+} as const
+export type FontSize = (typeof FontSize)[keyof typeof FontSize]
+
+export const SkinId = {
+  Obsidian: 'obsidian',
+  Parchment: 'parchment',
+  Slate: 'slate',
+  Ivory: 'ivory',
+} as const
+export type SkinId = (typeof SkinId)[keyof typeof SkinId]
 
 export interface Skin {
   id: SkinId
@@ -61,9 +73,9 @@ export function applySkin(id: SkinId): void {
 }
 
 const FONT_SCALE: Record<FontSize, string> = {
-  small:  '14px',
+  small: '14px',
   medium: '16px',
-  large:  '18px',
+  large: '18px',
 }
 
 export function applyFontSize(size: FontSize): void {

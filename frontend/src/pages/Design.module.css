@@ -214,9 +214,15 @@
   margin-top: 1px;
 }
 
-.toastPreview[data-variant="error"]   .toastIcon { color: var(--color-danger); }
-.toastPreview[data-variant="warning"] .toastIcon { color: var(--color-interactive); }
-.toastPreview[data-variant="info"]    .toastIcon { color: var(--color-success); }
+.toastPreview[data-variant="error"] .toastIcon {
+  color: var(--color-danger);
+}
+.toastPreview[data-variant="warning"] .toastIcon {
+  color: var(--color-interactive);
+}
+.toastPreview[data-variant="info"] .toastIcon {
+  color: var(--color-success);
+}
 
 .toastBody {
   display: flex;

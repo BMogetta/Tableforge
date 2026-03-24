@@ -73,7 +73,7 @@ export interface LoadProgress {
  */
 export async function loadAssets(
   assets: GameAsset[],
-  onProgress?: (p: LoadProgress) => void
+  onProgress?: (p: LoadProgress) => void,
 ): Promise<void> {
   if (assets.length === 0) {
     onProgress?.({ loaded: 0, total: 0, progress: 1 })
@@ -89,11 +89,9 @@ export async function loadAssets(
   }
 
   await Promise.all(
-    assets.map(asset =>
-      loadSingleAsset(asset)
-        .then(report)
-        .catch(report) // skip failed assets silently
-    )
+    assets.map(
+      asset => loadSingleAsset(asset).then(report).catch(report), // skip failed assets silently
+    ),
   )
 }
 
@@ -118,7 +116,10 @@ async function loadSingleAsset(asset: GameAsset): Promise<void> {
     case 'image':
       return new Promise((resolve, reject) => {
         const img = new Image()
-        img.onload = () => { sessionCache.add(key); resolve() }
+        img.onload = () => {
+          sessionCache.add(key)
+          resolve()
+        }
         img.onerror = reject
         img.src = asset.url
       })
@@ -126,7 +127,10 @@ async function loadSingleAsset(asset: GameAsset): Promise<void> {
     case 'audio':
       return new Promise((resolve, reject) => {
         const audio = new Audio()
-        audio.oncanplaythrough = () => { sessionCache.add(key); resolve() }
+        audio.oncanplaythrough = () => {
+          sessionCache.add(key)
+          resolve()
+        }
         audio.onerror = reject
         audio.src = asset.url
         audio.load()

@@ -20,7 +20,6 @@ interface RendererProps {
   players: { id: string; username: string }[]
 }
 
-
 type RendererComponent = React.FC<RendererProps>
 
 const TicTacToeRenderer: RendererComponent = ({ gameData, localPlayerId, onMove, disabled }) => (

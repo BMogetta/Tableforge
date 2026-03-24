@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Game } from '../pages/Game'
-import { GameLoading } from '../pages/GameLoading'
+import { Game } from '../features/game/Game'
+import { GameLoading } from '../features/game/GameLoading'
 import { requireAuth } from '../lib/authGuards'
 import { useAppStore } from '../stores/store'
-import { sessions } from '../lib/api'
+import { sessions } from '../lib/api/sessions'
 import { keys } from '../lib/queryClient'
 
 function GameLoadingWrapper({
@@ -51,11 +51,7 @@ export const Route = createFileRoute('/game/$sessionId')({
 
     if (!isSpectator && !gameReady) {
       return (
-        <GameLoadingWrapper
-          sessionId={sessionId}
-          onReady={handleReady}
-          onTimeout={handleTimeout}
-        />
+        <GameLoadingWrapper sessionId={sessionId} onReady={handleReady} onTimeout={handleTimeout} />
       )
     }
 

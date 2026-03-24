@@ -1,0 +1,754 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Tableforge API",
+    "contact": {},
+    "version": "1.0"
+  },
+  "host": "localhost",
+  "basePath": "/api/v1",
+  "paths": {
+    "/sessions/{sessionID}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Get game session",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/SessionResponse"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/events": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Get session events",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SessionEventDTO"
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/history": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Get session history",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MoveDTO"
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/move": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Apply a move",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Move payload",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/moveRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/MoveResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/pause": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Vote to pause",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PauseVoteResult"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/ready": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Vote ready",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ReadyVoteResult"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/rematch": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Vote for rematch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Player ID",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/rematchRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/RematchResponse"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/resume": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Vote to resume",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PauseVoteResult"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionID}/surrender": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Surrender a game",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Session UUID",
+            "name": "sessionID",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Player ID",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/surrenderRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/MoveResponse"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "EndedBy": {
+      "type": "string",
+      "enum": [
+        "win",
+        "draw",
+        "forfeit",
+        "timeout",
+        "ready_timeout",
+        "suspended"
+      ],
+      "x-enum-varnames": [
+        "EndedByNormal",
+        "EndedByDraw",
+        "EndedByForfeit",
+        "EndedByTimeout",
+        "EndedByReadyTimeout",
+        "EndedBySuspended"
+      ]
+    },
+    "GameResult": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "duration_secs": {
+          "type": "integer"
+        },
+        "ended_by": {
+          "$ref": "#/definitions/EndedBy"
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "is_draw": {
+          "type": "boolean"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "winner_id": {
+          "type": "string"
+        }
+      }
+    },
+    "GameSessionDTO": {
+      "type": "object",
+      "properties": {
+        "finished_at": {
+          "type": "string"
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_move_at": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "move_count": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pause_votes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ready_players": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resume_votes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "room_id": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "suspend_count": {
+          "type": "integer"
+        },
+        "suspended_at": {
+          "type": "string"
+        },
+        "suspended_reason": {
+          "type": "string"
+        },
+        "turn_timeout_secs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "game_id",
+        "room_id",
+        "name",
+        "mode",
+        "move_count",
+        "suspend_count",
+        "pause_votes",
+        "resume_votes",
+        "ready_players",
+        "turn_timeout_secs"
+      ]
+    },
+    "MoveDTO": {
+      "type": "object",
+      "properties": {
+        "applied_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "move_number": {
+          "type": "integer"
+        },
+        "payload": {},
+        "player_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "session_id",
+        "player_id",
+        "move_number",
+        "payload",
+        "applied_at"
+      ]
+    },
+    "MoveResponse": {
+      "type": "object",
+      "properties": {
+        "is_over": {
+          "type": "boolean"
+        },
+        "result": {
+          "$ref": "#/definitions/Result"
+        },
+        "session": {
+          "$ref": "#/definitions/GameSessionDTO"
+        },
+        "state": {}
+      },
+      "required": [
+        "session",
+        "state",
+        "is_over"
+      ]
+    },
+    "PauseVoteResult": {
+      "type": "object",
+      "properties": {
+        "all_voted": {
+          "description": "AllVoted is true when consensus was reached and the session state changed.",
+          "type": "boolean"
+        },
+        "required": {
+          "description": "Required is the total number of participants who must vote.",
+          "type": "integer"
+        },
+        "votes": {
+          "description": "Votes is the list of player IDs that have voted so far.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "all_voted",
+        "votes",
+        "required"
+      ]
+    },
+    "ReadyVoteResult": {
+      "type": "object",
+      "properties": {
+        "all_ready": {
+          "type": "boolean"
+        },
+        "ready_players": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "all_ready",
+        "ready_players",
+        "required"
+      ]
+    },
+    "RematchResponse": {
+      "type": "object",
+      "properties": {
+        "total_players": {
+          "type": "integer"
+        },
+        "votes": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "votes",
+        "total_players"
+      ]
+    },
+    "Result": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/ResultStatus"
+        },
+        "winner_id": {
+          "type": "string"
+        }
+      }
+    },
+    "ResultStatus": {
+      "type": "string",
+      "enum": [
+        "win",
+        "draw"
+      ],
+      "x-enum-varnames": [
+        "ResultWin",
+        "ResultDraw"
+      ]
+    },
+    "SessionEventDTO": {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "type": "string"
+        },
+        "payload": {},
+        "player_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "session_id",
+        "player_id",
+        "event_type",
+        "payload",
+        "occurred_at"
+      ]
+    },
+    "SessionResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/GameResult"
+        },
+        "session": {
+          "$ref": "#/definitions/GameSessionDTO"
+        },
+        "state": {}
+      },
+      "required": [
+        "session",
+        "state"
+      ]
+    },
+    "moveRequest": {
+      "type": "object",
+      "properties": {
+        "payload": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "player_id": {
+          "type": "string"
+        }
+      }
+    },
+    "rematchRequest": {
+      "type": "object",
+      "properties": {
+        "player_id": {
+          "type": "string"
+        }
+      }
+    },
+    "surrenderRequest": {
+      "type": "object",
+      "properties": {
+        "player_id": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

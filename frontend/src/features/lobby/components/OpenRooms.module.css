@@ -1,0 +1,37 @@
+.section {
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.15em;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Count badge — shows number of open rooms */
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--color-interactive-glow);
+  color: var(--color-interactive);
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-interactive) 20%, transparent);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  padding: var(--space-6) 0;
+}

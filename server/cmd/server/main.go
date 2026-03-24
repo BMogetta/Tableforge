@@ -1,3 +1,7 @@
+// @title           Tableforge API
+// @version         1.0
+// @host            localhost
+// @BasePath        /api/v1
 package main
 
 import (

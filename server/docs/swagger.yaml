@@ -1,0 +1,465 @@
+basePath: /api/v1
+definitions:
+  EndedBy:
+    enum:
+    - win
+    - draw
+    - forfeit
+    - timeout
+    - ready_timeout
+    - suspended
+    type: string
+    x-enum-varnames:
+    - EndedByNormal
+    - EndedByDraw
+    - EndedByForfeit
+    - EndedByTimeout
+    - EndedByReadyTimeout
+    - EndedBySuspended
+  GameResult:
+    properties:
+      created_at:
+        type: string
+      duration_secs:
+        type: integer
+      ended_by:
+        $ref: '#/definitions/EndedBy'
+      game_id:
+        type: string
+      id:
+        type: string
+      is_draw:
+        type: boolean
+      session_id:
+        type: string
+      winner_id:
+        type: string
+    type: object
+  GameSessionDTO:
+    properties:
+      finished_at:
+        type: string
+      game_id:
+        type: string
+      id:
+        type: string
+      last_move_at:
+        type: string
+      mode:
+        type: string
+      move_count:
+        type: integer
+      name:
+        type: string
+      pause_votes:
+        items:
+          type: string
+        type: array
+      ready_players:
+        items:
+          type: string
+        type: array
+      resume_votes:
+        items:
+          type: string
+        type: array
+      room_id:
+        type: string
+      started_at:
+        type: string
+      suspend_count:
+        type: integer
+      suspended_at:
+        type: string
+      suspended_reason:
+        type: string
+      turn_timeout_secs:
+        type: integer
+    type: object
+  MoveDTO:
+    properties:
+      applied_at:
+        type: string
+      id:
+        type: string
+      move_number:
+        type: integer
+      payload: {}
+      player_id:
+        type: string
+      session_id:
+        type: string
+    type: object
+  MoveResponse:
+    properties:
+      is_over:
+        type: boolean
+      result:
+        $ref: '#/definitions/Result'
+      session:
+        $ref: '#/definitions/GameSessionDTO'
+      state: {}
+    type: object
+  PauseVoteResult:
+    properties:
+      all_voted:
+        description: AllVoted is true when consensus was reached and the session state
+          changed.
+        type: boolean
+      required:
+        description: Required is the total number of participants who must vote.
+        type: integer
+      votes:
+        description: Votes is the list of player IDs that have voted so far.
+        items:
+          type: string
+        type: array
+    type: object
+  ReadyVoteResult:
+    properties:
+      all_ready:
+        type: boolean
+      ready_players:
+        items:
+          type: string
+        type: array
+      required:
+        type: integer
+    type: object
+  RematchResponse:
+    properties:
+      total_players:
+        type: integer
+      votes:
+        type: integer
+    type: object
+  Result:
+    properties:
+      status:
+        $ref: '#/definitions/ResultStatus'
+      winner_id:
+        type: string
+    type: object
+  ResultStatus:
+    enum:
+    - win
+    - draw
+    type: string
+    x-enum-varnames:
+    - ResultWin
+    - ResultDraw
+  SessionEventDTO:
+    properties:
+      event_type:
+        type: string
+      id:
+        type: string
+      occurred_at:
+        type: string
+      payload: {}
+      player_id:
+        type: string
+      session_id:
+        type: string
+    type: object
+  SessionResponse:
+    properties:
+      result:
+        $ref: '#/definitions/GameResult'
+      session:
+        $ref: '#/definitions/GameSessionDTO'
+      state: {}
+    type: object
+  moveRequest:
+    properties:
+      payload:
+        additionalProperties: {}
+        type: object
+      player_id:
+        type: string
+    type: object
+  rematchRequest:
+    properties:
+      player_id:
+        type: string
+    type: object
+  surrenderRequest:
+    properties:
+      player_id:
+        type: string
+    type: object
+host: localhost
+info:
+  contact: {}
+  title: Tableforge API
+  version: "1.0"
+paths:
+  /sessions/{sessionID}:
+    get:
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/SessionResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get game session
+      tags:
+      - sessions
+  /sessions/{sessionID}/events:
+    get:
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/SessionEventDTO'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get session events
+      tags:
+      - sessions
+  /sessions/{sessionID}/history:
+    get:
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/MoveDTO'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get session history
+      tags:
+      - sessions
+  /sessions/{sessionID}/move:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      - description: Move payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/moveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/MoveResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply a move
+      tags:
+      - sessions
+  /sessions/{sessionID}/pause:
+    post:
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PauseVoteResult'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Vote to pause
+      tags:
+      - sessions
+  /sessions/{sessionID}/ready:
+    post:
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ReadyVoteResult'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Vote ready
+      tags:
+      - sessions
+  /sessions/{sessionID}/rematch:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      - description: Player ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/rematchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/RematchResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Vote for rematch
+      tags:
+      - sessions
+  /sessions/{sessionID}/resume:
+    post:
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PauseVoteResult'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Vote to resume
+      tags:
+      - sessions
+  /sessions/{sessionID}/surrender:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session UUID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      - description: Player ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/surrenderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/MoveResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Surrender a game
+      tags:
+      - sessions
+swagger: "2.0"

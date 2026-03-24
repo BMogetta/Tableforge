@@ -1,14 +1,83 @@
 // All types mirror the Go store models.
 
+import { GameSessionDTO } from './api-generated'
+import { FontSize, SkinId } from './skins'
 import { tracer } from './telemetry'
 import { SpanKind, SpanStatusCode, context, propagation } from '@opentelemetry/api'
 
-// --- Types -------------------------------------------------------------------
+// =============================================================================
+// CONSTANTS — avoids magic strings across the codebase.
+// Pattern: const object + type alias from keyof typeof.
+// Never use the string literals directly — always reference the const.
+// =============================================================================
+
+export const PlayerRole = {
+  Player: 'player',
+  Manager: 'manager',
+  Owner: 'owner',
+} as const
+export type PlayerRole = (typeof PlayerRole)[keyof typeof PlayerRole]
+
+export const RoomStatus = {
+  Waiting: 'waiting',
+  InProgress: 'in_progress',
+  Finished: 'finished',
+} as const
+export type RoomStatus = (typeof RoomStatus)[keyof typeof RoomStatus]
+
+export const SessionMode = {
+  Casual: 'casual',
+  Ranked: 'ranked',
+} as const
+export type SessionMode = (typeof SessionMode)[keyof typeof SessionMode]
+
+export const ResultStatus = {
+  Win: 'win',
+  Draw: 'draw',
+  Loss: 'loss',
+} as const
+export type ResultStatus = (typeof ResultStatus)[keyof typeof ResultStatus]
+
+export const NotificationType = {
+  FriendRequest: 'friend_request',
+  RoomInvitation: 'room_invitation',
+  BanIssued: 'ban_issued',
+} as const
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+export const BanReason = {
+  DeclineThreshold: 'decline_threshold',
+  Moderator: 'moderator',
+} as const
+export type BanReason = (typeof BanReason)[keyof typeof BanReason]
+
+export const AllowDMs = {
+  Anyone: 'anyone',
+  FriendsOnly: 'friends_only',
+  Nobody: 'nobody',
+} as const
+export type AllowDMs = (typeof AllowDMs)[keyof typeof AllowDMs]
+
+export const SettingType = {
+  Select: 'select',
+  Int: 'int',
+} as const
+export type SettingType = (typeof SettingType)[keyof typeof SettingType]
+
+export const Language = {
+  En: 'en',
+  Es: 'es',
+} as const
+export type Language = (typeof Language)[keyof typeof Language]
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 export interface Player {
   id: string
   username: string
-  role: 'player' | 'manager' | 'owner'
+  role: PlayerRole
   is_bot: boolean
   avatar_url?: string
   created_at: string
@@ -21,7 +90,7 @@ export interface RoomViewPlayer extends Player {
 
 export interface AllowedEmail {
   email: string
-  role: 'player' | 'manager' | 'owner'
+  role: PlayerRole
   note?: string
   invited_by?: string
   expires_at?: string
@@ -30,10 +99,10 @@ export interface AllowedEmail {
 
 export interface PlayerSettingMap {
   // Appearance
-  theme?: 'obsidian' | 'parchment' | 'slate' | 'ivory'
-  language?: string
+  theme?: SkinId
+  language?: Language
   reduce_motion?: boolean
-  font_size?: 'small' | 'medium' | 'large'
+  font_size?: FontSize
 
   // Notifications
   notify_dm?: boolean
@@ -56,7 +125,7 @@ export interface PlayerSettingMap {
 
   // Privacy
   show_online_status?: boolean
-  allow_dms?: 'anyone' | 'friends_only' | 'nobody'
+  allow_dms?: AllowDMs
 }
 
 export interface PlayerSettings {
@@ -67,10 +136,10 @@ export interface PlayerSettings {
 
 /** Canonical application defaults — mirrors store.DefaultPlayerSettings(). */
 export const DEFAULT_SETTINGS: Required<PlayerSettingMap> = {
-  theme: 'obsidian',
-  language: 'en',
+  theme: SkinId.Obsidian,
+  language: Language.En,
   reduce_motion: false,
-  font_size: 'medium',
+  font_size: FontSize.Medium,
   notify_dm: true,
   notify_game_invite: true,
   notify_friend_request: true,
@@ -85,7 +154,7 @@ export const DEFAULT_SETTINGS: Required<PlayerSettingMap> = {
   confirm_move: false,
   show_timer_warning: true,
   show_online_status: true,
-  allow_dms: 'anyone',
+  allow_dms: AllowDMs.Anyone,
 }
 
 export interface Room {
@@ -99,7 +168,7 @@ export interface Room {
   code: string
   game_id: string
   owner_id: string
-  status: 'waiting' | 'in_progress' | 'finished'
+  status: RoomStatus
   max_players: number
   created_at: string
 }
@@ -125,40 +194,10 @@ export interface RoomView {
   spectator_count?: number
 }
 
-export interface GameSession {
-  id: string
-  room_id: string
-  game_id: string
-  state: unknown
-  ready_players: string[];
-  mode: 'casual' | 'ranked'
-  move_count: number
-  suspend_count: number
-  suspended_at?: string
-  suspended_reason?: string
-  pause_votes: string[]
-  resume_votes: string[]
-  turn_timeout_secs?: number
-  last_move_at: string
-  started_at: string
-  finished_at?: string
-  deleted_at?: string
-}
-
-export interface GameResult {
+/** Inline result returned by move/surrender endpoints — based on engine.Result. */
+export interface MoveResult {
+  status: ResultStatus
   winner_id?: string
-  status?: string
-  ended_by?: string
-  is_draw?: boolean
-}
-
-export interface Move {
-  id: string
-  session_id: string
-  player_id: string
-  payload: unknown
-  move_number: number
-  applied_at: string
 }
 
 export interface PlayerStats {
@@ -229,8 +268,6 @@ export interface SessionEvent {
 
 // --- Notification types ------------------------------------------------------
 
-export type NotificationType = 'friend_request' | 'room_invitation' | 'ban_issued'
-
 export interface NotificationPayloadFriendRequest {
   from_player_id: string
   from_username: string
@@ -244,7 +281,7 @@ export interface NotificationPayloadRoomInvitation {
 }
 
 export interface NotificationPayloadBanIssued {
-  reason: 'decline_threshold' | 'moderator'
+  reason: BanReason
   expires_at?: string
 }
 
@@ -277,7 +314,7 @@ export interface LobbySetting {
   key: string
   label: string
   description?: string
-  type: 'select' | 'int'
+  type: SettingType
   default: string
   // Present when type === 'select'
   options?: SettingOption[]
@@ -304,7 +341,7 @@ export interface GameInfo {
 
 const BASE = '/api/v1'
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase()
   const url = BASE + path
 
@@ -393,7 +430,7 @@ export const auth = {
 
 export const players = {
   stats: (id: string) => request<PlayerStats>(`/players/${id}/stats`),
-  sessions: (id: string) => request<GameSession[]>(`/players/${id}/sessions`),
+  sessions: (id: string) => request<GameSessionDTO[]>(`/players/${id}/sessions`),
 }
 
 // --- Player settings ---------------------------------------------------------
@@ -432,7 +469,7 @@ export const rooms = {
       body: JSON.stringify({ player_id: playerId }),
     }),
   start: (roomId: string, playerId: string) =>
-    request<GameSession>(`/rooms/${roomId}/start`, {
+    request<GameSessionDTO>(`/rooms/${roomId}/start`, {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId }),
     }),
@@ -451,64 +488,6 @@ export const rooms = {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, content }),
     }),
-}
-
-// --- Sessions ----------------------------------------------------------------
-
-export const sessions = {
-  get: (id: string) =>
-    request<{
-      session: GameSession
-      state: { current_player_id: string; data: unknown }
-      result?: GameResult
-    }>(`/sessions/${id}`),
-  ready: (sessionId: string, playerId: string) =>
-    request<{ ready_players: string[]; required: number; all_ready: boolean }>(
-      `/sessions/${sessionId}/ready`,
-      { method: 'POST', body: JSON.stringify({ player_id: playerId }) }
-    ),
-  move: (sessionId: string, playerId: string, payload: unknown) =>
-    request<{
-      session: GameSession
-      state: { current_player_id: string; data: unknown }
-      is_over: boolean
-    }>(`/sessions/${sessionId}/move`, {
-      method: 'POST',
-      body: JSON.stringify({ player_id: playerId, payload }),
-    }),
-  surrender: (sessionId: string, playerId: string) =>
-    request<{
-      session: GameSession
-      state: { current_player_id: string; data: unknown }
-      is_over: boolean
-      result?: GameResult
-    }>(`/sessions/${sessionId}/surrender`, {
-      method: 'POST',
-      body: JSON.stringify({ player_id: playerId }),
-    }),
-  rematch: (sessionId: string, playerId: string) =>
-    request<{
-      votes: number
-      total_players: number
-      session?: GameSession
-    }>(`/sessions/${sessionId}/rematch`, {
-      method: 'POST',
-      body: JSON.stringify({ player_id: playerId }),
-    }),
-  pause: (sessionId: string, playerId: string) =>
-    request<{ votes: string[]; required: number; all_voted: boolean }>(
-      `/sessions/${sessionId}/pause`,
-      { method: 'POST', body: JSON.stringify({ player_id: playerId }) },
-    ),
-  resume: (sessionId: string, playerId: string) =>
-    request<{ votes: string[]; required: number; all_voted: boolean }>(
-      `/sessions/${sessionId}/resume`,
-      { method: 'POST', body: JSON.stringify({ player_id: playerId }) },
-    ),
-  // Manager only. Broadcasts room_closed to all clients.
-  forceClose: (sessionId: string) => request<void>(`/sessions/${sessionId}`, { method: 'DELETE' }),
-  events: (id: string) => request<SessionEvent[]>(`/sessions/${id}/events`),
-  history: (id: string) => request<Move[]>(`/sessions/${id}/history`),
 }
 
 // --- Leaderboard -------------------------------------------------------------
@@ -535,7 +514,7 @@ export const gameRegistry = {
 export const admin = {
   // Allowed emails
   listEmails: () => request<AllowedEmail[]>('/admin/allowed-emails'),
-  addEmail: (email: string, role: 'player' | 'manager' = 'player') =>
+  addEmail: (email: string, role: PlayerRole = PlayerRole.Player) =>
     request<AllowedEmail>('/admin/allowed-emails', {
       method: 'POST',
       body: JSON.stringify({ email, role }),
@@ -547,7 +526,7 @@ export const admin = {
 
   // Players
   listPlayers: () => request<Player[]>('/admin/players'),
-  setRole: (playerId: string, role: 'player' | 'manager' | 'owner') =>
+  setRole: (playerId: string, role: PlayerRole) =>
     request<void>(`/admin/players/${playerId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role }),

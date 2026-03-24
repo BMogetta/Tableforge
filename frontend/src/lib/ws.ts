@@ -1,3 +1,6 @@
+import { GameSessionDTO } from './api-generated'
+// TODO review (if) this is not the actual game session received, is is possible for WS to have different types, it will have to be unified later
+
 export type WsEventType =
   // Game flow
   | 'game_started'
@@ -44,10 +47,13 @@ export type WsEventType =
 
 /** Mirrors the MoveResult shape returned by the runtime on move/surrender/game_over. */
 export interface WsPayloadMoveResult {
-  session: { id: string; game_id: string; move_count: number; finished_at?: string }
+  session: GameSessionDTO
   state: { current_player_id: string; data: unknown }
   is_over: boolean
-  result?: { winner_id?: string; is_draw?: boolean }
+  result?: {
+    status?: 'win' | 'draw'
+    winner_id?: string
+  }
 }
 
 export interface WsPayloadPlayerReady {
