@@ -1,4 +1,4 @@
-import type { AppError } from '../../utils/errors'
+import type { AppError } from '@/utils/errors'
 import styles from './ErrorMessage.module.css'
 
 interface Props {

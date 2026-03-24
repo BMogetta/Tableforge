@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useWsDevtoolsStore, type CapturedEvent } from './store'
-import type { WsEventType } from '../../lib/ws'
+import type { WsEventType } from '@/lib/ws'
 
 // ---------------------------------------------------------------------------
 // Filter mode

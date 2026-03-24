@@ -1,4 +1,4 @@
-import { auth } from '../lib/api'
+import { auth } from '@/lib/api'
 import styles from './Login.module.css'
 
 export function Login() {

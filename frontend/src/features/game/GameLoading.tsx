@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { useAppStore } from '../../stores/store'
-import { sessions } from '../../lib/api/sessions'
-import { loadAssets, type LoadProgress } from '../../lib/assets'
-import { getGameAssets } from '../../games/assets'
+import { useAppStore } from '@/stores/store'
+import { sessions } from '@/lib/api/sessions'
+import { loadAssets, type LoadProgress } from '@/lib/assets'
+import { getGameAssets } from '@/games/assets'
 import styles from './GameLoading.module.css'
 
 // Minimum time to show the loading screen — prevents flash if assets load instantly.

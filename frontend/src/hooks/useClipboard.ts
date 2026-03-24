@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { ok, error, type Result } from '../utils/errors'
+import { ok, error, type Result } from '@/utils/errors'
 
 // ---------------------------------------------------------------------------
 // Types

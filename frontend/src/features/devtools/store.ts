@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { WsEvent, WsEventType } from '../../lib/ws'
+import type { WsEvent, WsEventType } from '@/lib/ws'
 
 export const MAX_EVENTS = 200
 

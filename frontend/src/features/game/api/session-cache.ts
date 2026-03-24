@@ -1,4 +1,4 @@
-import { GameSessionDTO } from '../../../lib/api-generated'
+import { GameSessionDTO } from '@/lib/api-generated'
 
 /**
  * Unified cache shape for session queries written to the React Query cache

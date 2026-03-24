@@ -37,8 +37,6 @@ export interface LoveLetterState {
 
 const CARDS_REQUIRING_TARGET: CardName[] = ['guard', 'priest', 'baron', 'king']
 
-const CARDS_OPTIONALLY_TARGET: CardName[] = ['prince']
-
 function requiresTarget(card: CardName): boolean {
   return CARDS_REQUIRING_TARGET.includes(card)
 }

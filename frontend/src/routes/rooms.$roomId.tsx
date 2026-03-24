@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Room } from '../pages/Room'
-import { requireAuth } from '../lib/authGuards'
+import { requireAuth } from '@/lib/authGuards'
 
 export const Route = createFileRoute('/rooms/$roomId')({
   beforeLoad: requireAuth,

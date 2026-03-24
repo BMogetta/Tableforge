@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { rooms } from '../../../lib/api'
-import { keys } from '../../../lib/queryClient'
-import { GameData } from '../../../games/registry'
-import { GameSessionDTO } from '../../../lib/api-generated'
-import { sessions } from '../../../lib/api/sessions'
+import { rooms } from '@/lib/api'
+import { keys } from '@/lib/queryClient'
+import { GameData } from '@/games/registry'
+import { GameSessionDTO } from '@/lib/api-generated'
+import { sessions } from '@/lib/api/sessions'
 
 interface UseGameSessionOptions {
   sessionId: string

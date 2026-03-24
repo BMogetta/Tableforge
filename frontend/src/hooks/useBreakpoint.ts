@@ -38,7 +38,7 @@ export function useBreakpoint(): BreakpointState {
   const [breakpoint, setBreakpoint] = useState<Breakpoint>(getCurrentBreakpoint)
 
   useEffect(() => {
-    const queries = BREAKPOINTS.slice(0, -1).map(({ name, minWidth }) => {
+    const queries = BREAKPOINTS.slice(0, -1).map(({ minWidth }) => {
       const mq = window.matchMedia(`(min-width: ${minWidth}px)`)
       const handler = () => setBreakpoint(getCurrentBreakpoint())
       mq.addEventListener('change', handler)

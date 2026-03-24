@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { type CardName, CARD_META } from './CardDisplay'
+import { type CardName } from './CardDisplay'
 import { CardDisplay } from './CardDisplay'
 import styles from './ChancellorModal.module.css'
 

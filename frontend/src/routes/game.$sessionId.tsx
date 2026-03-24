@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Game } from '../features/game/Game'
 import { GameLoading } from '../features/game/GameLoading'
-import { requireAuth } from '../lib/authGuards'
+import { requireAuth } from '@/lib/authGuards'
 import { useAppStore } from '../stores/store'
-import { sessions } from '../lib/api/sessions'
-import { keys } from '../lib/queryClient'
+import { sessions } from '@/lib/api/sessions'
+import { keys } from '@/lib/queryClient'
 
 function GameLoadingWrapper({
   sessionId,

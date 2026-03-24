@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { rooms, queue, type GameInfo } from '../../../lib/api'
-import { useAppStore } from '../../../stores/store'
-import { keys } from '../../../lib/queryClient'
+import { rooms, queue, type GameInfo } from '@/lib/api'
+import { useAppStore } from '@/stores/store'
+import { keys } from '@/lib/queryClient'
 import styles from './NewGamePanel.module.css'
 import { useNavigate } from '@tanstack/react-router'
 

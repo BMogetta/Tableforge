@@ -1,4 +1,4 @@
-import type { GameAsset } from '../lib/assets'
+import type { GameAsset } from '@/lib/assets'
 import { tictactoeAssets } from './tictactoe/assets'
 import { loveLetterAssets } from './loveletter/assets'
 

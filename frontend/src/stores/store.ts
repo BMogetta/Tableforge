@@ -1,8 +1,8 @@
 import { create } from 'zustand'
-import type { Player, PlayerSettingMap, PlayerSettings } from '../lib/api'
-import { DEFAULT_SETTINGS } from '../lib/api'
-import { PlayerSocket, RoomSocket } from '../lib/ws'
-import { applyFontSize, applySkin, FontSize, type SkinId } from '../lib/skins'
+import type { Player, PlayerSettingMap, PlayerSettings } from '@/lib/api'
+import { DEFAULT_SETTINGS } from '@/lib/api'
+import { PlayerSocket, RoomSocket } from '@/lib/ws'
+import { applyFontSize, applySkin, FontSize, type SkinId } from '@/lib/skins'
 
 // ---------------------------------------------------------------------------
 // Constants

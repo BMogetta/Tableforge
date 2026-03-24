@@ -11,7 +11,25 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true
+
+    // Strict mode (already on)
+    "strict": true,
+
+    // Catch unused code
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // Prevent silent fallthrough bugs
+    "noFallthroughCasesInSwitch": true,
+
+    // Force explicit return types consistency
+    "noImplicitOverride": true,
+
+    // Path alias — if you use @/ imports
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src"]
 }

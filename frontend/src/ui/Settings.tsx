@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
-import { useAppStore } from '../../stores/store'
-import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap, Language } from '../../lib/api'
-import { catchToAppError } from '../../utils/errors'
+import { useAppStore } from '@/stores/store'
+import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap, Language } from '@/lib/api'
+import { catchToAppError } from '@/utils/errors'
 import { useToast } from './Toast'
 import styles from './Settings.module.css'
-import { SKINS } from '../../lib/skins'
+import { SKINS } from '@/lib/skins'
 
 // ---------------------------------------------------------------------------
 // Settings cache helpers (mirrors App.tsx)

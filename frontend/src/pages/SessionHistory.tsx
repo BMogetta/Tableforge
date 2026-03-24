@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
-import { SessionEvent } from '../lib/api'
-import { keys } from '../lib/queryClient'
+import { SessionEvent } from '@/lib/api'
+import { keys } from '@/lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
 import { useNavigate } from '@tanstack/react-router'
-import { sessions } from '../lib/api/sessions'
-import { MoveDTO } from '../lib/api-generated'
+import { sessions } from '@/lib/api/sessions'
+import { MoveDTO } from '@/lib/api-generated'
 
 // --- Helpers -----------------------------------------------------------------
 

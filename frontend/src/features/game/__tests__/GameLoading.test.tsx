@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, cleanup, fireEvent } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { GameLoading } from '../GameLoading'
 
 // ---------------------------------------------------------------------------
@@ -39,7 +38,7 @@ vi.mock('../../../lib/api/sessions', () => ({
 // Imports after mocks (so mocked modules are used)
 // ---------------------------------------------------------------------------
 
-import { sessions } from '../../../lib/api/sessions'
+import { sessions } from '@/lib/api/sessions'
 
 const mockReady = sessions.ready as ReturnType<typeof vi.fn>
 

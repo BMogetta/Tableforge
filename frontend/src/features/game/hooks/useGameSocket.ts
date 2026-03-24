@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { keys } from '../../../lib/queryClient'
-import { type RoomSocket, type PlayerSocket, type WsPayloadMoveResult } from '../../../lib/ws'
+import { keys } from '@/lib/queryClient'
+import { type RoomSocket, type PlayerSocket, type WsPayloadMoveResult } from '@/lib/ws'
 import type { PauseResumeState } from './usePauseResume'
 import type { RematchState } from './useRematch'
-import { ResultStatus } from '../../../lib/api'
+import { ResultStatus } from '@/lib/api'
 import type { SessionCache } from '../api/session-cache'
 
 interface UseGameSocketOptions {

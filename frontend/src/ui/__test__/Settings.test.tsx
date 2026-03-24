@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import { useAppStore } from '../../../stores/store'
-import { DEFAULT_SETTINGS } from '../../../lib/api'
+import { useAppStore } from '@/stores/store'
+import { DEFAULT_SETTINGS } from '@/lib/api'
 import { Settings } from '../Settings'
 import { ToastProvider } from '../Toast'
-import { SKINS } from '../../../lib/skins'
-import { applySkin } from '../../../lib/skins'
+import { SKINS } from '@/lib/skins'
+import { applySkin } from '@/lib/skins'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -19,8 +19,8 @@ vi.mock('@tanstack/react-pacer', () => ({
 
 // Mock the playerSettings API — we test optimistic update independently from
 // the network call.
-vi.mock('../../../lib/api', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../../lib/api')>()
+vi.mock('@/lib/api', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/api')>()
   return {
     ...actual,
     playerSettings: {
@@ -30,8 +30,8 @@ vi.mock('../../../lib/api', async importOriginal => {
   }
 })
 
-vi.mock('../../../lib/skins', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../../lib/skins')>()
+vi.mock('@/lib/skins', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/skins')>()
   return {
     ...actual,
     applySkin: vi.fn(),
@@ -240,7 +240,7 @@ describe('localStorage cache', () => {
 
 describe('backend sync', () => {
   it('calls playerSettings.update on setting change', async () => {
-    const { playerSettings } = await import('../../../lib/api')
+    const { playerSettings } = await import('@/lib/api')
     renderSettings()
 
     const toggle = screen.getByRole('switch', { name: 'Show Move Hints' })

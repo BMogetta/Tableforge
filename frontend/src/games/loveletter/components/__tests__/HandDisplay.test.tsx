@@ -39,7 +39,6 @@ describe('HandDisplay', () => {
   })
 
   it('does not call onSelect when disabled', async () => {
-    const user = userEvent.setup()
     const onSelect = vi.fn()
     render(
       <HandDisplay

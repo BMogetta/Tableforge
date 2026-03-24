@@ -1,4 +1,4 @@
-import type { GameAsset } from '../../lib/assets'
+import type { GameAsset } from '@/lib/assets'
 
 export const loveLetterAssets: GameAsset[] = [
   // No external assets yet — Love Letter uses inline SVG card art.

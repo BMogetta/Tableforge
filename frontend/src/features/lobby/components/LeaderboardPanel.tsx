@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { leaderboard, type Rating } from '../../../lib/api'
-import { keys } from '../../../lib/queryClient'
+import { leaderboard, type Rating } from '@/lib/api'
+import { keys } from '@/lib/queryClient'
 import styles from './LeaderboardPanel.module.css'
 
 interface Props {

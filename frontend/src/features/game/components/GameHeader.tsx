@@ -31,8 +31,6 @@ export function GameHeader({
   moveCount,
   canPause,
   isPausePending,
-  isOver,
-  isSpectator,
   onLobby,
   onPause,
 }: Props) {

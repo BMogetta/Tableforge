@@ -1,9 +1,9 @@
 import { createRootRoute, Outlet, useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, Component, type ReactNode } from 'react'
 import { useAppStore, type ResolvedSettings } from '../stores/store'
-import { auth, wsPlayerUrl, playerSettings } from '../lib/api'
-import { ToastProvider } from '../components/ui/Toast'
-import { emitErrorLog } from '../lib/telemetry'
+import { auth, wsPlayerUrl, playerSettings } from '@/lib/api'
+import { ToastProvider } from '../ui/Toast'
+import { emitErrorLog } from '@/lib/telemetry'
 
 const SETTINGS_CACHE_KEY = 'tf:settings'
 
@@ -26,13 +26,13 @@ function saveSettingsToCache(settings: ResolvedSettings) {
 }
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null }
+  override state = { error: null }
 
   static getDerivedStateFromError(error: Error) {
     return { error }
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
+  override componentDidCatch(error: Error, info: React.ErrorInfo) {
     emitErrorLog(error.message, {
       'error.type': 'react.boundary',
       'error.stack': error.stack ?? '',
@@ -40,7 +40,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     })
   }
 
-  render() {
+  override render() {
     if (this.state.error) {
       return <ErrorScreen error={this.state.error} onReset={() => this.setState({ error: null })} />
     }

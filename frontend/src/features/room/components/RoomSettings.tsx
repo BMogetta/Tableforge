@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { rooms, type LobbySetting } from '../../lib/api'
+import { rooms, type LobbySetting } from '@/lib/api'
 import styles from './RoomSettings.module.css'
-import { catchToAppError } from '../../utils/errors'
+import { catchToAppError } from '@/utils/errors'
 
 interface Props {
   roomId: string

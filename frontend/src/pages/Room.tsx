@@ -10,12 +10,12 @@ import {
   type LobbySetting,
   type BotProfile,
   type RoomViewPlayer,
-} from '../lib/api'
-import { ok, error, catchToAppError, type AppError } from '../utils/errors'
-import { useToast } from '../components/ui/Toast'
-import { ErrorMessage } from '../components/ui/ErrorMessage'
-import { RoomSettings } from '../components/room/RoomSettings'
-import { ChatSidebar } from '../components/room/ChatSidebar'
+} from '@/lib/api'
+import { ok, error, catchToAppError, type AppError } from '@/utils/errors'
+import { useToast } from '../ui/Toast'
+import { ErrorMessage } from '../ui/ErrorMessage'
+import { RoomSettings } from '../features/room/components//RoomSettings'
+import { ChatSidebar } from '../features/room/components//ChatSidebar'
 import styles from './Room.module.css'
 import { useNavigate } from '@tanstack/react-router'
 
@@ -592,14 +592,7 @@ interface PlayerDropdownProps {
   onUnblock: () => void
 }
 
-function PlayerDropdown({
-  target,
-  isMuted,
-  onMute,
-  onUnmute,
-  onBlock,
-  onUnblock,
-}: PlayerDropdownProps) {
+function PlayerDropdown({ isMuted, onMute, onUnmute, onBlock, onUnblock }: PlayerDropdownProps) {
   return (
     <div className={styles.dropdown}>
       {isMuted ? (

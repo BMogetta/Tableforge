@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useAppStore } from '../../stores/store'
-import { admin, PlayerRole, type AllowedEmail, type Player } from '../../lib/api'
-import { catchToAppError, type AppError } from '../../utils/errors'
-import { useToast } from '../../components/ui/Toast'
+import { useAppStore } from '@/stores/store'
+import { admin, PlayerRole, type AllowedEmail, type Player } from '@/lib/api'
+import { catchToAppError, type AppError } from '@/utils/errors'
+import { useToast } from '@/ui/Toast'
 import styles from './Admin.module.css'
 
 const Tab = {
