@@ -29,7 +29,7 @@ vi.mock('../../../games', () => ({
   getGameAssets: vi.fn().mockReturnValue([]),
 }))
 
-vi.mock('../../../lib/api', () => ({
+vi.mock('../../../lib/api/sessions', () => ({
   sessions: {
     ready: vi.fn().mockResolvedValue({ all_ready: false, ready_players: [], required: 2 }),
   },
