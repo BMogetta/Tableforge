@@ -1,8 +1,8 @@
 go 1.25.0
 
 use (
-	./server
 	./services/auth-service
+	./services/game-server
 	./services/chat-service
 	./services/match-service
 	./services/notification-service

@@ -112,12 +112,12 @@ clean:
 # Requires: swag installed (go install github.com/swaggo/swag/cmd/swag@latest)
 # Run this after adding or modifying API handlers.
 gen-types:
-	cd server && swag init -g cmd/server/main.go -o docs \
+	cd services/game-server && swag init -g cmd/server/main.go -o docs \
 		--parseDependency --parseInternal --useStructName
 
-	cd server/docs && jq -s -f patch-swagger.jq swagger.json swagger.required-patch.json > swagger.patched.json
+	cd services/game-server/docs && jq -s -f patch-swagger.jq swagger.json swagger.required-patch.json > swagger.patched.json
 
-	cd server/docs && npx swagger-typescript-api generate \
+	cd services/game-server/docs && npx swagger-typescript-api generate \
 		--path swagger.patched.json \
 		--output ../../frontend/src/lib \
 		--name api-generated.ts \

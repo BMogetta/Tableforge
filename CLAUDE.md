@@ -24,13 +24,13 @@ The monorepo uses a Go workspace (`go.work`), so most `go` commands work from th
 go test ./...
 
 # Run tests for a specific package
-go test ./server/internal/domain/runtime/...
+go test ./services/game-server/internal/domain/runtime/...
 
 # Run a single test
 go test -run TestName ./path/to/package/...
 
 # Run the game server locally (outside Docker)
-cd server && go run ./cmd/server
+cd services/game-server && go run ./cmd/server
 ```
 
 ### Frontend
@@ -64,18 +64,18 @@ make gen-types
 
 ## Architecture
 
-Tableforge is a **monorepo in active microservice extraction**. The original monolith lives in `server/`; extracted services live in `services/`. All modules share code via `shared/` through a Go workspace.
+Tableforge is a **microservices monorepo**. All services live under `services/` and share code via `shared/` through a Go workspace.
 
 ### Services
 
 | Service | Purpose | HTTP | gRPC |
 |---------|---------|------|------|
-| `server/` (game-server) | Game engine, lobby, sessions — the monolith | 8080 | 9080 |
+| `services/game-server` | Game engine, lobby, sessions, bots | 8080 | 9080 |
 | `services/auth-service` | GitHub OAuth, JWT issuance/validation | 8081 | — |
-| `services/user-service` | Profiles, friends, bans, mutes, reports | 8082 | 9082 |
+| `services/user-service` | Profiles, friends, bans, mutes, reports, admin, settings | 8082 | 9082 |
 | `services/chat-service` | Room messages, DMs | 8083 | — |
 | `services/ws-gateway` | WebSocket hub, real-time fan-out | 8084 | — |
-| `services/rating-service` | ELO/MMR calculations | 8085 | 9085 |
+| `services/rating-service` | ELO/MMR calculations, leaderboards | 8085 | 9085 |
 | `services/notification-service` | In-app notifications, Redis consumer | 8086 | — |
 | `services/match-service` | Ranked matchmaking queue | 8087 | — |
 

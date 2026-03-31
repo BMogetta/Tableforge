@@ -74,7 +74,7 @@ services:
   game-server:
     build:
       context: .
-      dockerfile: server/Dockerfile
+      dockerfile: services/game-server/Dockerfile
     container_name: game-server
     networks:
       - data_network
