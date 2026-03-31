@@ -25,6 +25,10 @@ service GameService {
   // connection to determine participant vs spectator status without reading
   // Postgres directly.
   rpc IsParticipant(IsParticipantRequest) returns (IsParticipantResponse);
+
+  // GetRoomPlayers returns the player IDs seated in a room, ordered by seat.
+  // Called by ws-gateway to build the initial presence snapshot.
+  rpc GetRoomPlayers(GetRoomPlayersRequest) returns (GetRoomPlayersResponse);
 }
 
 message StartSessionRequest {
@@ -62,4 +66,12 @@ message IsParticipantRequest {
 message IsParticipantResponse {
   bool is_participant     = 1; // true if player is seated in the room
   bool spectators_allowed = 2; // value of room_settings.allow_spectators
+}
+
+message GetRoomPlayersRequest {
+  string room_id = 1; // UUID
+}
+
+message GetRoomPlayersResponse {
+  repeated string player_ids = 1; // UUIDs ordered by seat
 }

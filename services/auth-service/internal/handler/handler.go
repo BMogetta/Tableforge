@@ -107,9 +107,6 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	// TODO: remove debug logs once login flow is confirmed working
-	slog.Debug("auth: callback started")
-
 	accessToken, err := exchangeCode(ctx, h.clientID, h.clientSecret, code)
 	if err != nil {
 		slog.Error("auth: exchange code", "error", err)
@@ -124,18 +121,12 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: remove debug log
-	slog.Debug("auth: github user fetched", "login", ghUser.Login, "id", ghUser.ID)
-
 	email, err := fetchPrimaryEmail(ctx, accessToken)
 	if err != nil {
 		slog.Error("auth: fetch email", "error", err)
 		http.Error(w, "failed to fetch email", http.StatusBadGateway)
 		return
 	}
-
-	// TODO: remove debug log
-	slog.Debug("auth: primary email fetched", "email", email)
 
 	allowed, err := h.store.IsEmailAllowed(ctx, email)
 	if err != nil {
@@ -170,18 +161,12 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: remove debug log
-	slog.Debug("auth: player fetched", "player_id", player.ID, "username", player.Username, "role", player.Role)
-
 	token, err := authjwt.SignToken(h.jwtSecret, player.ID, player.Username, player.Role)
 	if err != nil {
 		slog.Error("auth: sign token", "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-
-	// TODO: remove debug log
-	slog.Debug("auth: login success", "player_id", player.ID, "username", player.Username, "role", player.Role)
 
 	authjwt.SetSessionCookie(w, token, h.secure)
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)

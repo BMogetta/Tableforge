@@ -13,7 +13,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.12.4
-// source: game.proto
+// source: shared/proto/game/v1/game.proto
 
 package gamev1
 
@@ -43,7 +43,7 @@ type StartSessionRequest struct {
 
 func (x *StartSessionRequest) Reset() {
 	*x = StartSessionRequest{}
-	mi := &file_game_proto_msgTypes[0]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -55,7 +55,7 @@ func (x *StartSessionRequest) String() string {
 func (*StartSessionRequest) ProtoMessage() {}
 
 func (x *StartSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[0]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -68,7 +68,7 @@ func (x *StartSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartSessionRequest.ProtoReflect.Descriptor instead.
 func (*StartSessionRequest) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{0}
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *StartSessionRequest) GetRoomId() string {
@@ -101,7 +101,7 @@ type StartSessionResponse struct {
 
 func (x *StartSessionResponse) Reset() {
 	*x = StartSessionResponse{}
-	mi := &file_game_proto_msgTypes[1]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -113,7 +113,7 @@ func (x *StartSessionResponse) String() string {
 func (*StartSessionResponse) ProtoMessage() {}
 
 func (x *StartSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[1]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,7 +126,7 @@ func (x *StartSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartSessionResponse.ProtoReflect.Descriptor instead.
 func (*StartSessionResponse) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{1}
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *StartSessionResponse) GetSessionId() string {
@@ -145,7 +145,7 @@ type GetMoveLogRequest struct {
 
 func (x *GetMoveLogRequest) Reset() {
 	*x = GetMoveLogRequest{}
-	mi := &file_game_proto_msgTypes[2]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -157,7 +157,7 @@ func (x *GetMoveLogRequest) String() string {
 func (*GetMoveLogRequest) ProtoMessage() {}
 
 func (x *GetMoveLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[2]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -170,7 +170,7 @@ func (x *GetMoveLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMoveLogRequest.ProtoReflect.Descriptor instead.
 func (*GetMoveLogRequest) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{2}
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetMoveLogRequest) GetSessionId() string {
@@ -192,7 +192,7 @@ type Move struct {
 
 func (x *Move) Reset() {
 	*x = Move{}
-	mi := &file_game_proto_msgTypes[3]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -204,7 +204,7 @@ func (x *Move) String() string {
 func (*Move) ProtoMessage() {}
 
 func (x *Move) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[3]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -217,7 +217,7 @@ func (x *Move) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Move.ProtoReflect.Descriptor instead.
 func (*Move) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{3}
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Move) GetMoveNumber() int32 {
@@ -259,7 +259,7 @@ type GetMoveLogResponse struct {
 
 func (x *GetMoveLogResponse) Reset() {
 	*x = GetMoveLogResponse{}
-	mi := &file_game_proto_msgTypes[4]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -271,7 +271,7 @@ func (x *GetMoveLogResponse) String() string {
 func (*GetMoveLogResponse) ProtoMessage() {}
 
 func (x *GetMoveLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[4]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -284,7 +284,7 @@ func (x *GetMoveLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMoveLogResponse.ProtoReflect.Descriptor instead.
 func (*GetMoveLogResponse) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{4}
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetMoveLogResponse) GetSessionId() string {
@@ -318,7 +318,7 @@ type IsParticipantRequest struct {
 
 func (x *IsParticipantRequest) Reset() {
 	*x = IsParticipantRequest{}
-	mi := &file_game_proto_msgTypes[5]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -330,7 +330,7 @@ func (x *IsParticipantRequest) String() string {
 func (*IsParticipantRequest) ProtoMessage() {}
 
 func (x *IsParticipantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[5]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -343,7 +343,7 @@ func (x *IsParticipantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsParticipantRequest.ProtoReflect.Descriptor instead.
 func (*IsParticipantRequest) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{5}
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *IsParticipantRequest) GetRoomId() string {
@@ -370,7 +370,7 @@ type IsParticipantResponse struct {
 
 func (x *IsParticipantResponse) Reset() {
 	*x = IsParticipantResponse{}
-	mi := &file_game_proto_msgTypes[6]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +382,7 @@ func (x *IsParticipantResponse) String() string {
 func (*IsParticipantResponse) ProtoMessage() {}
 
 func (x *IsParticipantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[6]
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,7 +395,7 @@ func (x *IsParticipantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IsParticipantResponse.ProtoReflect.Descriptor instead.
 func (*IsParticipantResponse) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{6}
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *IsParticipantResponse) GetIsParticipant() bool {
@@ -412,12 +412,99 @@ func (x *IsParticipantResponse) GetSpectatorsAllowed() bool {
 	return false
 }
 
-var File_game_proto protoreflect.FileDescriptor
+type GetRoomPlayersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"` // UUID
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_game_proto_rawDesc = "" +
+func (x *GetRoomPlayersRequest) Reset() {
+	*x = GetRoomPlayersRequest{}
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRoomPlayersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRoomPlayersRequest) ProtoMessage() {}
+
+func (x *GetRoomPlayersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRoomPlayersRequest.ProtoReflect.Descriptor instead.
+func (*GetRoomPlayersRequest) Descriptor() ([]byte, []int) {
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetRoomPlayersRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+type GetRoomPlayersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PlayerIds     []string               `protobuf:"bytes,1,rep,name=player_ids,json=playerIds,proto3" json:"player_ids,omitempty"` // UUIDs ordered by seat
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRoomPlayersResponse) Reset() {
+	*x = GetRoomPlayersResponse{}
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRoomPlayersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRoomPlayersResponse) ProtoMessage() {}
+
+func (x *GetRoomPlayersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shared_proto_game_v1_game_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRoomPlayersResponse.ProtoReflect.Descriptor instead.
+func (*GetRoomPlayersResponse) Descriptor() ([]byte, []int) {
+	return file_shared_proto_game_v1_game_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetRoomPlayersResponse) GetPlayerIds() []string {
+	if x != nil {
+		return x.PlayerIds
+	}
+	return nil
+}
+
+var File_shared_proto_game_v1_game_proto protoreflect.FileDescriptor
+
+const file_shared_proto_game_v1_game_proto_rawDesc = "" +
 	"\n" +
-	"\n" +
-	"game.proto\x12\agame.v1\"[\n" +
+	"\x1fshared/proto/game/v1/game.proto\x12\agame.v1\"[\n" +
 	"\x13StartSessionRequest\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x17\n" +
 	"\agame_id\x18\x02 \x01(\tR\x06gameId\x12\x12\n" +
@@ -445,70 +532,80 @@ const file_game_proto_rawDesc = "" +
 	"\tplayer_id\x18\x02 \x01(\tR\bplayerId\"m\n" +
 	"\x15IsParticipantResponse\x12%\n" +
 	"\x0eis_participant\x18\x01 \x01(\bR\risParticipant\x12-\n" +
-	"\x12spectators_allowed\x18\x02 \x01(\bR\x11spectatorsAllowed2\xf1\x01\n" +
+	"\x12spectators_allowed\x18\x02 \x01(\bR\x11spectatorsAllowed\"0\n" +
+	"\x15GetRoomPlayersRequest\x12\x17\n" +
+	"\aroom_id\x18\x01 \x01(\tR\x06roomId\"7\n" +
+	"\x16GetRoomPlayersResponse\x12\x1d\n" +
+	"\n" +
+	"player_ids\x18\x01 \x03(\tR\tplayerIds2\xc4\x02\n" +
 	"\vGameService\x12K\n" +
 	"\fStartSession\x12\x1c.game.v1.StartSessionRequest\x1a\x1d.game.v1.StartSessionResponse\x12E\n" +
 	"\n" +
 	"GetMoveLog\x12\x1a.game.v1.GetMoveLogRequest\x1a\x1b.game.v1.GetMoveLogResponse\x12N\n" +
-	"\rIsParticipant\x12\x1d.game.v1.IsParticipantRequest\x1a\x1e.game.v1.IsParticipantResponseB3Z1github.com/tableforge/shared/proto/game/v1;gamev1b\x06proto3"
+	"\rIsParticipant\x12\x1d.game.v1.IsParticipantRequest\x1a\x1e.game.v1.IsParticipantResponse\x12Q\n" +
+	"\x0eGetRoomPlayers\x12\x1e.game.v1.GetRoomPlayersRequest\x1a\x1f.game.v1.GetRoomPlayersResponseB3Z1github.com/tableforge/shared/proto/game/v1;gamev1b\x06proto3"
 
 var (
-	file_game_proto_rawDescOnce sync.Once
-	file_game_proto_rawDescData []byte
+	file_shared_proto_game_v1_game_proto_rawDescOnce sync.Once
+	file_shared_proto_game_v1_game_proto_rawDescData []byte
 )
 
-func file_game_proto_rawDescGZIP() []byte {
-	file_game_proto_rawDescOnce.Do(func() {
-		file_game_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_game_proto_rawDesc), len(file_game_proto_rawDesc)))
+func file_shared_proto_game_v1_game_proto_rawDescGZIP() []byte {
+	file_shared_proto_game_v1_game_proto_rawDescOnce.Do(func() {
+		file_shared_proto_game_v1_game_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_shared_proto_game_v1_game_proto_rawDesc), len(file_shared_proto_game_v1_game_proto_rawDesc)))
 	})
-	return file_game_proto_rawDescData
+	return file_shared_proto_game_v1_game_proto_rawDescData
 }
 
-var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_game_proto_goTypes = []any{
-	(*StartSessionRequest)(nil),   // 0: game.v1.StartSessionRequest
-	(*StartSessionResponse)(nil),  // 1: game.v1.StartSessionResponse
-	(*GetMoveLogRequest)(nil),     // 2: game.v1.GetMoveLogRequest
-	(*Move)(nil),                  // 3: game.v1.Move
-	(*GetMoveLogResponse)(nil),    // 4: game.v1.GetMoveLogResponse
-	(*IsParticipantRequest)(nil),  // 5: game.v1.IsParticipantRequest
-	(*IsParticipantResponse)(nil), // 6: game.v1.IsParticipantResponse
+var file_shared_proto_game_v1_game_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_shared_proto_game_v1_game_proto_goTypes = []any{
+	(*StartSessionRequest)(nil),    // 0: game.v1.StartSessionRequest
+	(*StartSessionResponse)(nil),   // 1: game.v1.StartSessionResponse
+	(*GetMoveLogRequest)(nil),      // 2: game.v1.GetMoveLogRequest
+	(*Move)(nil),                   // 3: game.v1.Move
+	(*GetMoveLogResponse)(nil),     // 4: game.v1.GetMoveLogResponse
+	(*IsParticipantRequest)(nil),   // 5: game.v1.IsParticipantRequest
+	(*IsParticipantResponse)(nil),  // 6: game.v1.IsParticipantResponse
+	(*GetRoomPlayersRequest)(nil),  // 7: game.v1.GetRoomPlayersRequest
+	(*GetRoomPlayersResponse)(nil), // 8: game.v1.GetRoomPlayersResponse
 }
-var file_game_proto_depIdxs = []int32{
+var file_shared_proto_game_v1_game_proto_depIdxs = []int32{
 	3, // 0: game.v1.GetMoveLogResponse.moves:type_name -> game.v1.Move
 	0, // 1: game.v1.GameService.StartSession:input_type -> game.v1.StartSessionRequest
 	2, // 2: game.v1.GameService.GetMoveLog:input_type -> game.v1.GetMoveLogRequest
 	5, // 3: game.v1.GameService.IsParticipant:input_type -> game.v1.IsParticipantRequest
-	1, // 4: game.v1.GameService.StartSession:output_type -> game.v1.StartSessionResponse
-	4, // 5: game.v1.GameService.GetMoveLog:output_type -> game.v1.GetMoveLogResponse
-	6, // 6: game.v1.GameService.IsParticipant:output_type -> game.v1.IsParticipantResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	7, // 4: game.v1.GameService.GetRoomPlayers:input_type -> game.v1.GetRoomPlayersRequest
+	1, // 5: game.v1.GameService.StartSession:output_type -> game.v1.StartSessionResponse
+	4, // 6: game.v1.GameService.GetMoveLog:output_type -> game.v1.GetMoveLogResponse
+	6, // 7: game.v1.GameService.IsParticipant:output_type -> game.v1.IsParticipantResponse
+	8, // 8: game.v1.GameService.GetRoomPlayers:output_type -> game.v1.GetRoomPlayersResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_game_proto_init() }
-func file_game_proto_init() {
-	if File_game_proto != nil {
+func init() { file_shared_proto_game_v1_game_proto_init() }
+func file_shared_proto_game_v1_game_proto_init() {
+	if File_shared_proto_game_v1_game_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_game_proto_rawDesc), len(file_game_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_game_v1_game_proto_rawDesc), len(file_shared_proto_game_v1_game_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_game_proto_goTypes,
-		DependencyIndexes: file_game_proto_depIdxs,
-		MessageInfos:      file_game_proto_msgTypes,
+		GoTypes:           file_shared_proto_game_v1_game_proto_goTypes,
+		DependencyIndexes: file_shared_proto_game_v1_game_proto_depIdxs,
+		MessageInfos:      file_shared_proto_game_v1_game_proto_msgTypes,
 	}.Build()
-	File_game_proto = out.File
-	file_game_proto_goTypes = nil
-	file_game_proto_depIdxs = nil
+	File_shared_proto_game_v1_game_proto = out.File
+	file_shared_proto_game_v1_game_proto_goTypes = nil
+	file_shared_proto_game_v1_game_proto_depIdxs = nil
 }

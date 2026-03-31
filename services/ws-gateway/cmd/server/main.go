@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
@@ -50,19 +49,6 @@ func main() {
 	}()
 
 	jwtSecret := config.MustEnv("JWT_SECRET")
-
-	// --- Database (migration phase — read-only for room_players/room_settings) --
-	pool, err := pgxpool.New(ctx, config.MustEnv("DATABASE_URL"))
-	if err != nil {
-		slog.Error("failed to connect to database", "error", err)
-		panic(err)
-	}
-	if err := pool.Ping(ctx); err != nil {
-		slog.Error("database ping failed", "error", err)
-		panic(err)
-	}
-	defer pool.Close()
-	slog.Info("database connected")
 
 	// --- Redis ---------------------------------------------------------------
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
@@ -122,7 +108,7 @@ func main() {
 		promhttp.HandlerOpts{},
 	).ServeHTTP)
 
-	r.With(authMW).Get("/ws/rooms/{roomID}", handler.RoomHandler(h, ps, pool, userClient, gameClient))
+	r.With(authMW).Get("/ws/rooms/{roomID}", handler.RoomHandler(h, ps, userClient, gameClient))
 	r.With(authMW).Get("/ws/players/{playerID}", handler.PlayerHandler(h, userClient))
 
 	// --- HTTP server ---------------------------------------------------------

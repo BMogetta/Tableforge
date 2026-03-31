@@ -38,7 +38,7 @@ type MoveResult struct {
 type Service struct {
 	store    store.Store
 	registry engine.Registry
-	timer    *TurnTimer
+	timer    Timer
 	events   *events.Store
 	rdb      *redis.Client
 	bots     *botRegistry
@@ -57,9 +57,9 @@ func New(st store.Store, registry engine.Registry, ev *events.Store, rdb *redis.
 	}
 }
 
-// SetTimer attaches a TurnTimer to the service.
-// Call this after constructing both Service and TurnTimer to avoid a circular dep.
-func (svc *Service) SetTimer(t *TurnTimer) {
+// SetTimer attaches a Timer to the service.
+// Call this after constructing both Service and Timer to avoid a circular dep.
+func (svc *Service) SetTimer(t Timer) {
 	svc.timer = t
 }
 

@@ -49,6 +49,9 @@ func (p *Publisher) PublishPlayerEvent(ctx context.Context, playerID uuid.UUID, 
 }
 
 func (p *Publisher) publish(ctx context.Context, channel string, typ eventType, payload any) {
+	if p.rdb == nil {
+		return
+	}
 	ev := event{Type: typ, Payload: payload}
 	data, err := json.Marshal(ev)
 	if err != nil {

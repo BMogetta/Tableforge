@@ -1,21 +1,20 @@
 // Package handler contains the WebSocket upgrade handlers for ws-gateway.
 //
-// Participant and spectator checks use game.v1.GameService/IsParticipant (gRPC).
-//
-// Remaining direct Postgres access:
-//   - listRoomPlayerIDs: reads room_players to build the initial presence snapshot.
-//     Replace with game.v1.GetRoomPlayers when that RPC is added.
+// All external data access uses gRPC:
+//   - game.v1.GameService/IsParticipant — participant vs spectator check
+//   - game.v1.GameService/GetRoomPlayers — presence snapshot on connect
+//   - user.v1.UserService/CheckBan — ban check
 package handler
 
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tableforge/services/ws-gateway/internal/hub"
 	"github.com/tableforge/services/ws-gateway/internal/presence"
 	"github.com/tableforge/shared/middleware"
@@ -32,7 +31,7 @@ var upgrader = websocket.Upgrader{
 
 // RoomHandler upgrades a WebSocket connection for a room.
 // Determines participant vs spectator status via game.v1.IsParticipant gRPC.
-func RoomHandler(h *hub.Hub, ps *presence.Store, db *pgxpool.Pool, uc userv1.UserServiceClient, gc gamev1.GameServiceClient) http.HandlerFunc {
+func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc gamev1.GameServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
 		if err != nil {
@@ -97,8 +96,7 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, db *pgxpool.Pool, uc userv1.Use
 			})
 
 			// Send presence snapshot directly to this client.
-			// TODO: replace listRoomPlayerIDs with game.v1.GetRoomPlayers gRPC.
-			roomPlayerIDs, _ := listRoomPlayerIDs(ctx, db, roomID)
+			roomPlayerIDs, _ := getRoomPlayerIDs(ctx, gc, roomID)
 			if onlineMap, err := ps.ListOnline(ctx, roomPlayerIDs); err == nil {
 				for id, online := range onlineMap {
 					snapshot, _ := json.Marshal(hub.Event{
@@ -180,24 +178,20 @@ func checkParticipant(ctx context.Context, gc gamev1.GameServiceClient, roomID, 
 	return resp.IsParticipant, resp.SpectatorsAllowed, nil
 }
 
-// listRoomPlayerIDs queries room_players directly for the presence snapshot.
-// TODO: replace with game.v1.GetRoomPlayers when that RPC is added.
-func listRoomPlayerIDs(ctx context.Context, db *pgxpool.Pool, roomID uuid.UUID) ([]uuid.UUID, error) {
-	rows, err := db.Query(ctx,
-		`SELECT player_id FROM room_players WHERE room_id = $1 ORDER BY seat`,
-		roomID,
-	)
+// getRoomPlayerIDs fetches room player IDs via game.v1.GetRoomPlayers gRPC.
+func getRoomPlayerIDs(ctx context.Context, gc gamev1.GameServiceClient, roomID uuid.UUID) ([]uuid.UUID, error) {
+	resp, err := gc.GetRoomPlayers(ctx, &gamev1.GetRoomPlayersRequest{RoomId: roomID.String()})
 	if err != nil {
+		slog.Error("ws-gateway: get room players gRPC failed", "room_id", roomID, "error", err)
 		return nil, err
 	}
-	defer rows.Close()
-	var ids []uuid.UUID
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
+	ids := make([]uuid.UUID, 0, len(resp.PlayerIds))
+	for _, s := range resp.PlayerIds {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			continue
 		}
 		ids = append(ids, id)
 	}
-	return ids, rows.Err()
+	return ids, nil
 }

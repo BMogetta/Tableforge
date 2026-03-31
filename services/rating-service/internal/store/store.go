@@ -49,6 +49,9 @@ type Store interface {
 	// Only players with at least minGames games are included.
 	GetLeaderboard(ctx context.Context, gameID string, limit, offset, minGames int) ([]*PlayerRating, error)
 
+	// CountLeaderboard returns the total number of players eligible for the leaderboard.
+	CountLeaderboard(ctx context.Context, gameID string, minGames int) (int, error)
+
 	// UpsertRatings writes updated ratings and inserts history rows in one transaction.
 	UpsertRatings(ctx context.Context, updates []*PlayerRating, history []HistoryEntry) error
 }
@@ -168,6 +171,18 @@ func (s *pgStore) GetLeaderboard(ctx context.Context, gameID string, limit, offs
 		out = append(out, pr)
 	}
 	return out, rows.Err()
+}
+
+func (s *pgStore) CountLeaderboard(ctx context.Context, gameID string, minGames int) (int, error) {
+	var count int
+	err := s.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM ratings WHERE game_id = $1 AND games_played >= $2`,
+		gameID, minGames,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count leaderboard: %w", err)
+	}
+	return count, nil
 }
 
 func (s *pgStore) UpsertRatings(ctx context.Context, updates []*PlayerRating, history []HistoryEntry) error {

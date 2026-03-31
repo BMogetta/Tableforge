@@ -82,10 +82,17 @@ func (h *Handler) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	total, err := h.store.CountLeaderboard(r.Context(), gameID, leaderboardMinGames)
+	if err != nil {
+		h.log.Error("handler: count leaderboard", "game_id", gameID, "error", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	writeJSON(w, map[string]any{
 		"game_id": gameID,
 		"entries": entries,
-		"total":   len(entries),
+		"total":   total,
 	})
 }
 

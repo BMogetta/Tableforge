@@ -34,14 +34,23 @@ type Publisher interface {
 	PublishToPlayer(ctx context.Context, playerID uuid.UUID, event sharedws.Event)
 }
 
+// NotificationStore abstracts the store operations needed by the API handler.
+type NotificationStore interface {
+	Create(ctx context.Context, p store.CreateParams) (store.Notification, error)
+	Get(ctx context.Context, id uuid.UUID) (store.Notification, error)
+	List(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]store.Notification, error)
+	MarkRead(ctx context.Context, id uuid.UUID) error
+	SetAction(ctx context.Context, id uuid.UUID, action string) error
+}
+
 // Handler holds the API dependencies.
 type Handler struct {
-	store *store.Store
+	store NotificationStore
 	pub   Publisher
 	log   *slog.Logger
 }
 
-func New(st *store.Store, pub Publisher, log *slog.Logger) *Handler {
+func New(st NotificationStore, pub Publisher, log *slog.Logger) *Handler {
 	return &Handler{store: st, pub: pub, log: log}
 }
 

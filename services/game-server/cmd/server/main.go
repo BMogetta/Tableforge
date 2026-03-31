@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hibiken/asynq"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -84,8 +85,23 @@ func main() {
 	runtimeService := runtime.New(st, reg, eventStore, rdb, slog.Default())
 	hub := ws.NewHubWithRedis(rdb)
 
-	turnTimer := runtime.NewTurnTimer(runtimeService, hub, st, rdb, eventStore)
-	runtimeService.SetTimer(turnTimer)
+	redisURL := config.Env("REDIS_URL", "redis://localhost:6379")
+	redisAddr, err := runtime.ParseRedisAddr(redisURL)
+	if err != nil {
+		slog.Error("failed to parse redis url for asynq", "error", err)
+		os.Exit(1)
+	}
+	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr}
+
+	asynqClient := asynq.NewClient(asynqRedis)
+	defer asynqClient.Close()
+	asynqInspector := asynq.NewInspector(asynqRedis)
+	defer asynqInspector.Close()
+
+	timer := runtime.NewAsynqTimer(asynqClient, asynqInspector)
+	runtimeService.SetTimer(timer)
+
+	timerHandlers := runtime.NewTimerHandlers(runtimeService, hub, st, eventStore, timer, reg)
 
 	// --- gRPC server (lobby.v1 + game.v1 for match-service) ------------------
 	grpcAddr := config.Env("GRPC_ADDR", ":9080")
@@ -107,8 +123,19 @@ func main() {
 		}
 	}()
 
-	turnTimer.ReschedulePending(ctx)
-	go turnTimer.Start(ctx)
+	timerHandlers.ReschedulePending(ctx)
+
+	asynqSrv := asynq.NewServer(asynqRedis, asynq.Config{
+		Concurrency: 10,
+	})
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(runtime.TypeTurnTimeout, timerHandlers.HandleTurnTimeout)
+	mux.HandleFunc(runtime.TypeReadyTimeout, timerHandlers.HandleReadyTimeout)
+	go func() {
+		if err := asynqSrv.Run(mux); err != nil {
+			slog.Error("asynq server error", "error", err)
+		}
+	}()
 
 	testMode := config.Env("TEST_MODE", "false") == "true"
 
@@ -155,6 +182,7 @@ func main() {
 	<-ctx.Done()
 	slog.Info("shutting down...")
 
+	asynqSrv.Shutdown()
 	grpcServer.GracefulStop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

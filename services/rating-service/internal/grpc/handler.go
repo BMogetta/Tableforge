@@ -2,7 +2,6 @@ package grpchandler
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -100,7 +99,7 @@ func (h *Handler) GetLeaderboard(ctx context.Context, req *ratingv1.GetLeaderboa
 
 	rows, err := h.store.GetLeaderboard(ctx, req.GameId, limit, offset, leaderboardMinGames)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, fmt.Sprintf("get leaderboard: %v", err))
+		return nil, status.Errorf(codes.Internal, "get leaderboard: %v", err)
 	}
 
 	entries := make([]*ratingv1.LeaderboardEntry, len(rows))
@@ -113,10 +112,15 @@ func (h *Handler) GetLeaderboard(ctx context.Context, req *ratingv1.GetLeaderboa
 		}
 	}
 
+	total, err := h.store.CountLeaderboard(ctx, req.GameId, leaderboardMinGames)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "count leaderboard: %v", err)
+	}
+
 	return &ratingv1.GetLeaderboardResponse{
 		GameId:  req.GameId,
 		Entries: entries,
-		Total:   int32(len(rows)), // TODO: COUNT(*) for accurate pagination total
+		Total:   int32(total),
 	}, nil
 }
 

@@ -103,3 +103,25 @@ func (h *GameHandler) GetMoveLog(_ context.Context, _ *gamev1.GetMoveLogRequest)
 	// TODO: implement for replay-service
 	return nil, status.Error(codes.Unimplemented, "GetMoveLog not yet implemented")
 }
+
+func (h *GameHandler) GetRoomPlayers(ctx context.Context, req *gamev1.GetRoomPlayersRequest) (*gamev1.GetRoomPlayersResponse, error) {
+	if req.RoomId == "" {
+		return nil, status.Error(codes.InvalidArgument, "room_id is required")
+	}
+	roomID, err := uuid.Parse(req.RoomId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid room_id: %v", err)
+	}
+
+	players, err := h.st.ListRoomPlayers(ctx, roomID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list room players: %v", err)
+	}
+
+	ids := make([]string, len(players))
+	for i, p := range players {
+		ids[i] = p.PlayerID.String()
+	}
+
+	return &gamev1.GetRoomPlayersResponse{PlayerIds: ids}, nil
+}
