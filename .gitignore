@@ -3,10 +3,13 @@
 *.env.local
 
 # ── Go ───────────────────────────────────────────────────────────────────────
-server/bin/
-server/*.exe
-server/*.test
-server/coverage.out
+# Compiled binaries (named after their directory or common output names)
+services/game-server/server
+services/game-server/simulate
+tools/seed-test/seed-test
+*.exe
+*.test
+coverage.out
 
 # ── Node / Frontend ──────────────────────────────────────────────────────────
 frontend/node_modules/

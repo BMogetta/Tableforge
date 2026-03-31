@@ -10,21 +10,20 @@ and what stays internal to each service.
 ```
 Frontend  ←──── REST/JSON ──────►  API Gateway (Traefik)
                                          │
-               ┌─────────────────────────┼───────────────────────┐
-               ▼                         ▼                        ▼
-         auth-service              game-server               user-service
-                                   (monolith)                     │
-                                   gRPC :9080                     │
-                                   ┌────┴─────┐                   │
-                                   ▼          ▼          ┌────────┘
-                             match-service  ws-gateway ──┘  (gRPC :9082)
-                                   │
-                             rating-service (gRPC :9085)
-                    ─────────────────────────────────────────────
-                              Redis Pub/Sub (async events)
-                    ─────────────────────────────────────────────
-                          │                │
-                  notification-service  ws-gateway
+          ┌──────────────────────────────┼──────────────────────────────┐
+          ▼              ▼               ▼              ▼               ▼
+    auth-service   game-server     user-service   rating-service  notification-service
+                    gRPC :9080      gRPC :9082     gRPC :9085
+                    ┌────┴─────┐
+                    ▼          ▼
+              match-service  ws-gateway
+                    │
+              rating-service (gRPC :9085)
+         ─────────────────────────────────────────────
+                   Redis Pub/Sub (async events)
+         ─────────────────────────────────────────────
+               │                │                │
+       notification-service  ws-gateway    rating-service
 ```
 
 **Three communication layers:**
@@ -32,6 +31,23 @@ Frontend  ←──── REST/JSON ──────►  API Gateway (Traefik)
 1. **REST/JSON over HTTP** — frontend ↔ services via Traefik. Never between services.
 2. **gRPC + Protobuf** — synchronous calls where the caller needs a response to continue.
 3. **Redis Pub/Sub + JSON** — async events where the publisher doesn't need to wait.
+
+---
+
+## Traefik routing
+
+| Priority | Path pattern | Service |
+|----------|-------------|---------|
+| 150 | `/ws/*` | ws-gateway |
+| 100 | `/auth/*`, `/api/v1/me` | auth-service |
+| 50 | `/api/v1/players/{id}/(profile\|friends\|block\|mute\|mutes\|achievements\|report\|settings)` | user-service |
+| 50 | `/api/v1/admin/(players\|allowed-emails\|bans\|reports)` | user-service |
+| 50 | `/api/v1/rooms/{id}/messages`, `/api/v1/players/{id}/dm`, `/api/v1/dm` | chat-service |
+| 50 | `/api/v1/ratings/*`, `/api/v1/players/{id}/ratings/*` | rating-service |
+| 50 | `/api/v1/players/{id}/notifications`, `/api/v1/notifications/*` | notification-service |
+| 50 | `/api/v1/queue/*` | match-service |
+| 10 | `/api/*` (catchall) | game-server |
+| 1 | `/` (catchall) | frontend |
 
 ---
 
@@ -75,7 +91,7 @@ a banned player.
 ---
 
 ### `lobby.v1.LobbyService`
-**Owner:** game-server (monolith, current) → lobby-service (future)
+**Owner:** game-server
 **Callers:** match-service
 
 ```protobuf
@@ -91,7 +107,7 @@ WS event payload.
 ---
 
 ### `game.v1.GameService`
-**Owner:** game-server (monolith, current) → game-service (future)
+**Owner:** game-server
 **Callers:** match-service, ws-gateway
 
 ```protobuf
@@ -115,36 +131,6 @@ directly. Synchronous because the upgrade decision depends on it.
 
 ---
 
-## Lobby → Runtime decoupling plan
-
-The remaining coupling point in the monolith is `api_lobby.go:handleStartGame`,
-which calls both `lobby.Service.StartGame` (DB: creates session, transitions
-room) and `runtime.Service.StartSession` (in-process: starts goroutines,
-turn timers) in the same HTTP handler. For ranked games this is now invoked
-via the gRPC server from match-service.
-
-**Phase 1 — proto boundary (done):**
-- `game.v1.GameService.StartSession`, `IsParticipant`, `GetMoveLog` defined.
-- `lobby.v1.LobbyService.CreateRankedRoom` defined.
-- game-server implements both on gRPC `:9080`.
-
-**Phase 2 — extract match-service (done):**
-- match-service owns `queue:ranked` Redis sorted set and all confirmation state.
-- match-service calls `lobby.v1.CreateRankedRoom` (gRPC → game-server).
-- match-service calls `game.v1.StartSession` (gRPC → game-server).
-- WS events published directly to `ws:player:{id}` Redis channel.
-- Matchmaking algorithm moved to `shared/domain/matchmaking/`.
-
-**Phase 3 — split game-server (future):**
-- lobby-service owns room CRUD, implements `lobby.v1.LobbyService`.
-- game-service owns sessions and runtime, implements `game.v1.GameService`.
-- Caller (match-service) doesn't change — same proto, different address.
-
-This phased approach means the lobby→runtime coupling is never a blocker:
-it stays internal to game-server until Phase 3.
-
----
-
 ## Async event contracts
 
 All events flow through Redis Pub/Sub. Channel naming: `{domain}.{entity}.{verb}`.
@@ -157,7 +143,6 @@ Every event carries `event_id` (UUID) for idempotency, `occurred_at`, and `versi
 | Consumer | Action |
 |---|---|
 | rating-service | Update `ratings` + `rating_history` (ranked only) |
-| replay-service | Close replay record, mark session as complete |
 | match-service | Unblock room, allow rematch queue re-entry |
 
 **Payload:** session_id, room_id, game_id, mode, ended_by, winner_id,
@@ -237,11 +222,10 @@ is_draw, duration_secs, players[]
 | Flush session_events to Postgres | game-server | internal cleanup on session end |
 | Validate JWT on every request | all services | shared middleware, not cross-service |
 | Calculate ELO delta | rating-service | triggered by `game.session.finished` |
-| Queue ban escalation tracking | game-server | Redis keys owned by queue |
 
 ---
 
-## Monorepo structure for shared contracts
+## Monorepo structure
 
 ```
 tableforge/
@@ -254,7 +238,7 @@ tableforge/
     events/
       events.go          ← async event structs (Redis Pub/Sub)
     ws/
-      ws.go              ← client-facing WS event types (shared by game-server + ws-gateway)
+      ws.go              ← client-facing WS event types
     middleware/
       auth.go            ← JWT validator (shared by all services)
     errors/
@@ -263,6 +247,7 @@ tableforge/
       rating/            ← ELO engine
       matchmaking/       ← matchmaker algorithm
   services/
+    game-server/         :8080  gRPC :9080
     auth-service/        :8081
     user-service/        :8082  gRPC :9082
     chat-service/        :8083
@@ -270,7 +255,6 @@ tableforge/
     rating-service/      :8085  gRPC :9085
     notification-service/:8086
     match-service/       :8087
-  server/ (game-server)  :8080  gRPC :9080
 ```
 
 Stubs are committed alongside `.proto` files. Regenerate with:

@@ -10,8 +10,9 @@ import (
 // timers for sessions that were active when the server last shut down.
 func (s *PGStore) ListSessionsNeedingTimer(ctx context.Context) ([]GameSession, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, room_id, game_id, name, state, move_count,
+		`SELECT id, room_id, game_id, name, state, mode, move_count,
 		        suspend_count, suspended_at, suspended_reason,
+		        ready_players,
 		        turn_timeout_secs, last_move_at, started_at, finished_at, deleted_at
 		 FROM game_sessions
 		 WHERE finished_at IS NULL

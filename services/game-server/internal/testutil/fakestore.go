@@ -407,24 +407,6 @@ func (f *FakeStore) GetMoveAt(_ context.Context, sessionID uuid.UUID, moveNumber
 	return store.Move{}, ErrNotFound
 }
 
-// --- OAuth -------------------------------------------------------------------
-
-func (f *FakeStore) UpsertOAuthIdentity(_ context.Context, _ store.UpsertOAuthParams) (store.OAuthIdentity, error) {
-	return store.OAuthIdentity{}, nil
-}
-
-func (f *FakeStore) GetOAuthIdentity(_ context.Context, _, _ string) (store.OAuthIdentity, error) {
-	return store.OAuthIdentity{}, ErrNotFound
-}
-
-func (f *FakeStore) GetOAuthIdentityByEmail(_ context.Context, _ string) (store.OAuthIdentity, error) {
-	return store.OAuthIdentity{}, ErrNotFound
-}
-
-func (f *FakeStore) IsEmailAllowed(_ context.Context, _ string) (bool, error) {
-	return true, nil
-}
-
 // --- Results -----------------------------------------------------------------
 
 func (f *FakeStore) CreateGameResult(_ context.Context, params store.CreateGameResultParams) (store.GameResult, error) {

@@ -427,7 +427,7 @@ func (s *PGStore) ListActiveSessions(ctx context.Context, playerID uuid.UUID) ([
 	rows, err := s.pool.Query(ctx,
 		`SELECT gs.id, gs.room_id, gs.game_id, gs.name, gs.state, gs.mode, gs.move_count,
 		        gs.suspend_count, gs.suspended_at, gs.suspended_reason,
-		        gs. gs.
+		        gs.ready_players,
 		        gs.turn_timeout_secs, gs.last_move_at,
 		        gs.started_at, gs.finished_at, gs.deleted_at
 		 FROM game_sessions gs
@@ -573,78 +573,6 @@ func (s *PGStore) GetMoveAt(ctx context.Context, sessionID uuid.UUID, moveNumber
 		return Move{}, fmt.Errorf("GetMoveAt: %w", err)
 	}
 	return m, nil
-}
-
-// --- OAuth -------------------------------------------------------------------
-
-func (s *PGStore) UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthParams) (OAuthIdentity, error) {
-	row := s.pool.QueryRow(ctx,
-		`INSERT INTO players (username, avatar_url)
-		 VALUES ($1, $2)
-		 ON CONFLICT (username) DO UPDATE
-		   SET avatar_url = EXCLUDED.avatar_url
-		 RETURNING id, username, avatar_url, role, is_bot, created_at, deleted_at`,
-		params.Username, params.AvatarURL,
-	)
-	player, err := scanPlayer(row)
-	if err != nil {
-		return OAuthIdentity{}, fmt.Errorf("UpsertOAuthIdentity upsert player: %w", err)
-	}
-
-	row = s.pool.QueryRow(ctx,
-		`INSERT INTO oauth_identities (player_id, provider, provider_id, email, avatar_url)
-		 VALUES ($1, $2, $3, $4, $5)
-		 ON CONFLICT (provider, provider_id) DO UPDATE
-		   SET email      = EXCLUDED.email,
-		       avatar_url = EXCLUDED.avatar_url
-		 RETURNING id, player_id, provider, provider_id, email, avatar_url, created_at`,
-		player.ID, params.Provider, params.ProviderID, params.Email, params.AvatarURL,
-	)
-	var oi OAuthIdentity
-	if err := row.Scan(&oi.ID, &oi.PlayerID, &oi.Provider, &oi.ProviderID, &oi.Email, &oi.AvatarURL, &oi.CreatedAt); err != nil {
-		return OAuthIdentity{}, fmt.Errorf("UpsertOAuthIdentity upsert identity: %w", err)
-	}
-	return oi, nil
-}
-
-func (s *PGStore) GetOAuthIdentity(ctx context.Context, provider, providerID string) (OAuthIdentity, error) {
-	row := s.pool.QueryRow(ctx,
-		`SELECT id, player_id, provider, provider_id, email, avatar_url, created_at
-		 FROM oauth_identities WHERE provider = $1 AND provider_id = $2`,
-		provider, providerID,
-	)
-	var oi OAuthIdentity
-	if err := row.Scan(&oi.ID, &oi.PlayerID, &oi.Provider, &oi.ProviderID, &oi.Email, &oi.AvatarURL, &oi.CreatedAt); err != nil {
-		return OAuthIdentity{}, fmt.Errorf("GetOAuthIdentity: %w", err)
-	}
-	return oi, nil
-}
-
-func (s *PGStore) GetOAuthIdentityByEmail(ctx context.Context, email string) (OAuthIdentity, error) {
-	row := s.pool.QueryRow(ctx,
-		`SELECT id, player_id, provider, provider_id, email, avatar_url, created_at
-		 FROM oauth_identities WHERE email = $1 LIMIT 1`,
-		email,
-	)
-	var oi OAuthIdentity
-	if err := row.Scan(&oi.ID, &oi.PlayerID, &oi.Provider, &oi.ProviderID, &oi.Email, &oi.AvatarURL, &oi.CreatedAt); err != nil {
-		return OAuthIdentity{}, fmt.Errorf("GetOAuthIdentityByEmail: %w", err)
-	}
-	return oi, nil
-}
-
-func (s *PGStore) IsEmailAllowed(ctx context.Context, email string) (bool, error) {
-	var count int
-	err := s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM allowed_emails
-		 WHERE email = $1
-		   AND (expires_at IS NULL OR expires_at > NOW())`,
-		email,
-	).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("IsEmailAllowed: %w", err)
-	}
-	return count > 0, nil
 }
 
 // --- Results -----------------------------------------------------------------

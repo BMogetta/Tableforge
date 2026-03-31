@@ -117,16 +117,6 @@ type GameConfig struct {
 	TimeoutPenalty     TimeoutPenalty `json:"timeout_penalty"`
 }
 
-type OAuthIdentity struct {
-	ID         uuid.UUID `json:"id"`
-	PlayerID   uuid.UUID `json:"player_id"`
-	Provider   string    `json:"provider"`
-	ProviderID string    `json:"provider_id"`
-	Email      string    `json:"email"`
-	AvatarURL  *string   `json:"avatar_url,omitempty"`
-	CreatedAt  time.Time `json:"created_at"`
-}
-
 type EndedBy string
 
 const (
@@ -284,14 +274,6 @@ type RecordMoveParams struct {
 	PlayerID   uuid.UUID
 	Payload    []byte
 	MoveNumber int
-}
-
-type UpsertOAuthParams struct {
-	Provider   string
-	ProviderID string
-	Email      string
-	AvatarURL  *string
-	Username   string
 }
 
 type CreateGameResultParams struct {

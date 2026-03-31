@@ -50,11 +50,11 @@ reset:
 # Output: frontend/tests/e2e/.players.json
 seed-test:
 	@mkdir -p frontend/tests/e2e
-	docker compose run --rm \
-		--no-deps \
-		--entrypoint /bin/seed-test \
+	docker build -t tableforge-seed-test tools/seed-test
+	docker run --rm \
+		--network tableforge_data_network \
 		-e DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable \
-		game-server \
+		tableforge-seed-test \
 	> frontend/tests/e2e/.players.json
 	@echo "Test players created:"
 	@cat frontend/tests/e2e/.players.json

@@ -1,9 +1,9 @@
-go 1.25.0
+go 1.26.1
 
 use (
 	./services/auth-service
-	./services/game-server
 	./services/chat-service
+	./services/game-server
 	./services/match-service
 	./services/notification-service
 	./services/rating-service
