@@ -1,0 +1,10 @@
+go 1.25.0
+
+use (
+	./server
+	./services/auth-service
+	./services/rating-service
+	./services/user-service
+	./services/ws-gateway
+	./shared
+)

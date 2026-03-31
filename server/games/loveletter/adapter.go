@@ -21,7 +21,7 @@ import (
 	"github.com/tableforge/server/internal/bot"
 	"github.com/tableforge/server/internal/bot/mcts"
 	"github.com/tableforge/server/internal/domain/engine"
-	"github.com/tableforge/server/internal/platform/randutil"
+	"github.com/tableforge/shared/platform/randutil"
 )
 
 // Adapter implements bot.BotAdapter for Love Letter.

@@ -1,24 +1,33 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod download
+# 1. Copy module definitions first to leverage Docker cache
+# These paths are relative to the build context (project root)
+COPY shared/go.mod shared/go.sum ./shared/
+COPY server/go.mod server/go.sum ./server/
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/server ./cmd/server \
- && CGO_ENABLED=0 GOOS=linux go build -o /bin/seeder ./cmd/seed \
- && CGO_ENABLED=0 GOOS=linux go build -o /bin/seed-test ./cmd/seed-test
+# 2. Download dependencies
+# GOWORK=off ensures Go doesn't look for the root go.work file
+WORKDIR /app/server
+RUN GOWORK=off go mod download
 
-# Run stage
+# 3. Copy the actual source code
+WORKDIR /app
+COPY shared/ ./shared/
+COPY server/ ./server/
+
+# 4. Build the binary
+WORKDIR /app/server
+RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/server ./cmd/server \
+ && CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/seed-test ./cmd/seed-test
+
+# --- Run stage ---
 FROM alpine:3.19
-
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /bin/server /bin/server
-COPY --from=builder /bin/seeder /bin/seeder
-COPY --from=builder /bin/seed-test /bin/seed-test
 
-EXPOSE 8080
+COPY --from=builder /bin/server /bin/server
+COPY --from=builder /bin/seed-test /bin/seed-test
 
 CMD ["/bin/server"]

@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/domain/notification"
+	error_message "github.com/tableforge/shared/errors"
+	sharedmw "github.com/tableforge/shared/middleware"
 )
 
 // GET /api/v1/players/{playerID}/notifications?include_read=false
@@ -18,28 +20,26 @@ func handleListNotifications(svc *notification.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+			writeError(w, http.StatusBadRequest, error_message.InvalidInput)
 			return
 		}
 
-		callerID := r.URL.Query().Get("player_id")
-		if callerID == "" {
-			writeError(w, http.StatusBadRequest, "player_id query param required")
+		callerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
-		if callerID != playerID.String() {
-			writeError(w, http.StatusForbidden, "forbidden")
+		if callerID != playerID {
+			writeError(w, http.StatusForbidden, error_message.Forbidden)
 			return
 		}
 
 		includeRead := r.URL.Query().Get("include_read") == "true"
-
 		notifications, err := svc.List(r.Context(), playerID, includeRead)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list notifications")
+			writeError(w, http.StatusInternalServerError, error_message.InternalError)
 			return
 		}
-
 		writeJSON(w, http.StatusOK, notifications)
 	}
 }
@@ -62,9 +62,9 @@ func handleMarkNotificationRead(svc *notification.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
 
@@ -113,9 +113,10 @@ func writeNotificationAction(w http.ResponseWriter, r *http.Request, svc *notifi
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	playerID, err := uuid.Parse(req.PlayerID)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid player_id")
+
+	playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 		return
 	}
 

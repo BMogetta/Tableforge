@@ -1,0 +1,30 @@
+// shared/proto/lobby/v1/lobby.proto
+//
+// LobbyService — owned by match-service.
+// Used by: match-service internally when forming a ranked match.
+//
+// CreateRankedRoom is the critical synchronous call: the queue needs
+// the room_id and join code to include in the match_found event sent
+// to both players' WebSocket connections.
+
+syntax = "proto3";
+package lobby.v1;
+option go_package = "github.com/tableforge/shared/proto/lobby/v1;lobbyv1";
+
+service LobbyService {
+  rpc CreateRankedRoom(CreateRankedRoomRequest) returns (CreateRankedRoomResponse);
+}
+
+message CreateRankedRoomRequest {
+  string player_a_id = 1; // UUID — will be seated at seat 0
+  string player_b_id = 2; // UUID — will be seated at seat 1
+  string game_id     = 3; // e.g. "tictactoe"
+  // MMR of both players — used to set turn_timeout and game config
+  double mmr_a       = 4;
+  double mmr_b       = 5;
+}
+
+message CreateRankedRoomResponse {
+  string room_id   = 1; // UUID of the created room
+  string room_code = 2; // short human-readable join code
+}

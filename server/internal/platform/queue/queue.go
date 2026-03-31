@@ -67,10 +67,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/domain/matchmaking"
-	"github.com/tableforge/server/internal/domain/rating"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
+	"github.com/tableforge/shared/domain/rating"
 )
 
 // ---------------------------------------------------------------------------

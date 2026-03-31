@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/platform/queue"
+	error_message "github.com/tableforge/shared/errors"
+	sharedmw "github.com/tableforge/shared/middleware"
 )
 
 // POST /api/v1/queue
@@ -24,9 +26,10 @@ func handleJoinQueue(svc *queue.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
 
@@ -68,9 +71,10 @@ func handleLeaveQueue(svc *queue.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
 
@@ -99,11 +103,13 @@ func handleAcceptMatch(svc *queue.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		matchID, err := uuid.Parse(req.MatchID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid match_id")
@@ -143,11 +149,13 @@ func handleDeclineMatch(svc *queue.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		matchID, err := uuid.Parse(req.MatchID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid match_id")

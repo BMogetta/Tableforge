@@ -1,0 +1,81 @@
+package store
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+)
+
+func (s *pgStore) GetProfile(ctx context.Context, playerID uuid.UUID) (PlayerProfile, error) {
+	row := s.db.QueryRow(ctx, `
+		SELECT player_id, bio, country, updated_at
+		FROM users.player_profiles
+		WHERE player_id = $1
+	`, playerID)
+
+	var p PlayerProfile
+	err := row.Scan(&p.PlayerID, &p.Bio, &p.Country, &p.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Return an empty profile — not an error.
+		return PlayerProfile{PlayerID: playerID}, nil
+	}
+	return p, err
+}
+
+func (s *pgStore) UpsertProfile(ctx context.Context, params UpsertProfileParams) (PlayerProfile, error) {
+	row := s.db.QueryRow(ctx, `
+		INSERT INTO users.player_profiles (player_id, bio, country)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (player_id) DO UPDATE
+		SET bio        = EXCLUDED.bio,
+		    country    = EXCLUDED.country,
+		    updated_at = NOW()
+		RETURNING player_id, bio, country, updated_at
+	`, params.PlayerID, params.Bio, params.Country)
+
+	var p PlayerProfile
+	err := row.Scan(&p.PlayerID, &p.Bio, &p.Country, &p.UpdatedAt)
+	return p, err
+}
+
+func (s *pgStore) UnlockAchievement(ctx context.Context, playerID uuid.UUID, key string) (PlayerAchievement, error) {
+	row := s.db.QueryRow(ctx, `
+		INSERT INTO users.player_achievements (player_id, achievement_key)
+		VALUES ($1, $2)
+		ON CONFLICT (player_id, achievement_key) DO NOTHING
+		RETURNING id, player_id, achievement_key, unlocked_at
+	`, playerID, key)
+
+	var a PlayerAchievement
+	err := row.Scan(&a.ID, &a.PlayerID, &a.AchievementKey, &a.UnlockedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Already unlocked — not an error, just a no-op.
+		return PlayerAchievement{}, ErrConflict
+	}
+	return a, err
+}
+
+func (s *pgStore) ListAchievements(ctx context.Context, playerID uuid.UUID) ([]PlayerAchievement, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT id, player_id, achievement_key, unlocked_at
+		FROM users.player_achievements
+		WHERE player_id = $1
+		ORDER BY unlocked_at DESC
+	`, playerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []PlayerAchievement
+	for rows.Next() {
+		var a PlayerAchievement
+		if err := rows.Scan(&a.ID, &a.PlayerID, &a.AchievementKey, &a.UnlockedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}

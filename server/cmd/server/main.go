@@ -6,30 +6,28 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/redis/go-redis/extra/redisotel/v9"
-	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/domain/notification"
-	"github.com/tableforge/server/internal/domain/rating"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/api"
-	"github.com/tableforge/server/internal/platform/auth"
 	"github.com/tableforge/server/internal/platform/events"
-	"github.com/tableforge/server/internal/platform/presence"
 	"github.com/tableforge/server/internal/platform/queue"
 	"github.com/tableforge/server/internal/platform/ratelimit"
 	"github.com/tableforge/server/internal/platform/store"
-	"github.com/tableforge/server/internal/platform/telemetry"
+	"github.com/tableforge/server/internal/platform/userclient"
+
 	"github.com/tableforge/server/internal/platform/ws"
+	"github.com/tableforge/shared/config"
+	sharedredis "github.com/tableforge/shared/redis"
+	"github.com/tableforge/shared/telemetry"
 
 	_ "github.com/tableforge/server/games/loveletter"
 	_ "github.com/tableforge/server/games/tictactoe"
@@ -39,52 +37,51 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	otlpEndpoint := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
-	serviceName := getEnv("OTEL_SERVICE_NAME", "game-server")
+	serviceName := config.Env("OTEL_SERVICE_NAME", "game-server")
+	otlpEndpoint := config.Env("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
+	userServiceAddr := config.Env("USER_SERVICE_ADDR", "user-service:9082")
 
 	shutdownTelemetry, err := telemetry.Setup(ctx, serviceName, otlpEndpoint)
 	if err != nil {
-		log.Printf("telemetry setup failed, continuing without it: %v", err)
+		slog.Warn("telemetry setup failed, continuing without it", "error", err)
 		shutdownTelemetry = func(_ context.Context) error { return nil }
 	}
+
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := shutdownTelemetry(shutdownCtx); err != nil {
-			log.Printf("telemetry shutdown error: %v", err)
+			slog.Warn("telemetry shutdown error", "error", err)
 		}
 	}()
 
-	dbURL := getEnv("DATABASE_URL", "postgres://tableforge:tableforge@localhost:5432/tableforge?sslmode=disable")
-	st, err := store.New(ctx, dbURL)
+	st, err := store.New(ctx, config.Env("DATABASE_URL", "postgres://tableforge:tableforge@localhost:5432/tableforge?sslmode=disable"))
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer st.Close()
 
-	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
-	rdb, err := connectRedis(ctx, redisURL)
-	if err != nil {
-		log.Fatalf("failed to connect to redis: %v", err)
-	}
+	rdb := sharedredis.Connect(ctx, config.Env("REDIS_URL", "redis://localhost:6379"))
 	defer rdb.Close()
 
-	// Event store — Redis Streams while active, Postgres after session ends.
-	eventStore := events.New(rdb, st)
+	userClient, err := userclient.New(userServiceAddr)
+	if err != nil {
+		slog.Error("failed to connect to user-service", "error", err)
+		os.Exit(1)
+	}
+	defer userClient.Close()
+	slog.Info("user-service gRPC connected", "addr", userServiceAddr)
 
-	// Presence store — tracks which users are connected to which rooms, for accurate online/offline status and spectator vs participant resolution.
-	presenceStore := presence.New(rdb)
+	eventStore := events.New(rdb, st)
 
 	reg := games.DefaultRegistry()
 	lobbyService := lobby.New(st, reg)
-	runtimeService := runtime.New(st, reg, eventStore)
+	runtimeService := runtime.New(st, reg, eventStore, rdb, slog.Default())
 	hub := ws.NewHubWithRedis(rdb)
 
 	turnTimer := runtime.NewTurnTimer(runtimeService, hub, st, rdb, eventStore)
 	runtimeService.SetTimer(turnTimer)
-
-	ratingEngine := rating.NewDefaultEngine()
-	runtimeService.SetRatingEngine(ratingEngine)
 
 	queueSvc := queue.New(rdb, st, lobbyService, runtimeService, hub)
 	go queueSvc.ListenExpiry(ctx)
@@ -104,71 +101,58 @@ func main() {
 	turnTimer.ReschedulePending(ctx)
 	go turnTimer.Start(ctx)
 
-	testMode := getEnv("TEST_MODE", "false") == "true"
+	testMode := config.Env("TEST_MODE", "false") == "true"
+
 	var limiter *ratelimit.Limiter
 	if !testMode {
 		limiter = ratelimit.New(rdb, 100, time.Minute)
 	}
 
-	authHandler := auth.NewHandler(
-		st,
-		getEnv("GITHUB_CLIENT_ID", ""),
-		getEnv("GITHUB_CLIENT_SECRET", ""),
-		getEnv("JWT_SECRET", "change-me-in-production"),
-		getEnv("ENV", "development") == "production",
-	)
+	var jwtSecret []byte
+	if !testMode {
+		jwtSecret = []byte(config.MustEnv("JWT_SECRET"))
+	}
 
 	notificationSvc := notification.New(st, hub)
 
-	router := api.NewRouter(lobbyService, runtimeService, st, hub, authHandler, limiter, eventStore, presenceStore, queueSvc, notificationSvc)
-	addr := getEnv("ADDR", ":8080")
+	router := api.NewRouter(
+		lobbyService,
+		runtimeService,
+		st,
+		hub,
+		jwtSecret,
+		limiter,
+		eventStore,
+		queueSvc,
+		notificationSvc,
+		userClient,
+	)
 
 	var handler http.Handler = router
 	if limiter != nil {
 		handler = limiter.Middleware(router)
 	}
 
-	srv := &http.Server{Addr: addr, Handler: handler}
+	addr := config.Env("ADDR", ":8080")
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+	}
 
 	go func() {
-		log.Printf("server listening on %s", addr)
+		slog.Info("game-server listening", "addr", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("shutting down...")
+	slog.Info("shutting down...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("http shutdown error: %v", err)
+		slog.Warn("http shutdown error", "error", err)
 	}
-}
-
-func connectRedis(ctx context.Context, rawURL string) (*redis.Client, error) {
-	opts, err := redis.ParseURL(rawURL)
-	if err != nil {
-		return nil, err
-	}
-	rdb := redis.NewClient(opts)
-
-	// Habilitar tracing OTel
-	if err := redisotel.InstrumentTracing(rdb); err != nil {
-		return nil, fmt.Errorf("failed to instrument redis: %w", err)
-	}
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		return nil, err
-	}
-	log.Println("redis connected")
-	return rdb, nil
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
 }

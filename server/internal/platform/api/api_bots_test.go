@@ -1,14 +1,28 @@
 package api_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/platform/store"
 )
+
+// deleteJSONWithBody sends a DELETE request with a JSON body and returns the response.
+// Used for unmute, which requires player_id in the body.
+func deleteJSONWithBody(t *testing.T, router http.Handler, path string, body any) *httptest.ResponseRecorder {
+	t.Helper()
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodDelete, path, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
 
 // setupRoomWithBot creates a room, adds a bot to it, and returns the room view
 // and bot player. The caller is the owner (alice).
@@ -17,9 +31,8 @@ func setupRoomWithBot(t *testing.T, router http.Handler, s *fakeStore) (string, 
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	if createResp.Code != http.StatusCreated {
 		t.Fatalf("create room: expected 201, got %d", createResp.Code)
@@ -32,9 +45,8 @@ func setupRoomWithBot(t *testing.T, router http.Handler, s *fakeStore) (string, 
 	}
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	addResp := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", map[string]string{
-		"player_id": owner.ID.String(),
-		"profile":   "easy",
+	addResp := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
+		"profile": "easy",
 	})
 	if addResp.Code != http.StatusCreated {
 		t.Fatalf("add bot: expected 201, got %d: %s", addResp.Code, addResp.Body.String())

@@ -1,83 +1,117 @@
+# docker-compose.monitoring.yml
+#
+# Networks are declared HERE because this is the first included file.
+# docker-compose.yml references them but does not redeclare them.
+#
+# otel-collector: app_network + monitoring_network
+#   app_network        — game-server and traefik push telemetry here
+#   monitoring_network — fans out to tempo, loki, prometheus
+#
+# grafana: app_network + monitoring_network
+#   app_network        — Traefik proxies /grafana/ here
+#   monitoring_network — reads from tempo, loki, prometheus
+#
+# traefik: app_network + monitoring_network (declared in docker-compose.yml)
+#   monitoring_network — sends its own traces to otel-collector
+#
+# Everything else: monitoring_network only.
+
 services:
-  # OpenTelemetry Collector - central telemetry router
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
+    profiles: [monitoring]
     command: ["--config", "/etc/otelcol/config.yaml"]
     volumes:
       - ./infra/collector-config.yaml:/etc/otelcol/config.yaml
     networks:
-      - monitoring_network
       - app_network
-    profiles: [monitoring]
+      - monitoring_network
     depends_on:
       - tempo
       - loki
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # Exposes /otlp/* so the frontend can push traces from the browser.
+      # The collector's HTTP receiver listens on port 4318.
+      # Priority 200 — higher than all services so it never gets caught
+      # by the game-server catchall.
+      - "traefik.http.routers.otel-collector.rule=PathPrefix(`/otlp`)"
+      - "traefik.http.routers.otel-collector.entrypoints=web"
+      - "traefik.http.routers.otel-collector.priority=200"
+      - "traefik.http.routers.otel-collector.service=otel-collector-svc"
+      - "traefik.http.services.otel-collector-svc.loadbalancer.server.port=4318"
 
-  # Grafana Tempo - distributed tracing backend
   tempo:
     image: grafana/tempo:2.6.1
     container_name: tempo
+    profiles: [monitoring]
     command: ["-config.file=/etc/tempo/config.yaml"]
     volumes:
       - ./infra/tempo-config.yaml:/etc/tempo/config.yaml
       - tempo-data:/var/tempo
     networks:
       - monitoring_network
-    profiles: [monitoring]
+    restart: unless-stopped
 
-  # Grafana Loki - log aggregation backend
   loki:
     image: grafana/loki:latest
     container_name: loki
+    profiles: [monitoring]
     command: ["-config.file=/etc/loki/config.yaml"]
     volumes:
       - ./infra/loki-config.yaml:/etc/loki/config.yaml
       - loki-data:/loki
     networks:
       - monitoring_network
-    profiles: [monitoring]
+    restart: unless-stopped
 
   promtail:
     image: grafana/promtail:3.0.0
     container_name: promtail
+    profiles: [monitoring]
     user: root
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ./infra/promtail-config.yaml:/etc/promtail/config.yaml
-    depends_on:
-      - loki
     networks:
       - monitoring_network
-      - app_network
+    depends_on:
+      - loki
     restart: unless-stopped
-    profiles: [monitoring]
 
-  # Prometheus - metrics storage and query
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
+    profiles: [monitoring]
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--web.enable-remote-write-receiver'
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+      - --storage.tsdb.retention.time=15d
     volumes:
       - ./infra/prometheus.yaml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     networks:
       - monitoring_network
-      - app_network
-    profiles: [monitoring]
+    restart: unless-stopped
 
-  # Grafana - visualization and dashboards
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
+    profiles: [monitoring]
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_SERVER_ROOT_URL=http://localhost/grafana/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true 
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_AUTH_GITHUB_ALLOW_SIGN_UP=false # disable in prod!
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_AUTH_GITHUB_ENABLED=false
+      - GF_AUTH_GITHUB_CLIENT_ID=${GRAFANA_GITHUB_CLIENT_ID}
+      - GF_AUTH_GITHUB_CLIENT_SECRET=${GRAFANA_GITHUB_CLIENT_SECRET}
     volumes:
       - ./infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
@@ -89,7 +123,13 @@ services:
       - tempo
       - loki
       - prometheus
-    profiles: [monitoring]
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.service=grafana-svc"
+      - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
 
 volumes:
   tempo-data:
@@ -97,13 +137,12 @@ volumes:
   prometheus-data:
   grafana-data:
 
+# Networks declared here — first included file owns the network definitions.
+# All other compose files reference these networks without redeclaring them.
 networks:
-  monitoring_network:   # grafana, prometheus, tempo, loki, otel-collector
-    name: monitoring_network
-    driver: bridge
-  data_network:         # game-server, postgres, redis
-    name: data_network
-    driver: bridge
-  app_network:          # caddy, frontend, game-server
-    name: app_network
-    driver: bridge
+  app_network:
+    external: true
+  data_network:
+    external: true
+  monitoring_network:
+    external: true

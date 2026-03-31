@@ -167,8 +167,6 @@ type GameSession struct {
 	SuspendCount    int         `json:"suspend_count"`
 	SuspendedAt     *time.Time  `json:"suspended_at,omitempty"`
 	SuspendedReason *string     `json:"suspended_reason,omitempty"`
-	PauseVotes      []string    `json:"pause_votes"`
-	ResumeVotes     []string    `json:"resume_votes"`
 	TurnTimeoutSecs *int        `json:"turn_timeout_secs,omitempty"`
 	LastMoveAt      time.Time   `json:"last_move_at"`
 	StartedAt       time.Time   `json:"started_at"`
@@ -181,7 +179,6 @@ type Move struct {
 	SessionID  uuid.UUID `json:"session_id"`
 	PlayerID   uuid.UUID `json:"player_id"`
 	Payload    []byte    `json:"payload"`
-	StateAfter []byte    `json:"state_after,omitempty"`
 	MoveNumber int       `json:"move_number"`
 	AppliedAt  time.Time `json:"applied_at"`
 }
@@ -264,38 +261,6 @@ type RematchVote struct {
 	SessionID uuid.UUID `json:"session_id"`
 	PlayerID  uuid.UUID `json:"player_id"`
 	VotedAt   time.Time `json:"voted_at"`
-}
-
-// RoomMessage is a single chat message in a room.
-// Messages are auditable and never deleted; managers may hide them.
-type RoomMessage struct {
-	ID        uuid.UUID `json:"message_id"`
-	RoomID    uuid.UUID `json:"room_id"`
-	PlayerID  uuid.UUID `json:"player_id"`
-	Content   string    `json:"content"`
-	Reported  bool      `json:"reported"`
-	Hidden    bool      `json:"hidden"`
-	CreatedAt time.Time `json:"timestamp"` // TODO rename CreatedAt to Timestamp for clarity, and be consistent across all models
-}
-
-// DirectMessage is a private message between two players.
-type DirectMessage struct {
-	ID         uuid.UUID  `json:"message_id"`
-	SenderID   uuid.UUID  `json:"sender_id"`
-	ReceiverID uuid.UUID  `json:"receiver_id"`
-	Content    string     `json:"content"`
-	ReadAt     *time.Time `json:"read_at,omitempty"`
-	Reported   bool       `json:"reported"`
-	Hidden     bool       `json:"hidden"`
-	CreatedAt  time.Time  `json:"timestamp"` // TODO rename CreatedAt to Timestamp for clarity, and be consistent across all models
-}
-
-// PlayerMute records that MuterID has muted MutedID.
-// Mutes are cross-session and server-side — they survive reconnects.
-type PlayerMute struct {
-	MuterID   uuid.UUID `json:"muter_id"`
-	MutedID   uuid.UUID `json:"muted_id"`
-	CreatedAt time.Time `json:"created_at"`
 }
 
 // Rating holds the Elo-based rating for a player.
@@ -440,6 +405,8 @@ type Store interface {
 	CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int, mode SessionMode) (GameSession, error)
 	GetGameSession(ctx context.Context, id uuid.UUID) (GameSession, error)
 	GetGameResult(ctx context.Context, sessionID uuid.UUID) (GameResult, error)
+	CountPauseVotes(ctx context.Context, sessionID uuid.UUID) (int, error)
+	CountResumeVotes(ctx context.Context, sessionID uuid.UUID) (int, error)
 	GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) (GameSession, error)
 	UpdateSessionState(ctx context.Context, id uuid.UUID, state []byte) error
 	FinishSession(ctx context.Context, id uuid.UUID) error
@@ -468,12 +435,6 @@ type Store interface {
 	BulkCreateSessionEvents(ctx context.Context, params []CreateSessionEventParams) error
 	ListSessionEvents(ctx context.Context, sessionID uuid.UUID) ([]SessionEvent, error)
 
-	// OAuth
-	UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthParams) (OAuthIdentity, error)
-	GetOAuthIdentity(ctx context.Context, provider, providerID string) (OAuthIdentity, error)
-	GetOAuthIdentityByEmail(ctx context.Context, email string) (OAuthIdentity, error)
-	IsEmailAllowed(ctx context.Context, email string) (bool, error)
-
 	// Results
 	CreateGameResult(ctx context.Context, params CreateGameResultParams) (GameResult, error)
 	GetPlayerStats(ctx context.Context, playerID uuid.UUID) (PlayerStats, error)
@@ -483,24 +444,6 @@ type Store interface {
 	UpsertRematchVote(ctx context.Context, sessionID, playerID uuid.UUID) error
 	ListRematchVotes(ctx context.Context, sessionID uuid.UUID) ([]RematchVote, error)
 	DeleteRematchVotes(ctx context.Context, sessionID uuid.UUID) error
-
-	// Room chat
-	SaveRoomMessage(ctx context.Context, roomID, playerID uuid.UUID, content string) (RoomMessage, error)
-	GetRoomMessages(ctx context.Context, roomID uuid.UUID) ([]RoomMessage, error)
-	HideRoomMessage(ctx context.Context, messageID uuid.UUID) error
-	ReportRoomMessage(ctx context.Context, messageID uuid.UUID) error
-
-	// Direct messages
-	SaveDM(ctx context.Context, senderID, receiverID uuid.UUID, content string) (DirectMessage, error)
-	GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID) ([]DirectMessage, error)
-	MarkDMRead(ctx context.Context, messageID uuid.UUID) error
-	GetUnreadDMCount(ctx context.Context, playerID uuid.UUID) (int, error)
-	ReportDM(ctx context.Context, messageID uuid.UUID) error
-
-	// Mutes
-	MutePlayer(ctx context.Context, muterID, mutedID uuid.UUID) error
-	UnmutePlayer(ctx context.Context, muterID, mutedID uuid.UUID) error
-	GetMutedPlayers(ctx context.Context, playerID uuid.UUID) ([]PlayerMute, error)
 
 	// Ratings
 	GetRating(ctx context.Context, playerID uuid.UUID, gameID string) (Rating, error)
@@ -551,7 +494,6 @@ type RecordMoveParams struct {
 	SessionID  uuid.UUID
 	PlayerID   uuid.UUID
 	Payload    []byte
-	StateAfter []byte
 	MoveNumber int
 }
 

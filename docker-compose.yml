@@ -1,88 +1,39 @@
 include:
   - docker-compose.monitoring.yml
+  - docker-compose.services.yml
 
 name: tableforge
+
+# ── Profile guide ──────────────────────────────────────────────────────────────
+#
+#   (no profile)                          postgres + redis + game-server
+#   --profile app                         + traefik + frontend
+#   --profile monitoring                  + full observability stack
+#   --profile app --profile monitoring    everything
+#
+# ── Network guide ──────────────────────────────────────────────────────────────
+#
+#   data_network       postgres, redis, game-server
+#                      Isolated — no routing, no monitoring.
+#
+#   app_network        traefik, game-server, frontend, otel-collector, grafana
+#                      Traefik routes to any service here.
+#                      otel-collector here so game-server reaches it without
+#                      needing monitoring_network.
+#                      grafana here so Traefik can proxy /grafana/.
+#
+#   monitoring_network otel-collector, tempo, loki, promtail, prometheus, grafana
+#                      Internal observability wiring.
+#
+# Networks are declared in docker-compose.monitoring.yml (first included file).
+
 services:
-  # ── Application ────────────────────────────────────────────────────────────
-  game-server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    container_name: 'game-server'
-    networks:
-      - app_network
-      - data_network
-    environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
-      - REDIS_URL=redis://redis:6379
-      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
-      - OTEL_SERVICE_NAME=game-server
-      - ENV=development
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
-      - FRONTEND_URL=http://localhost
-      - TEST_MODE=${TEST_MODE:-false}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      otel-collector:
-        condition: service_started
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-      - VITE_TEST_MODE=${TEST_MODE:-false}
-    container_name: 'frontend'
-    networks:
-      - app_network
-    depends_on:
-      - game-server
-    restart: unless-stopped
+  # ── Data layer (no profile — always up) ─────────────────────────────────────
 
-  seeder:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    container_name: 'seeder'
-    networks:
-      - app_network
-      - data_network
-    entrypoint: ["/bin/seeder"]
-    environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
-      - OWNER_EMAIL=${OWNER_EMAIL}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: 'caddy'
-    networks:
-      - app_network
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - GRAFANA_BASICAUTH_HASH=${GRAFANA_BASICAUTH_HASH}
-    volumes:
-      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
-    depends_on:
-      - game-server
-      - frontend
-    restart: unless-stopped
-
-  # ── Database ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: 'postgres'
+    container_name: postgres
     environment:
       POSTGRES_USER: tableforge
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -91,7 +42,7 @@ services:
       - data_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/db/migrations:/docker-entrypoint-initdb.d
+      - ./shared/db/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tableforge"]
       interval: 5s
@@ -101,7 +52,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: 'redis'
+    container_name: redis
     command: redis-server --notify-keyspace-events Ex
     networks:
       - data_network
@@ -114,11 +65,108 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # alertmanager:
-  #   image: prom/alertmanager
-  #   volumes:
-  #     - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+  # ── Application core (no profile — always up) ────────────────────────────────
+  #
+  # No ports exposed — all traffic goes through Traefik on app_network.
+  # OTel endpoint silently fails when monitoring profile is not up —
+  # the OTel SDK retries automatically, no crash.
+
+  game-server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: game-server
+    networks:
+      - data_network
+      - app_network
+    environment:
+      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - USER_SERVICE_ADDR=user-service:9082
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - OTEL_SERVICE_NAME=game-server
+      - ENV=development
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=http://localhost
+      - TEST_MODE=${TEST_MODE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.game-server.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.game-server.entrypoints=web"
+      - "traefik.http.routers.game-server.priority=10"
+      - "traefik.http.routers.game-server.service=game-server-svc"
+      - "traefik.http.services.game-server-svc.loadbalancer.server.port=8080"
+      - "traefik.http.routers.game-server.middlewares=api-ratelimit"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=50"
+
+  # ── App profile ──────────────────────────────────────────────────────────────
+
+  traefik:
+    image: traefik:v3.2
+    container_name: traefik
+    profiles: [app]
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.network=app_network
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --accesslog=true
+      - --accesslog.format=json
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entrypoint=web
+      - --tracing.otlp=true
+      - --tracing.otlp.grpc.endpoint=otel-collector:4317
+      - --tracing.otlp.grpc.insecure=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9090:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/certs
+    networks:
+      - app_network
+      - monitoring_network
+    depends_on:
+      - game-server
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_TEST_MODE=${TEST_MODE:-false}
+    container_name: frontend
+    profiles: [app]
+    networks:
+      - app_network
+    depends_on:
+      - game-server
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.routers.frontend.priority=1"
+      - "traefik.http.routers.frontend.service=frontend-svc"
+      - "traefik.http.services.frontend-svc.loadbalancer.server.port=3000"
 
 volumes:
   postgres_data:
   redis_data:
+  traefik_certs:

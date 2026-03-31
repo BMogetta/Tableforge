@@ -2,6 +2,7 @@ auth_enabled: false
 
 server:
   http_listen_port: 3100
+  grpc_listen_port: 9096
 
 common:
   path_prefix: /loki
@@ -23,3 +24,28 @@ schema_config:
       index:
         prefix: index_
         period: 24h
+
+# Retention — logs older than this are deleted automatically.
+# 72h is reasonable for dev. Set to 30d+ for prod.
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+  delete_request_store: filesystem
+
+limits_config:
+  retention_period: 72h
+  # Prevents a single noisy service from flooding Loki in dev
+  ingestion_rate_mb: 16
+  ingestion_burst_size_mb: 32
+  # Max log line size — truncates above this (prevents runaway logging)
+  max_line_size: 256kb
+
+# Query performance — tune if Grafana log queries feel slow
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100

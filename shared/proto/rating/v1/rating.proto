@@ -1,0 +1,76 @@
+// shared/proto/rating/v1/rating.proto
+//
+// RatingService — owned by rating-service.
+// Consumers:
+//   match-service  → GetRating (read MMR on ranked queue enqueue)
+//   ws-gateway     → (future) GetLeaderboard for lobby display
+//   frontend       → leaderboard via HTTP transcoding (future)
+//
+// Rating updates are NOT exposed via gRPC. They are triggered by the
+// game.session.finished Redis event consumed internally by rating-service.
+
+syntax = "proto3";
+package rating.v1;
+option go_package = "github.com/tableforge/shared/proto/rating/v1;ratingv1";
+
+service RatingService {
+  // GetRating returns the current MMR + display rating for one player/game pair.
+  // Called by match-service when a player joins the ranked queue.
+  rpc GetRating(GetRatingRequest) returns (GetRatingResponse);
+
+  // GetRatings is a batch variant for lobby/room display (up to 100 players).
+  rpc GetRatings(GetRatingsRequest) returns (GetRatingsResponse);
+
+  // GetLeaderboard returns players ranked by display_rating for a game.
+  // Paginated: use offset + limit. Only players with >= 5 games are included.
+  rpc GetLeaderboard(GetLeaderboardRequest) returns (GetLeaderboardResponse);
+}
+
+// ─── GetRating ───────────────────────────────────────────────────────────────
+
+message GetRatingRequest {
+  string player_id = 1; // UUID
+  string game_id   = 2; // e.g. "tictactoe"
+}
+
+message GetRatingResponse {
+  string player_id      = 1;
+  string game_id        = 2;
+  double mmr            = 3; // hidden — do not expose to browser clients
+  double display_rating = 4;
+  int32  games_played   = 5;
+  int32  win_streak     = 6;
+  int32  loss_streak    = 7;
+}
+
+// ─── GetRatings ──────────────────────────────────────────────────────────────
+
+message GetRatingsRequest {
+  repeated string player_ids = 1; // max 100
+  string          game_id    = 2;
+}
+
+message GetRatingsResponse {
+  repeated GetRatingResponse ratings = 1;
+}
+
+// ─── GetLeaderboard ──────────────────────────────────────────────────────────
+
+message GetLeaderboardRequest {
+  string game_id = 1;
+  int32  limit   = 2; // default 100, max 500
+  int32  offset  = 3; // 0-based
+}
+
+message LeaderboardEntry {
+  int32  rank           = 1; // 1-based position (offset + index + 1)
+  string player_id      = 2;
+  double display_rating = 3;
+  int32  games_played   = 4;
+}
+
+message GetLeaderboardResponse {
+  string                   game_id = 1;
+  repeated LeaderboardEntry entries = 2;
+  int32                    total   = 3; // total qualifying rows (for pagination)
+}

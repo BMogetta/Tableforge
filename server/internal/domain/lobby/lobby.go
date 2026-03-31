@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/domain/engine"
-	"github.com/tableforge/server/internal/platform/randutil"
 	"github.com/tableforge/server/internal/platform/store"
+	"github.com/tableforge/shared/platform/randutil"
 )
 
 var (

@@ -1,6 +1,34 @@
 server:
   http_listen_port: 3200
 
+# Ingester — required for metrics_generator to work correctly
+ingester:
+  trace_idle_period: 10s       # how long to wait after last span before flushing
+  max_block_bytes: 1_000_000   # 1MB per block in dev (increase for prod)
+  max_block_duration: 5m
+
+# Querier — reads traces from storage for Grafana queries
+querier:
+  frontend_worker:
+    frontend_address: 127.0.0.1:9095
+
+# Compactor — merges small blocks into larger ones
+compactor:
+  compaction:
+    block_retention: 48h       # keep traces for 48h in dev (increase for prod)
+
+# Distributor — receives spans from OTel Collector
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+# Metrics generator — derives RED metrics and service graphs from traces
+# These show up in Grafana as Tempo-native metrics without Prometheus scraping
 metrics_generator:
   ring:
     kvstore:
@@ -9,19 +37,26 @@ metrics_generator:
     path: /var/tempo/generator/wal
     remote_write:
       - url: http://prometheus:9090/api/v1/write
-        send_exemplars: true
+        send_exemplars: true       # links Prometheus metrics back to traces in Grafana
   registry:
     external_labels:
       source: tempo
   processor:
     service_graphs:
       max_items: 10000
-    span_metrics: {}
+      # Shows inter-service call graph in Grafana — very useful once you have
+      # multiple microservices calling each other
+      enable_messaging_system_latency_histogram: true
+    span_metrics:
+      # Generates request rate, error rate, duration histograms per span
+      histogram_buckets: [0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.0, 2.0]
   traces_storage:
     path: /var/tempo/generator/traces
 
 overrides:
-  metrics_generator_processors: [service-graphs, span-metrics]
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
 
 storage:
   trace:
@@ -30,3 +65,5 @@ storage:
       path: /var/tempo/blocks
     wal:
       path: /var/tempo/wal
+    # Cache improves repeated query performance in Grafana
+    cache: none                  # enable memcached for prod

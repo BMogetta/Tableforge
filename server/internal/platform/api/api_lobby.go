@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +13,8 @@ import (
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
+	error_message "github.com/tableforge/shared/errors"
+	sharedmw "github.com/tableforge/shared/middleware"
 )
 
 // --- Games -------------------------------------------------------------------
@@ -129,11 +132,13 @@ func handleJoinRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		view, err := svc.JoinRoom(r.Context(), req.Code, playerID)
 		if err != nil {
 			writeLobbyError(w, err)
@@ -164,11 +169,13 @@ func handleLeaveRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		result, err := svc.LeaveRoom(r.Context(), roomID, playerID)
 		if err != nil {
 			writeLobbyError(w, err)
@@ -208,13 +215,17 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		session, err := svc.StartGame(r.Context(), roomID, playerID, store.SessionModeCasual)
 		if err != nil {
+
+			slog.Error("start game failed", "room_id", roomID, "error", err) // TODO REMOVE
 			writeLobbyError(w, err)
 			return
 		}
@@ -262,11 +273,13 @@ func handleUpdateRoomSetting(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		if err := svc.UpdateRoomSetting(r.Context(), roomID, playerID, key, req.Value); err != nil {
 			writeLobbyError(w, err)
 			return

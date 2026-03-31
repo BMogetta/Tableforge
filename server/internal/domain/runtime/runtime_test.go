@@ -166,7 +166,7 @@ func seedSession(t *testing.T, s *fakeStore, game engine.Game) (store.GameSessio
 func TestApplyMove_Success(t *testing.T) {
 	s := newFakeStore()
 	game := &stubGame{}
-	svc := runtime.New(s, &fakeRegistry{game}, nil)
+	svc := runtime.New(s, &fakeRegistry{game}, nil, nil, nil)
 
 	gs, p1 := seedSession(t, s, game)
 	playerID, _ := uuid.Parse(string(p1))
@@ -186,7 +186,7 @@ func TestApplyMove_Success(t *testing.T) {
 
 func TestApplyMove_SessionNotFound(t *testing.T) {
 	s := newFakeStore()
-	svc := runtime.New(s, &fakeRegistry{&stubGame{}}, nil)
+	svc := runtime.New(s, &fakeRegistry{&stubGame{}}, nil, nil, nil)
 
 	_, err := svc.ApplyMove(context.Background(), uuid.New(), uuid.New(), map[string]any{})
 	if !errors.Is(err, runtime.ErrSessionNotFound) {
@@ -198,7 +198,7 @@ func TestApplyMove_GameOver(t *testing.T) {
 	s := newFakeStore()
 	winner := engine.PlayerID(uuid.New().String())
 	game := &winningGame{winner: winner}
-	svc := runtime.New(s, &fakeRegistry{game}, nil)
+	svc := runtime.New(s, &fakeRegistry{game}, nil, nil, nil)
 
 	gs, p1 := seedSession(t, s, game)
 	playerID, _ := uuid.Parse(string(p1))
@@ -237,7 +237,7 @@ func TestApplyMove_InvalidMove(t *testing.T) {
 	var rejectErr = errors.New("move rejected")
 	type badGame struct{ stubGame }
 
-	svc := runtime.New(s, &fakeRegistry{&stubGame{}}, nil)
+	svc := runtime.New(s, &fakeRegistry{&stubGame{}}, nil, nil, nil)
 
 	// Seed with stub, then manually break validation via wrong player
 	gs, _ := seedSession(t, s, &stubGame{})
@@ -255,7 +255,7 @@ func TestApplyMove_InvalidMove(t *testing.T) {
 func TestGetState(t *testing.T) {
 	s := newFakeStore()
 	game := &stubGame{}
-	svc := runtime.New(s, &fakeRegistry{game}, nil)
+	svc := runtime.New(s, &fakeRegistry{game}, nil, nil, nil)
 
 	gs, _ := seedSession(t, s, game)
 

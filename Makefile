@@ -1,48 +1,65 @@
-.PHONY: up up-test down build seed seed-test test test-ui logs ps clean clean-test gen-types
+.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui logs ps clean clean-test gen-types
 
-# --- Docker ------------------------------------------------------------------
+# ── Docker ────────────────────────────────────────────────────────────────────
 
-# Start all services in development mode.
-up:
-	docker compose --profile monitoring up --build
+networks:
+	docker network create app_network 2>/dev/null || true
+	docker network create data_network 2>/dev/null || true
+	docker network create monitoring_network 2>/dev/null || true
 
-# Start all services with test auth bypass enabled.
-up-test:
-	TEST_MODE=true docker compose --profile monitoring up --build
+up: networks
+	docker compose up --build -d
+
+up-app: networks
+	docker compose --profile app up --build -d
+
+up-all: networks
+	docker compose --profile app --profile monitoring up --build -d
+
+up-test: networks
+	TEST_MODE=true docker compose --profile app up --build -d
 
 # Stop all services and remove containers.
 down:
-	docker compose --profile monitoring down
+	docker compose --profile app --profile monitoring down
 
 # Rebuild all images without starting.
 build:
-	docker compose --profile monitoring build
+	docker compose --profile app --profile monitoring build
 
 # Show running containers.
 ps:
-	docker compose --profile monitoring ps
+	docker compose --profile app --profile monitoring ps
 
 # Tail logs for all services.
 logs:
-	docker compose --profile monitoring logs -f
+	docker compose --profile app --profile monitoring logs -f
 
-# --- Database ----------------------------------------------------------------
+# Hard reset — removes all containers, volumes, images and networks for this project.
+# WARNING: wipes the database.
+reset:
+	docker compose --profile app --profile monitoring down -v --rmi local --remove-orphans
+	docker network rm app_network data_network monitoring_network 2>/dev/null || true
 
-# Seed the owner email — runs inside the game-server container where DB is reachable.
-# Requires: OWNER_EMAIL=... make seed
-seed:
-	docker compose exec -e OWNER_EMAIL=$(OWNER_EMAIL) game-server /bin/seeder
+# ── Database ──────────────────────────────────────────────────────────────────
 
 # Create test players for Playwright and save their IDs.
+# Runs seed-test binary inside a temporary container on data_network
+# so it can reach postgres without exposing any ports.
 # Requires: make up-test first.
 # Output: frontend/tests/e2e/.players.json
 seed-test:
 	@mkdir -p frontend/tests/e2e
-	docker compose --profile monitoring exec game-server /bin/seed-test > frontend/tests/e2e/.players.json
+	docker compose run --rm \
+		--no-deps \
+		--entrypoint /bin/seed-test \
+		-e DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable \
+		game-server \
+	> frontend/tests/e2e/.players.json
 	@echo "Test players created:"
 	@cat frontend/tests/e2e/.players.json
 
-# --- Tests -------------------------------------------------------------------
+# ── Tests ─────────────────────────────────────────────────────────────────────
 
 # Run all Playwright tests.
 # Requires: make up-test && make seed-test first.
@@ -79,7 +96,7 @@ test-ui:
 		TEST_PLAYER3_ID=$$(cat tests/e2e/.players.json | jq -r .player3_id) \
 		npx playwright test --ui
 
-# --- Cleanup -----------------------------------------------------------------
+# ── Cleanup ───────────────────────────────────────────────────────────────────
 
 # Remove test auth state and player fixtures.
 clean-test:
@@ -87,21 +104,17 @@ clean-test:
 
 # Remove all docker volumes (wipes the database).
 clean:
-	docker compose --profile monitoring down -v
+	docker compose --profile app --profile monitoring down -v
 
-# --- API Types ---------------------------------------------------------------
+# ── API Types ─────────────────────────────────────────────────────────────────
 
 # Generate TypeScript types from the Go API.
 # Requires: swag installed (go install github.com/swaggo/swag/cmd/swag@latest)
-# Requires: swagger-typescript-api installed (npx swagger-typescript-api)
 # Run this after adding or modifying API handlers.
 gen-types:
 	cd server && swag init -g cmd/server/main.go -o docs \
 		--parseDependency --parseInternal --useStructName
 
-	# Apply required-fields patch on top of the generated swagger.json.
-	# Edit server/docs/swagger.required-patch.json to keep this list up to date
-	# whenever new response types are added.
 	cd server/docs && jq -s -f patch-swagger.jq swagger.json swagger.required-patch.json > swagger.patched.json
 
 	cd server/docs && npx swagger-typescript-api generate \

@@ -9,10 +9,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/domain/runtime"
-	"github.com/tableforge/server/internal/platform/auth"
 	"github.com/tableforge/server/internal/platform/events"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/ws"
+	error_message "github.com/tableforge/shared/errors"
+	sharedmw "github.com/tableforge/shared/middleware"
 )
 
 // --- Players -----------------------------------------------------------------
@@ -104,11 +105,13 @@ func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFu
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		result, err := rt.ApplyMove(r.Context(), sessionID, playerID, req.Payload)
 		if err != nil {
 			writeRuntimeError(w, err)
@@ -208,7 +211,7 @@ func handlePlayerReady(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Ha
 		if sessionID == uuid.Nil {
 			return
 		}
-		playerID, _ := auth.PlayerIDFromContext(r.Context())
+		playerID, _ := sharedmw.PlayerIDFromContext(r.Context())
 
 		result, err := rt.VoteReady(r.Context(), sessionID, playerID)
 		if err != nil {
@@ -263,11 +266,13 @@ func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Hand
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		result, err := rt.Surrender(r.Context(), sessionID, playerID)
 		if err != nil {
 			writeRuntimeError(w, err)
@@ -310,11 +315,13 @@ func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		votes, totalPlayers, roomID, rematchReady, err := rt.VoteRematch(r.Context(), sessionID, playerID)
 		if err != nil {
 			writeRuntimeError(w, err)
@@ -396,9 +403,9 @@ func handleVotePause(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 			return
 		}
 
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
 
@@ -468,9 +475,9 @@ func handleVoteResume(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 			return
 		}
 
-		playerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
 

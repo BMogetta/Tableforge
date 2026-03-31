@@ -29,8 +29,6 @@ type GameSessionDTO struct {
 	SuspendCount    int        `json:"suspend_count"`
 	SuspendedAt     *time.Time `json:"suspended_at,omitempty"`
 	SuspendedReason *string    `json:"suspended_reason,omitempty"`
-	PauseVotes      []string   `json:"pause_votes"`
-	ResumeVotes     []string   `json:"resume_votes"`
 	ReadyPlayers    []string   `json:"ready_players"`
 	TurnTimeoutSecs *int       `json:"turn_timeout_secs,omitempty"`
 	LastMoveAt      time.Time  `json:"last_move_at"`
@@ -51,8 +49,6 @@ func sessionToDTO(s store.GameSession) GameSessionDTO {
 		SuspendCount:    s.SuspendCount,
 		SuspendedAt:     s.SuspendedAt,
 		SuspendedReason: s.SuspendedReason,
-		PauseVotes:      s.PauseVotes,
-		ResumeVotes:     s.ResumeVotes,
 		ReadyPlayers:    s.ReadyPlayers,
 		TurnTimeoutSecs: s.TurnTimeoutSecs,
 		LastMoveAt:      s.LastMoveAt,

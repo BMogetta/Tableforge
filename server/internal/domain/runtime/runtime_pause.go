@@ -18,16 +18,17 @@ var (
 
 // PauseVoteResult carries the outcome of a VotePause or VoteResume call.
 type PauseVoteResult struct {
-	// Votes is the list of player IDs that have voted so far.
-	Votes []string `json:"votes"`
-	// Required is the total number of participants who must vote.
+	// Votes is the number of players that have voted so far.
+	Votes int `json:"votes"`
+	// Required is the number of human participants who must vote.
 	Required int `json:"required"`
 	// AllVoted is true when consensus was reached and the session state changed.
 	AllVoted bool `json:"all_voted"`
 }
 
 // VotePause registers a pause vote for playerID on the given session.
-// When all participants have voted the session is suspended and AllVoted is true.
+// When all human participants have voted the session is suspended and AllVoted is true.
+// Bots are excluded from the vote count — they never block pause consensus.
 // Returns ErrAlreadyPaused if the session is already suspended.
 // Returns ErrNotParticipant if the caller is not in the session's room.
 // Returns ErrGameOver if the session is already finished.
@@ -49,31 +50,22 @@ func (svc *Service) VotePause(ctx context.Context, sessionID, playerID uuid.UUID
 	}
 
 	callerFound := false
+	humanCount := 0
 	for _, p := range players {
 		if p.PlayerID == playerID {
 			callerFound = true
-			break
+		}
+		if _, isBot := svc.bots.get(p.PlayerID); !isBot {
+			humanCount++
 		}
 	}
 	if !callerFound {
 		return PauseVoteResult{}, ErrNotParticipant
 	}
 
-	if _, err := svc.store.VotePause(ctx, sessionID, playerID); err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VotePause: store vote: %w", err)
-	}
-
-	// Auto-vote for any registered bots so they never block pause consensus.
-	for _, p := range players {
-		if _, isBot := svc.bots.get(p.PlayerID); isBot {
-			_, _ = svc.store.VotePause(ctx, sessionID, p.PlayerID)
-		}
-	}
-
-	// Re-check consensus after bot votes — re-use playerID (idempotent).
 	allVoted, err := svc.store.VotePause(ctx, sessionID, playerID)
 	if err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VotePause: recheck: %w", err)
+		return PauseVoteResult{}, fmt.Errorf("VotePause: store vote: %w", err)
 	}
 
 	if allVoted {
@@ -88,21 +80,21 @@ func (svc *Service) VotePause(ctx context.Context, sessionID, playerID uuid.UUID
 		}
 	}
 
-	// Reload to get the current pause_votes after the store write.
-	session, err = svc.store.GetGameSession(ctx, sessionID)
+	voteCount, err := svc.store.CountPauseVotes(ctx, sessionID)
 	if err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VotePause: reload session: %w", err)
+		return PauseVoteResult{}, fmt.Errorf("VotePause: count votes: %w", err)
 	}
 
 	return PauseVoteResult{
-		Votes:    session.PauseVotes,
-		Required: len(players),
+		Votes:    voteCount,
+		Required: humanCount,
 		AllVoted: allVoted,
 	}, nil
 }
 
 // VoteResume registers a resume vote for playerID on the given session.
-// When all participants have voted the session is resumed and AllVoted is true.
+// When all human participants have voted the session is resumed and AllVoted is true.
+// Bots are excluded from the vote count — they never block resume consensus.
 // Returns ErrNotSuspended if the session is not currently suspended.
 // Returns ErrNotParticipant if the caller is not in the session's room.
 // Returns ErrGameOver if the session is already finished.
@@ -124,31 +116,22 @@ func (svc *Service) VoteResume(ctx context.Context, sessionID, playerID uuid.UUI
 	}
 
 	callerFound := false
+	humanCount := 0
 	for _, p := range players {
 		if p.PlayerID == playerID {
 			callerFound = true
-			break
+		}
+		if _, isBot := svc.bots.get(p.PlayerID); !isBot {
+			humanCount++
 		}
 	}
 	if !callerFound {
 		return PauseVoteResult{}, ErrNotParticipant
 	}
 
-	if _, err := svc.store.VoteResume(ctx, sessionID, playerID); err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VoteResume: store vote: %w", err)
-	}
-
-	// Auto-vote for any registered bots so they never block resume consensus.
-	for _, p := range players {
-		if _, isBot := svc.bots.get(p.PlayerID); isBot {
-			_, _ = svc.store.VoteResume(ctx, sessionID, p.PlayerID)
-		}
-	}
-
-	// Re-check consensus after bot votes — re-use playerID (idempotent).
 	allVoted, err := svc.store.VoteResume(ctx, sessionID, playerID)
 	if err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VoteResume: recheck: %w", err)
+		return PauseVoteResult{}, fmt.Errorf("VoteResume: store vote: %w", err)
 	}
 
 	if allVoted {
@@ -159,8 +142,6 @@ func (svc *Service) VoteResume(ctx context.Context, sessionID, playerID uuid.UUI
 			return PauseVoteResult{}, fmt.Errorf("VoteResume: clear votes: %w", err)
 		}
 		if svc.timer != nil {
-			// Reschedule the turn timer after resuming — the session now has
-			// an active turn that needs a timeout.
 			resumed, err := svc.store.GetGameSession(ctx, sessionID)
 			if err == nil {
 				svc.timer.Schedule(resumed)
@@ -168,15 +149,14 @@ func (svc *Service) VoteResume(ctx context.Context, sessionID, playerID uuid.UUI
 		}
 	}
 
-	// Reload to get the current resume_votes after the store write.
-	session, err = svc.store.GetGameSession(ctx, sessionID)
+	voteCount, err := svc.store.CountResumeVotes(ctx, sessionID)
 	if err != nil {
-		return PauseVoteResult{}, fmt.Errorf("VoteResume: reload session: %w", err)
+		return PauseVoteResult{}, fmt.Errorf("VoteResume: count votes: %w", err)
 	}
 
 	return PauseVoteResult{
-		Votes:    session.ResumeVotes,
-		Required: len(players),
+		Votes:    voteCount,
+		Required: humanCount,
 		AllVoted: allVoted,
 	}, nil
 }

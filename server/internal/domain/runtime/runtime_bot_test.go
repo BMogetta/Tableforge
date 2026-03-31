@@ -23,7 +23,7 @@ func newRuntimeWithStore(t *testing.T) (*runtime.Service, *testutil.FakeStore) {
 	t.Helper()
 	fs := testutil.NewFakeStore()
 	reg := &fakeRegistry{game: &stubTicTacToe{}}
-	svc := runtime.New(fs, reg, nil)
+	svc := runtime.New(fs, reg, nil, nil, nil)
 	return svc, fs
 }
 

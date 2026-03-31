@@ -1,15 +1,45 @@
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: "otel-collector"
+  # OTel Collector — metrics pushed by all services via OTLP
+  # Includes game-server metrics with service_name label for filtering
+  - job_name: otel-collector
     static_configs:
       - targets: ["otel-collector:8889"]
 
-  - job_name: "game-server"
+  # OTel Collector self-metrics (memory, queue depth, export errors)
+  # Useful for diagnosing telemetry pipeline issues
+  - job_name: otel-collector-internal
+    static_configs:
+      - targets: ["otel-collector:8888"]
+
+  # Traefik — gateway-level metrics
+  # Covers: request rate, latency p50/p95/p99, error rate, active connections
+  # All per-service breakdown available via labels (service, router)
+  - job_name: traefik
+    static_configs:
+      - targets: ["traefik:8080"]
+
+  # game-server direct scrape (Go runtime + app metrics via /metrics)
+  # Keep this even though OTel also pushes metrics — it gives you Go runtime
+  # metrics (GC pauses, goroutine count, heap) that OTel SDK doesn't emit
+  - job_name: game-server
     static_configs:
       - targets: ["game-server:8080"]
     metrics_path: /metrics
+
+  # Template: add one job per extracted microservice
+  # - job_name: auth-service
+  #   static_configs:
+  #     - targets: ["auth-service:8081"]
+  #   metrics_path: /metrics
+
+  # - job_name: chat-service
+  #   static_configs:
+  #     - targets: ["chat-service:8082"]
+  #   metrics_path: /metrics
 
 # alerting:
 #   alertmanagers:

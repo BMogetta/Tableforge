@@ -9,12 +9,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tableforge/server/internal/domain/engine"
 	"github.com/tableforge/server/internal/domain/lobby"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/api"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/testutil"
+	sharedmw "github.com/tableforge/shared/middleware"
 )
 
 // --- Fake store --------------------------------------------------------------
@@ -86,7 +88,7 @@ func newTestRouter(t *testing.T) (http.Handler, *fakeStore) {
 	s := newFakeStore()
 	reg := newFakeRegistry(&stubGame{}, &stubTicTacToeGame{})
 	svc := lobby.New(s, reg)
-	rt := runtime.New(s, reg, nil)
+	rt := runtime.New(s, reg, nil, nil, nil)
 	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil, nil, nil), s
 }
 
@@ -100,9 +102,43 @@ func postJSON(t *testing.T, router http.Handler, path string, body any) *httptes
 	return w
 }
 
-func getJSON(t *testing.T, router http.Handler, path string) *httptest.ResponseRecorder {
+func postJSONAs(t *testing.T, router http.Handler, path string, playerID uuid.UUID, role string, body any) *httptest.ResponseRecorder {
+	t.Helper()
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Inject the specific role provided
+	req = req.WithContext(sharedmw.ContextWithPlayer(req.Context(), playerID, "testuser", role))
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
+func getJSON(t *testing.T, router http.Handler, path string, playerIDs ...uuid.UUID) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodGet, path, nil)
+
+	var id uuid.UUID
+	if len(playerIDs) > 0 {
+		id = playerIDs[0]
+	} else {
+		id = uuid.New()
+	}
+
+	ctx := sharedmw.ContextWithPlayer(req.Context(), id, "test-auto-user", "player")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
+func deleteJSONAs(t *testing.T, router http.Handler, path string, playerID uuid.UUID, role string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodDelete, path, nil)
+	req = req.WithContext(sharedmw.ContextWithPlayer(req.Context(), playerID, "testuser", role))
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	return w

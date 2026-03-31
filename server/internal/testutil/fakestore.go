@@ -19,12 +19,11 @@ type FakeStore struct {
 	RoomSettings      map[uuid.UUID]map[string]string
 	Sessions          map[uuid.UUID]store.GameSession
 	Moves             map[uuid.UUID][]store.Move
+	PauseVoteMap      map[uuid.UUID][]uuid.UUID
+	ResumeVoteMap     map[uuid.UUID][]uuid.UUID
 	AllowedEmails     map[string]store.AllowedEmail
 	GameResults       map[uuid.UUID]store.GameResult
 	RematchVotes      map[uuid.UUID][]store.RematchVote
-	RoomMessages      map[uuid.UUID][]store.RoomMessage
-	DirectMessages    map[uuid.UUID]store.DirectMessage
-	PlayerMutes       map[uuid.UUID][]store.PlayerMute
 	Ratings           map[string]store.Rating
 	Notifications     map[uuid.UUID]store.Notification
 	PlayerSettingsMap map[uuid.UUID]store.PlayerSettings
@@ -38,12 +37,11 @@ func NewFakeStore() *FakeStore {
 		RoomSettings:      make(map[uuid.UUID]map[string]string),
 		Sessions:          make(map[uuid.UUID]store.GameSession),
 		Moves:             make(map[uuid.UUID][]store.Move),
+		PauseVoteMap:      make(map[uuid.UUID][]uuid.UUID),
+		ResumeVoteMap:     make(map[uuid.UUID][]uuid.UUID),
 		AllowedEmails:     make(map[string]store.AllowedEmail),
 		GameResults:       make(map[uuid.UUID]store.GameResult),
 		RematchVotes:      make(map[uuid.UUID][]store.RematchVote),
-		RoomMessages:      make(map[uuid.UUID][]store.RoomMessage),
-		DirectMessages:    make(map[uuid.UUID]store.DirectMessage),
-		PlayerMutes:       make(map[uuid.UUID][]store.PlayerMute),
 		Ratings:           make(map[string]store.Rating),
 		Notifications:     make(map[uuid.UUID]store.Notification),
 		PlayerSettingsMap: make(map[uuid.UUID]store.PlayerSettings),
@@ -268,8 +266,6 @@ func (f *FakeStore) CreateGameSession(
 		GameID:          gameID,
 		State:           initialState,
 		Mode:            mode,
-		PauseVotes:      []string{},
-		ResumeVotes:     []string{},
 		ReadyPlayers:    []string{},
 		StartedAt:       time.Now(),
 		LastMoveAt:      time.Now(),
@@ -440,7 +436,6 @@ func (f *FakeStore) RecordMove(_ context.Context, params store.RecordMoveParams)
 		SessionID:  params.SessionID,
 		PlayerID:   params.PlayerID,
 		Payload:    params.Payload,
-		StateAfter: params.StateAfter,
 		MoveNumber: params.MoveNumber,
 		AppliedAt:  time.Now(),
 	}
@@ -547,136 +542,6 @@ func (f *FakeStore) ListSessionEvents(_ context.Context, _ uuid.UUID) ([]store.S
 	return nil, nil
 }
 
-// --- Room chat ---------------------------------------------------------------
-
-func (f *FakeStore) SaveRoomMessage(_ context.Context, roomID, playerID uuid.UUID, content string) (store.RoomMessage, error) {
-	m := store.RoomMessage{
-		ID:        uuid.New(),
-		RoomID:    roomID,
-		PlayerID:  playerID,
-		Content:   content,
-		CreatedAt: time.Now(),
-	}
-	f.RoomMessages[roomID] = append(f.RoomMessages[roomID], m)
-	return m, nil
-}
-
-func (f *FakeStore) GetRoomMessages(_ context.Context, roomID uuid.UUID) ([]store.RoomMessage, error) {
-	return f.RoomMessages[roomID], nil
-}
-
-func (f *FakeStore) HideRoomMessage(_ context.Context, messageID uuid.UUID) error {
-	for roomID, msgs := range f.RoomMessages {
-		for i, m := range msgs {
-			if m.ID == messageID {
-				f.RoomMessages[roomID][i].Hidden = true
-				return nil
-			}
-		}
-	}
-	return ErrNotFound
-}
-
-func (f *FakeStore) ReportRoomMessage(_ context.Context, messageID uuid.UUID) error {
-	for roomID, msgs := range f.RoomMessages {
-		for i, m := range msgs {
-			if m.ID == messageID {
-				f.RoomMessages[roomID][i].Reported = true
-				return nil
-			}
-		}
-	}
-	return ErrNotFound
-}
-
-// --- Direct messages ---------------------------------------------------------
-
-func (f *FakeStore) SaveDM(_ context.Context, senderID, receiverID uuid.UUID, content string) (store.DirectMessage, error) {
-	m := store.DirectMessage{
-		ID:         uuid.New(),
-		SenderID:   senderID,
-		ReceiverID: receiverID,
-		Content:    content,
-		CreatedAt:  time.Now(),
-	}
-	f.DirectMessages[m.ID] = m
-	return m, nil
-}
-
-func (f *FakeStore) GetDMHistory(_ context.Context, playerA, playerB uuid.UUID) ([]store.DirectMessage, error) {
-	var result []store.DirectMessage
-	for _, m := range f.DirectMessages {
-		if (m.SenderID == playerA && m.ReceiverID == playerB) ||
-			(m.SenderID == playerB && m.ReceiverID == playerA) {
-			result = append(result, m)
-		}
-	}
-	return result, nil
-}
-
-func (f *FakeStore) MarkDMRead(_ context.Context, messageID uuid.UUID) error {
-	m, ok := f.DirectMessages[messageID]
-	if !ok {
-		return ErrNotFound
-	}
-	now := time.Now()
-	m.ReadAt = &now
-	f.DirectMessages[messageID] = m
-	return nil
-}
-
-func (f *FakeStore) GetUnreadDMCount(_ context.Context, playerID uuid.UUID) (int, error) {
-	count := 0
-	for _, m := range f.DirectMessages {
-		if m.ReceiverID == playerID && m.ReadAt == nil && !m.Hidden {
-			count++
-		}
-	}
-	return count, nil
-}
-
-func (f *FakeStore) ReportDM(_ context.Context, messageID uuid.UUID) error {
-	m, ok := f.DirectMessages[messageID]
-	if !ok {
-		return ErrNotFound
-	}
-	m.Reported = true
-	f.DirectMessages[messageID] = m
-	return nil
-}
-
-// --- Mutes -------------------------------------------------------------------
-
-func (f *FakeStore) MutePlayer(_ context.Context, muterID, mutedID uuid.UUID) error {
-	for _, m := range f.PlayerMutes[muterID] {
-		if m.MutedID == mutedID {
-			return nil // already muted
-		}
-	}
-	f.PlayerMutes[muterID] = append(f.PlayerMutes[muterID], store.PlayerMute{
-		MuterID:   muterID,
-		MutedID:   mutedID,
-		CreatedAt: time.Now(),
-	})
-	return nil
-}
-
-func (f *FakeStore) UnmutePlayer(_ context.Context, muterID, mutedID uuid.UUID) error {
-	mutes := f.PlayerMutes[muterID]
-	updated := mutes[:0]
-	for _, m := range mutes {
-		if m.MutedID != mutedID {
-			updated = append(updated, m)
-		}
-	}
-	f.PlayerMutes[muterID] = updated
-	return nil
-}
-
-func (f *FakeStore) GetMutedPlayers(_ context.Context, playerID uuid.UUID) ([]store.PlayerMute, error) {
-	return f.PlayerMutes[playerID], nil
-}
-
 // --- Ratings -----------------------------------------------------------------
 
 func (f *FakeStore) GetRating(_ context.Context, playerID uuid.UUID, gameID string) (store.Rating, error) {
@@ -730,55 +595,47 @@ func (f *FakeStore) GetRatingLeaderboard(_ context.Context, gameID string, limit
 // --- Pause / resume votes ----------------------------------------------------
 
 func (f *FakeStore) VotePause(_ context.Context, sessionID uuid.UUID, playerID uuid.UUID) (bool, error) {
-	gs, ok := f.Sessions[sessionID]
-	if !ok {
+	if _, ok := f.Sessions[sessionID]; !ok {
 		return false, ErrNotFound
 	}
-	playerStr := playerID.String()
-	for _, v := range gs.PauseVotes {
-		if v == playerStr {
-			return f.checkAllVoted(sessionID, gs.PauseVotes), nil
+	for _, id := range f.PauseVoteMap[sessionID] {
+		if id == playerID {
+			return f.checkAllVotedByID(sessionID, f.PauseVoteMap[sessionID]), nil
 		}
 	}
-	gs.PauseVotes = append(gs.PauseVotes, playerStr)
-	f.Sessions[sessionID] = gs
-	return f.checkAllVoted(sessionID, gs.PauseVotes), nil
+	f.PauseVoteMap[sessionID] = append(f.PauseVoteMap[sessionID], playerID)
+	return f.checkAllVotedByID(sessionID, f.PauseVoteMap[sessionID]), nil
 }
 
 func (f *FakeStore) ClearPauseVotes(_ context.Context, sessionID uuid.UUID) error {
-	gs, ok := f.Sessions[sessionID]
-	if !ok {
-		return ErrNotFound
-	}
-	gs.PauseVotes = []string{}
-	f.Sessions[sessionID] = gs
+	f.PauseVoteMap[sessionID] = []uuid.UUID{}
 	return nil
 }
 
 func (f *FakeStore) VoteResume(_ context.Context, sessionID uuid.UUID, playerID uuid.UUID) (bool, error) {
-	gs, ok := f.Sessions[sessionID]
-	if !ok {
+	if _, ok := f.Sessions[sessionID]; !ok {
 		return false, ErrNotFound
 	}
-	playerStr := playerID.String()
-	for _, v := range gs.ResumeVotes {
-		if v == playerStr {
-			return f.checkAllVoted(sessionID, gs.ResumeVotes), nil
+	for _, id := range f.ResumeVoteMap[sessionID] {
+		if id == playerID {
+			return f.checkAllVotedByID(sessionID, f.ResumeVoteMap[sessionID]), nil
 		}
 	}
-	gs.ResumeVotes = append(gs.ResumeVotes, playerStr)
-	f.Sessions[sessionID] = gs
-	return f.checkAllVoted(sessionID, gs.ResumeVotes), nil
+	f.ResumeVoteMap[sessionID] = append(f.ResumeVoteMap[sessionID], playerID)
+	return f.checkAllVotedByID(sessionID, f.ResumeVoteMap[sessionID]), nil
 }
 
 func (f *FakeStore) ClearResumeVotes(_ context.Context, sessionID uuid.UUID) error {
-	gs, ok := f.Sessions[sessionID]
-	if !ok {
-		return ErrNotFound
-	}
-	gs.ResumeVotes = []string{}
-	f.Sessions[sessionID] = gs
+	f.ResumeVoteMap[sessionID] = []uuid.UUID{}
 	return nil
+}
+
+func (f *FakeStore) CountPauseVotes(_ context.Context, sessionID uuid.UUID) (int, error) {
+	return len(f.PauseVoteMap[sessionID]), nil
+}
+
+func (f *FakeStore) CountResumeVotes(_ context.Context, sessionID uuid.UUID) (int, error) {
+	return len(f.ResumeVoteMap[sessionID]), nil
 }
 
 // --- Ready handshake ---------------------------------------------------------
@@ -822,9 +679,17 @@ func (f *FakeStore) ForceCloseSession(_ context.Context, sessionID uuid.UUID) er
 	return nil
 }
 
-// checkAllVoted returns true when the number of votes matches the number of
-// players in the session's room.
+// checkAllVoted es el original — recibe []string, usado para ready players.
 func (f *FakeStore) checkAllVoted(sessionID uuid.UUID, votes []string) bool {
+	gs, ok := f.Sessions[sessionID]
+	if !ok {
+		return false
+	}
+	return len(votes) >= len(f.RoomPlayers[gs.RoomID])
+}
+
+// checkAllVotedByID — recibe []uuid.UUID, usado para pause/resume votes.
+func (f *FakeStore) checkAllVotedByID(sessionID uuid.UUID, votes []uuid.UUID) bool {
 	gs, ok := f.Sessions[sessionID]
 	if !ok {
 		return false

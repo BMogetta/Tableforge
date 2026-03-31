@@ -1,0 +1,61 @@
+// UserService — owned by user-service.
+// Used by: game-server (ban check on login + WS connect,
+//                        mute list for chat filtering,
+//                        friendship status for DM/room join validation)
+//
+// Only exposes what other services need. Write operations (ban, report,
+// friendship mutations) are HTTP-only, handled by user-service REST API.
+// gRPC here is read-only + lightweight presence checks.
+
+syntax = "proto3";
+package user.v1;
+option go_package = "github.com/tableforge/shared/proto/user/v1;userv1";
+
+service UserService {
+  // CheckBan is called on login and WebSocket connect.
+  // Returns is_banned=false if no active ban exists (not an error).
+  rpc CheckBan(CheckBanRequest) returns (CheckBanResponse);
+
+  // GetFriendship returns the relationship status between two players.
+  // Used by game-server to gate DMs (allow_dms=friends_only) and
+  // to prevent blocked players from joining the same room.
+  rpc GetFriendship(GetFriendshipRequest) returns (GetFriendshipResponse);
+
+  // GetMutes returns all player IDs muted by the given player.
+  // Called by game-server on WS connect to populate the in-memory mute set.
+  rpc GetMutes(GetMutesRequest) returns (GetMutesResponse);
+}
+
+// --- Ban ---------------------------------------------------------------------
+
+message CheckBanRequest {
+  string player_id = 1; // UUID
+}
+
+message CheckBanResponse {
+  bool   is_banned  = 1;
+  string reason     = 2; // empty if not banned
+  string expires_at = 3; // RFC3339; empty if permanent or not banned
+}
+
+// --- Friendship --------------------------------------------------------------
+
+message GetFriendshipRequest {
+  string player_a_id = 1; // UUID
+  string player_b_id = 2; // UUID
+}
+
+message GetFriendshipResponse {
+  string status     = 1; // "none" | "pending" | "accepted" | "blocked"
+  string blocked_by = 2; // UUID of the player who issued the block; empty if not blocked
+}
+
+// --- Mutes -------------------------------------------------------------------
+
+message GetMutesRequest {
+  string player_id = 1; // UUID — returns all players muted BY this player
+}
+
+message GetMutesResponse {
+  repeated string muted_player_ids = 1; // UUIDs
+}

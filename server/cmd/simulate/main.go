@@ -58,8 +58,8 @@ import (
 	"time"
 
 	"github.com/tableforge/server/internal/domain/matchmaking"
-	"github.com/tableforge/server/internal/domain/rating"
-	"github.com/tableforge/server/internal/platform/mathutil"
+	"github.com/tableforge/shared/domain/rating"
+	"github.com/tableforge/shared/platform/mathutil"
 )
 
 func main() {

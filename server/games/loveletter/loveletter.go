@@ -6,7 +6,7 @@ import (
 
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/domain/engine"
-	"github.com/tableforge/server/internal/platform/randutil"
+	"github.com/tableforge/shared/platform/randutil"
 )
 
 func init() {
