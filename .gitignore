@@ -15,6 +15,7 @@ coverage.out
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/coverage/
 
 # ── Docker ───────────────────────────────────────────────────────────────────
 # Keep docker-compose.yml and Dockerfiles tracked

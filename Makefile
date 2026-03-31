@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui logs ps clean clean-test gen-types
+.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-routing coverage logs ps clean clean-test gen-types
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -60,6 +60,16 @@ seed-test:
 	@cat frontend/tests/e2e/.players.json
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
+# Run all Go + Vitest tests, collect coverage, and update README.md.
+# Does NOT require Docker — only runs unit/integration tests.
+coverage:
+	@bash scripts/update-coverage.sh
+
+# Verify Traefik routes reach the correct services.
+# Requires: make up-app first.
+test-routing:
+	@bash scripts/test-routing.sh
 
 # Run all Playwright tests.
 # Requires: make up-test && make seed-test first.

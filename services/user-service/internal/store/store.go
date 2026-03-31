@@ -130,6 +130,7 @@ type Store interface {
 
 	// Bans
 	IssueBan(ctx context.Context, params IssueBanParams) (Ban, error)
+	GetBan(ctx context.Context, banID uuid.UUID) (Ban, error)
 	LiftBan(ctx context.Context, banID, liftedBy uuid.UUID) error
 	CheckActiveBan(ctx context.Context, playerID uuid.UUID) (*Ban, error) // nil = not banned
 	ListBans(ctx context.Context, playerID uuid.UUID) ([]Ban, error)

@@ -18,6 +18,14 @@ func (s *pgStore) IssueBan(ctx context.Context, params IssueBanParams) (Ban, err
 	return scanBan(row)
 }
 
+func (s *pgStore) GetBan(ctx context.Context, banID uuid.UUID) (Ban, error) {
+	row := s.db.QueryRow(ctx, `
+		SELECT id, player_id, banned_by, reason, expires_at, lifted_at, lifted_by, created_at
+		FROM users.bans WHERE id = $1
+	`, banID)
+	return scanBan(row)
+}
+
 func (s *pgStore) LiftBan(ctx context.Context, banID, liftedBy uuid.UUID) error {
 	tag, err := s.db.Exec(ctx, `
 		UPDATE users.bans

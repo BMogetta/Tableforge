@@ -30,9 +30,9 @@ services:
       start_period: 5s
     labels:
       - "traefik.enable=true"
-      # Routes /auth/* and /api/v1/me to auth-service.
+      # Routes /auth/* to auth-service (includes /auth/me, /auth/github, etc.).
       # Priority 100 overrides game-server's priority 10 catchall.
-      - "traefik.http.routers.auth-service.rule=PathPrefix(`/auth`) || Path(`/api/v1/me`)"
+      - "traefik.http.routers.auth-service.rule=PathPrefix(`/auth`)"
       - "traefik.http.routers.auth-service.entrypoints=web"
       - "traefik.http.routers.auth-service.priority=100"
       - "traefik.http.routers.auth-service.service=auth-service-svc"

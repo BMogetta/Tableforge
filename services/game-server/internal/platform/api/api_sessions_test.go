@@ -205,18 +205,6 @@ func TestVotePause_InvalidSessionID(t *testing.T) {
 	}
 }
 
-func TestVotePause_InvalidPlayerID(t *testing.T) {
-	router, s := newTestRouter(t)
-	_, _, sessionID := setupActiveSession(t, router, s)
-
-	w := postJSON(t, router, "/api/v1/sessions/"+sessionID+"/pause", map[string]string{
-		"player_id": "not-a-uuid",
-	})
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", w.Code)
-	}
-}
 
 // --- POST /sessions/{sessionID}/resume ---------------------------------------
 

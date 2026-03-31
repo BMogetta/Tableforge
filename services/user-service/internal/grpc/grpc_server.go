@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/tableforge/services/user-service/internal/store"
@@ -88,7 +87,7 @@ func (s *Server) GetMutes(ctx context.Context, req *userv1.GetMutesRequest) (*us
 
 	mutes, err := s.store.GetMutedPlayers(ctx, playerID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, fmt.Sprintf("failed to get mutes: %v", err))
+		return nil, status.Errorf(codes.Internal, "failed to get mutes: %v", err)
 	}
 
 	ids := make([]string, 0, len(mutes))

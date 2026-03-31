@@ -206,14 +206,14 @@ func TestJoinRoom(t *testing.T) {
 	owner, _ := s.CreatePlayer(context.Background(), "alice")
 	guest, _ := s.CreatePlayer(context.Background(), "bob")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
 		"game_id":   "chess",
 		"player_id": owner.ID.String(),
 	})
 	var view lobby.RoomView
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	w := postJSON(t, router, "/api/v1/rooms/join", map[string]string{
+	w := postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code":      view.Room.Code,
 		"player_id": guest.ID.String(),
 	})
@@ -234,19 +234,19 @@ func TestStartGame(t *testing.T) {
 	owner, _ := s.CreatePlayer(context.Background(), "alice")
 	guest, _ := s.CreatePlayer(context.Background(), "bob")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
 		"game_id":   "chess",
 		"player_id": owner.ID.String(),
 	})
 	var view lobby.RoomView
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	postJSON(t, router, "/api/v1/rooms/join", map[string]string{
+	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code":      view.Room.Code,
 		"player_id": guest.ID.String(),
 	})
 
-	w := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", map[string]string{
+	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", owner.ID, "player", map[string]string{
 		"player_id": owner.ID.String(),
 	})
 
@@ -278,22 +278,22 @@ func TestListPlayerSessions_WithActive(t *testing.T) {
 	guest, _ := s.CreatePlayer(context.Background(), "bob")
 
 	// Create and start a game so a session exists.
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
 		"game_id":   "chess",
 		"player_id": owner.ID.String(),
 	})
 	var view lobby.RoomView
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	postJSON(t, router, "/api/v1/rooms/join", map[string]string{
+	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code":      view.Room.Code,
 		"player_id": guest.ID.String(),
 	})
-	postJSON(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", map[string]string{
+	postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", owner.ID, "player", map[string]string{
 		"player_id": owner.ID.String(),
 	})
 
-	w := getJSON(t, router, "/api/v1/players/"+owner.ID.String()+"/sessions")
+	w := getJSON(t, router, "/api/v1/players/"+owner.ID.String()+"/sessions", owner.ID)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())

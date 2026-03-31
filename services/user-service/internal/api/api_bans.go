@@ -60,11 +60,13 @@ func handleLiftBan(st store.Store, pub *Publisher) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid ban id")
 			return
 		}
-		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
+
+		ban, err := st.GetBan(r.Context(), banID)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player id")
+			writeError(w, http.StatusNotFound, "ban not found")
 			return
 		}
+
 		callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
 		if err := st.LiftBan(r.Context(), banID, callerID); err != nil {
 			if errors.Is(err, store.ErrNotFound) {
@@ -74,7 +76,7 @@ func handleLiftBan(st store.Store, pub *Publisher) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to lift ban")
 			return
 		}
-		pub.PublishPlayerUnbanned(r.Context(), banID, playerID, callerID)
+		pub.PublishPlayerUnbanned(r.Context(), banID, ban.PlayerID, callerID)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

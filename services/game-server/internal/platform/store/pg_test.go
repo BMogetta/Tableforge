@@ -51,14 +51,9 @@ func newTestStore(t *testing.T) store.Store {
 	}
 
 	for _, path := range []string{
-		"../../../db/migrations/001_initial.sql",
-		"../../../db/migrations/002_session_events.sql",
-		"../../../db/migrations/003_chat_ratings_moderation.sql",
-		"../../../db/migrations/004_notifications.sql",
-		"../../../db/migrations/005_ratings_game_id.sql",
-		"../../../db/migrations/006_bot_players.sql",
-		"../../../db/migrations/007_player_settings.sql",
-		"../../../db/migrations/008_session_ready.sql",
+		"../../../../../shared/db/migrations/001_initial.sql",
+		"../../../../../shared/db/migrations/002_user_service.sql",
+		"../../../../../shared/db/migrations/003_rating_service.sql",
 	} {
 		migration, err := os.ReadFile(path)
 		if err != nil {

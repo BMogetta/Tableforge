@@ -46,10 +46,10 @@ func New(st *store.Store, pub Publisher, log *slog.Logger) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	r.Get("/players/{playerID}/notifications", h.list)
-	r.Post("/notifications/{notificationID}/read", h.markRead)
-	r.Post("/notifications/{notificationID}/accept", h.accept)
-	r.Post("/notifications/{notificationID}/decline", h.decline)
+	r.Get("/api/v1/players/{playerID}/notifications", h.list)
+	r.Post("/api/v1/notifications/{notificationID}/read", h.markRead)
+	r.Post("/api/v1/notifications/{notificationID}/accept", h.accept)
+	r.Post("/api/v1/notifications/{notificationID}/decline", h.decline)
 
 	// Internal endpoint — called by other services to create notifications.
 	// Must only be reachable on the internal network, not exposed via Traefik.
