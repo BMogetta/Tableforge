@@ -21,21 +21,10 @@ service GameService {
   // GetMoveLog is called by replay-service to fetch the ordered move list.
   rpc GetMoveLog(GetMoveLogRequest) returns (GetMoveLogResponse);
 
-  // TODO: Add when game-service is extracted from the monolith.
-  // ws-gateway calls this before upgrading a room WebSocket connection
-  // to determine participant vs spectator status without reading Postgres directly.
-  //
-  // rpc IsParticipant(IsParticipantRequest) returns (IsParticipantResponse);
-  //
-  // message IsParticipantRequest {
-  //   string room_id   = 1; // UUID
-  //   string player_id = 2; // UUID
-  // }
-  //
-  // message IsParticipantResponse {
-  //   bool is_participant       = 1; // true if player is seated in the room
-  //   bool spectators_allowed   = 2; // value of room_settings.allow_spectators
-  // }
+  // IsParticipant is called by ws-gateway before upgrading a room WebSocket
+  // connection to determine participant vs spectator status without reading
+  // Postgres directly.
+  rpc IsParticipant(IsParticipantRequest) returns (IsParticipantResponse);
 }
 
 message StartSessionRequest {
@@ -63,4 +52,14 @@ message GetMoveLogResponse {
   string         session_id = 1;
   string         game_id    = 2;
   repeated Move  moves      = 3;
+}
+
+message IsParticipantRequest {
+  string room_id   = 1; // UUID
+  string player_id = 2; // UUID
+}
+
+message IsParticipantResponse {
+  bool is_participant     = 1; // true if player is seated in the room
+  bool spectators_allowed = 2; // value of room_settings.allow_spectators
 }

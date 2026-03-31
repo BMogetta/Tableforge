@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/rating-service ./cmd/se
 
 # --- Run stage ---
 FROM alpine:3.19
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata wget
 
 WORKDIR /app
 

@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/services/user-service/internal/api"
 	usgrpc "github.com/tableforge/services/user-service/internal/grpc"
 	"github.com/tableforge/services/user-service/internal/store"
@@ -49,6 +50,20 @@ func main() {
 	}
 	defer st.Close()
 
+	// --- Redis ---------------------------------------------------------------
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     config.Env("REDIS_ADDR", "localhost:6379"),
+		Password: config.Env("REDIS_PASSWORD", ""),
+	})
+	defer rdb.Close()
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		slog.Error("failed to connect to redis", "error", err)
+		panic(err)
+	}
+	slog.Info("redis connected")
+
+	pub := api.NewPublisher(rdb)
+
 	// --- gRPC server ---------------------------------------------------------
 	grpcAddr := config.Env("GRPC_ADDR", ":9082")
 	grpcServer := grpc.NewServer(
@@ -72,7 +87,7 @@ func main() {
 
 	// --- HTTP server ---------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
-	router := api.NewRouter(st, authMW)
+	router := api.NewRouter(st, pub, authMW)
 
 	httpAddr := config.Env("HTTP_ADDR", ":8082")
 	srv := &http.Server{

@@ -16,7 +16,6 @@ import (
 	"github.com/tableforge/server/internal/domain/notification"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/events"
-	"github.com/tableforge/server/internal/platform/queue"
 	"github.com/tableforge/server/internal/platform/ratelimit"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/userclient"
@@ -35,7 +34,6 @@ func NewRouter(
 	jwtSecret []byte,
 	limiter *ratelimit.Limiter,
 	eventStore *events.Store,
-	queueSvc *queue.Service,
 	notificationSvc *notification.Service,
 	userClient *userclient.Client,
 ) http.Handler {
@@ -114,12 +112,6 @@ func NewRouter(
 		r.With(requireRole(sharedmw.RoleManager)).Delete("/sessions/{sessionID}", handleForceCloseSession(st, hub))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
 		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub, st))
-
-		// Ranked matchmaking queue
-		r.Post("/queue", handleJoinQueue(queueSvc))
-		r.Delete("/queue", handleLeaveQueue(queueSvc))
-		r.Post("/queue/accept", handleAcceptMatch(queueSvc))
-		r.Post("/queue/decline", handleDeclineMatch(queueSvc))
 
 		// Notification actions
 		r.Post("/notifications/{notificationID}/read", handleMarkNotificationRead(notificationSvc))

@@ -3,15 +3,17 @@ module github.com/tableforge/services/ws-gateway
 go 1.25.0
 
 require (
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/jackc/pgx/v5 v5.7.2
-	github.com/prometheus/client_golang v1.21.1
+	github.com/jackc/pgx/v5 v5.9.1
+	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.18.0
-	github.com/riandyrn/otelchi v0.12.1
+	github.com/riandyrn/otelchi v0.12.2
 	github.com/tableforge/shared v0.0.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
+	go.opentelemetry.io/otel v1.42.0
+	go.opentelemetry.io/otel/trace v1.42.0
 	google.golang.org/grpc v1.79.2
 )
 
@@ -28,15 +30,13 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.62.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/common v0.66.1 // indirect
+	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.18.0 // indirect
 	github.com/redis/go-redis/extra/redisotel/v9 v9.18.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.18.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.42.0 // indirect
@@ -46,10 +46,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.42.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.18.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.42.0 // indirect
-	go.opentelemetry.io/otel/trace v1.42.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect

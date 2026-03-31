@@ -77,7 +77,7 @@ func handleSendFriendRequest(st store.Store) http.HandlerFunc {
 	}
 }
 
-func handleAcceptFriendRequest(st store.Store) http.HandlerFunc {
+func handleAcceptFriendRequest(st store.Store, pub *Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		addresseeID, err := uuid.Parse(chi.URLParam(r, "playerID"))
 		if err != nil {
@@ -103,6 +103,7 @@ func handleAcceptFriendRequest(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to accept friend request")
 			return
 		}
+		pub.PublishFriendshipAccepted(r.Context(), friendship)
 		writeJSON(w, http.StatusOK, friendship)
 	}
 }

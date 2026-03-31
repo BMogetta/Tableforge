@@ -91,12 +91,19 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URL=http://localhost
       - TEST_MODE=${TEST_MODE:-false}
+      - GRPC_ADDR=:9080
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.game-server.rule=PathPrefix(`/api`)"

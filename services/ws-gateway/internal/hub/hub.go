@@ -116,6 +116,26 @@ func (h *Hub) UnsubscribePlayer(playerID uuid.UUID, c *Client) {
 	}
 }
 
+// DisconnectPlayer closes all WebSocket connections for a player by closing
+// their send channels. ReadPump detects the close and cleans up.
+// Used by the session-revoked consumer to force-disconnect banned players.
+func (h *Hub) DisconnectPlayer(playerID uuid.UUID) {
+	h.pmu.RLock()
+	clients := make([]*Client, 0, len(h.players[playerID]))
+	for c := range h.players[playerID] {
+		clients = append(clients, c)
+	}
+	h.pmu.RUnlock()
+
+	for _, c := range clients {
+		select {
+		case c.send <- nil: // nil signals WritePump to close
+		default:
+			close(c.send)
+		}
+	}
+}
+
 // SpectatorCount returns the number of spectators in a room.
 func (h *Hub) SpectatorCount(roomID uuid.UUID) int {
 	h.mu.RLock()

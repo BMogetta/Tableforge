@@ -156,8 +156,9 @@ type PlayerUnbanned struct {
 // "your friend X just came online").
 type FriendshipAccepted struct {
 	Meta
-	RequesterID string `json:"requester_id"`
-	AddresseeID string `json:"addressee_id"`
+	RequesterID       string `json:"requester_id"`
+	AddresseeID       string `json:"addressee_id"`
+	AddresseeUsername string `json:"addressee_username"` // username of who accepted
 }
 
 // ─── auth-service events ──────────────────────────────────────────────────────

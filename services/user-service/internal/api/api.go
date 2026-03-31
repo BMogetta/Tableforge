@@ -10,10 +10,16 @@ import (
 	sharedmw "github.com/tableforge/shared/middleware"
 )
 
-func NewRouter(st store.Store, authMW func(http.Handler) http.Handler) http.Handler {
+func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
-	r.Use(authMW)
+
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authMW)
 
 	// --- Profiles ------------------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/profile", handleGetProfile(st))
@@ -23,7 +29,7 @@ func NewRouter(st store.Store, authMW func(http.Handler) http.Handler) http.Hand
 	r.Get("/api/v1/players/{playerID}/friends", handleListFriends(st))
 	r.Get("/api/v1/players/{playerID}/friends/pending", handleListPendingRequests(st))
 	r.Post("/api/v1/players/{playerID}/friends/{targetID}", handleSendFriendRequest(st))
-	r.Put("/api/v1/players/{playerID}/friends/{requesterID}/accept", handleAcceptFriendRequest(st))
+	r.Put("/api/v1/players/{playerID}/friends/{requesterID}/accept", handleAcceptFriendRequest(st, pub))
 	r.Delete("/api/v1/players/{playerID}/friends/{requesterID}/decline", handleDeclineFriendRequest(st))
 	r.Delete("/api/v1/players/{playerID}/friends/{friendID}", handleRemoveFriend(st))
 
@@ -42,8 +48,8 @@ func NewRouter(st store.Store, authMW func(http.Handler) http.Handler) http.Hand
 	// --- Admin: bans ---------------------------------------------------------
 	r.Group(func(r chi.Router) {
 		r.Use(requireRole(sharedmw.RoleManager))
-		r.Post("/api/v1/admin/players/{playerID}/ban", handleIssueBan(st))
-		r.Delete("/api/v1/admin/bans/{banID}", handleLiftBan(st))
+		r.Post("/api/v1/admin/players/{playerID}/ban", handleIssueBan(st, pub))
+		r.Delete("/api/v1/admin/bans/{banID}", handleLiftBan(st, pub))
 		r.Get("/api/v1/admin/players/{playerID}/bans", handleListBans(st))
 	})
 
@@ -57,6 +63,7 @@ func NewRouter(st store.Store, authMW func(http.Handler) http.Handler) http.Hand
 
 	// --- Player: reports -----------------------------------------------------
 	r.Post("/api/v1/players/{playerID}/report", handleCreateReport(st))
+	}) // end auth group
 
 	return r
 }

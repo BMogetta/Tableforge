@@ -11,7 +11,7 @@ import (
 	sharedmw "github.com/tableforge/shared/middleware"
 )
 
-func handleIssueBan(st store.Store) http.HandlerFunc {
+func handleIssueBan(st store.Store, pub *Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
 		if err != nil {
@@ -48,15 +48,21 @@ func handleIssueBan(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to issue ban")
 			return
 		}
+		pub.PublishPlayerBanned(r.Context(), ban)
 		writeJSON(w, http.StatusCreated, ban)
 	}
 }
 
-func handleLiftBan(st store.Store) http.HandlerFunc {
+func handleLiftBan(st store.Store, pub *Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		banID, err := uuid.Parse(chi.URLParam(r, "banID"))
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid ban id")
+			return
+		}
+		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player id")
 			return
 		}
 		callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
@@ -68,6 +74,7 @@ func handleLiftBan(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to lift ban")
 			return
 		}
+		pub.PublishPlayerUnbanned(r.Context(), banID, playerID, callerID)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

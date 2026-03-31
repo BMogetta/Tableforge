@@ -57,7 +57,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tableforge/server/internal/domain/matchmaking"
+	"github.com/tableforge/shared/domain/matchmaking"
 	"github.com/tableforge/shared/domain/rating"
 	"github.com/tableforge/shared/platform/mathutil"
 )

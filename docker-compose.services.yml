@@ -1,21 +1,5 @@
-# ── Template: how to add a new microservice ───────────────────────────────────
-#
-# When you extract auth-service from the monolith, add this block to
-# docker-compose.yml and Traefik will automatically route /api/auth/* to it.
-# The monolith keeps running — it just stops receiving auth traffic.
-#
-# Steps:
-#   1. Add the service block below to docker-compose.yml
-#   2. Remove /auth/* and /api/auth/* from game-server's router rule
-#   3. docker compose up -d auth-service
-#   4. Traefik picks up the new labels with zero downtime
-#
-# Priority system:
-#   game-server has priority=1 (catchall).
-#   New services use priority=10 so their specific paths take precedence.
-#   Higher number = higher priority in Traefik.
-
 services:
+
   auth-service:
     build:
       context: .
@@ -26,7 +10,7 @@ services:
       - data_network
     environment:
       - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_ADDR=redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=auth-service
       - JWT_SECRET=${JWT_SECRET}
@@ -37,13 +21,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      otel-collector:
-        condition: service_started
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     labels:
       - "traefik.enable=true"
-      # Routes /auth/* and /api/v1/me to auth-service
-      # Priority 100 overrides game-server's priority 10 catchall
+      # Routes /auth/* and /api/v1/me to auth-service.
+      # Priority 100 overrides game-server's priority 10 catchall.
       - "traefik.http.routers.auth-service.rule=PathPrefix(`/auth`) || Path(`/api/v1/me`)"
       - "traefik.http.routers.auth-service.entrypoints=web"
       - "traefik.http.routers.auth-service.priority=100"
@@ -60,6 +48,7 @@ services:
       - data_network
     environment:
       - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - REDIS_ADDR=redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=user-service
       - JWT_SECRET=${JWT_SECRET}
@@ -68,37 +57,37 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      otel-collector:
-        condition: service_started
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     labels:
       - "traefik.enable=true"
-
-      # ── HTTP router ────────────────────────────────────────────────────────
-      # Priority 50: higher than game-server (10) so these specific paths win,
-      # lower than auth-service (100) which owns /auth/* and /api/v1/me.
-      #
+      # Priority 50: higher than game-server (10), lower than auth-service (100).
       # Paths owned by user-service:
       #   /api/v1/players/{id}/profile
-      #   /api/v1/players/{id}/friends     (+ /friends/*)
+      #   /api/v1/players/{id}/friends (+ /friends/*)
       #   /api/v1/players/{id}/block/*
-      #   /api/v1/players/{id}/mute        (+ /mute/*, /mutes)
+      #   /api/v1/players/{id}/mute (+ /mute/*, /mutes)
       #   /api/v1/players/{id}/achievements
       #   /api/v1/players/{id}/report
-      #   /api/v1/admin/players/{id}/ban   (+ /bans)
+      #   /api/v1/admin/players/{id}/ban (+ /bans)
       #   /api/v1/admin/bans/*
-      #   /api/v1/admin/reports            (+ /reports/*)
+      #   /api/v1/admin/reports (+ /reports/*)
       - "traefik.http.routers.user-service.rule=PathRegexp(`^/api/v1/players/[^/]+/(profile|friends|block|mute|mutes|achievements|report)`) || PathRegexp(`^/api/v1/admin/(players/[^/]+/(ban|bans|reports)|bans|reports)`)"
       - "traefik.http.routers.user-service.entrypoints=web"
       - "traefik.http.routers.user-service.priority=50"
       - "traefik.http.routers.user-service.service=user-service-svc"
       - "traefik.http.services.user-service-svc.loadbalancer.server.port=8082"
+      # gRPC (internal only — not exposed via Traefik):
+      #   game-server and ws-gateway reach user-service directly via Docker network
+      #   at user-service:9082.
 
-      # ── gRPC (internal only, not exposed via Traefik) ──────────────────────
-      # game-server reaches user-service gRPC directly via Docker network:
-      #   user-service:9082
-      # No Traefik label needed — internal service-to-service traffic only.
-      
   chat-service:
     build:
       context: .
@@ -119,19 +108,23 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      otel-collector:
-        condition: service_started
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     labels:
       - "traefik.enable=true"
-      # Priority 50 — same as user-service, higher than game-server catchall (10).
+      # Priority 50 — same tier as user-service, higher than game-server catchall (10).
       # Owns all chat and DM endpoints.
       - "traefik.http.routers.chat-service.rule=PathPrefix(`/api/v1/rooms`) && PathRegexp(`messages`) || PathRegexp(`^/api/v1/players/[^/]+/dm`) || PathPrefix(`/api/v1/dm`)"
       - "traefik.http.routers.chat-service.entrypoints=web"
       - "traefik.http.routers.chat-service.priority=50"
       - "traefik.http.routers.chat-service.service=chat-service-svc"
       - "traefik.http.services.chat-service-svc.loadbalancer.server.port=8083"
-  
+
   ws-gateway:
     build:
       context: .
@@ -147,6 +140,7 @@ services:
       - OTEL_SERVICE_NAME=ws-gateway
       - JWT_SECRET=${JWT_SECRET}
       - USER_SERVICE_ADDR=user-service:9082
+      - GAME_SERVER_ADDR=game-server:9080
       - HTTP_ADDR=:8084
     depends_on:
       postgres:
@@ -154,58 +148,58 @@ services:
       redis:
         condition: service_healthy
       user-service:
-        condition: service_started
-      otel-collector:
-        condition: service_started
+        condition: service_healthy
+      game-server:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     labels:
       - "traefik.enable=true"
-      # Priority 150 — higher than game-server (10) and other services (50).
-      # Owns all /ws/* routes. game-server no longer handles WebSocket upgrades
-      # once this service is live — remove /ws/* from game-server's router rule.
+      # Priority 150 — highest priority, owns all /ws/* routes.
+      # WebSocket connections need sticky sessions for multi-instance deployments.
       - "traefik.http.routers.ws-gateway.rule=PathPrefix(`/ws`)"
       - "traefik.http.routers.ws-gateway.entrypoints=web"
       - "traefik.http.routers.ws-gateway.priority=150"
       - "traefik.http.routers.ws-gateway.service=ws-gateway-svc"
       - "traefik.http.services.ws-gateway-svc.loadbalancer.server.port=8084"
-      # WebSocket connections need sticky sessions for multi-instance deployments.
-      # Safe to enable now even for single instance.
       - "traefik.http.services.ws-gateway-svc.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.ws-gateway-svc.loadbalancer.sticky.cookie.name=ws_srv"
 
-# ── rating-service ───────────────────────────────────────────────────────────
-  rating-service: # TODO review envieonment variables
+  rating-service:
     build:
       context: .
       dockerfile: services/rating-service/Dockerfile
-    restart: unless-stopped
+    container_name: rating-service
     networks:
       - app_network
       - data_network
     environment:
-      DATABASE_URL: postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
-      REDIS_ADDR: redis:6379
-      HTTP_ADDR: :8085
-      GRPC_ADDR: :9085
-      LOG_LEVEL: info
-    ports:
-      - "8085:8085"   # HTTP health (internal only — Traefik does not route public traffic here)
-      - "9085:9085"   # gRPC (match-service calls GetRating)
+      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - OTEL_SERVICE_NAME=rating-service
+      - HTTP_ADDR=:8085
+      - GRPC_ADDR=:9085
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     labels:
       - "traefik.enable=true"
-
-      # Health probe — priority 80, internal monitoring only.
-      - "traefik.http.routers.rating-health.rule=PathPrefix(`/rating/healthz`)"
-      - "traefik.http.routers.rating-health.priority=80"
-      - "traefik.http.routers.rating-health.entrypoints=web"
-      - "traefik.http.routers.rating-health.service=rating-svc"
-
-      # Public API — priority 50, same tier as user-service and chat-service.
+      # Priority 50 — same tier as user-service and chat-service.
       # Owns:
       #   GET /api/v1/ratings/{game_id}/leaderboard
       #   GET /api/v1/players/{id}/ratings/{game_id}
@@ -213,6 +207,88 @@ services:
       - "traefik.http.routers.rating-service.entrypoints=web"
       - "traefik.http.routers.rating-service.priority=50"
       - "traefik.http.routers.rating-service.service=rating-svc"
-
-      # Single backend shared by both routers.
       - "traefik.http.services.rating-svc.loadbalancer.server.port=8085"
+      # gRPC (internal only — not exposed via Traefik):
+      #   game-server reaches rating-service directly at rating-service:9085.
+
+  match-service:
+    build:
+      context: .
+      dockerfile: services/match-service/Dockerfile
+    container_name: match-service
+    networks:
+      - app_network
+      - data_network
+    environment:
+      - REDIS_ADDR=redis:6379
+      - RATING_SERVICE_ADDR=rating-service:9085
+      - GAME_SERVER_ADDR=game-server:9080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - OTEL_SERVICE_NAME=match-service
+      - JWT_SECRET=${JWT_SECRET}
+      - HTTP_ADDR=:8087
+    depends_on:
+      redis:
+        condition: service_healthy
+      rating-service:
+        condition: service_healthy
+      game-server:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8087/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      # Priority 50 — same tier as user-service, chat-service, rating-service.
+      # Owns all ranked matchmaking queue endpoints.
+      - "traefik.http.routers.match-service.rule=PathPrefix(`/api/v1/queue`)"
+      - "traefik.http.routers.match-service.entrypoints=web"
+      - "traefik.http.routers.match-service.priority=50"
+      - "traefik.http.routers.match-service.service=match-svc"
+      - "traefik.http.services.match-svc.loadbalancer.server.port=8087"
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: notification-service
+    networks:
+      - app_network
+      - data_network
+    environment:
+      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - OTEL_SERVICE_NAME=notification-service
+      - JWT_SECRET=${JWT_SECRET}
+      - HTTP_ADDR=:8086
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      # Priority 50 — same tier as user-service and chat-service.
+      # Owns:
+      #   GET  /api/v1/players/{id}/notifications
+      #   POST /api/v1/notifications/{id}/read
+      #   POST /api/v1/notifications/{id}/accept
+      #   POST /api/v1/notifications/{id}/decline
+      # /internal/* is NOT exposed via Traefik — internal network only.
+      - "traefik.http.routers.notification-service.rule=PathRegexp(`^/api/v1/players/[^/]+/notifications`) || PathRegexp(`^/api/v1/notifications/`)"
+      - "traefik.http.routers.notification-service.entrypoints=web"
+      - "traefik.http.routers.notification-service.priority=50"
+      - "traefik.http.routers.notification-service.service=notification-svc"
+      - "traefik.http.services.notification-svc.loadbalancer.server.port=8086"

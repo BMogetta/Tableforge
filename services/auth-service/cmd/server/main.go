@@ -10,7 +10,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/redis/go-redis/v9"
 	"github.com/riandyrn/otelchi"
+	"github.com/tableforge/auth-service/internal/consumer"
 	"github.com/tableforge/auth-service/internal/handler"
 	"github.com/tableforge/auth-service/internal/store"
 	"github.com/tableforge/shared/config"
@@ -50,12 +52,35 @@ func main() {
 	}
 	defer st.Close()
 
+	// --- Redis ---------------------------------------------------------------
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     config.MustEnv("REDIS_ADDR"),
+		Password: config.Env("REDIS_PASSWORD", ""),
+	})
+	defer rdb.Close()
+
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		slog.Error("failed to connect to redis", "error", err)
+		panic(err)
+	}
+	slog.Info("redis connected")
+
+	cons := consumer.New(rdb, slog.Default())
+	consErr := make(chan error, 1)
+	go func() {
+		consErr <- cons.Run(ctx)
+	}()
+
 	h := handler.New(st, clientID, clientSecret, jwtSecret, secure)
 	authMW := sharedmw.Require([]byte(jwtSecret))
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
+
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Get("/github", h.HandleGitHubLogin)
@@ -82,8 +107,14 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
-	slog.Info("shutting down...")
+	select {
+	case <-ctx.Done():
+		slog.Info("shutting down...")
+	case err := <-consErr:
+		if err != nil {
+			slog.Error("consumer exited", "error", err)
+		}
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

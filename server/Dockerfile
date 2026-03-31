@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/server ./cmd/server \
 
 # --- Run stage ---
 FROM alpine:3.19
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates tzdata wget
 
 COPY --from=builder /bin/server /bin/server
 COPY --from=builder /bin/seed-test /bin/seed-test

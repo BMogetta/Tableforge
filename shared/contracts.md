@@ -10,19 +10,21 @@ and what stays internal to each service.
 ```
 Frontend  ←──── REST/JSON ──────►  API Gateway (Traefik)
                                          │
-                          ┌──────────────┼──────────────────┐
-                          ▼              ▼                   ▼
-                    auth-service   match-service        game-service
-                          │              │                   │
-                          └──── gRPC ────┘                   │
-                                │                            │
-                          user-service ◄──── gRPC ───────────┘
-                                │
-                    ────────────┴──────────────────────────────
-                                Redis Pub/Sub (async events)
-                    ────────────────────────────────────────────
-                          │              │                   │
-                    auth-service   match-service   user-service
+               ┌─────────────────────────┼───────────────────────┐
+               ▼                         ▼                        ▼
+         auth-service              game-server               user-service
+                                   (monolith)                     │
+                                   gRPC :9080                     │
+                                   ┌────┴─────┐                   │
+                                   ▼          ▼          ┌────────┘
+                             match-service  ws-gateway ──┘  (gRPC :9082)
+                                   │
+                             rating-service (gRPC :9085)
+                    ─────────────────────────────────────────────
+                              Redis Pub/Sub (async events)
+                    ─────────────────────────────────────────────
+                          │                │
+                  notification-service  ws-gateway
 ```
 
 **Three communication layers:**
@@ -36,56 +38,110 @@ Frontend  ←──── REST/JSON ──────►  API Gateway (Traefik)
 ## gRPC contracts
 
 ### `rating.v1.RatingService`
-**Owner:** user-service
-**Callers:** match-service
+**Owner:** rating-service
+**Callers:** match-service (queue, before enqueue to fetch MMR)
 
 ```protobuf
 rpc GetRating(GetRatingRequest)   returns (GetRatingResponse)
 rpc GetRatings(GetRatingsRequest) returns (GetRatingsResponse)
 ```
 
-**When:** A player joins the ranked queue. match-service needs the current
-MMR to assign a score to `queue:ranked` ZSET. Called synchronously because
+**When:** A player joins the ranked queue in match-service. The queue needs
+current MMR to assign a score in `queue:ranked` ZSET. Synchronous because
 the enqueue response must include the player's position.
 
 **Proto file:** `shared/proto/rating/v1/rating.proto`
 
 ---
 
-### `lobby.v1.LobbyService`
-**Owner:** match-service
-**Callers:** match-service (internal — queue calls lobby within the same service boundary)
+### `user.v1.UserService`
+**Owner:** user-service
+**Callers:** game-server, ws-gateway
 
-> **Note:** In the current monolith, queue.go imports domain/lobby directly.
-> When match-service is extracted, CreateRankedRoom stays internal to it.
-> This proto is only needed if lobby is split into its own service later.
-> Document it now, implement it later.
+```protobuf
+rpc GetProfile(GetProfileRequest)   returns (GetProfileResponse)
+rpc CheckBan(CheckBanRequest)       returns (CheckBanResponse)
+```
+
+**GetProfile — when:** game-server needs display data (username, avatar)
+for room views without going through the HTTP layer.
+
+**CheckBan — when:** ws-gateway checks ban status before upgrading a
+WebSocket connection. Synchronous because an upgrade cannot proceed for
+a banned player.
+
+**Proto file:** `shared/proto/user/v1/user.proto`
+
+---
+
+### `lobby.v1.LobbyService`
+**Owner:** game-server (monolith, current) → lobby-service (future)
+**Callers:** match-service
 
 ```protobuf
 rpc CreateRankedRoom(CreateRankedRoomRequest) returns (CreateRankedRoomResponse)
 ```
+
+**When:** match-service finds two compatible players and both accept.
+Synchronous because the room_id and join code must be in the `match_ready`
+WS event payload.
 
 **Proto file:** `shared/proto/lobby/v1/lobby.proto`
 
 ---
 
 ### `game.v1.GameService`
-**Owner:** game-service
-**Callers:** match-service
+**Owner:** game-server (monolith, current) → game-service (future)
+**Callers:** match-service, ws-gateway
 
 ```protobuf
-rpc StartSession(StartSessionRequest)   returns (StartSessionResponse)
-rpc GetMoveLog(GetMoveLogRequest)       returns (GetMoveLogResponse)
+rpc StartSession(StartSessionRequest)         returns (StartSessionResponse)
+rpc GetMoveLog(GetMoveLogRequest)             returns (GetMoveLogResponse)
+rpc IsParticipant(IsParticipantRequest)       returns (IsParticipantResponse)
 ```
 
-**StartSession — when:** Both players accept the match. match-service needs
-the session_id to include in the `match.ready` event. Synchronous because
-the room must exist before the event fires.
+**StartSession — when:** Both players accept a match. match-service calls
+this after `CreateRankedRoom` to get the session_id for the `match_ready`
+WS event. Synchronous.
 
-**GetMoveLog — when:** replay-service needs the ordered move list to serve
-a replay. Synchronous because the HTTP response depends on it.
+**GetMoveLog — when:** replay-service fetches the ordered move list to
+serve a replay. Synchronous.
+
+**IsParticipant — when:** ws-gateway upgrades a room WebSocket connection.
+Determines participant vs spectator status without querying Postgres
+directly. Synchronous because the upgrade decision depends on it.
 
 **Proto file:** `shared/proto/game/v1/game.proto`
+
+---
+
+## Lobby → Runtime decoupling plan
+
+The remaining coupling point in the monolith is `api_lobby.go:handleStartGame`,
+which calls both `lobby.Service.StartGame` (DB: creates session, transitions
+room) and `runtime.Service.StartSession` (in-process: starts goroutines,
+turn timers) in the same HTTP handler. For ranked games this is now invoked
+via the gRPC server from match-service.
+
+**Phase 1 — proto boundary (done):**
+- `game.v1.GameService.StartSession`, `IsParticipant`, `GetMoveLog` defined.
+- `lobby.v1.LobbyService.CreateRankedRoom` defined.
+- game-server implements both on gRPC `:9080`.
+
+**Phase 2 — extract match-service (done):**
+- match-service owns `queue:ranked` Redis sorted set and all confirmation state.
+- match-service calls `lobby.v1.CreateRankedRoom` (gRPC → game-server).
+- match-service calls `game.v1.StartSession` (gRPC → game-server).
+- WS events published directly to `ws:player:{id}` Redis channel.
+- Matchmaking algorithm moved to `shared/domain/matchmaking/`.
+
+**Phase 3 — split game-server (future):**
+- lobby-service owns room CRUD, implements `lobby.v1.LobbyService`.
+- game-service owns sessions and runtime, implements `game.v1.GameService`.
+- Caller (match-service) doesn't change — same proto, different address.
+
+This phased approach means the lobby→runtime coupling is never a blocker:
+it stays internal to game-server until Phase 3.
 
 ---
 
@@ -95,50 +151,31 @@ All events flow through Redis Pub/Sub. Channel naming: `{domain}.{entity}.{verb}
 Every event carries `event_id` (UUID) for idempotency, `occurred_at`, and `version`.
 
 ### `game.session.finished`
-**Publisher:** game-service
+**Publisher:** game-server
 **Consumers:**
 
 | Consumer | Action |
 |---|---|
-| user-service | Update `ratings` + `rating_history` (ranked only) |
+| rating-service | Update `ratings` + `rating_history` (ranked only) |
 | replay-service | Close replay record, mark session as complete |
 | match-service | Unblock room, allow rematch queue re-entry |
 
 **Payload:** session_id, room_id, game_id, mode, ended_by, winner_id,
 is_draw, duration_secs, players[]
 
-**Why async:** game-service doesn't need to wait for ratings to update
-before the game ends. Eventual consistency is fine here.
-
----
-
-### `game.move.applied`
-**Publisher:** game-service
-**Consumers:** replay-service (optional — stream flush already covers this)
-
-**Payload:** session_id, game_id, player_id, move_number, payload
-
-**Note:** This event is optional for now. The `session_events` Redis stream
-is already flushed to Postgres on session end. Only add this if a consumer
-needs real-time move notifications outside the WS layer.
-
 ---
 
 ### `match.found`
 **Publisher:** match-service
-**Consumers:** ws hub → delivers `match_found` WS event to both players
+**Consumers:** ws-gateway → delivers `match_found` WS event to both players
 
-**Payload:** match_id, room_id, room_code, game_id, player_a_id,
-player_b_id, mmr_a, mmr_b
-
-**Why async:** match-service doesn't own the WS connections. The hub
-subscribes to `ws:player:{id}` channels and forwards to the client.
+**Payload:** match_id, room_id, room_code, game_id, player_a_id, player_b_id, mmr_a, mmr_b
 
 ---
 
 ### `match.cancelled`
 **Publisher:** match-service
-**Consumers:** ws hub → delivers `match_cancelled` WS event
+**Consumers:** ws-gateway → delivers `match_cancelled` WS event
 
 **Payload:** match_id, player_a_id, player_b_id, reason
 
@@ -146,7 +183,7 @@ subscribes to `ws:player:{id}` channels and forwards to the client.
 
 ### `match.ready`
 **Publisher:** match-service (after both players accept + StartSession succeeds)
-**Consumers:** ws hub → delivers `match_ready` WS event with session_id
+**Consumers:** ws-gateway → delivers `match_ready` WS event with session_id
 
 **Payload:** match_id, session_id, room_id, room_code, player_a_id, player_b_id
 
@@ -160,53 +197,47 @@ subscribes to `ws:player:{id}` channels and forwards to the client.
 |---|---|
 | auth-service | Revoke active session, publish `player.session.revoked` |
 | match-service | Remove from queue if present |
-| game-service | Forfeit any active ranked sessions |
+| game-server | Forfeit any active ranked sessions |
+| notification-service | Create `ban_issued` in-app notification |
 
 **Payload:** player_id, ban_id, banned_by, reason, expires_at
-
-**Why async:** Banning is not a hot path. Eventual consistency (player might
-play one more move before the ban propagates) is acceptable.
 
 ---
 
 ### `player.unbanned`
 **Publisher:** user-service
-**Consumers:** none currently (auth-service takes no action on unban)
+**Consumers:** none currently
 
 ---
 
 ### `friendship.accepted`
 **Publisher:** user-service
-**Consumers:** notification-service → in-app notification to requester
+**Consumers:** notification-service → `friend_request_accepted` in-app notification to requester
 
-**Payload:** requester_id, addressee_id
+**Payload:** requester_id, addressee_id, addressee_username
+
+> `addressee_username` is included in the event so notification-service
+> does not need a gRPC round-trip to user-service to compose the message.
 
 ---
 
 ### `player.session.revoked`
 **Publisher:** auth-service
-**Consumers:** ws hub → closes the WebSocket connection for that session
+**Consumers:** ws-gateway → closes the WebSocket connection for that session
 
 **Payload:** player_id, session_id, reason ("logout" | "superseded" | "banned")
-
-**Why this matters:** Without this event, a player who is banned or logs in
-on another device keeps their existing WS connection alive indefinitely.
 
 ---
 
 ## What stays internal (no contract needed)
 
-These are calls that happen within a single service boundary. They don't
-need gRPC or events — they're just function calls or DB queries.
-
 | Call | Service | Why internal |
 |---|---|---|
-| Create room for casual match | match-service | same service owns lobby |
-| Validate JWT on every request | auth-service | middleware, not cross-service |
-| Apply a move to game state | game-service | pure in-process logic |
-| Calculate ELO delta | user-service | triggered by `game.session.finished` |
-| Create notification row | user-service | triggered by `friendship.accepted` |
-| Flush session_events to Postgres | game-service | internal cleanup on session end |
+| Apply a move to game state | game-server | pure in-process logic |
+| Flush session_events to Postgres | game-server | internal cleanup on session end |
+| Validate JWT on every request | all services | shared middleware, not cross-service |
+| Calculate ELO delta | rating-service | triggered by `game.session.finished` |
+| Queue ban escalation tracking | game-server | Redis keys owned by queue |
 
 ---
 
@@ -216,67 +247,50 @@ need gRPC or events — they're just function calls or DB queries.
 tableforge/
   shared/
     proto/
-      rating/v1/rating.proto       ← rating.v1.RatingService
-      lobby/v1/lobby.proto         ← lobby.v1.LobbyService
-      game/v1/game.proto           ← game.v1.GameService
-      gen/                         ← generated Go code (buf generate)
-        rating/v1/
-        lobby/v1/
-        game/v1/
+      rating/v1/   rating.proto + rating.pb.go + rating_grpc.pb.go
+      user/v1/     user.proto   + user.pb.go   + user_grpc.pb.go
+      lobby/v1/    lobby.proto  + lobby.pb.go  + lobby_grpc.pb.go
+      game/v1/     game.proto   + game.pb.go   + game_grpc.pb.go
     events/
-      events.go                    ← all async event structs
+      events.go          ← async event structs (Redis Pub/Sub)
+    ws/
+      ws.go              ← client-facing WS event types (shared by game-server + ws-gateway)
     middleware/
-      auth.go                      ← JWT validator (shared by all services)
-      tracing.go                   ← OTel middleware
+      auth.go            ← JWT validator (shared by all services)
+    errors/
+      apierrors.go       ← standard API error string constants
+    domain/
+      rating/            ← ELO engine
+      matchmaking/       ← matchmaker algorithm
   services/
-    auth-service/
-    user-service/
-    match-service/
-    game-service/
-    chat-service/
-    replay-service/
+    auth-service/        :8081
+    user-service/        :8082  gRPC :9082
+    chat-service/        :8083
+    ws-gateway/          :8084
+    rating-service/      :8085  gRPC :9085
+    notification-service/:8086
+    match-service/       :8087
+  server/ (game-server)  :8080  gRPC :9080
 ```
 
-Each service imports `shared` as a local Go module (`replace` directive
-in `go.mod` during monorepo phase). When a service is split to its own
-repo, the `shared` module is published separately and imported by version.
+Stubs are committed alongside `.proto` files. Regenerate with:
 
----
-
-## buf.gen.yaml (code generation)
-
-```yaml
-version: v2
-plugins:
-  - plugin: buf.build/protocolbuffers/go
-    out: shared/proto/gen
-    opt:
-      - paths=source_relative
-  - plugin: buf.build/grpc/go
-    out: shared/proto/gen
-    opt:
-      - paths=source_relative
+```bash
+protoc \
+  --go_out=shared/proto/{service}/v1 --go_opt=paths=source_relative \
+  --go-grpc_out=shared/proto/{service}/v1 --go-grpc_opt=paths=source_relative \
+  -I shared/proto/{service}/v1 \
+  shared/proto/{service}/v1/{service}.proto
 ```
-
-Run with: `buf generate shared/proto`
-
-This generates the Go structs and gRPC client/server interfaces from the
-`.proto` files. Commit the generated code — don't regenerate in CI unless
-you have a lint step that fails on drift.
 
 ---
 
 ## Event versioning rules
 
-1. **Adding a field** — safe, always backward compatible. Consumers that
-   don't know the field ignore it (JSON unknown fields are dropped).
-
-2. **Renaming a field** — breaking change. Add a new channel version:
-   `game.session.finished.v2`. Run both channels in parallel until all
-   consumers migrate, then deprecate v1.
-
-3. **Removing a field** — breaking change. Same process as rename.
-
+1. **Adding a field** — safe. Consumers that don't know the field ignore it.
+2. **Renaming a field** — breaking. Add a new channel version (`game.session.finished.v2`),
+   run both in parallel until all consumers migrate, then deprecate v1.
+3. **Removing a field** — breaking. Same process as rename.
 4. **Never reuse a field name with a different type.**
 
 For Protobuf: field numbers are the contract, not names. Never reuse a

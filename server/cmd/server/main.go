@@ -7,11 +7,15 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/domain/lobby"
@@ -19,13 +23,14 @@ import (
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/api"
 	"github.com/tableforge/server/internal/platform/events"
-	"github.com/tableforge/server/internal/platform/queue"
+	grpchandler "github.com/tableforge/server/internal/platform/grpc"
 	"github.com/tableforge/server/internal/platform/ratelimit"
 	"github.com/tableforge/server/internal/platform/store"
 	"github.com/tableforge/server/internal/platform/userclient"
-
 	"github.com/tableforge/server/internal/platform/ws"
 	"github.com/tableforge/shared/config"
+	gamev1 "github.com/tableforge/shared/proto/game/v1"
+	lobbyv1 "github.com/tableforge/shared/proto/lobby/v1"
 	sharedredis "github.com/tableforge/shared/redis"
 	"github.com/tableforge/shared/telemetry"
 
@@ -83,18 +88,23 @@ func main() {
 	turnTimer := runtime.NewTurnTimer(runtimeService, hub, st, rdb, eventStore)
 	runtimeService.SetTimer(turnTimer)
 
-	queueSvc := queue.New(rdb, st, lobbyService, runtimeService, hub)
-	go queueSvc.ListenExpiry(ctx)
+	// --- gRPC server (lobby.v1 + game.v1 for match-service) ------------------
+	grpcAddr := config.Env("GRPC_ADDR", ":9080")
+	lis, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		slog.Error("failed to listen on grpc addr", "addr", grpcAddr, "error", err)
+		os.Exit(1)
+	}
+	grpcServer := grpc.NewServer()
+	lobbyv1.RegisterLobbyServiceServer(grpcServer, grpchandler.NewLobbyHandler(lobbyService, st))
+	gamev1.RegisterGameServiceServer(grpcServer, grpchandler.NewGameHandler(lobbyService, runtimeService, st, hub))
+	reflection.Register(grpcServer)
+
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				queueSvc.FindAndPropose(ctx)
-			}
+		slog.Info("gRPC listening", "addr", grpcAddr)
+		if err := grpcServer.Serve(lis); err != nil {
+			slog.Error("grpc serve error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -123,7 +133,6 @@ func main() {
 		jwtSecret,
 		limiter,
 		eventStore,
-		queueSvc,
 		notificationSvc,
 		userClient,
 	)
@@ -149,6 +158,8 @@ func main() {
 
 	<-ctx.Done()
 	slog.Info("shutting down...")
+
+	grpcServer.GracefulStop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -15,7 +15,13 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
-	r.Use(authMW)
+
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authMW)
 
 	// --- Room chat -----------------------------------------------------------
 	r.Post("/api/v1/rooms/{roomID}/messages", handleSendRoomMessage(st, pub))
@@ -30,6 +36,7 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	r.Get("/api/v1/players/{playerID}/dm/{otherPlayerID}", handleGetDMHistory(st))
 	r.Post("/api/v1/dm/{messageID}/read", handleMarkDMRead(st, pub))
 	r.Post("/api/v1/players/{playerID}/dm/{otherPlayerID}/report", handleReportDM(st))
+	}) // end auth group
 
 	return r
 }

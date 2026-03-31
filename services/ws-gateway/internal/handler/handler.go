@@ -1,19 +1,10 @@
 // Package handler contains the WebSocket upgrade handlers for ws-gateway.
 //
-// Migration TODO:
+// Participant and spectator checks use game.v1.GameService/IsParticipant (gRPC).
 //
-//   - isParticipant() and isSpectatorsAllowed() currently read from Postgres
-//     directly (public.room_players and public.room_settings). This is acceptable
-//     during the migration phase while the monolith owns those tables.
-//
-//   - When game-service is extracted, replace these DB reads with a gRPC call:
-//     game.v1.GameService/IsParticipant(room_id, player_id)
-//     See shared/proto/game/v1/game.proto for the stub definition.
-//
-//   - session event logging (TypePlayerConnected, TypeSpectatorJoined, etc.)
-//     currently happens in the monolith's ws.Handler. Once the ws package is
-//     removed from the monolith, move that logic here and publish events to
-//     the events Redis Stream directly.
+// Remaining direct Postgres access:
+//   - listRoomPlayerIDs: reads room_players to build the initial presence snapshot.
+//     Replace with game.v1.GetRoomPlayers when that RPC is added.
 package handler
 
 import (
@@ -27,9 +18,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tableforge/services/ws-gateway/internal/hub"
 	"github.com/tableforge/services/ws-gateway/internal/presence"
-	sharedws "github.com/tableforge/shared/ws"
 	"github.com/tableforge/shared/middleware"
+	gamev1 "github.com/tableforge/shared/proto/game/v1"
 	userv1 "github.com/tableforge/shared/proto/user/v1"
+	sharedws "github.com/tableforge/shared/ws"
 )
 
 var upgrader = websocket.Upgrader{
@@ -39,8 +31,8 @@ var upgrader = websocket.Upgrader{
 }
 
 // RoomHandler upgrades a WebSocket connection for a room.
-// Determines participant vs spectator status and sets up presence.
-func RoomHandler(h *hub.Hub, ps *presence.Store, db *pgxpool.Pool, uc userv1.UserServiceClient) http.HandlerFunc {
+// Determines participant vs spectator status via game.v1.IsParticipant gRPC.
+func RoomHandler(h *hub.Hub, ps *presence.Store, db *pgxpool.Pool, uc userv1.UserServiceClient, gc gamev1.GameServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
 		if err != nil {
@@ -70,20 +62,16 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, db *pgxpool.Pool, uc userv1.Use
 			}
 		}
 
-		// TODO: replace with gRPC call to game-service once extracted.
-		// See package-level migration comment.
-		isParticipant, err := checkIsParticipant(ctx, db, roomID, playerID)
+		// Participant + spectator check via game-server gRPC.
+		isParticipant, spectatorsAllowed, err := checkParticipant(ctx, gc, roomID, playerID)
 		if err != nil {
 			http.Error(w, "room not found", http.StatusNotFound)
 			return
 		}
 
-		if !isParticipant {
-			allowed, err := checkSpectatorsAllowed(ctx, db, roomID)
-			if err != nil || !allowed {
-				http.Error(w, "spectators not allowed in this room", http.StatusForbidden)
-				return
-			}
+		if !isParticipant && !spectatorsAllowed {
+			http.Error(w, "spectators not allowed in this room", http.StatusForbidden)
+			return
 		}
 
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -109,6 +97,7 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, db *pgxpool.Pool, uc userv1.Use
 			})
 
 			// Send presence snapshot directly to this client.
+			// TODO: replace listRoomPlayerIDs with game.v1.GetRoomPlayers gRPC.
 			roomPlayerIDs, _ := listRoomPlayerIDs(ctx, db, roomID)
 			if onlineMap, err := ps.ListOnline(ctx, roomPlayerIDs); err == nil {
 				for id, online := range onlineMap {
@@ -178,29 +167,21 @@ func PlayerHandler(h *hub.Hub, uc userv1.UserServiceClient) http.HandlerFunc {
 	}
 }
 
-// --- DB helpers (migration phase — replace with gRPC when game-service extracted) ---
-
-func checkIsParticipant(ctx context.Context, db *pgxpool.Pool, roomID, playerID uuid.UUID) (bool, error) {
-	var exists bool
-	err := db.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM room_players WHERE room_id = $1 AND player_id = $2)`,
-		roomID, playerID,
-	).Scan(&exists)
-	return exists, err
-}
-
-func checkSpectatorsAllowed(ctx context.Context, db *pgxpool.Pool, roomID uuid.UUID) (bool, error) {
-	var value string
-	err := db.QueryRow(ctx,
-		`SELECT value FROM room_settings WHERE room_id = $1 AND key = 'allow_spectators'`,
-		roomID,
-	).Scan(&value)
+// checkParticipant calls game.v1.IsParticipant gRPC.
+// Returns (isParticipant, spectatorsAllowed, error).
+func checkParticipant(ctx context.Context, gc gamev1.GameServiceClient, roomID, playerID uuid.UUID) (bool, bool, error) {
+	resp, err := gc.IsParticipant(ctx, &gamev1.IsParticipantRequest{
+		RoomId:   roomID.String(),
+		PlayerId: playerID.String(),
+	})
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
-	return value == "yes", nil
+	return resp.IsParticipant, resp.SpectatorsAllowed, nil
 }
 
+// listRoomPlayerIDs queries room_players directly for the presence snapshot.
+// TODO: replace with game.v1.GetRoomPlayers when that RPC is added.
 func listRoomPlayerIDs(ctx context.Context, db *pgxpool.Pool, roomID uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := db.Query(ctx,
 		`SELECT player_id FROM room_players WHERE room_id = $1 ORDER BY seat`,

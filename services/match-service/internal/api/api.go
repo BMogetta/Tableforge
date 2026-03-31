@@ -6,30 +6,43 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/platform/queue"
-	error_message "github.com/tableforge/shared/errors"
+	"github.com/tableforge/match-service/internal/queue"
+	apierrors "github.com/tableforge/shared/errors"
 	sharedmw "github.com/tableforge/shared/middleware"
 )
 
+// NewRouter builds the match-service HTTP router.
+func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler) http.Handler {
+	r := chi.NewRouter()
+
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(authMW)
+
+		// Ranked matchmaking queue
+		r.Post("/queue", handleJoinQueue(svc))
+		r.Delete("/queue", handleLeaveQueue(svc))
+		r.Post("/queue/accept", handleAcceptMatch(svc))
+		r.Post("/queue/decline", handleDeclineMatch(svc))
+	})
+
+	return r
+}
+
 // POST /api/v1/queue
-// Body: { "player_id": "uuid" }
-// Adds the player to the ranked matchmaking queue.
+// Adds the authenticated player to the ranked matchmaking queue.
 // 429 if the player is currently banned from queueing.
 // 409 if the player is already in the queue.
 func handleJoinQueue(svc *queue.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			PlayerID string `json:"player_id"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-
 		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
-			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
+			writeError(w, http.StatusUnauthorized, apierrors.Unauthorized)
 			return
 		}
 
@@ -59,22 +72,13 @@ func handleJoinQueue(svc *queue.Service) http.HandlerFunc {
 }
 
 // DELETE /api/v1/queue
-// Body: { "player_id": "uuid" }
-// Removes the player from the ranked matchmaking queue.
+// Removes the authenticated player from the ranked matchmaking queue.
 // 204 whether or not the player was actually queued (idempotent).
 func handleLeaveQueue(svc *queue.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			PlayerID string `json:"player_id"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-
 		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
-			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
+			writeError(w, http.StatusUnauthorized, apierrors.Unauthorized)
 			return
 		}
 
@@ -88,16 +92,13 @@ func handleLeaveQueue(svc *queue.Service) http.HandlerFunc {
 }
 
 // POST /api/v1/queue/accept
-// Body: { "player_id": "uuid", "match_id": "uuid" }
+// Body: { "match_id": "uuid" }
 // Records that the player accepts the proposed match.
-// If both players have accepted the match is started and match_ready is
-// broadcast to both via their player channels.
 // 404 if the match has expired or already been resolved.
 func handleAcceptMatch(svc *queue.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			PlayerID string `json:"player_id"`
-			MatchID  string `json:"match_id"`
+			MatchID string `json:"match_id"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -106,7 +107,7 @@ func handleAcceptMatch(svc *queue.Service) http.HandlerFunc {
 
 		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
-			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
+			writeError(w, http.StatusUnauthorized, apierrors.Unauthorized)
 			return
 		}
 
@@ -134,16 +135,13 @@ func handleAcceptMatch(svc *queue.Service) http.HandlerFunc {
 }
 
 // POST /api/v1/queue/decline
-// Body: { "player_id": "uuid", "match_id": "uuid" }
+// Body: { "match_id": "uuid" }
 // Records that the player declines the proposed match.
-// The declining player is dropped from the queue and receives a penalty.
-// The other player (if they had already accepted) is automatically re-queued.
 // 404 if the match has expired or already been resolved.
 func handleDeclineMatch(svc *queue.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			PlayerID string `json:"player_id"`
-			MatchID  string `json:"match_id"`
+			MatchID string `json:"match_id"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -152,7 +150,7 @@ func handleDeclineMatch(svc *queue.Service) http.HandlerFunc {
 
 		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
-			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
+			writeError(w, http.StatusUnauthorized, apierrors.Unauthorized)
 			return
 		}
 
@@ -177,4 +175,18 @@ func handleDeclineMatch(svc *queue.Service) http.HandlerFunc {
 
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
+
+func writeError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg})
 }

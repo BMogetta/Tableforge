@@ -70,12 +70,16 @@ Tableforge is a **monorepo in active microservice extraction**. The original mon
 
 | Service | Purpose | HTTP | gRPC |
 |---------|---------|------|------|
-| `server/` (game-server) | Game engine, lobby, matchmaking — the monolith | 8080 | — |
+| `server/` (game-server) | Game engine, lobby, sessions — the monolith | 8080 | 9080 |
 | `services/auth-service` | GitHub OAuth, JWT issuance/validation | 8081 | — |
 | `services/user-service` | Profiles, friends, bans, mutes, reports | 8082 | 9082 |
 | `services/chat-service` | Room messages, DMs | 8083 | — |
 | `services/ws-gateway` | WebSocket hub, real-time fan-out | 8084 | — |
 | `services/rating-service` | ELO/MMR calculations | 8085 | 9085 |
+| `services/notification-service` | In-app notifications, Redis consumer | 8086 | — |
+| `services/match-service` | Ranked matchmaking queue | 8087 | — |
+
+game-server exposes gRPC on `:9080` implementing `lobby.v1.LobbyService` (CreateRankedRoom) and `game.v1.GameService` (StartSession, IsParticipant). match-service is the sole caller.
 
 All traffic from the frontend goes through **Traefik** (reverse proxy). There is no direct service-to-service HTTP — inter-service calls use gRPC (synchronous) or Redis Pub/Sub (async).
 
@@ -89,9 +93,10 @@ See `shared/contracts.md` for the complete service contract map and versioning r
 
 ### Shared Module (`shared/`)
 
-- `shared/proto/` — Protobuf definitions + generated Go stubs (rating, user)
+- `shared/proto/` — Protobuf definitions + generated Go stubs (rating, user, lobby, game)
 - `shared/events/` — Redis Pub/Sub event structs
 - `shared/domain/rating/` — ELO/MMR engine (shared between game-server and rating-service)
+- `shared/domain/matchmaking/` — matchmaker algorithm (shared between match-service and simulate tool)
 - `shared/middleware/` — JWT auth + OpenTelemetry HTTP middleware
 - `shared/redis/` — Redis client wrapper
 - `shared/telemetry/` — OTel setup (traces, metrics, logs)

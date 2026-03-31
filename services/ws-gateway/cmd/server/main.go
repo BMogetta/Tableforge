@@ -14,11 +14,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
+	"github.com/tableforge/services/ws-gateway/internal/consumer"
 	"github.com/tableforge/services/ws-gateway/internal/handler"
 	"github.com/tableforge/services/ws-gateway/internal/hub"
 	"github.com/tableforge/services/ws-gateway/internal/presence"
 	"github.com/tableforge/shared/config"
 	sharedmw "github.com/tableforge/shared/middleware"
+	gamev1 "github.com/tableforge/shared/proto/game/v1"
 	userv1 "github.com/tableforge/shared/proto/user/v1"
 	sharedredis "github.com/tableforge/shared/redis"
 	"github.com/tableforge/shared/telemetry"
@@ -80,9 +82,30 @@ func main() {
 	userClient := userv1.NewUserServiceClient(userConn)
 	slog.Info("user-service gRPC connected", "addr", userServiceAddr)
 
+	// --- game-server gRPC client (IsParticipant) -----------------------------
+	gameServerAddr := config.Env("GAME_SERVER_ADDR", "game-server:9080")
+	gameConn, err := grpc.NewClient(gameServerAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+	if err != nil {
+		slog.Error("failed to connect to game-server", "error", err)
+		panic(err)
+	}
+	defer gameConn.Close()
+	gameClient := gamev1.NewGameServiceClient(gameConn)
+	slog.Info("game-server gRPC connected", "addr", gameServerAddr)
+
 	// --- Hub + presence ------------------------------------------------------
 	h := hub.New(rdb)
 	ps := presence.New(rdb)
+
+	// --- Event consumer (player.session.revoked) ------------------------------
+	cons := consumer.New(rdb, h, slog.Default())
+	consErr := make(chan error, 1)
+	go func() {
+		consErr <- cons.Run(ctx)
+	}()
 
 	// --- Router --------------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
@@ -91,15 +114,15 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
 	})
 	r.Get("/metrics", promhttp.HandlerFor(
 		prometheus.DefaultGatherer,
 		promhttp.HandlerOpts{},
 	).ServeHTTP)
 
-	r.With(authMW).Get("/ws/rooms/{roomID}", handler.RoomHandler(h, ps, pool, userClient))
+	r.With(authMW).Get("/ws/rooms/{roomID}", handler.RoomHandler(h, ps, pool, userClient, gameClient))
 	r.With(authMW).Get("/ws/players/{playerID}", handler.PlayerHandler(h, userClient))
 
 	// --- HTTP server ---------------------------------------------------------
@@ -118,8 +141,14 @@ func main() {
 	}()
 
 	// --- Graceful shutdown ---------------------------------------------------
-	<-ctx.Done()
-	slog.Info("shutting down ws-gateway...")
+	select {
+	case <-ctx.Done():
+		slog.Info("shutting down ws-gateway...")
+	case err := <-consErr:
+		if err != nil {
+			slog.Error("consumer exited", "error", err)
+		}
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
