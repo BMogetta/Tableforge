@@ -29,89 +29,6 @@ const (
 	RoleOwner   PlayerRole = "owner"
 )
 
-// PlayerSettings holds all configurable preferences for a player.
-// Stored as a single JSONB row in player_settings.
-// The application layer merges stored values over DefaultPlayerSettings() at
-// read time, so the schema never needs updating for new keys.
-type PlayerSettings struct {
-	PlayerID  uuid.UUID        `json:"player_id"`
-	Settings  PlayerSettingMap `json:"settings"`
-	UpdatedAt time.Time        `json:"updated_at"`
-}
-
-// PlayerSettingMap is the flat key/value map serialized into the JSONB column.
-// All fields are pointers — nil means "use the application default".
-type PlayerSettingMap struct {
-	// Appearance
-	Theme        *string `json:"theme,omitempty"`         // "dark" | "light" | "system"
-	Language     *string `json:"language,omitempty"`      // "en" | "es" | ...
-	ReduceMotion *bool   `json:"reduce_motion,omitempty"` // disable CSS animations
-	FontSize     *string `json:"font_size,omitempty"`     // "small" | "medium" | "large"
-
-	// Notifications
-	NotifyDM            *bool `json:"notify_dm,omitempty"`
-	NotifyGameInvite    *bool `json:"notify_game_invite,omitempty"`
-	NotifyFriendRequest *bool `json:"notify_friend_request,omitempty"`
-	NotifySound         *bool `json:"notify_sound,omitempty"`
-
-	// Audio (stubs — no audio system yet; stored but not applied)
-	MuteAll             *bool    `json:"mute_all,omitempty"`
-	VolumeMaster        *float64 `json:"volume_master,omitempty"`
-	VolumeSFX           *float64 `json:"volume_sfx,omitempty"`
-	VolumeUI            *float64 `json:"volume_ui,omitempty"`
-	VolumeNotifications *float64 `json:"volume_notifications,omitempty"`
-	VolumeMusic         *float64 `json:"volume_music,omitempty"`
-
-	// Gameplay
-	ShowMoveHints    *bool `json:"show_move_hints,omitempty"`
-	ConfirmMove      *bool `json:"confirm_move,omitempty"`
-	ShowTimerWarning *bool `json:"show_timer_warning,omitempty"`
-
-	// Privacy
-	ShowOnlineStatus *bool   `json:"show_online_status,omitempty"`
-	AllowDMs         *string `json:"allow_dms,omitempty"` // "anyone" | "friends_only" | "nobody"
-}
-
-// DefaultPlayerSettings returns the canonical defaults applied when a key is
-// absent from the stored settings.
-func DefaultPlayerSettings() PlayerSettingMap {
-	t := true
-	f := false
-	dark := "dark"
-	en := "en"
-	medium := "medium"
-	anyone := "anyone"
-	vol1 := 1.0
-
-	return PlayerSettingMap{
-		Theme:               &dark,
-		Language:            &en,
-		ReduceMotion:        &f,
-		FontSize:            &medium,
-		NotifyDM:            &t,
-		NotifyGameInvite:    &t,
-		NotifyFriendRequest: &t,
-		NotifySound:         &t,
-		MuteAll:             &f,
-		VolumeMaster:        &vol1,
-		VolumeSFX:           &vol1,
-		VolumeUI:            &vol1,
-		VolumeNotifications: &vol1,
-		VolumeMusic:         &vol1,
-		ShowMoveHints:       &t,
-		ConfirmMove:         &f,
-		ShowTimerWarning:    &t,
-		ShowOnlineStatus:    &t,
-		AllowDMs:            &anyone,
-	}
-}
-
-type AddAllowedEmailParams struct {
-	Email     string
-	Role      PlayerRole
-	InvitedBy *uuid.UUID
-}
-
 type RoomStatus string
 
 const (
@@ -210,15 +127,6 @@ type OAuthIdentity struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-type AllowedEmail struct {
-	Email     string     `json:"email"`
-	Role      PlayerRole `json:"role"`
-	Note      *string    `json:"note,omitempty"`
-	InvitedBy *uuid.UUID `json:"invited_by,omitempty"`
-	ExpiresAt *time.Time `json:"expires_at,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
-}
-
 type EndedBy string
 
 const (
@@ -276,79 +184,7 @@ type Rating struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-// RatingLeaderboardEntry is a leaderboard row with player info joined in.
-// MMR is intentionally excluded — it must not be serialized to the frontend.
-type RatingLeaderboardEntry struct {
-	PlayerID      uuid.UUID `json:"player_id"`
-	GameID        string    `json:"game_id"`
-	Username      string    `json:"username"`
-	AvatarURL     string    `json:"avatar_url,omitempty"`
-	DisplayRating float64   `json:"display_rating"`
-	GamesPlayed   int       `json:"games_played"`
-	WinStreak     int       `json:"win_streak"`
-	LossStreak    int       `json:"loss_streak"`
-	UpdatedAt     time.Time `json:"updated_at"`
-}
 
-// NotificationType identifies the kind of inbox notification.
-type NotificationType string
-
-const (
-	NotificationTypeFriendRequest  NotificationType = "friend_request"
-	NotificationTypeRoomInvitation NotificationType = "room_invitation"
-	NotificationTypeBanIssued      NotificationType = "ban_issued"
-)
-
-// BanReason identifies why a queue ban was issued.
-type BanReason string
-
-const (
-	BanReasonDeclineThreshold BanReason = "decline_threshold"
-	BanReasonModerator        BanReason = "moderator"
-)
-
-// Notification is a persistent inbox notification for a player.
-type Notification struct {
-	ID              uuid.UUID        `json:"id"`
-	PlayerID        uuid.UUID        `json:"player_id"`
-	Type            NotificationType `json:"type"`
-	Payload         []byte           `json:"payload"` // raw JSONB
-	ActionTaken     *string          `json:"action_taken,omitempty"`
-	ActionExpiresAt *time.Time       `json:"action_expires_at,omitempty"`
-	ReadAt          *time.Time       `json:"read_at,omitempty"`
-	CreatedAt       time.Time        `json:"created_at"`
-}
-
-// NotificationPayloadFriendRequest is the payload for friend_request notifications.
-type NotificationPayloadFriendRequest struct {
-	FromPlayerID string `json:"from_player_id"`
-	FromUsername string `json:"from_username"`
-}
-
-// NotificationPayloadRoomInvitation is the payload for room_invitation notifications.
-type NotificationPayloadRoomInvitation struct {
-	FromPlayerID string `json:"from_player_id"`
-	FromUsername string `json:"from_username"`
-	RoomID       string `json:"room_id"`
-	RoomCode     string `json:"room_code"`
-	GameID       string `json:"game_id"`
-	GameName     string `json:"game_name"`
-}
-
-// NotificationPayloadBanIssued is the payload for ban_issued notifications.
-type NotificationPayloadBanIssued struct {
-	Reason       BanReason `json:"reason"`
-	DurationSecs int       `json:"duration_secs"`
-	ExpiresAt    time.Time `json:"expires_at"`
-}
-
-// CreateNotificationParams holds the fields needed to create a notification.
-type CreateNotificationParams struct {
-	PlayerID        uuid.UUID
-	Type            NotificationType
-	Payload         []byte
-	ActionExpiresAt *time.Time
-}
 
 // --- Store interface ---------------------------------------------------------
 
@@ -363,21 +199,6 @@ type Store interface {
 	GetPlayerByUsername(ctx context.Context, username string) (Player, error)
 	UpdatePlayerAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error
 	SoftDeletePlayer(ctx context.Context, id uuid.UUID) error
-
-	// Player settings
-	// GetPlayerSettings returns the stored settings merged over DefaultPlayerSettings().
-	// If no row exists for the player, returns a PlayerSettings with all defaults.
-	GetPlayerSettings(ctx context.Context, playerID uuid.UUID) (PlayerSettings, error)
-	// UpsertPlayerSettings replaces the settings JSONB for the player atomically.
-	UpsertPlayerSettings(ctx context.Context, playerID uuid.UUID, settings PlayerSettingMap) (PlayerSettings, error)
-
-	// Admin — allowed emails
-	ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error)
-	AddAllowedEmail(ctx context.Context, params AddAllowedEmailParams) (AllowedEmail, error)
-	RemoveAllowedEmail(ctx context.Context, email string) error
-	// Admin — players
-	ListPlayers(ctx context.Context) ([]Player, error)
-	SetPlayerRole(ctx context.Context, playerID uuid.UUID, role PlayerRole) error
 
 	// Rooms
 	CreateRoom(ctx context.Context, params CreateRoomParams) (Room, error)
@@ -448,7 +269,6 @@ type Store interface {
 	// Ratings
 	GetRating(ctx context.Context, playerID uuid.UUID, gameID string) (Rating, error)
 	UpsertRating(ctx context.Context, r Rating) error
-	GetRatingLeaderboard(ctx context.Context, gameID string, limit int) ([]RatingLeaderboardEntry, error)
 
 	// Pause / resume votes
 	VotePause(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
@@ -461,19 +281,6 @@ type Store interface {
 	VoteReady(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
 	ClearReadyVotes(ctx context.Context, sessionID uuid.UUID) error
 
-	// Notifications
-	CreateNotification(ctx context.Context, params CreateNotificationParams) (Notification, error)
-	GetNotification(ctx context.Context, id uuid.UUID) (Notification, error)
-	// ListNotifications returns notifications for a player.
-	// If includeRead is false, only unread notifications are returned.
-	// Read notifications older than readCutoff are excluded even if includeRead is true.
-	ListNotifications(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]Notification, error)
-	// MarkNotificationRead sets read_at to now for the given notification.
-	// No-op if already read.
-	MarkNotificationRead(ctx context.Context, id uuid.UUID) error
-	// SetNotificationAction records an accepted or declined action on a notification.
-	// Returns an error if action_expires_at has passed or action_taken is already set.
-	SetNotificationAction(ctx context.Context, id uuid.UUID, action string) error
 }
 
 // --- Params ------------------------------------------------------------------

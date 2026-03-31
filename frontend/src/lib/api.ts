@@ -498,8 +498,8 @@ export const leaderboard = {
    * game_id is required — ratings are per-game and must not be mixed.
    */
   get: (gameId: string, limit = 20) => {
-    const params = new URLSearchParams({ limit: String(limit), game_id: gameId })
-    return request<Rating[]>(`/leaderboard?${params}`)
+    const params = new URLSearchParams({ limit: String(limit) })
+    return request<Rating[]>(`/ratings/${gameId}/leaderboard?${params}`)
   },
 }
 

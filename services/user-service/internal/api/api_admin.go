@@ -5,11 +5,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/platform/store"
+	"github.com/tableforge/services/user-service/internal/store"
 	sharedmw "github.com/tableforge/shared/middleware"
 )
-
-// --- Allowed emails ----------------------------------------------------------
 
 // GET /api/v1/admin/allowed-emails
 func handleListAllowedEmails(st store.Store) http.HandlerFunc {
@@ -24,7 +22,7 @@ func handleListAllowedEmails(st store.Store) http.HandlerFunc {
 }
 
 type addAllowedEmailRequest struct {
-	Email string           `json:"email"`
+	Email string          `json:"email"`
 	Role  store.PlayerRole `json:"role"`
 }
 
@@ -44,7 +42,6 @@ func handleAddAllowedEmail(st store.Store) http.HandlerFunc {
 			req.Role = store.RolePlayer
 		}
 
-		// Managers can only invite players, not other managers or owners.
 		callerRole, _ := sharedmw.RoleFromContext(r.Context())
 		if callerRole == sharedmw.RoleManager && string(req.Role) != sharedmw.RolePlayer {
 			writeError(w, http.StatusForbidden, "managers can only invite players")
@@ -81,8 +78,6 @@ func handleRemoveAllowedEmail(st store.Store) http.HandlerFunc {
 	}
 }
 
-// --- Players -----------------------------------------------------------------
-
 // GET /api/v1/admin/players
 func handleListPlayers(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +112,6 @@ func handleSetPlayerRole(st store.Store) http.HandlerFunc {
 			return
 		}
 
-		// Prevent self-demotion.
 		callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
 		if callerID == playerID {
 			callerRole, _ := sharedmw.RoleFromContext(r.Context())

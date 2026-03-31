@@ -21,12 +21,9 @@ type FakeStore struct {
 	Moves             map[uuid.UUID][]store.Move
 	PauseVoteMap      map[uuid.UUID][]uuid.UUID
 	ResumeVoteMap     map[uuid.UUID][]uuid.UUID
-	AllowedEmails     map[string]store.AllowedEmail
 	GameResults       map[uuid.UUID]store.GameResult
 	RematchVotes      map[uuid.UUID][]store.RematchVote
 	Ratings           map[string]store.Rating
-	Notifications     map[uuid.UUID]store.Notification
-	PlayerSettingsMap map[uuid.UUID]store.PlayerSettings
 }
 
 func NewFakeStore() *FakeStore {
@@ -39,12 +36,9 @@ func NewFakeStore() *FakeStore {
 		Moves:             make(map[uuid.UUID][]store.Move),
 		PauseVoteMap:      make(map[uuid.UUID][]uuid.UUID),
 		ResumeVoteMap:     make(map[uuid.UUID][]uuid.UUID),
-		AllowedEmails:     make(map[string]store.AllowedEmail),
 		GameResults:       make(map[uuid.UUID]store.GameResult),
 		RematchVotes:      make(map[uuid.UUID][]store.RematchVote),
 		Ratings:           make(map[string]store.Rating),
-		Notifications:     make(map[uuid.UUID]store.Notification),
-		PlayerSettingsMap: make(map[uuid.UUID]store.PlayerSettings),
 	}
 }
 
@@ -82,47 +76,6 @@ func (f *FakeStore) GetPlayerByUsername(_ context.Context, username string) (sto
 
 func (f *FakeStore) UpdatePlayerAvatar(_ context.Context, _ uuid.UUID, _ string) error { return nil }
 func (f *FakeStore) SoftDeletePlayer(_ context.Context, _ uuid.UUID) error             { return nil }
-
-// --- Admin: allowed emails ---------------------------------------------------
-
-func (f *FakeStore) ListAllowedEmails(_ context.Context) ([]store.AllowedEmail, error) {
-	var result []store.AllowedEmail
-	for _, e := range f.AllowedEmails {
-		result = append(result, e)
-	}
-	return result, nil
-}
-
-func (f *FakeStore) AddAllowedEmail(_ context.Context, params store.AddAllowedEmailParams) (store.AllowedEmail, error) {
-	e := store.AllowedEmail{Email: params.Email, Role: params.Role, CreatedAt: time.Now()}
-	f.AllowedEmails[params.Email] = e
-	return e, nil
-}
-
-func (f *FakeStore) RemoveAllowedEmail(_ context.Context, email string) error {
-	delete(f.AllowedEmails, email)
-	return nil
-}
-
-// --- Admin: players ----------------------------------------------------------
-
-func (f *FakeStore) ListPlayers(_ context.Context) ([]store.Player, error) {
-	var result []store.Player
-	for _, p := range f.Players {
-		result = append(result, p)
-	}
-	return result, nil
-}
-
-func (f *FakeStore) SetPlayerRole(_ context.Context, playerID uuid.UUID, role store.PlayerRole) error {
-	p, ok := f.Players[playerID]
-	if !ok {
-		return ErrNotFound
-	}
-	p.Role = role
-	f.Players[playerID] = p
-	return nil
-}
 
 // --- Rooms -------------------------------------------------------------------
 
@@ -558,40 +511,6 @@ func (f *FakeStore) UpsertRating(_ context.Context, r store.Rating) error {
 	return nil
 }
 
-func (f *FakeStore) GetRatingLeaderboard(_ context.Context, gameID string, limit int) ([]store.RatingLeaderboardEntry, error) {
-	result := []store.RatingLeaderboardEntry{}
-	for _, r := range f.Ratings {
-		if r.GameID != gameID {
-			continue
-		}
-		p := f.Players[r.PlayerID]
-		avatarURL := ""
-		if p.AvatarURL != nil {
-			avatarURL = *p.AvatarURL
-		}
-		result = append(result, store.RatingLeaderboardEntry{
-			PlayerID:      r.PlayerID,
-			GameID:        r.GameID,
-			Username:      p.Username,
-			AvatarURL:     avatarURL,
-			DisplayRating: r.DisplayRating,
-			GamesPlayed:   r.GamesPlayed,
-			WinStreak:     r.WinStreak,
-			LossStreak:    r.LossStreak,
-			UpdatedAt:     r.UpdatedAt,
-		})
-	}
-	for i := 1; i < len(result); i++ {
-		for j := i; j > 0 && result[j].DisplayRating > result[j-1].DisplayRating; j-- {
-			result[j], result[j-1] = result[j-1], result[j]
-		}
-	}
-	if limit > 0 && len(result) > limit {
-		result = result[:limit]
-	}
-	return result, nil
-}
-
 // --- Pause / resume votes ----------------------------------------------------
 
 func (f *FakeStore) VotePause(_ context.Context, sessionID uuid.UUID, playerID uuid.UUID) (bool, error) {
@@ -697,104 +616,7 @@ func (f *FakeStore) checkAllVotedByID(sessionID uuid.UUID, votes []uuid.UUID) bo
 	return len(votes) >= len(f.RoomPlayers[gs.RoomID])
 }
 
-// --- Notifications -----------------------------------------------------------
-
-func (f *FakeStore) CreateNotification(_ context.Context, params store.CreateNotificationParams) (store.Notification, error) {
-	n := store.Notification{
-		ID:              uuid.New(),
-		PlayerID:        params.PlayerID,
-		Type:            params.Type,
-		Payload:         params.Payload,
-		ActionExpiresAt: params.ActionExpiresAt,
-		CreatedAt:       time.Now(),
-	}
-	f.Notifications[n.ID] = n
-	return n, nil
-}
-
-func (f *FakeStore) GetNotification(_ context.Context, id uuid.UUID) (store.Notification, error) {
-	n, ok := f.Notifications[id]
-	if !ok {
-		return store.Notification{}, ErrNotFound
-	}
-	return n, nil
-}
-
-func (f *FakeStore) ListNotifications(_ context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]store.Notification, error) {
-	var result []store.Notification
-	for _, n := range f.Notifications {
-		if n.PlayerID != playerID {
-			continue
-		}
-		if !includeRead && n.ReadAt != nil {
-			continue
-		}
-		if includeRead && n.ReadAt != nil && n.CreatedAt.Before(readCutoff) {
-			continue
-		}
-		result = append(result, n)
-	}
-	if result == nil {
-		result = []store.Notification{}
-	}
-	return result, nil
-}
-
-func (f *FakeStore) MarkNotificationRead(_ context.Context, id uuid.UUID) error {
-	n, ok := f.Notifications[id]
-	if !ok {
-		return ErrNotFound
-	}
-	if n.ReadAt != nil {
-		return nil // already read, no-op
-	}
-	now := time.Now()
-	n.ReadAt = &now
-	f.Notifications[id] = n
-	return nil
-}
-
-func (f *FakeStore) SetNotificationAction(_ context.Context, id uuid.UUID, action string) error {
-	n, ok := f.Notifications[id]
-	if !ok {
-		return ErrNotFound
-	}
-	if n.ActionTaken != nil {
-		return store.ErrNotificationActionExpired
-	}
-	if n.ActionExpiresAt != nil && time.Now().After(*n.ActionExpiresAt) {
-		return store.ErrNotificationActionExpired
-	}
-	n.ActionTaken = &action
-	f.Notifications[id] = n
-	return nil
-}
-
 // --- Player settings ---------------------------------------------------------
-
-func (f *FakeStore) GetPlayerSettings(_ context.Context, playerID uuid.UUID) (store.PlayerSettings, error) {
-	// FakeStore does not persist settings between calls — always return defaults.
-	// Tests that need specific settings should call UpsertPlayerSettings first.
-	settings, ok := f.PlayerSettingsMap[playerID]
-	if !ok {
-		return store.PlayerSettings{
-			PlayerID:  playerID,
-			Settings:  store.DefaultPlayerSettings(),
-			UpdatedAt: time.Time{},
-		}, nil
-	}
-	return settings, nil
-}
-
-func (f *FakeStore) UpsertPlayerSettings(_ context.Context, playerID uuid.UUID, settings store.PlayerSettingMap) (store.PlayerSettings, error) {
-	ps := store.PlayerSettings{
-		PlayerID:  playerID,
-		Settings:  settings,
-		UpdatedAt: time.Now(),
-	}
-	f.PlayerSettingsMap[playerID] = ps
-	return ps, nil
-}
 
 // --- Exec (used by test migrations) ------------------------------------------
 

@@ -13,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
 	"github.com/tableforge/server/internal/domain/lobby"
-	"github.com/tableforge/server/internal/domain/notification"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/events"
 	"github.com/tableforge/server/internal/platform/ratelimit"
@@ -34,7 +33,6 @@ func NewRouter(
 	jwtSecret []byte,
 	limiter *ratelimit.Limiter,
 	eventStore *events.Store,
-	notificationSvc *notification.Service,
 	userClient *userclient.Client,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -56,17 +54,11 @@ func NewRouter(
 		promhttp.HandlerOpts{},
 	).ServeHTTP)
 
-	var (
-		moveLimiter  func(http.Handler) http.Handler
-		adminLimiter func(http.Handler) http.Handler
-	)
+	var moveLimiter func(http.Handler) http.Handler
 	if limiter != nil {
 		moveLimiter = limiter.WithKeyspace("rl:move", 60, time.Minute).Middleware
-		adminLimiter = limiter.WithKeyspace("rl:admin", 30, time.Minute).Middleware
 	} else {
-		noop := func(next http.Handler) http.Handler { return next }
-		moveLimiter = noop
-		adminLimiter = noop
+		moveLimiter = func(next http.Handler) http.Handler { return next }
 	}
 
 	// authMW is nil in test mode — all protected routes are open.
@@ -82,16 +74,11 @@ func NewRouter(
 		r.Use(authMW)
 
 		r.Get("/games", handleListGames)
-		r.Get("/leaderboard", handleGetLeaderboard(st))
 		r.Get("/bots/profiles", handleListBotProfiles())
 
 		r.Post("/players", handleCreatePlayer(st))
 		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
 		r.Get("/players/{playerID}/stats", handleGetPlayerStats(st))
-		r.Get("/players/{playerID}/notifications", handleListNotifications(notificationSvc))
-		r.Get("/players/{playerID}/settings", handleGetPlayerSettings(st))
-		r.Put("/players/{playerID}/settings", handleUpsertPlayerSettings(st))
-
 		r.Post("/rooms", handleCreateRoom(lobbyService))
 		r.Get("/rooms", handleListRooms(lobbyService))
 		r.Get("/rooms/{roomID}", handleGetRoom(lobbyService))
@@ -113,23 +100,6 @@ func NewRouter(
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
 		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub, st))
 
-		// Notification actions
-		r.Post("/notifications/{notificationID}/read", handleMarkNotificationRead(notificationSvc))
-		r.Post("/notifications/{notificationID}/accept", handleAcceptNotification(notificationSvc))
-		r.Post("/notifications/{notificationID}/decline", handleDeclineNotification(notificationSvc))
-
-		// Admin routes — manager+ only, stricter rate limit.
-		r.Route("/admin", func(r chi.Router) {
-			r.Use(adminLimiter)
-			r.Use(requireRole(sharedmw.RoleManager))
-
-			r.Get("/allowed-emails", handleListAllowedEmails(st))
-			r.Post("/allowed-emails", handleAddAllowedEmail(st))
-			r.Delete("/allowed-emails/{email}", handleRemoveAllowedEmail(st))
-
-			r.Get("/players", handleListPlayers(st))
-			r.With(requireRole(sharedmw.RoleOwner)).Put("/players/{playerID}/role", handleSetPlayerRole(st))
-		})
 	})
 
 	return r

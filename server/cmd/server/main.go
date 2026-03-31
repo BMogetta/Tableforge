@@ -19,7 +19,6 @@ import (
 
 	"github.com/tableforge/server/games"
 	"github.com/tableforge/server/internal/domain/lobby"
-	"github.com/tableforge/server/internal/domain/notification"
 	"github.com/tableforge/server/internal/domain/runtime"
 	"github.com/tableforge/server/internal/platform/api"
 	"github.com/tableforge/server/internal/platform/events"
@@ -123,8 +122,6 @@ func main() {
 		jwtSecret = []byte(config.MustEnv("JWT_SECRET"))
 	}
 
-	notificationSvc := notification.New(st, hub)
-
 	router := api.NewRouter(
 		lobbyService,
 		runtimeService,
@@ -133,7 +130,6 @@ func main() {
 		jwtSecret,
 		limiter,
 		eventStore,
-		notificationSvc,
 		userClient,
 	)
 

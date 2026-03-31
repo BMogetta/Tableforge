@@ -39,37 +39,6 @@ func (s *PGStore) UpsertRating(ctx context.Context, r Rating) error {
 	return nil
 }
 
-// GetRatingLeaderboard returns the top N players for a game ordered by
-// display_rating descending. Player username and avatar are joined in.
-// MMR is intentionally excluded from the result — it must not reach the frontend.
-func (s *PGStore) GetRatingLeaderboard(ctx context.Context, gameID string, limit int) ([]RatingLeaderboardEntry, error) {
-	rows, err := s.pool.Query(ctx,
-		`SELECT r.player_id, r.game_id, p.username, COALESCE(p.avatar_url, ''),
-		        r.display_rating, r.games_played, r.win_streak, r.loss_streak, r.updated_at
-		 FROM ratings r
-		 JOIN players p ON p.id = r.player_id
-		 WHERE r.game_id = $1
-		   AND p.deleted_at IS NULL
-		 ORDER BY r.display_rating DESC
-		 LIMIT $2`,
-		gameID, limit,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("GetRatingLeaderboard: %w", err)
-	}
-	defer rows.Close()
-
-	entries := []RatingLeaderboardEntry{}
-	for rows.Next() {
-		e, err := scanLeaderboardEntry(rows)
-		if err != nil {
-			return nil, err
-		}
-		entries = append(entries, e)
-	}
-	return entries, rows.Err()
-}
-
 func scanRating(row scanner) (Rating, error) {
 	var r Rating
 	if err := row.Scan(
@@ -81,13 +50,3 @@ func scanRating(row scanner) (Rating, error) {
 	return r, nil
 }
 
-func scanLeaderboardEntry(row scanner) (RatingLeaderboardEntry, error) {
-	var e RatingLeaderboardEntry
-	if err := row.Scan(
-		&e.PlayerID, &e.GameID, &e.Username, &e.AvatarURL,
-		&e.DisplayRating, &e.GamesPlayed, &e.WinStreak, &e.LossStreak, &e.UpdatedAt,
-	); err != nil {
-		return RatingLeaderboardEntry{}, fmt.Errorf("scanLeaderboardEntry: %w", err)
-	}
-	return e, nil
-}

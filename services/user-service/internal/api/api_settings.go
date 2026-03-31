@@ -5,13 +5,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/server/internal/platform/store"
+	"github.com/tableforge/services/user-service/internal/store"
 )
 
 // GET /api/v1/players/{playerID}/settings
-//
-// Returns the player's settings merged over application defaults.
-// If the player has no stored settings, returns the defaults.
 func handleGetPlayerSettings(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
@@ -31,12 +28,6 @@ func handleGetPlayerSettings(st store.Store) http.HandlerFunc {
 }
 
 // PUT /api/v1/players/{playerID}/settings
-//
-// Replaces the player's settings atomically. The body must be a partial or
-// full PlayerSettingMap — only provided keys are stored. Missing keys will
-// fall back to application defaults at read time.
-//
-// Request body: PlayerSettingMap (any subset of keys)
 func handleUpsertPlayerSettings(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))

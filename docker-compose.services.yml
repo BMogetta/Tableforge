@@ -79,7 +79,7 @@ services:
       #   /api/v1/admin/players/{id}/ban (+ /bans)
       #   /api/v1/admin/bans/*
       #   /api/v1/admin/reports (+ /reports/*)
-      - "traefik.http.routers.user-service.rule=PathRegexp(`^/api/v1/players/[^/]+/(profile|friends|block|mute|mutes|achievements|report)`) || PathRegexp(`^/api/v1/admin/(players/[^/]+/(ban|bans|reports)|bans|reports)`)"
+      - "traefik.http.routers.user-service.rule=PathRegexp(`^/api/v1/players/[^/]+/(profile|friends|block|mute|mutes|achievements|report|settings)`) || PathRegexp(`^/api/v1/admin/(players|allowed-emails|bans|reports)`)"
       - "traefik.http.routers.user-service.entrypoints=web"
       - "traefik.http.routers.user-service.priority=50"
       - "traefik.http.routers.user-service.service=user-service-svc"

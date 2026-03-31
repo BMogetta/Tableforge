@@ -147,6 +147,19 @@ type Store interface {
 	// Achievements
 	UnlockAchievement(ctx context.Context, playerID uuid.UUID, key string) (PlayerAchievement, error)
 	ListAchievements(ctx context.Context, playerID uuid.UUID) ([]PlayerAchievement, error)
+
+	// Admin — players
+	ListPlayers(ctx context.Context) ([]Player, error)
+	SetPlayerRole(ctx context.Context, playerID uuid.UUID, role PlayerRole) error
+
+	// Admin — allowed emails
+	ListAllowedEmails(ctx context.Context) ([]AllowedEmail, error)
+	AddAllowedEmail(ctx context.Context, params AddAllowedEmailParams) (AllowedEmail, error)
+	RemoveAllowedEmail(ctx context.Context, email string) error
+
+	// Player settings
+	GetPlayerSettings(ctx context.Context, playerID uuid.UUID) (PlayerSettings, error)
+	UpsertPlayerSettings(ctx context.Context, playerID uuid.UUID, settings PlayerSettingMap) (PlayerSettings, error)
 }
 
 // --- Postgres implementation -------------------------------------------------

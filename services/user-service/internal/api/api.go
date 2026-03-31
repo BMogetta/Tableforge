@@ -45,6 +45,10 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	// --- Achievements --------------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/achievements", handleListAchievements(st))
 
+	// --- Player settings -----------------------------------------------------
+	r.Get("/api/v1/players/{playerID}/settings", handleGetPlayerSettings(st))
+	r.Put("/api/v1/players/{playerID}/settings", handleUpsertPlayerSettings(st))
+
 	// --- Admin: bans ---------------------------------------------------------
 	r.Group(func(r chi.Router) {
 		r.Use(requireRole(sharedmw.RoleManager))
@@ -59,6 +63,16 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		r.Get("/api/v1/admin/reports", handleListPendingReports(st))
 		r.Get("/api/v1/admin/players/{playerID}/reports", handleListReportsByPlayer(st))
 		r.Put("/api/v1/admin/reports/{reportID}/review", handleReviewReport(st))
+	})
+
+	// --- Admin: players & allowed emails -------------------------------------
+	r.Group(func(r chi.Router) {
+		r.Use(requireRole(sharedmw.RoleManager))
+		r.Get("/api/v1/admin/allowed-emails", handleListAllowedEmails(st))
+		r.Post("/api/v1/admin/allowed-emails", handleAddAllowedEmail(st))
+		r.Delete("/api/v1/admin/allowed-emails/{email}", handleRemoveAllowedEmail(st))
+		r.Get("/api/v1/admin/players", handleListPlayers(st))
+		r.With(requireRole(sharedmw.RoleOwner)).Put("/api/v1/admin/players/{playerID}/role", handleSetPlayerRole(st))
 	})
 
 	// --- Player: reports -----------------------------------------------------

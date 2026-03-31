@@ -89,7 +89,7 @@ func newTestRouter(t *testing.T) (http.Handler, *fakeStore) {
 	reg := newFakeRegistry(&stubGame{}, &stubTicTacToeGame{})
 	svc := lobby.New(s, reg)
 	rt := runtime.New(s, reg, nil, nil, nil)
-	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil, nil, nil), s
+	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil), s
 }
 
 func postJSON(t *testing.T, router http.Handler, path string, body any) *httptest.ResponseRecorder {
@@ -405,30 +405,3 @@ func TestGetSessionHistory_InvalidID(t *testing.T) {
 	}
 }
 
-func TestGetLeaderboard(t *testing.T) {
-	router, _ := newTestRouter(t)
-
-	w := getJSON(t, router, "/api/v1/leaderboard?game_id=chess")
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	var entries []store.RatingLeaderboardEntry
-	json.NewDecoder(w.Body).Decode(&entries)
-	// FakeStore returns empty slice — just verify the shape is correct.
-	if entries == nil {
-		t.Error("expected non-nil slice")
-	}
-}
-
-// TODO test if this is redundant
-func TestGetLeaderboard_WithGameID(t *testing.T) {
-	router, _ := newTestRouter(t)
-
-	w := getJSON(t, router, "/api/v1/leaderboard?game_id=chess&limit=5")
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-}

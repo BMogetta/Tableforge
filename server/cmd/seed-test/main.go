@@ -78,20 +78,13 @@ func main() {
 	}
 
 	// Add all emails to allowed_emails so they can log in via test-login.
-	allowedEmails := []struct {
-		email string
-		role  store.PlayerRole
-	}{
-		{"test1@tableforge.test", store.RolePlayer},
-		{"test2@tableforge.test", store.RolePlayer},
-		{"test3@tableforge.test", store.RolePlayer},
-	}
-	for _, e := range allowedEmails {
-		if _, err := st.AddAllowedEmail(ctx, store.AddAllowedEmailParams{
-			Email: e.email,
-			Role:  e.role,
-		}); err != nil {
-			log.Printf("warn: add allowed email %s: %v", e.email, err)
+	for _, email := range []string{"test1@tableforge.test", "test2@tableforge.test", "test3@tableforge.test"} {
+		sql := fmt.Sprintf(
+			`INSERT INTO allowed_emails (email, role) VALUES ('%s', 'player') ON CONFLICT (email) DO NOTHING`,
+			email,
+		)
+		if err := st.Exec(ctx, sql); err != nil {
+			log.Printf("warn: add allowed email %s: %v", email, err)
 		}
 	}
 
