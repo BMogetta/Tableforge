@@ -25,6 +25,9 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	r.Get("/api/v1/players/{playerID}/profile", handleGetProfile(st))
 	r.Put("/api/v1/players/{playerID}/profile", handleUpsertProfile(st))
 
+	// --- Player search -------------------------------------------------------
+	r.Get("/api/v1/players/search", handleSearchPlayer(st))
+
 	// --- Friendships ---------------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/friends", handleListFriends(st))
 	r.Get("/api/v1/players/{playerID}/friends/pending", handleListPendingRequests(st))

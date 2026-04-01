@@ -3,10 +3,28 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
+
+func (s *pgStore) FindPlayerByUsername(ctx context.Context, username string) (Player, error) {
+	row := s.db.QueryRow(ctx,
+		`SELECT id, username, avatar_url, role, is_bot, created_at, deleted_at
+		 FROM players
+		 WHERE LOWER(username) = LOWER($1) AND deleted_at IS NULL AND is_bot = FALSE`,
+		username,
+	)
+	var p Player
+	if err := row.Scan(&p.ID, &p.Username, &p.AvatarURL, &p.Role, &p.IsBot, &p.CreatedAt, &p.DeletedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Player{}, fmt.Errorf("player not found")
+		}
+		return Player{}, fmt.Errorf("FindPlayerByUsername: %w", err)
+	}
+	return p, nil
+}
 
 func (s *pgStore) GetProfile(ctx context.Context, playerID uuid.UUID) (PlayerProfile, error) {
 	row := s.db.QueryRow(ctx, `

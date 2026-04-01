@@ -19,6 +19,19 @@ export interface DMConversation {
   unread_count: number
 }
 
+// --- Player search -----------------------------------------------------------
+
+export interface PlayerSearchResult {
+  id: string
+  username: string
+  avatar_url?: string
+}
+
+export const players = {
+  search: (username: string) =>
+    request<PlayerSearchResult>(`/players/search?username=${encodeURIComponent(username)}`),
+}
+
 // --- Friends -----------------------------------------------------------------
 
 export const friends = {

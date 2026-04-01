@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { friends, presence } from '@/features/friends/api'
+import { friends, players, presence } from '@/features/friends/api'
 import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import { catchToAppError } from '@/utils/errors'
@@ -22,6 +22,8 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
   const qc = useQueryClient()
   const [tab, setTab] = useState<Tab>('friends')
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const [addUsername, setAddUsername] = useState('')
+  const [addPending, setAddPending] = useState(false)
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: keys.friends(player.id) })
@@ -72,6 +74,35 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
     onSettled: () => setPendingId(null),
   })
 
+  async function handleAddFriend(e: React.FormEvent) {
+    e.preventDefault()
+    const username = addUsername.trim()
+    if (!username) {
+      return
+    }
+    setAddPending(true)
+    try {
+      const found = await players.search(username)
+      if (found.id === player.id) {
+        toast.showWarning("You can't add yourself as a friend.")
+        return
+      }
+      await friends.sendRequest(player.id, found.id)
+      toast.showInfo(`Friend request sent to ${found.username}!`)
+      setAddUsername('')
+      invalidate()
+    } catch (err) {
+      const appErr = catchToAppError(err)
+      if (appErr.reason === 'NOT_FOUND') {
+        toast.showWarning(`Player "${username}" not found.`)
+      } else {
+        toast.showError(appErr)
+      }
+    } finally {
+      setAddPending(false)
+    }
+  }
+
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div className={styles.panel} data-testid='friends-panel'>
@@ -79,6 +110,24 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
           <h2 className={styles.title}>Friends</h2>
           <button className={styles.closeBtn} onClick={onClose}>x</button>
         </div>
+
+        <form className={styles.addFriendRow} onSubmit={handleAddFriend}>
+          <input
+            className={styles.addFriendInput}
+            value={addUsername}
+            onChange={e => setAddUsername(e.target.value)}
+            placeholder='Add by username...'
+            disabled={addPending}
+          />
+          <button
+            className='btn btn-primary'
+            type='submit'
+            disabled={addPending || !addUsername.trim()}
+            style={{ padding: '4px 12px', fontSize: 11 }}
+          >
+            {addPending ? '...' : 'Add'}
+          </button>
+        </form>
 
         <div className={styles.tabs}>
           <button

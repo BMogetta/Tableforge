@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -482,6 +483,17 @@ func (m *mockStore) GetPlayerSettings(_ context.Context, playerID uuid.UUID) (st
 		}, nil
 	}
 	return s, nil
+}
+
+func (m *mockStore) FindPlayerByUsername(_ context.Context, username string) (store.Player, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, p := range m.players {
+		if p.Username == username {
+			return p, nil
+		}
+	}
+	return store.Player{}, fmt.Errorf("player not found")
 }
 
 func (m *mockStore) UpsertPlayerSettings(_ context.Context, playerID uuid.UUID, settings store.PlayerSettingMap) (store.PlayerSettings, error) {

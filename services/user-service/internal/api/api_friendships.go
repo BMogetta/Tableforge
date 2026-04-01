@@ -10,6 +10,29 @@ import (
 	sharedmw "github.com/tableforge/shared/middleware"
 )
 
+// GET /api/v1/players/search?username=xxx
+func handleSearchPlayer(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := r.URL.Query().Get("username")
+		if username == "" {
+			writeError(w, http.StatusBadRequest, "username query param required")
+			return
+		}
+
+		player, err := st.FindPlayerByUsername(r.Context(), username)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "player not found")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"id":         player.ID,
+			"username":   player.Username,
+			"avatar_url": player.AvatarURL,
+		})
+	}
+}
+
 func handleListFriends(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))

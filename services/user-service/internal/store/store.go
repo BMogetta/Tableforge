@@ -157,6 +157,9 @@ type Store interface {
 	UnlockAchievement(ctx context.Context, playerID uuid.UUID, key string) (PlayerAchievement, error)
 	ListAchievements(ctx context.Context, playerID uuid.UUID) ([]PlayerAchievement, error)
 
+	// Search
+	FindPlayerByUsername(ctx context.Context, username string) (Player, error)
+
 	// Admin — players
 	ListPlayers(ctx context.Context) ([]Player, error)
 	SetPlayerRole(ctx context.Context, playerID uuid.UUID, role PlayerRole) error
