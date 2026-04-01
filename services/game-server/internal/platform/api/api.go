@@ -43,12 +43,12 @@ func NewRouter(
 	r.Use(otelchi.Middleware("game-server",
 		otelchi.WithChiRoutes(r),
 		otelchi.WithFilter(func(r *http.Request) bool {
-			return r.URL.Path != "/metrics" && r.URL.Path != "/health"
+			return r.URL.Path != "/metrics" && r.URL.Path != "/healthz"
 		}),
 	))
 	r.Use(metricsMiddleware)
 
-	r.Get("/health", handleHealth)
+	r.Get("/healthz", handleHealth)
 	r.Get("/metrics", promhttp.HandlerFor(
 		prometheus.DefaultGatherer,
 		promhttp.HandlerOpts{},

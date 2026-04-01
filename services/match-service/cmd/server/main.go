@@ -12,13 +12,13 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
 	"github.com/riandyrn/otelchi"
 	"github.com/tableforge/match-service/internal/api"
 	"github.com/tableforge/match-service/internal/consumer"
 	"github.com/tableforge/match-service/internal/queue"
 	"github.com/tableforge/shared/config"
 	sharedmw "github.com/tableforge/shared/middleware"
+	sharedredis "github.com/tableforge/shared/redis"
 	gamev1 "github.com/tableforge/shared/proto/game/v1"
 	lobbyv1 "github.com/tableforge/shared/proto/lobby/v1"
 	ratingv1 "github.com/tableforge/shared/proto/rating/v1"
@@ -51,17 +51,8 @@ func main() {
 	jwtSecret := config.MustEnv("JWT_SECRET")
 
 	// --- Redis ---------------------------------------------------------------
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.MustEnv("REDIS_ADDR"),
-		Password: config.Env("REDIS_PASSWORD", ""),
-	})
+	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer rdb.Close()
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		slog.Error("failed to connect to redis", "error", err)
-		panic(err)
-	}
-	slog.Info("redis connected")
 
 	grpcOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -92,7 +83,8 @@ func main() {
 	slog.Info("game-server gRPC connected", "addr", gameServerAddr)
 
 	// --- Queue service -------------------------------------------------------
-	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient)
+	rankedGameID := config.Env("RANKED_GAME_ID", queue.DefaultRankedGameID)
+	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient, rankedGameID)
 
 	// --- Event consumer (player.banned) --------------------------------------
 	cons := consumer.New(rdb, queueSvc, slog.Default())

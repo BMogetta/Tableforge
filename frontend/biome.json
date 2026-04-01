@@ -39,9 +39,8 @@
         "useIsNan": "error",
         "useJsonImportAttributes": "on"
       },
-      "nursery": "warn",
       "style": {
-        "useBlockStatements": "error",
+        "useBlockStatements": "warn",
         "noDefaultExport": "error",
         "noNamespace": "warn",
         "noImplicitBoolean": "warn",

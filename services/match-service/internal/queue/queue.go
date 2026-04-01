@@ -78,9 +78,8 @@ const (
 	// blocking the next tick.
 	lockTTL = 4 * time.Second
 
-	// RankedGameID is the game used for ranked matchmaking sessions.
-	// TODO: make this configurable when more ranked games are added.
-	RankedGameID = "tictactoe"
+	// DefaultRankedGameID is the default game used for ranked matchmaking.
+	DefaultRankedGameID = "tictactoe"
 )
 
 // ---------------------------------------------------------------------------
@@ -91,14 +90,20 @@ const (
 	keyQueueSortedSet = "queue:ranked"           // sorted set: member=playerID, score=MMR
 	keyQueueMeta      = "queue:meta:"            // hash prefix: joined_at, mmr
 	keyPending        = "queue:pending:"         // hash prefix: player_a, player_b, accepted_a, accepted_b, mmr_a, mmr_b
+	keyShadow         = "queue:shadow:"          // hash prefix: player_a, player_b, accepted_a, accepted_b — survives pending expiry
 	keyDeclines       = "queue:declines:"        // list prefix: ISO timestamps of recent declines
 	keyBan            = "queue:ban:"             // string prefix: ban expiry unix timestamp
 	keyMatchmakeLock  = "queue:lock"             // SET NX EX lock for FindMatches
 	keyspacePrefix    = "__keyevent@0__:expired" // Redis keyspace notification channel
+
+	// shadowTTL is the TTL for shadow keys. Must be longer than
+	// ConfirmationWindowSecs so the shadow outlives the pending record.
+	shadowTTL = 60 * time.Second
 )
 
 func metaKey(playerID uuid.UUID) string     { return keyQueueMeta + playerID.String() }
 func pendingKey(matchID uuid.UUID) string   { return keyPending + matchID.String() }
+func shadowKey(matchID uuid.UUID) string    { return keyShadow + matchID.String() }
 func declinesKey(playerID uuid.UUID) string { return keyDeclines + playerID.String() }
 func banKey(playerID uuid.UUID) string      { return keyBan + playerID.String() }
 
@@ -113,21 +118,29 @@ type Service struct {
 	lobbyClient  lobbyv1.LobbyServiceClient
 	gameClient   gamev1.GameServiceClient
 	matchmaker   *matchmaking.Matchmaker
+	rankedGameID string
 }
 
-// New creates a new queue Service.
+// New creates a new queue Service. gameID is the game used for ranked
+// matchmaking (e.g. "tictactoe", "loveletter"). Pass DefaultRankedGameID
+// if you don't need to override it.
 func New(
 	rdb *redis.Client,
 	ratingClient ratingv1.RatingServiceClient,
 	lobbyClient lobbyv1.LobbyServiceClient,
 	gameClient gamev1.GameServiceClient,
+	gameID string,
 ) *Service {
+	if gameID == "" {
+		gameID = DefaultRankedGameID
+	}
 	return &Service{
 		rdb:          rdb,
 		ratingClient: ratingClient,
 		lobbyClient:  lobbyClient,
 		gameClient:   gameClient,
 		matchmaker:   matchmaking.NewMatchmaker(matchmaking.DefaultQueueConfig()),
+		rankedGameID: gameID,
 	}
 }
 
@@ -167,7 +180,7 @@ func (s *Service) Enqueue(ctx context.Context, playerID uuid.UUID) (QueuePositio
 	mmr := rating.DefaultMMR
 	resp, err := s.ratingClient.GetRating(ctx, &ratingv1.GetRatingRequest{
 		PlayerId: playerID.String(),
-		GameId:   RankedGameID,
+		GameId:   s.rankedGameID,
 	})
 	if err == nil {
 		mmr = resp.Mmr
@@ -240,7 +253,10 @@ func (s *Service) Accept(ctx context.Context, playerID uuid.UUID, matchID uuid.U
 		return ErrNotMatchParticipant
 	}
 
-	if err := s.rdb.HSet(ctx, key, acceptField, "1").Err(); err != nil {
+	pipe := s.rdb.Pipeline()
+	pipe.HSet(ctx, key, acceptField, "1")
+	pipe.HSet(ctx, shadowKey(matchID), acceptField, "1")
+	if _, err := pipe.Exec(ctx); err != nil {
 		return fmt.Errorf("Accept: hset: %w", err)
 	}
 
@@ -259,9 +275,9 @@ func (s *Service) Accept(ctx context.Context, playerID uuid.UUID, matchID uuid.U
 	mmrA, _ := strconv.ParseFloat(fields["mmr_a"], 64)
 	mmrB, _ := strconv.ParseFloat(fields["mmr_b"], 64)
 
-	// Both accepted — delete the pending record before starting the match
+	// Both accepted — delete pending + shadow before starting the match
 	// to prevent double-processing.
-	deleted, err := s.rdb.Del(ctx, key).Result()
+	deleted, err := s.rdb.Del(ctx, key, shadowKey(matchID)).Result()
 	if err != nil || deleted == 0 {
 		// Another instance already processed this — no-op.
 		return nil
@@ -291,8 +307,8 @@ func (s *Service) Decline(ctx context.Context, playerID uuid.UUID, matchID uuid.
 		return ErrNotMatchParticipant
 	}
 
-	// Delete the pending record immediately.
-	deleted, err := s.rdb.Del(ctx, key).Result()
+	// Delete the pending + shadow records immediately.
+	deleted, err := s.rdb.Del(ctx, key, shadowKey(matchID)).Result()
 	if err != nil || deleted == 0 {
 		return nil // already resolved
 	}
@@ -400,6 +416,7 @@ func (s *Service) FindAndPropose(ctx context.Context) {
 		matchID := uuid.New()
 		key := pendingKey(matchID)
 
+		sKey := shadowKey(matchID)
 		pipe := s.rdb.Pipeline()
 		pipe.HSet(ctx, key, map[string]any{
 			"player_a":   pAStr,
@@ -410,6 +427,15 @@ func (s *Service) FindAndPropose(ctx context.Context) {
 			"mmr_b":      strconv.FormatFloat(mmrB, 'f', -1, 64),
 		})
 		pipe.Expire(ctx, key, ConfirmationWindowSecs*time.Second)
+		// Shadow key outlives pending — used by ListenExpiry to identify
+		// who accepted vs who timed out.
+		pipe.HSet(ctx, sKey, map[string]any{
+			"player_a":   pAStr,
+			"player_b":   pBStr,
+			"accepted_a": "0",
+			"accepted_b": "0",
+		})
+		pipe.Expire(ctx, sKey, shadowTTL)
 		// Remove both players from the sorted set while confirmation is pending.
 		pipe.ZRem(ctx, keyQueueSortedSet, pAStr, pBStr)
 		pipe.Del(ctx, metaKey(pA), metaKey(pB))
@@ -460,20 +486,82 @@ func (s *Service) ListenExpiry(ctx context.Context) {
 			if !strings.HasPrefix(expiredKey, keyPending) {
 				continue
 			}
-			// The key has already expired — we cannot read it.
-			// TODO: implement shadow key pattern to distinguish acceptor from
-			// non-acceptor on timeout, enabling targeted penalisation.
-			// For now: both players time out with no penalty.
 			matchIDStr := strings.TrimPrefix(expiredKey, keyPending)
 			matchID, err := uuid.Parse(matchIDStr)
 			if err != nil {
 				continue
 			}
-			slog.Warn("queue: pending match expired", "match_id", matchID)
-			// We don't have the player IDs at this point (key expired).
-			// Clients detect timeout via the confirmation window on their end.
+			s.handleMatchExpiry(ctx, matchID)
 		}
 	}
+}
+
+// handleMatchExpiry is called when a queue:pending:* key expires.
+// Reads the shadow key to determine who accepted and applies targeted penalties.
+func (s *Service) handleMatchExpiry(ctx context.Context, matchID uuid.UUID) {
+	sKey := shadowKey(matchID)
+	fields, err := s.rdb.HGetAll(ctx, sKey).Result()
+	if err != nil || len(fields) == 0 {
+		slog.Warn("queue: pending match expired (no shadow data)", "match_id", matchID)
+		return
+	}
+	// Clean up shadow key now that we've read it.
+	s.rdb.Del(ctx, sKey)
+
+	playerA, _ := uuid.Parse(fields["player_a"])
+	playerB, _ := uuid.Parse(fields["player_b"])
+	acceptedA := fields["accepted_a"] == "1"
+	acceptedB := fields["accepted_b"] == "1"
+
+	switch {
+	case acceptedA && !acceptedB:
+		// A accepted, B timed out → re-queue A, penalize B
+		s.requeueAfterTimeout(ctx, playerA, "opponent_timeout")
+		s.penalizeTimeout(ctx, playerB)
+		slog.Info("queue: match expired", "match_id", matchID, "acceptor", playerA, "timed_out", playerB)
+
+	case !acceptedA && acceptedB:
+		// B accepted, A timed out → re-queue B, penalize A
+		s.requeueAfterTimeout(ctx, playerB, "opponent_timeout")
+		s.penalizeTimeout(ctx, playerA)
+		slog.Info("queue: match expired", "match_id", matchID, "acceptor", playerB, "timed_out", playerA)
+
+	default:
+		// Neither accepted or both somehow — no penalty, notify both
+		s.publishToPlayer(ctx, playerA, sharedws.Event{
+			Type:    sharedws.EventMatchCancelled,
+			Payload: map[string]any{"reason": "timeout"},
+		})
+		s.publishToPlayer(ctx, playerB, sharedws.Event{
+			Type:    sharedws.EventMatchCancelled,
+			Payload: map[string]any{"reason": "timeout"},
+		})
+		slog.Info("queue: match expired (no acceptor)", "match_id", matchID)
+	}
+}
+
+// requeueAfterTimeout re-enqueues a player who accepted but whose opponent timed out.
+func (s *Service) requeueAfterTimeout(ctx context.Context, playerID uuid.UUID, reason string) {
+	if _, err := s.Enqueue(ctx, playerID); err != nil {
+		slog.Error("queue: re-enqueue after timeout", "player_id", playerID, "error", err)
+		return
+	}
+	s.publishToPlayer(ctx, playerID, sharedws.Event{
+		Type:    sharedws.EventQueueJoined,
+		Payload: map[string]any{"reason": reason},
+	})
+}
+
+// penalizeTimeout records a decline-equivalent penalty for a player who
+// let a match confirmation expire without responding.
+func (s *Service) penalizeTimeout(ctx context.Context, playerID uuid.UUID) {
+	if err := s.recordDecline(ctx, playerID); err != nil {
+		slog.Error("queue: penalize timeout", "player_id", playerID, "error", err)
+	}
+	s.publishToPlayer(ctx, playerID, sharedws.Event{
+		Type:    sharedws.EventMatchCancelled,
+		Payload: map[string]any{"reason": "timeout_penalty"},
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -576,7 +664,7 @@ func (s *Service) startMatch(ctx context.Context, playerA, playerB uuid.UUID, mm
 	roomResp, err := s.lobbyClient.CreateRankedRoom(ctx, &lobbyv1.CreateRankedRoomRequest{
 		PlayerAId: playerA.String(),
 		PlayerBId: playerB.String(),
-		GameId:    RankedGameID,
+		GameId:    s.rankedGameID,
 		MmrA:      mmrA,
 		MmrB:      mmrB,
 	})
@@ -587,7 +675,7 @@ func (s *Service) startMatch(ctx context.Context, playerA, playerB uuid.UUID, mm
 	// Start the session via game-server's game.v1 gRPC.
 	sessionResp, err := s.gameClient.StartSession(ctx, &gamev1.StartSessionRequest{
 		RoomId: roomResp.RoomId,
-		GameId: RankedGameID,
+		GameId: s.rankedGameID,
 		Mode:   "ranked",
 	})
 	if err != nil {

@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/services/user-service/internal/api"
 	usgrpc "github.com/tableforge/services/user-service/internal/grpc"
 	"github.com/tableforge/services/user-service/internal/store"
 	"github.com/tableforge/shared/config"
 	sharedmw "github.com/tableforge/shared/middleware"
+	sharedredis "github.com/tableforge/shared/redis"
 	userv1 "github.com/tableforge/shared/proto/user/v1"
 	"github.com/tableforge/shared/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -51,16 +51,8 @@ func main() {
 	defer st.Close()
 
 	// --- Redis ---------------------------------------------------------------
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.Env("REDIS_ADDR", "localhost:6379"),
-		Password: config.Env("REDIS_PASSWORD", ""),
-	})
+	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer rdb.Close()
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		slog.Error("failed to connect to redis", "error", err)
-		panic(err)
-	}
-	slog.Info("redis connected")
 
 	pub := api.NewPublisher(rdb)
 

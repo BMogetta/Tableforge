@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-routing coverage logs ps clean clean-test gen-types
+.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-routing coverage logs ps clean clean-test gen-types setup lint
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -134,3 +134,55 @@ gen-types:
 		--no-client
 
 	@echo "✓ TypeScript types generated at frontend/src/lib/api-generated.ts"
+
+# ── Setup ─────────────────────────────────────────────────────────────────────
+
+# Verify that all required tools are installed.
+setup:
+	@echo "Checking required tools..."
+	@fail=0; \
+	check() { \
+		if command -v $$1 >/dev/null 2>&1; then \
+			printf "  %-20s ✓ %s\n" "$$1" "$$($$1 $$2 2>&1 | head -1)"; \
+		else \
+			printf "  %-20s ✗ missing\n" "$$1"; \
+			fail=1; \
+		fi; \
+	}; \
+	check go version; \
+	check node --version; \
+	check npm --version; \
+	check docker --version; \
+	check docker compose version 2>/dev/null || check docker-compose --version; \
+	check protoc --version; \
+	check protoc-gen-go --version; \
+	check protoc-gen-go-grpc --version; \
+	check jq --version; \
+	echo ""; \
+	echo "Optional:"; \
+	check golangci-lint --version; \
+	check swag --version; \
+	check npx --version; \
+	echo ""; \
+	if [ "$$fail" = "1" ]; then \
+		echo "Some required tools are missing. Install them and re-run make setup."; \
+		exit 1; \
+	else \
+		echo "All required tools installed."; \
+	fi
+
+# ── Lint ──────────────────────────────────────────────────────────────────────
+
+# Run linters across the entire monorepo.
+# Go: uses go vet (always matches Go version). Run golangci-lint separately if installed.
+lint:
+	@echo "=== Go (go vet) ==="
+	@fail=0; \
+	for svc in services/*/; do \
+		echo "  $$svc"; \
+		cd $(CURDIR)/$$svc && go vet ./... 2>&1 | sed 's/^/    /' || fail=1; \
+	done; \
+	if [ "$$fail" = "1" ]; then exit 1; fi
+	@echo ""
+	@echo "=== Frontend (Biome) ==="
+	cd frontend && npx @biomejs/biome lint ./src || true

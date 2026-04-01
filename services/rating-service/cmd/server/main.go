@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/redis/go-redis/v9"
 	"github.com/riandyrn/otelchi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -23,6 +22,7 @@ import (
 	"github.com/tableforge/rating-service/internal/store"
 	"github.com/tableforge/shared/config"
 	"github.com/tableforge/shared/domain/rating"
+	sharedredis "github.com/tableforge/shared/redis"
 	ratingv1 "github.com/tableforge/shared/proto/rating/v1"
 	"github.com/tableforge/shared/telemetry"
 )
@@ -55,16 +55,8 @@ func main() {
 	}
 
 	// ── Redis ─────────────────────────────────────────────────────────────────
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.MustEnv("REDIS_ADDR"),
-		Password: config.Env("REDIS_PASSWORD", ""),
-	})
+	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer rdb.Close()
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		slog.Error("failed to connect to redis", "error", err)
-		panic(err)
-	}
 
 	// ── Wire ──────────────────────────────────────────────────────────────────
 	engine := rating.NewDefaultEngine()

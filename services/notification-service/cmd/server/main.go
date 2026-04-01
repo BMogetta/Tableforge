@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"github.com/redis/go-redis/v9"
 	"github.com/riandyrn/otelchi"
 	"github.com/tableforge/notification-service/internal/api"
 	"github.com/tableforge/notification-service/internal/consumer"
@@ -18,6 +17,7 @@ import (
 	"github.com/tableforge/notification-service/internal/store"
 	"github.com/tableforge/shared/config"
 	sharedmw "github.com/tableforge/shared/middleware"
+	sharedredis "github.com/tableforge/shared/redis"
 	"github.com/tableforge/shared/telemetry"
 )
 
@@ -49,16 +49,8 @@ func main() {
 	}
 
 	// ── Redis ─────────────────────────────────────────────────────────────────
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.MustEnv("REDIS_ADDR"),
-		Password: config.Env("REDIS_PASSWORD", ""),
-	})
+	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer rdb.Close()
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		slog.Error("failed to connect to redis", "error", err)
-		panic(err)
-	}
 
 	// ── Wire ──────────────────────────────────────────────────────────────────
 	log := slog.Default()
