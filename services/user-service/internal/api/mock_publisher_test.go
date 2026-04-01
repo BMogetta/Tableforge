@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/services/user-service/internal/store"
+	"github.com/recess/services/user-service/internal/store"
 )
 
 // mockPublisher records calls so tests can assert on published events.

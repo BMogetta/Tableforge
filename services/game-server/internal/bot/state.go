@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // concreteState wraps engine.GameState and implements BotGameState.

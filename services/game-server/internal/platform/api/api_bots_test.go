@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/store"
 )
 
 // deleteJSONWithBody sends a DELETE request with a JSON body and returns the response.

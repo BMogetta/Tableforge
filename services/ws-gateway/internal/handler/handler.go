@@ -16,12 +16,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/tableforge/services/ws-gateway/internal/hub"
-	"github.com/tableforge/services/ws-gateway/internal/presence"
-	"github.com/tableforge/shared/middleware"
-	gamev1 "github.com/tableforge/shared/proto/game/v1"
-	userv1 "github.com/tableforge/shared/proto/user/v1"
-	sharedws "github.com/tableforge/shared/ws"
+	"github.com/recess/services/ws-gateway/internal/hub"
+	"github.com/recess/services/ws-gateway/internal/presence"
+	"github.com/recess/shared/middleware"
+	gamev1 "github.com/recess/shared/proto/game/v1"
+	userv1 "github.com/recess/shared/proto/user/v1"
+	sharedws "github.com/recess/shared/ws"
 )
 
 var upgrader = websocket.Upgrader{

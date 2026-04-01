@@ -9,7 +9,7 @@
 
 syntax = "proto3";
 package lobby.v1;
-option go_package = "github.com/tableforge/shared/proto/lobby/v1;lobbyv1";
+option go_package = "github.com/recess/shared/proto/lobby/v1;lobbyv1";
 
 service LobbyService {
   rpc CreateRankedRoom(CreateRankedRoomRequest) returns (CreateRankedRoomResponse);

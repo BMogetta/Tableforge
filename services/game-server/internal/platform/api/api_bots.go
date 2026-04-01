@@ -7,12 +7,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/bot"
-	botadapter "github.com/tableforge/game-server/internal/bot/adapter"
-	"github.com/tableforge/game-server/internal/bot/mcts"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/platform/ws"
+	"github.com/recess/game-server/internal/bot"
+	botadapter "github.com/recess/game-server/internal/bot/adapter"
+	"github.com/recess/game-server/internal/bot/mcts"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/ws"
 )
 
 // GET /api/v1/bots/profiles

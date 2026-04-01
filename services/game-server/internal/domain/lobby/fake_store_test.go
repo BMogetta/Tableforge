@@ -1,8 +1,8 @@
 package lobby_test
 
 import (
-	"github.com/tableforge/game-server/internal/domain/lobby"
-	"github.com/tableforge/game-server/internal/testutil"
+	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/testutil"
 )
 
 type fakeStore struct{ testutil.FakeStore }

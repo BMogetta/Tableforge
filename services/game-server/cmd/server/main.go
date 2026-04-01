@@ -1,4 +1,4 @@
-// @title           Tableforge API
+// @title           Recess API
 // @version         1.0
 // @host            localhost
 // @BasePath        /api/v1
@@ -18,24 +18,24 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/tableforge/game-server/games"
-	"github.com/tableforge/game-server/internal/domain/lobby"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/api"
-	"github.com/tableforge/game-server/internal/platform/events"
-	grpchandler "github.com/tableforge/game-server/internal/platform/grpc"
-	"github.com/tableforge/game-server/internal/platform/ratelimit"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/platform/userclient"
-	"github.com/tableforge/game-server/internal/platform/ws"
-	"github.com/tableforge/shared/config"
-	gamev1 "github.com/tableforge/shared/proto/game/v1"
-	lobbyv1 "github.com/tableforge/shared/proto/lobby/v1"
-	sharedredis "github.com/tableforge/shared/redis"
-	"github.com/tableforge/shared/telemetry"
+	"github.com/recess/game-server/games"
+	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/api"
+	"github.com/recess/game-server/internal/platform/events"
+	grpchandler "github.com/recess/game-server/internal/platform/grpc"
+	"github.com/recess/game-server/internal/platform/ratelimit"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/userclient"
+	"github.com/recess/game-server/internal/platform/ws"
+	"github.com/recess/shared/config"
+	gamev1 "github.com/recess/shared/proto/game/v1"
+	lobbyv1 "github.com/recess/shared/proto/lobby/v1"
+	sharedredis "github.com/recess/shared/redis"
+	"github.com/recess/shared/telemetry"
 
-	_ "github.com/tableforge/game-server/games/loveletter"
-	_ "github.com/tableforge/game-server/games/tictactoe"
+	_ "github.com/recess/game-server/games/loveletter"
+	_ "github.com/recess/game-server/games/tictactoe"
 )
 
 func main() {
@@ -60,7 +60,7 @@ func main() {
 		}
 	}()
 
-	st, err := store.New(ctx, config.Env("DATABASE_URL", "postgres://tableforge:tableforge@localhost:5432/tableforge?sslmode=disable"))
+	st, err := store.New(ctx, config.Env("DATABASE_URL", "postgres://recess:recess@localhost:5432/recess?sslmode=disable"))
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)
 		os.Exit(1)

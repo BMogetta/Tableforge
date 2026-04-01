@@ -11,13 +11,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/riandyrn/otelchi"
-	"github.com/tableforge/auth-service/internal/consumer"
-	"github.com/tableforge/auth-service/internal/handler"
-	"github.com/tableforge/auth-service/internal/store"
-	"github.com/tableforge/shared/config"
-	sharedmw "github.com/tableforge/shared/middleware"
-	sharedredis "github.com/tableforge/shared/redis"
-	"github.com/tableforge/shared/telemetry"
+	"github.com/recess/auth-service/internal/consumer"
+	"github.com/recess/auth-service/internal/handler"
+	"github.com/recess/auth-service/internal/store"
+	"github.com/recess/shared/config"
+	sharedmw "github.com/recess/shared/middleware"
+	sharedredis "github.com/recess/shared/redis"
+	"github.com/recess/shared/telemetry"
 )
 
 func main() {

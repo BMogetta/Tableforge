@@ -7,8 +7,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/tableforge/rating-service/internal/store"
-	ratingv1 "github.com/tableforge/shared/proto/rating/v1"
+	"github.com/recess/rating-service/internal/store"
+	ratingv1 "github.com/recess/shared/proto/rating/v1"
 )
 
 const (

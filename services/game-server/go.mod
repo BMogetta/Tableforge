@@ -1,4 +1,4 @@
-module github.com/tableforge/game-server
+module github.com/recess/game-server
 
 go 1.25.0
 
@@ -12,7 +12,7 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/riandyrn/otelchi v0.12.2
 	github.com/swaggo/swag v1.16.6
-	github.com/tableforge/shared v0.0.0-00010101000000-000000000000
+	github.com/recess/shared v0.0.0-00010101000000-000000000000
 	github.com/testcontainers/testcontainers-go v0.29.1
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.29.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
@@ -111,4 +111,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/tableforge/shared => ../../shared
+replace github.com/recess/shared => ../../shared

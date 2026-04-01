@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 func makeState(data map[string]any) engine.GameState {

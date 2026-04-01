@@ -1,7 +1,7 @@
 {
-  "uid": "tableforge-web-vitals",
-  "title": "Tableforge — Web Vitals",
-  "tags": ["tableforge", "frontend"],
+  "uid": "recess-web-vitals",
+  "title": "Recess — Web Vitals",
+  "tags": ["recess", "frontend"],
   "timezone": "browser",
   "refresh": "30s",
   "time": { "from": "now-1h", "to": "now" },

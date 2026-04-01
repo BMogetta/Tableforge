@@ -57,7 +57,7 @@ export function Login() {
       <div className={styles.panel}>
         <header className={styles.header}>
           <div className={styles.emblem}>&#9823;</div>
-          <h1 className={styles.title}>TABLEFORGE</h1>
+          <h1 className={styles.title}>RECESS</h1>
           <p className={styles.subtitle}>Multiplayer board games, forged in steel</p>
         </header>
 
@@ -99,7 +99,7 @@ function AccessDenied() {
       <div className={styles.panel}>
         <header className={styles.header}>
           <div className={styles.emblem}>&#9876;&#65039;</div>
-          <h1 className={styles.title}>TABLEFORGE</h1>
+          <h1 className={styles.title}>RECESS</h1>
           <p className={styles.subtitle}>Access Restricted</p>
         </header>
 

@@ -11,7 +11,7 @@
 
 syntax = "proto3";
 package rating.v1;
-option go_package = "github.com/tableforge/shared/proto/rating/v1;ratingv1";
+option go_package = "github.com/recess/shared/proto/rating/v1;ratingv1";
 
 service RatingService {
   // GetRating returns the current MMR + display rating for one player/game pair.

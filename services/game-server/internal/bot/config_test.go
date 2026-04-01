@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tableforge/game-server/internal/bot"
+	"github.com/recess/game-server/internal/bot"
 )
 
 func TestDefaultConfig_UsesMedianProfile(t *testing.T) {

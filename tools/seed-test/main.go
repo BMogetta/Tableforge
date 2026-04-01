@@ -45,7 +45,7 @@ func main() {
 	seedRating(ctx, conn, p2, 1464.0, 1, 0, 1)
 
 	// Add emails to allowed_emails for test-login.
-	for _, email := range []string{"test1@tableforge.test", "test2@tableforge.test", "test3@tableforge.test"} {
+	for _, email := range []string{"test1@recess.test", "test2@recess.test", "test3@recess.test"} {
 		_, err := conn.Exec(ctx,
 			`INSERT INTO allowed_emails (email, role) VALUES ($1, 'player') ON CONFLICT (email) DO NOTHING`,
 			email,

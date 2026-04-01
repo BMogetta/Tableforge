@@ -33,7 +33,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/redis/go-redis/v9"
-	sharedws "github.com/tableforge/shared/ws"
+	sharedws "github.com/recess/shared/ws"
 )
 
 // EventType and Event are imported from shared/ws — the single source of truth
@@ -42,7 +42,7 @@ type EventType = sharedws.EventType
 type Event = sharedws.Event
 
 var wsConnectionsActive = promauto.NewGauge(prometheus.GaugeOpts{
-	Name: "tableforge_ws_connections_active",
+	Name: "recess_ws_connections_active",
 	Help: "Number of active WebSocket connections.",
 })
 
@@ -320,6 +320,6 @@ func (h *Hub) gracefulShutdown(timeout time.Duration) {
 }
 
 var wsMessagesDelivered = promauto.NewCounterVec(prometheus.CounterOpts{
-	Name: "tableforge_ws_messages_delivered_total",
+	Name: "recess_ws_messages_delivered_total",
 	Help: "Total WebSocket messages delivered to clients.",
 }, []string{"event_type"})

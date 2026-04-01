@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tableforge/shared/domain/matchmaking"
-	"github.com/tableforge/shared/domain/rating"
+	"github.com/recess/shared/domain/matchmaking"
+	"github.com/recess/shared/domain/rating"
 )
 
 // ---------------------------------------------------------------------------

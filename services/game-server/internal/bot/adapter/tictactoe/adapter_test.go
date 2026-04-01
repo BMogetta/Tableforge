@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	ttt "github.com/tableforge/game-server/games/tictactoe"
-	"github.com/tableforge/game-server/internal/bot"
-	adapter "github.com/tableforge/game-server/internal/bot/adapter/tictactoe"
-	botmcts "github.com/tableforge/game-server/internal/bot/mcts"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	ttt "github.com/recess/game-server/games/tictactoe"
+	"github.com/recess/game-server/internal/bot"
+	adapter "github.com/recess/game-server/internal/bot/adapter/tictactoe"
+	botmcts "github.com/recess/game-server/internal/bot/mcts"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // ---------------------------------------------------------------------------

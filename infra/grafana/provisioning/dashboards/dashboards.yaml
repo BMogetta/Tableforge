@@ -1,7 +1,7 @@
 apiVersion: 1
 
 providers:
-  - name: tableforge
+  - name: recess
     type: file
     disableDeletion: true
     updateIntervalSeconds: 30

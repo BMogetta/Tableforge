@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/services/user-service/internal/store"
+	"github.com/recess/services/user-service/internal/store"
 )
 
 // mockStore is an in-memory implementation of store.Store for testing.

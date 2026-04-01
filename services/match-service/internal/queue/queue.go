@@ -33,12 +33,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/shared/domain/matchmaking"
-	"github.com/tableforge/shared/domain/rating"
-	gamev1 "github.com/tableforge/shared/proto/game/v1"
-	lobbyv1 "github.com/tableforge/shared/proto/lobby/v1"
-	ratingv1 "github.com/tableforge/shared/proto/rating/v1"
-	sharedws "github.com/tableforge/shared/ws"
+	"github.com/recess/shared/domain/matchmaking"
+	"github.com/recess/shared/domain/rating"
+	gamev1 "github.com/recess/shared/proto/game/v1"
+	lobbyv1 "github.com/recess/shared/proto/lobby/v1"
+	ratingv1 "github.com/recess/shared/proto/rating/v1"
+	sharedws "github.com/recess/shared/ws"
 )
 
 // ---------------------------------------------------------------------------

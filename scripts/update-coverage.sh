@@ -111,7 +111,7 @@ BLOCK+=$'\n'"_Last updated: ${DATE}_"
 
 if [ ! -f "$README" ]; then
   cat > "$README" << 'HEADER'
-# Tableforge
+# Recess
 
 Multiplayer board game platform.
 

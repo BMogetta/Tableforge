@@ -1,4 +1,4 @@
-module github.com/tableforge/shared
+module github.com/recess/shared
 
 go 1.25.0
 

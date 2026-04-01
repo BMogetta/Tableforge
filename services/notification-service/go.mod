@@ -1,4 +1,4 @@
-module github.com/tableforge/notification-service
+module github.com/recess/notification-service
 
 go 1.25.0
 
@@ -8,7 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.1
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/riandyrn/otelchi v0.12.2
-	github.com/tableforge/shared v0.0.0
+	github.com/recess/shared v0.0.0
 )
 
 require (
@@ -49,4 +49,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/tableforge/shared => ../../shared
+replace github.com/recess/shared => ../../shared

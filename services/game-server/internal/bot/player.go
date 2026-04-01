@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // ErrNoMoves is returned when a search is requested on a state with no legal

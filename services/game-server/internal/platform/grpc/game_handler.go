@@ -8,11 +8,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/tableforge/game-server/internal/domain/lobby"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/platform/ws"
-	gamev1 "github.com/tableforge/shared/proto/game/v1"
+	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/ws"
+	gamev1 "github.com/recess/shared/proto/game/v1"
 )
 
 // GameHandler implements gamev1.GameServiceServer.

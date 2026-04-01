@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	authjwt "github.com/tableforge/auth-service/internal/jwt"
-	"github.com/tableforge/shared/middleware"
+	authjwt "github.com/recess/auth-service/internal/jwt"
+	"github.com/recess/shared/middleware"
 )
 
 // Store is the minimal DB interface auth-service needs.

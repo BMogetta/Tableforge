@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	sharedmw "github.com/tableforge/shared/middleware"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 func TestSendFriendRequest(t *testing.T) {

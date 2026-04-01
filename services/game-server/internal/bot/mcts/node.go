@@ -3,8 +3,8 @@ package mcts
 import (
 	"math"
 
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // node is a single node in the MCTS tree.

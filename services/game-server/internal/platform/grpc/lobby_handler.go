@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/tableforge/game-server/internal/domain/lobby"
-	"github.com/tableforge/game-server/internal/platform/store"
-	lobbyv1 "github.com/tableforge/shared/proto/lobby/v1"
+	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/platform/store"
+	lobbyv1 "github.com/recess/shared/proto/lobby/v1"
 )
 
 // LobbyHandler implements lobbyv1.LobbyServiceServer.

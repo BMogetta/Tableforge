@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/services/user-service/internal/store"
-	"github.com/tableforge/shared/events"
+	"github.com/recess/services/user-service/internal/store"
+	"github.com/recess/shared/events"
 )
 
 const (

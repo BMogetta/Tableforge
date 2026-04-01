@@ -2,7 +2,7 @@ include:
   - docker-compose.monitoring.yml
   - docker-compose.services.yml
 
-name: tableforge
+name: recess
 
 # ── Profile guide ──────────────────────────────────────────────────────────────
 #
@@ -35,16 +35,16 @@ services:
     image: postgres:16-alpine
     container_name: postgres
     environment:
-      POSTGRES_USER: tableforge
+      POSTGRES_USER: recess
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: tableforge
+      POSTGRES_DB: recess
     networks:
       - data_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./shared/db/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tableforge"]
+      test: ["CMD-SHELL", "pg_isready -U recess"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -79,7 +79,7 @@ services:
       - data_network
       - app_network
     environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - USER_SERVICE_ADDR=user-service:9082
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317

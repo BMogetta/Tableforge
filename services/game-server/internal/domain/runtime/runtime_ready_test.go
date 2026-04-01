@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/store"
 )
 
 // --- VoteReady tests ---------------------------------------------------------

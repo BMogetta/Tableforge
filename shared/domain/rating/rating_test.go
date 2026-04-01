@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/tableforge/shared/domain/rating"
+	"github.com/recess/shared/domain/rating"
 )
 
 // tolerance for floating-point comparisons.

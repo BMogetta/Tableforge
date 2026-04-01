@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/store"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -21,7 +21,7 @@ func newTestStore(t *testing.T) store.Store {
 
 	container, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:16-alpine"),
-		postgres.WithDatabase("tableforge_test"),
+		postgres.WithDatabase("recess_test"),
 		postgres.WithUsername("test"),
 		postgres.WithPassword("test"),
 		testcontainers.WithWaitStrategy(

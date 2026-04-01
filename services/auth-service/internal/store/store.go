@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/tableforge/auth-service/internal/handler"
+	"github.com/recess/auth-service/internal/handler"
 )
 
 // Store implements handler.Store using pgx.

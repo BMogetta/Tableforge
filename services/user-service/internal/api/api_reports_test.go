@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	sharedmw "github.com/tableforge/shared/middleware"
-	"github.com/tableforge/services/user-service/internal/store"
+	sharedmw "github.com/recess/shared/middleware"
+	"github.com/recess/services/user-service/internal/store"
 )
 
 func TestCreateReport(t *testing.T) {

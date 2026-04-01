@@ -12,14 +12,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
-	"github.com/tableforge/game-server/internal/domain/lobby"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/events"
-	"github.com/tableforge/game-server/internal/platform/ratelimit"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/platform/userclient"
-	"github.com/tableforge/game-server/internal/platform/ws"
-	sharedmw "github.com/tableforge/shared/middleware"
+	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/events"
+	"github.com/recess/game-server/internal/platform/ratelimit"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/userclient"
+	"github.com/recess/game-server/internal/platform/ws"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // NewRouter builds and returns the main HTTP router.

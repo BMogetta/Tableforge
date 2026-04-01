@@ -1,7 +1,7 @@
 {
-  "uid": "tableforge-game-server",
-  "title": "Tableforge — Game Server",
-  "tags": ["tableforge", "backend"],
+  "uid": "recess-game-server",
+  "title": "Recess — Game Server",
+  "tags": ["recess", "backend"],
   "timezone": "browser",
   "refresh": "15s",
   "time": { "from": "now-1h", "to": "now" },
@@ -15,7 +15,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "sum(rate(tableforge_http_requests_total{job='game-server'}[1m])) by (route)",
+          "expr": "sum(rate(recess_http_requests_total{job='game-server'}[1m])) by (route)",
           "legendFormat": "{{route}}"
         }
       ]
@@ -35,7 +35,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "sum(rate(tableforge_http_requests_total{job='game-server', status=~'5..'}[1m])) by (route)",
+          "expr": "sum(rate(recess_http_requests_total{job='game-server', status=~'5..'}[1m])) by (route)",
           "legendFormat": "{{route}}"
         }
       ]
@@ -49,17 +49,17 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.50, sum(rate(tableforge_http_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, route))",
+          "expr": "histogram_quantile(0.50, sum(rate(recess_http_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, route))",
           "legendFormat": "p50 {{route}}"
         },
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum(rate(tableforge_http_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, route))",
+          "expr": "histogram_quantile(0.95, sum(rate(recess_http_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, route))",
           "legendFormat": "p95 {{route}}"
         },
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.99, sum(rate(tableforge_http_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, route))",
+          "expr": "histogram_quantile(0.99, sum(rate(recess_http_request_duration_seconds_bucket{job='game-server'}[5m])) by (le, route))",
           "legendFormat": "p99 {{route}}"
         }
       ]
@@ -85,7 +85,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "tableforge_ws_connections_active",
+          "expr": "recess_ws_connections_active",
           "legendFormat": "Active connections"
         }
       ]
@@ -99,7 +99,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "tableforge_active_sessions",
+          "expr": "recess_active_sessions",
           "legendFormat": "Active sessions"
         }
       ]
@@ -112,7 +112,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "sum(rate(tableforge_moves_total[1m])) by (game_id)",
+          "expr": "sum(rate(recess_moves_total[1m])) by (game_id)",
           "legendFormat": "{{game_id}}"
         }
       ]

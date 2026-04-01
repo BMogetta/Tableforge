@@ -5,8 +5,8 @@ package mcts
 import (
 	"math"
 
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // TestNode wraps the internal node type so node_test.go can construct and

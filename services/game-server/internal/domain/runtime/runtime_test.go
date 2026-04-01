@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/testutil"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/testutil"
 )
 
 // --- Fake store --------------------------------------------------------------

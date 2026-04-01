@@ -1,6 +1,11 @@
-# Tableforge
+# Recess
 
-A local multiplayer turn-based board game engine. Add any board game as a plugin and play with a friend over your local network.
+> A self-hosted multiplayer engine for the board games collecting dust on your shelf.
+
+Some games are too good to collect dust. Recess is a self-hosted multiplayer engine
+that lets you play the board games you already own — with the friends you already have.
+No subscriptions, no strangers, no ads. Just your shelf, a server, and the group chat
+that's been saying "we should play something" for three weeks.
 
 ## Stack
 
@@ -16,7 +21,7 @@ A local multiplayer turn-based board game engine. Add any board game as a plugin
 ## Project Structure
 
 ```sh
-tableforge/
+recess/
 ├── docker-compose.yml
 ├── server/                     # Go backend
 │   ├── Dockerfile

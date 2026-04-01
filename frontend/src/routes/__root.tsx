@@ -75,7 +75,7 @@ function ErrorScreen({ error, onReset }: { error: Error; onReset: () => void }) 
           letterSpacing: '0.15em',
         }}
       >
-        TABLEFORGE
+        RECESS
       </div>
       <div
         style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 600, letterSpacing: '0.05em' }}
@@ -132,7 +132,7 @@ function Splash() {
           letterSpacing: '0.2em',
         }}
       >
-        TABLEFORGE
+        RECESS
       </div>
       <div
         className='pulse'
@@ -168,7 +168,7 @@ function NotFound() {
           letterSpacing: '0.15em',
         }}
       >
-        TABLEFORGE
+        RECESS
       </div>
       <div
         style={{

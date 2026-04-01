@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	sharedws "github.com/tableforge/shared/ws"
+	sharedws "github.com/recess/shared/ws"
 )
 
 // Publisher publishes WS events to the ws:player:{id} Redis channel.

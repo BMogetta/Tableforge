@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/riandyrn/otelchi"
-	"github.com/tableforge/services/chat-service/internal/store"
-	sharedmw "github.com/tableforge/shared/middleware"
+	"github.com/recess/services/chat-service/internal/store"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, serviceName string) http.Handler {

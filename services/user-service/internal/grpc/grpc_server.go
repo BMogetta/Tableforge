@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/services/user-service/internal/store"
-	userv1 "github.com/tableforge/shared/proto/user/v1"
+	"github.com/recess/services/user-service/internal/store"
+	userv1 "github.com/recess/shared/proto/user/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

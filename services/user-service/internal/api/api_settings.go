@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/services/user-service/internal/store"
+	"github.com/recess/services/user-service/internal/store"
 )
 
 // GET /api/v1/players/{playerID}/settings

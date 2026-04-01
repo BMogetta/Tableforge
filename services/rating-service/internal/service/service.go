@@ -6,9 +6,9 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/rating-service/internal/store"
-	"github.com/tableforge/shared/domain/rating"
-	"github.com/tableforge/shared/events"
+	"github.com/recess/rating-service/internal/store"
+	"github.com/recess/shared/domain/rating"
+	"github.com/recess/shared/events"
 )
 
 // Service orchestrates rating updates triggered by game.session.finished events.

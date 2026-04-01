@@ -15,16 +15,16 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/tableforge/rating-service/internal/consumer"
-	grpchandler "github.com/tableforge/rating-service/internal/grpc"
-	httphandler "github.com/tableforge/rating-service/internal/handler"
-	"github.com/tableforge/rating-service/internal/service"
-	"github.com/tableforge/rating-service/internal/store"
-	"github.com/tableforge/shared/config"
-	"github.com/tableforge/shared/domain/rating"
-	sharedredis "github.com/tableforge/shared/redis"
-	ratingv1 "github.com/tableforge/shared/proto/rating/v1"
-	"github.com/tableforge/shared/telemetry"
+	"github.com/recess/rating-service/internal/consumer"
+	grpchandler "github.com/recess/rating-service/internal/grpc"
+	httphandler "github.com/recess/rating-service/internal/handler"
+	"github.com/recess/rating-service/internal/service"
+	"github.com/recess/rating-service/internal/store"
+	"github.com/recess/shared/config"
+	"github.com/recess/shared/domain/rating"
+	sharedredis "github.com/recess/shared/redis"
+	ratingv1 "github.com/recess/shared/proto/rating/v1"
+	"github.com/recess/shared/telemetry"
 )
 
 func main() {

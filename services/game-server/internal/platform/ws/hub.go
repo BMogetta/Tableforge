@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	sharedws "github.com/tableforge/shared/ws"
+	sharedws "github.com/recess/shared/ws"
 )
 
 // EventType and Event are re-exported from shared/ws so callers in this module

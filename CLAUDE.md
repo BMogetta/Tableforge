@@ -64,7 +64,7 @@ make gen-types
 
 ## Architecture
 
-Tableforge is a **microservices monorepo**. All services live under `services/` and share code via `shared/` through a Go workspace.
+Recess is a **microservices monorepo**. All services live under `services/` and share code via `shared/` through a Go workspace.
 
 ### Services
 

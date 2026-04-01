@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tableforge/game-server/games"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/shared/platform/randutil"
+	"github.com/recess/game-server/games"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/shared/platform/randutil"
 )
 
 func init() {

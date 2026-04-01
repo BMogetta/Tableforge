@@ -1,5 +1,5 @@
 /**
- * Asset preloading system for Tableforge game sessions.
+ * Asset preloading system for Recess game sessions.
  *
  * ## Current implementation
  * Assets are loaded via native browser APIs (Image, Audio, document.fonts).

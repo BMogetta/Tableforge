@@ -38,7 +38,7 @@ export function LobbyHeader({ onLogout }: Props) {
       <header className={styles.header}>
         <div className={styles.logo}>
           <span className={styles.logoIcon}>♟</span>
-          <span className={styles.logoText}>TABLEFORGE</span>
+          <span className={styles.logoText}>RECESS</span>
         </div>
 
         <div className={styles.actions}>

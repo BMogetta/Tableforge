@@ -174,7 +174,7 @@ const file_lobby_proto_rawDesc = "" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x1b\n" +
 	"\troom_code\x18\x02 \x01(\tR\broomCode2i\n" +
 	"\fLobbyService\x12Y\n" +
-	"\x10CreateRankedRoom\x12!.lobby.v1.CreateRankedRoomRequest\x1a\".lobby.v1.CreateRankedRoomResponseB5Z3github.com/tableforge/shared/proto/lobby/v1;lobbyv1b\x06proto3"
+	"\x10CreateRankedRoom\x12!.lobby.v1.CreateRankedRoomRequest\x1a\".lobby.v1.CreateRankedRoomResponseB5Z3github.com/recess/shared/proto/lobby/v1;lobbyv1b\x06proto3"
 
 var (
 	file_lobby_proto_rawDescOnce sync.Once

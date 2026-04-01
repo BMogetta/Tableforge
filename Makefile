@@ -50,11 +50,11 @@ reset:
 # Output: frontend/tests/e2e/.players.json
 seed-test:
 	@mkdir -p frontend/tests/e2e
-	docker build -t tableforge-seed-test tools/seed-test
+	docker build -t recess-seed-test tools/seed-test
 	docker run --rm \
-		--network tableforge_data_network \
-		-e DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable \
-		tableforge-seed-test \
+		--network recess_data_network \
+		-e DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable \
+		recess-seed-test \
 	> frontend/tests/e2e/.players.json
 	@echo "Test players created:"
 	@cat frontend/tests/e2e/.players.json

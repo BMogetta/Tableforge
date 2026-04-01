@@ -1,4 +1,4 @@
-# Tableforge — Redis Key Map
+# Recess — Redis Key Map
 
 Complete inventory of all Redis keys, structures, TTLs, and ownership.
 Derived from source code audit (queue.go, turn_timer.go, presence.go,

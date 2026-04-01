@@ -37,7 +37,7 @@ export function RateLimited() {
           letterSpacing: '0.15em',
         }}
       >
-        TABLEFORGE
+        RECESS
       </div>
 
       <div

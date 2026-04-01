@@ -10,11 +10,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/game-server/internal/platform/events"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/platform/ws"
-	sharedEvents "github.com/tableforge/shared/events"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/platform/events"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/ws"
+	sharedEvents "github.com/recess/shared/events"
 )
 
 var (

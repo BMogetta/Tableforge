@@ -1,4 +1,4 @@
-# Tableforge — Session Handoff
+# Recess — Session Handoff
 
 ## Rules for every session
 - **Read before writing.** Ask for the file, read it, propose changes, confirm, only then write.

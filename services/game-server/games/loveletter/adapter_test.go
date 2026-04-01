@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	botadapter "github.com/tableforge/game-server/games/loveletter"
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/bot/mcts"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	botadapter "github.com/recess/game-server/games/loveletter"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/bot/mcts"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // ---------------------------------------------------------------------------

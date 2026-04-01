@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/game-server/internal/platform/ws"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/platform/ws"
 )
 
 // botRegistry holds the in-memory map of active bot players keyed by their

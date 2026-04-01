@@ -9,7 +9,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=auth-service
@@ -47,7 +47,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=user-service
@@ -97,7 +97,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=chat-service
@@ -181,7 +181,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=rating-service
@@ -262,7 +262,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://tableforge:tableforge@postgres:5432/tableforge?sslmode=disable
+      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=notification-service

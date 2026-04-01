@@ -191,7 +191,7 @@ definitions:
 host: localhost
 info:
   contact: {}
-  title: Tableforge API
+  title: Recess API
   version: "1.0"
 paths:
   /sessions/{sessionID}:

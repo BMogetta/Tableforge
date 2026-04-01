@@ -40,7 +40,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tableforge/shared/domain/rating"
+	"github.com/recess/shared/domain/rating"
 )
 
 // ---------------------------------------------------------------------------

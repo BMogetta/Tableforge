@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/store"
 )
 
 // Timer abstracts turn and ready timer scheduling.

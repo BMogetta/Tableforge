@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/games/tictactoe"
-	"github.com/tableforge/game-server/internal/bot"
-	botadapter "github.com/tableforge/game-server/internal/bot/adapter"
-	"github.com/tableforge/game-server/internal/bot/mcts"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/testutil"
+	"github.com/recess/game-server/games/tictactoe"
+	"github.com/recess/game-server/internal/bot"
+	botadapter "github.com/recess/game-server/internal/bot/adapter"
+	"github.com/recess/game-server/internal/bot/mcts"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/testutil"
 )
 
 // --- helpers -----------------------------------------------------------------

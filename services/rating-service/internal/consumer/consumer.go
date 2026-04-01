@@ -8,8 +8,8 @@ import (
 	"log/slog"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/rating-service/internal/service"
-	"github.com/tableforge/shared/events"
+	"github.com/recess/rating-service/internal/service"
+	"github.com/recess/shared/events"
 )
 
 const channelGameSessionFinished = "game.session.finished"

@@ -1,6 +1,6 @@
 package loveletter
 
-import "github.com/tableforge/game-server/internal/domain/engine"
+import "github.com/recess/game-server/internal/domain/engine"
 
 // LobbySettings implements engine.LobbySettingsProvider.
 func (g *LoveLetter) LobbySettings() []engine.LobbySetting {

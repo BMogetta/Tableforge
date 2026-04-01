@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/notification-service/internal/store"
-	sharedmw "github.com/tableforge/shared/middleware"
-	sharedws "github.com/tableforge/shared/ws"
+	"github.com/recess/notification-service/internal/store"
+	sharedmw "github.com/recess/shared/middleware"
+	sharedws "github.com/recess/shared/ws"
 )
 
 // --- mock store --------------------------------------------------------------

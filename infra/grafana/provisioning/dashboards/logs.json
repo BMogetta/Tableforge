@@ -106,7 +106,7 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["loki", "logs", "tableforge"],
+  "tags": ["loki", "logs", "recess"],
   "templating": {
     "list": [
       {
@@ -135,6 +135,6 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Service Logs",
-  "uid": "tableforge-logs",
+  "uid": "recess-logs",
   "version": 2
 }

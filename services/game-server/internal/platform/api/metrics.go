@@ -12,23 +12,23 @@ import (
 
 var (
 	httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tableforge_http_requests_total",
+		Name: "recess_http_requests_total",
 		Help: "Total HTTP requests by method, route and status code.",
 	}, []string{"method", "route", "status"})
 
 	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "tableforge_http_request_duration_seconds",
+		Name:    "recess_http_request_duration_seconds",
 		Help:    "HTTP request duration by method and route.",
 		Buckets: prometheus.DefBuckets,
 	}, []string{"method", "route"})
 
 	activeSessions = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "tableforge_active_sessions",
+		Name: "recess_active_sessions",
 		Help: "Number of currently active game sessions.",
 	})
 
 	movesTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tableforge_moves_total",
+		Name: "recess_moves_total",
 		Help: "Total moves applied by game_id.",
 	}, []string{"game_id"})
 )

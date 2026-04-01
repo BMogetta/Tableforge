@@ -5,7 +5,7 @@ package games
 import (
 	"fmt"
 
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 var registry = map[string]engine.Game{}

@@ -23,7 +23,7 @@ function DesignPage() {
   return (
     <div className={styles.root}>
       <header className={styles.header}>
-        <span className={styles.headerLabel}>Tableforge</span>
+        <span className={styles.headerLabel}>Recess</span>
         <h1 className={styles.headerTitle}>Design System</h1>
         <div className={styles.themeToggle}>
           {(['dark', 'light'] as Theme[]).map(t => (
@@ -87,7 +87,7 @@ function DesignPage() {
                   letterSpacing: '0.08em',
                 }}
               >
-                Tableforge
+                Recess
               </span>
             </div>
             <div className={styles.typeRow}>

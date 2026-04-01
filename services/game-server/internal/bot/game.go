@@ -4,7 +4,7 @@
 package bot
 
 import (
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // BotGameState is a snapshot of a game at a point in time.

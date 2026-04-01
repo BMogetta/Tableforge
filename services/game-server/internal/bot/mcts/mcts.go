@@ -17,8 +17,8 @@ import (
 	"context"
 	"math/rand"
 
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 // ErrNoMoves is re-exported from bot for callers that import only this package.

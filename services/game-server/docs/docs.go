@@ -714,7 +714,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
-	Title:            "Tableforge API",
+	Title:            "Recess API",
 	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

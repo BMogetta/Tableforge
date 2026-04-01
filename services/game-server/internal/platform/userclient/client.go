@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	userv1 "github.com/tableforge/shared/proto/user/v1"
+	userv1 "github.com/recess/shared/proto/user/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

@@ -5,9 +5,9 @@ package adapter
 import (
 	"fmt"
 
-	loveletter "github.com/tableforge/game-server/games/loveletter"
-	"github.com/tableforge/game-server/internal/bot"
-	tictactoe "github.com/tableforge/game-server/internal/bot/adapter/tictactoe"
+	loveletter "github.com/recess/game-server/games/loveletter"
+	"github.com/recess/game-server/internal/bot"
+	tictactoe "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 )
 
 // New returns a BotAdapter for the given gameID.

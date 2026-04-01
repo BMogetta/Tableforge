@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	authjwt "github.com/tableforge/auth-service/internal/jwt"
+	authjwt "github.com/recess/auth-service/internal/jwt"
 )
 
 // TestModeEnabled returns true when TEST_MODE=true.

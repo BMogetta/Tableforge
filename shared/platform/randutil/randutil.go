@@ -1,5 +1,5 @@
 // Package randutil provides cryptographically secure random utilities.
-// All randomness in Tableforge (first mover selection, card shuffling, etc.)
+// All randomness in Recess (first mover selection, card shuffling, etc.)
 // should go through this package instead of using crypto/rand inline.
 package randutil
 

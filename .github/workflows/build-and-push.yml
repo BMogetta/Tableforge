@@ -6,8 +6,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  SERVER_IMAGE: ghcr.io/${{ github.repository_owner }}/tableforge-server
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/tableforge-frontend
+  SERVER_IMAGE: ghcr.io/${{ github.repository_owner }}/recess-server
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/recess-frontend
 
 jobs:
   build:

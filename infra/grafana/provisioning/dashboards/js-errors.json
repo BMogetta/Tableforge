@@ -1,7 +1,7 @@
 {
-  "uid": "tableforge-js-errors",
-  "title": "Tableforge — JS Errors",
-  "tags": ["tableforge", "frontend", "errors"],
+  "uid": "recess-js-errors",
+  "title": "Recess — JS Errors",
+  "tags": ["recess", "frontend", "errors"],
   "timezone": "browser",
   "refresh": "30s",
   "time": { "from": "now-6h", "to": "now" },
@@ -21,7 +21,7 @@
       "targets": [
         {
           "datasource": { "uid": "loki" },
-          "expr": "sum(count_over_time({service_name=\"tableforge-frontend\"} | json | severity=`ERROR` [1m]))",
+          "expr": "sum(count_over_time({service_name=\"recess-frontend\"} | json | severity=`ERROR` [1m]))",
           "legendFormat": "JS errors/min"
         }
       ]
@@ -47,7 +47,7 @@
       "targets": [
         {
           "datasource": { "uid": "loki" },
-          "expr": "sum(count_over_time({service_name=\"tableforge-frontend\"} | json | severity=`ERROR` [1h]))",
+          "expr": "sum(count_over_time({service_name=\"recess-frontend\"} | json | severity=`ERROR` [1h]))",
           "legendFormat": "Errors (1h)"
         }
       ]
@@ -66,7 +66,7 @@
       "targets": [
         {
           "datasource": { "uid": "loki" },
-          "expr": "{service_name=\"tableforge-frontend\"} | json | severity=`ERROR`",
+          "expr": "{service_name=\"recess-frontend\"} | json | severity=`ERROR`",
           "legendFormat": ""
         }
       ]
@@ -79,7 +79,7 @@
       "targets": [
         {
           "datasource": { "uid": "loki" },
-          "expr": "sum by (error_type) (count_over_time({service_name=\"tableforge-frontend\"} | json | severity=`ERROR` [1m]))",
+          "expr": "sum by (error_type) (count_over_time({service_name=\"recess-frontend\"} | json | severity=`ERROR` [1m]))",
           "legendFormat": "{{error_type}}"
         }
       ]

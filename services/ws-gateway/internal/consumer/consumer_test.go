@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	sharedevents "github.com/tableforge/shared/events"
+	sharedevents "github.com/recess/shared/events"
 )
 
 // --- mock disconnector -------------------------------------------------------

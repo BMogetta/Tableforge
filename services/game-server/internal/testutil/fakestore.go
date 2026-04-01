@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/store"
 )
 
 var ErrNotFound = errors.New("not found")

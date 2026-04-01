@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/game-server/internal/platform/events"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/platform/ws"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/platform/events"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/ws"
 )
 
 // TimerHandlers processes Asynq tasks for turn and ready timeouts.

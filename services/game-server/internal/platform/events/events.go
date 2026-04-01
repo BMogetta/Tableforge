@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/store"
 )
 
 // Type identifies the kind of event.

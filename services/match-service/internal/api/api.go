@@ -8,9 +8,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/match-service/internal/queue"
-	apierrors "github.com/tableforge/shared/errors"
-	sharedmw "github.com/tableforge/shared/middleware"
+	"github.com/recess/match-service/internal/queue"
+	apierrors "github.com/recess/shared/errors"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // NewRouter builds the match-service HTTP router.

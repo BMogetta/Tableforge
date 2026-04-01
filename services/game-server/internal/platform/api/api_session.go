@@ -9,13 +9,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/domain/lobby"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/events"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/platform/ws"
-	error_message "github.com/tableforge/shared/errors"
-	sharedmw "github.com/tableforge/shared/middleware"
+	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/events"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/platform/ws"
+	error_message "github.com/recess/shared/errors"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // GET /api/v1/players/{playerID}/sessions

@@ -18,7 +18,7 @@ import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch'
 // ---------------------------------------------------------------------------
 
 const resource = resourceFromAttributes({
-  [ATTR_SERVICE_NAME]: 'tableforge-frontend',
+  [ATTR_SERVICE_NAME]: 'recess-frontend',
   [ATTR_SERVICE_VERSION]: '1.0.0',
 })
 
@@ -52,7 +52,7 @@ registerInstrumentations({
   tracerProvider,
 })
 
-export const tracer = tracerProvider.getTracer('tableforge-frontend')
+export const tracer = tracerProvider.getTracer('recess-frontend')
 
 // ---------------------------------------------------------------------------
 // Metrics
@@ -72,7 +72,7 @@ const meterProvider = new MeterProvider({
   ],
 })
 
-const meter = meterProvider.getMeter('tableforge-frontend')
+const meter = meterProvider.getMeter('recess-frontend')
 
 // Web Vitals histograms — collector forwards these to Prometheus
 const vitalsHistogram = meter.createHistogram('web_vitals', {
@@ -93,7 +93,7 @@ const loggerProvider = new LoggerProvider({
   processors: [new SimpleLogRecordProcessor(logExporter)],
 })
 
-const logger = loggerProvider.getLogger('tableforge-frontend')
+const logger = loggerProvider.getLogger('recess-frontend')
 
 // ---------------------------------------------------------------------------
 // Console bridge — forwards console.error and console.warn to OTLP logs

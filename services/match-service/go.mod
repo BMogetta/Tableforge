@@ -1,4 +1,4 @@
-module github.com/tableforge/match-service
+module github.com/recess/match-service
 
 go 1.25.0
 
@@ -10,7 +10,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/riandyrn/otelchi v0.12.2
-	github.com/tableforge/shared v0.0.0
+	github.com/recess/shared v0.0.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 	google.golang.org/grpc v1.79.2
 )
@@ -58,4 +58,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/tableforge/shared => ../../shared
+replace github.com/recess/shared => ../../shared

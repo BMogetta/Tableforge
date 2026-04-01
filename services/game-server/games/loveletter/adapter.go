@@ -18,10 +18,10 @@
 package loveletter
 
 import (
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/bot/mcts"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/shared/platform/randutil"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/bot/mcts"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/shared/platform/randutil"
 )
 
 // Adapter implements bot.BotAdapter for Love Letter.

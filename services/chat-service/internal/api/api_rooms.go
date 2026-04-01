@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/services/chat-service/internal/store"
-	sharedmw "github.com/tableforge/shared/middleware"
+	"github.com/recess/services/chat-service/internal/store"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // POST /api/v1/rooms/{roomID}/messages

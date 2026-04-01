@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
-	ratingv1 "github.com/tableforge/shared/proto/rating/v1"
+	ratingv1 "github.com/recess/shared/proto/rating/v1"
 	"google.golang.org/grpc"
 )
 

@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	sharedws "github.com/tableforge/shared/ws"
+	sharedws "github.com/recess/shared/ws"
 )
 
 // BroadcastToPlayer publishes an event to a player's personal Redis channel.

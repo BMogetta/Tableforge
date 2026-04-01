@@ -4,9 +4,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/tableforge/game-server/internal/bot"
-	"github.com/tableforge/game-server/internal/bot/mcts"
-	"github.com/tableforge/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/bot"
+	"github.com/recess/game-server/internal/bot/mcts"
+	"github.com/recess/game-server/internal/domain/engine"
 )
 
 const testPlayerID engine.PlayerID = "player-a"

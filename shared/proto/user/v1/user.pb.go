@@ -352,7 +352,7 @@ const file_shared_proto_user_v1_user_proto_rawDesc = "" +
 	"\vUserService\x12?\n" +
 	"\bCheckBan\x12\x18.user.v1.CheckBanRequest\x1a\x19.user.v1.CheckBanResponse\x12N\n" +
 	"\rGetFriendship\x12\x1d.user.v1.GetFriendshipRequest\x1a\x1e.user.v1.GetFriendshipResponse\x12?\n" +
-	"\bGetMutes\x12\x18.user.v1.GetMutesRequest\x1a\x19.user.v1.GetMutesResponseB3Z1github.com/tableforge/shared/proto/user/v1;userv1b\x06proto3"
+	"\bGetMutes\x12\x18.user.v1.GetMutesRequest\x1a\x19.user.v1.GetMutesResponseB3Z1github.com/recess/shared/proto/user/v1;userv1b\x06proto3"
 
 var (
 	file_shared_proto_user_v1_user_proto_rawDescOnce sync.Once

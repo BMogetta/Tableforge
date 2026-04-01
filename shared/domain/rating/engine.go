@@ -3,7 +3,7 @@ package rating
 import (
 	"math"
 
-	"github.com/tableforge/shared/platform/mathutil"
+	"github.com/recess/shared/platform/mathutil"
 )
 
 // ---------------------------------------------------------------------------

@@ -16,9 +16,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/tableforge/shared/events"
-	sharedws "github.com/tableforge/shared/ws"
-	"github.com/tableforge/notification-service/internal/store"
+	"github.com/recess/shared/events"
+	sharedws "github.com/recess/shared/ws"
+	"github.com/recess/notification-service/internal/store"
 )
 
 const (

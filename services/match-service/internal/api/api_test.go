@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	sharedmw "github.com/tableforge/shared/middleware"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // noopAuthMW is a pass-through middleware (no JWT validation).

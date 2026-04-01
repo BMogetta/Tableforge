@@ -11,14 +11,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/riandyrn/otelchi"
-	"github.com/tableforge/notification-service/internal/api"
-	"github.com/tableforge/notification-service/internal/consumer"
-	"github.com/tableforge/notification-service/internal/publisher"
-	"github.com/tableforge/notification-service/internal/store"
-	"github.com/tableforge/shared/config"
-	sharedmw "github.com/tableforge/shared/middleware"
-	sharedredis "github.com/tableforge/shared/redis"
-	"github.com/tableforge/shared/telemetry"
+	"github.com/recess/notification-service/internal/api"
+	"github.com/recess/notification-service/internal/consumer"
+	"github.com/recess/notification-service/internal/publisher"
+	"github.com/recess/notification-service/internal/store"
+	"github.com/recess/shared/config"
+	sharedmw "github.com/recess/shared/middleware"
+	sharedredis "github.com/recess/shared/redis"
+	"github.com/recess/shared/telemetry"
 )
 
 func main() {

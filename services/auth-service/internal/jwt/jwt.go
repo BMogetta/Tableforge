@@ -6,7 +6,7 @@ import (
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/tableforge/shared/middleware"
+	"github.com/recess/shared/middleware"
 )
 
 // SignToken issues a signed JWT for the given player.

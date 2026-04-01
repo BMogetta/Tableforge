@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/shared/middleware"
+	"github.com/recess/shared/middleware"
 )
 
 // --- mock store --------------------------------------------------------------

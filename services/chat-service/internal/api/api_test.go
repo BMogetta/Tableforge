@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/services/chat-service/internal/store"
-	sharedmw "github.com/tableforge/shared/middleware"
+	"github.com/recess/services/chat-service/internal/store"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // --- mock store --------------------------------------------------------------

@@ -1,4 +1,4 @@
-module github.com/tableforge/tools/seed-test
+module github.com/recess/tools/seed-test
 
 go 1.26.1
 

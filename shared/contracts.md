@@ -1,4 +1,4 @@
-# Tableforge — Service Contracts
+# Recess — Service Contracts
 
 Complete map of inter-service communication: what's gRPC, what's async,
 and what stays internal to each service.
@@ -228,7 +228,7 @@ is_draw, duration_secs, players[]
 ## Monorepo structure
 
 ```
-tableforge/
+recess/
   shared/
     proto/
       rating/v1/   rating.proto + rating.pb.go + rating_grpc.pb.go

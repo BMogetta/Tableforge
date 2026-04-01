@@ -1,4 +1,4 @@
-// Package engine defines the core interfaces and types for the Tableforge game engine.
+// Package engine defines the core interfaces and types for the Recess game engine.
 // Any board game can be added as a plugin by implementing the Game interface.
 package engine
 

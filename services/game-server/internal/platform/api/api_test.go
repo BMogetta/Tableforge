@@ -10,13 +10,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tableforge/game-server/internal/domain/engine"
-	"github.com/tableforge/game-server/internal/domain/lobby"
-	"github.com/tableforge/game-server/internal/domain/runtime"
-	"github.com/tableforge/game-server/internal/platform/api"
-	"github.com/tableforge/game-server/internal/platform/store"
-	"github.com/tableforge/game-server/internal/testutil"
-	sharedmw "github.com/tableforge/shared/middleware"
+	"github.com/recess/game-server/internal/domain/engine"
+	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/domain/runtime"
+	"github.com/recess/game-server/internal/platform/api"
+	"github.com/recess/game-server/internal/platform/store"
+	"github.com/recess/game-server/internal/testutil"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // --- Fake store --------------------------------------------------------------

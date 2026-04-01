@@ -11,7 +11,7 @@
 
 syntax = "proto3";
 package game.v1;
-option go_package = "github.com/tableforge/shared/proto/game/v1;gamev1";
+option go_package = "github.com/recess/shared/proto/game/v1;gamev1";
 
 service GameService {
   // StartSession is called by match-service after both players accept.
