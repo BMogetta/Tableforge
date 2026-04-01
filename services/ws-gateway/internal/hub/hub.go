@@ -77,7 +77,7 @@ func (h *Hub) SubscribeRoom(roomID uuid.UUID, c *Client) {
 		h.rooms[roomID] = make(map[*Client]struct{})
 	}
 	h.rooms[roomID][c] = struct{}{}
-	if len(h.rooms[roomID]) == 1 {
+	if len(h.rooms[roomID]) == 1 && h.rdb != nil {
 		go h.listenRoom(roomID)
 	}
 }
@@ -101,7 +101,7 @@ func (h *Hub) SubscribePlayer(playerID uuid.UUID, c *Client) {
 		h.players[playerID] = make(map[*Client]struct{})
 	}
 	h.players[playerID][c] = struct{}{}
-	if len(h.players[playerID]) == 1 {
+	if len(h.players[playerID]) == 1 && h.rdb != nil {
 		go h.listenPlayer(playerID)
 	}
 }

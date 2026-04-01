@@ -543,7 +543,7 @@ const file_shared_proto_game_v1_game_proto_rawDesc = "" +
 	"\n" +
 	"GetMoveLog\x12\x1a.game.v1.GetMoveLogRequest\x1a\x1b.game.v1.GetMoveLogResponse\x12N\n" +
 	"\rIsParticipant\x12\x1d.game.v1.IsParticipantRequest\x1a\x1e.game.v1.IsParticipantResponse\x12Q\n" +
-	"\x0eGetRoomPlayers\x12\x1e.game.v1.GetRoomPlayersRequest\x1a\x1f.game.v1.GetRoomPlayersResponseB3Z1github.com/recess/shared/proto/game/v1;gamev1b\x06proto3"
+	"\x0eGetRoomPlayers\x12\x1e.game.v1.GetRoomPlayersRequest\x1a\x1f.game.v1.GetRoomPlayersResponseB/Z-github.com/recess/shared/proto/game/v1;gamev1b\x06proto3"
 
 var (
 	file_shared_proto_game_v1_game_proto_rawDescOnce sync.Once

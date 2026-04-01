@@ -11,7 +11,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.12.4
-// source: lobby.proto
+// source: shared/proto/lobby/v1/lobby.proto
 
 package lobbyv1
 
@@ -44,7 +44,7 @@ type CreateRankedRoomRequest struct {
 
 func (x *CreateRankedRoomRequest) Reset() {
 	*x = CreateRankedRoomRequest{}
-	mi := &file_lobby_proto_msgTypes[0]
+	mi := &file_shared_proto_lobby_v1_lobby_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -56,7 +56,7 @@ func (x *CreateRankedRoomRequest) String() string {
 func (*CreateRankedRoomRequest) ProtoMessage() {}
 
 func (x *CreateRankedRoomRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_lobby_proto_msgTypes[0]
+	mi := &file_shared_proto_lobby_v1_lobby_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -69,7 +69,7 @@ func (x *CreateRankedRoomRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRankedRoomRequest.ProtoReflect.Descriptor instead.
 func (*CreateRankedRoomRequest) Descriptor() ([]byte, []int) {
-	return file_lobby_proto_rawDescGZIP(), []int{0}
+	return file_shared_proto_lobby_v1_lobby_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CreateRankedRoomRequest) GetPlayerAId() string {
@@ -117,7 +117,7 @@ type CreateRankedRoomResponse struct {
 
 func (x *CreateRankedRoomResponse) Reset() {
 	*x = CreateRankedRoomResponse{}
-	mi := &file_lobby_proto_msgTypes[1]
+	mi := &file_shared_proto_lobby_v1_lobby_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -129,7 +129,7 @@ func (x *CreateRankedRoomResponse) String() string {
 func (*CreateRankedRoomResponse) ProtoMessage() {}
 
 func (x *CreateRankedRoomResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_lobby_proto_msgTypes[1]
+	mi := &file_shared_proto_lobby_v1_lobby_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -142,7 +142,7 @@ func (x *CreateRankedRoomResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRankedRoomResponse.ProtoReflect.Descriptor instead.
 func (*CreateRankedRoomResponse) Descriptor() ([]byte, []int) {
-	return file_lobby_proto_rawDescGZIP(), []int{1}
+	return file_shared_proto_lobby_v1_lobby_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateRankedRoomResponse) GetRoomId() string {
@@ -159,11 +159,11 @@ func (x *CreateRankedRoomResponse) GetRoomCode() string {
 	return ""
 }
 
-var File_lobby_proto protoreflect.FileDescriptor
+var File_shared_proto_lobby_v1_lobby_proto protoreflect.FileDescriptor
 
-const file_lobby_proto_rawDesc = "" +
+const file_shared_proto_lobby_v1_lobby_proto_rawDesc = "" +
 	"\n" +
-	"\vlobby.proto\x12\blobby.v1\"\x9c\x01\n" +
+	"!shared/proto/lobby/v1/lobby.proto\x12\blobby.v1\"\x9c\x01\n" +
 	"\x17CreateRankedRoomRequest\x12\x1e\n" +
 	"\vplayer_a_id\x18\x01 \x01(\tR\tplayerAId\x12\x1e\n" +
 	"\vplayer_b_id\x18\x02 \x01(\tR\tplayerBId\x12\x17\n" +
@@ -174,26 +174,26 @@ const file_lobby_proto_rawDesc = "" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x1b\n" +
 	"\troom_code\x18\x02 \x01(\tR\broomCode2i\n" +
 	"\fLobbyService\x12Y\n" +
-	"\x10CreateRankedRoom\x12!.lobby.v1.CreateRankedRoomRequest\x1a\".lobby.v1.CreateRankedRoomResponseB5Z3github.com/recess/shared/proto/lobby/v1;lobbyv1b\x06proto3"
+	"\x10CreateRankedRoom\x12!.lobby.v1.CreateRankedRoomRequest\x1a\".lobby.v1.CreateRankedRoomResponseB1Z/github.com/recess/shared/proto/lobby/v1;lobbyv1b\x06proto3"
 
 var (
-	file_lobby_proto_rawDescOnce sync.Once
-	file_lobby_proto_rawDescData []byte
+	file_shared_proto_lobby_v1_lobby_proto_rawDescOnce sync.Once
+	file_shared_proto_lobby_v1_lobby_proto_rawDescData []byte
 )
 
-func file_lobby_proto_rawDescGZIP() []byte {
-	file_lobby_proto_rawDescOnce.Do(func() {
-		file_lobby_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_lobby_proto_rawDesc), len(file_lobby_proto_rawDesc)))
+func file_shared_proto_lobby_v1_lobby_proto_rawDescGZIP() []byte {
+	file_shared_proto_lobby_v1_lobby_proto_rawDescOnce.Do(func() {
+		file_shared_proto_lobby_v1_lobby_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_shared_proto_lobby_v1_lobby_proto_rawDesc), len(file_shared_proto_lobby_v1_lobby_proto_rawDesc)))
 	})
-	return file_lobby_proto_rawDescData
+	return file_shared_proto_lobby_v1_lobby_proto_rawDescData
 }
 
-var file_lobby_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_lobby_proto_goTypes = []any{
+var file_shared_proto_lobby_v1_lobby_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_shared_proto_lobby_v1_lobby_proto_goTypes = []any{
 	(*CreateRankedRoomRequest)(nil),  // 0: lobby.v1.CreateRankedRoomRequest
 	(*CreateRankedRoomResponse)(nil), // 1: lobby.v1.CreateRankedRoomResponse
 }
-var file_lobby_proto_depIdxs = []int32{
+var file_shared_proto_lobby_v1_lobby_proto_depIdxs = []int32{
 	0, // 0: lobby.v1.LobbyService.CreateRankedRoom:input_type -> lobby.v1.CreateRankedRoomRequest
 	1, // 1: lobby.v1.LobbyService.CreateRankedRoom:output_type -> lobby.v1.CreateRankedRoomResponse
 	1, // [1:2] is the sub-list for method output_type
@@ -203,26 +203,26 @@ var file_lobby_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_lobby_proto_init() }
-func file_lobby_proto_init() {
-	if File_lobby_proto != nil {
+func init() { file_shared_proto_lobby_v1_lobby_proto_init() }
+func file_shared_proto_lobby_v1_lobby_proto_init() {
+	if File_shared_proto_lobby_v1_lobby_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_lobby_proto_rawDesc), len(file_lobby_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shared_proto_lobby_v1_lobby_proto_rawDesc), len(file_shared_proto_lobby_v1_lobby_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_lobby_proto_goTypes,
-		DependencyIndexes: file_lobby_proto_depIdxs,
-		MessageInfos:      file_lobby_proto_msgTypes,
+		GoTypes:           file_shared_proto_lobby_v1_lobby_proto_goTypes,
+		DependencyIndexes: file_shared_proto_lobby_v1_lobby_proto_depIdxs,
+		MessageInfos:      file_shared_proto_lobby_v1_lobby_proto_msgTypes,
 	}.Build()
-	File_lobby_proto = out.File
-	file_lobby_proto_goTypes = nil
-	file_lobby_proto_depIdxs = nil
+	File_shared_proto_lobby_v1_lobby_proto = out.File
+	file_shared_proto_lobby_v1_lobby_proto_goTypes = nil
+	file_shared_proto_lobby_v1_lobby_proto_depIdxs = nil
 }

@@ -501,7 +501,7 @@ const file_shared_proto_rating_v1_rating_proto_rawDesc = "" +
 	"\tGetRating\x12\x1b.rating.v1.GetRatingRequest\x1a\x1c.rating.v1.GetRatingResponse\x12I\n" +
 	"\n" +
 	"GetRatings\x12\x1c.rating.v1.GetRatingsRequest\x1a\x1d.rating.v1.GetRatingsResponse\x12U\n" +
-	"\x0eGetLeaderboard\x12 .rating.v1.GetLeaderboardRequest\x1a!.rating.v1.GetLeaderboardResponseB7Z5github.com/recess/shared/proto/rating/v1;ratingv1b\x06proto3"
+	"\x0eGetLeaderboard\x12 .rating.v1.GetLeaderboardRequest\x1a!.rating.v1.GetLeaderboardResponseB3Z1github.com/recess/shared/proto/rating/v1;ratingv1b\x06proto3"
 
 var (
 	file_shared_proto_rating_v1_rating_proto_rawDescOnce sync.Once

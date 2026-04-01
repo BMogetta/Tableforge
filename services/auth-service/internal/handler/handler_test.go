@@ -194,6 +194,79 @@ func TestHandleGitHubLogin_RedirectsToGitHub(t *testing.T) {
 	}
 }
 
+func TestHandleTestLogin_Disabled(t *testing.T) {
+	// TEST_MODE is not set — should return 404.
+	st := newMockStore()
+	playerID := uuid.New()
+	st.players[playerID] = Player{ID: playerID, Username: "alice", Role: "player"}
+
+	h := newHandler(st)
+	req := httptest.NewRequest(http.MethodGet, "/auth/test-login?player_id="+playerID.String(), nil)
+	w := httptest.NewRecorder()
+	h.HandleTestLogin(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404 when TEST_MODE is off", w.Code)
+	}
+}
+
+func TestHandleTestLogin_Enabled(t *testing.T) {
+	t.Setenv("TEST_MODE", "true")
+
+	st := newMockStore()
+	playerID := uuid.New()
+	st.players[playerID] = Player{ID: playerID, Username: "alice", Role: "player"}
+
+	h := newHandler(st)
+	req := httptest.NewRequest(http.MethodGet, "/auth/test-login?player_id="+playerID.String(), nil)
+	w := httptest.NewRecorder()
+	h.HandleTestLogin(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Errorf("status = %d, want 204", w.Code)
+	}
+
+	cookies := w.Result().Cookies()
+	found := false
+	for _, c := range cookies {
+		if c.Name == middleware.CookieName {
+			found = true
+			if c.Value == "" {
+				t.Error("expected non-empty session cookie")
+			}
+		}
+	}
+	if !found {
+		t.Error("expected session cookie to be set")
+	}
+}
+
+func TestHandleTestLogin_InvalidPlayerID(t *testing.T) {
+	t.Setenv("TEST_MODE", "true")
+
+	h := newHandler(newMockStore())
+	req := httptest.NewRequest(http.MethodGet, "/auth/test-login?player_id=not-a-uuid", nil)
+	w := httptest.NewRecorder()
+	h.HandleTestLogin(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestHandleTestLogin_PlayerNotFound(t *testing.T) {
+	t.Setenv("TEST_MODE", "true")
+
+	h := newHandler(newMockStore())
+	req := httptest.NewRequest(http.MethodGet, "/auth/test-login?player_id="+uuid.New().String(), nil)
+	w := httptest.NewRecorder()
+	h.HandleTestLogin(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", w.Code)
+	}
+}
+
 func TestSanitizeUsername(t *testing.T) {
 	tests := []struct {
 		input string

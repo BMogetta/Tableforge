@@ -11,7 +11,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.12.4
-// source: lobby.proto
+// source: shared/proto/lobby/v1/lobby.proto
 
 package lobbyv1
 
@@ -126,5 +126,5 @@ var LobbyService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "lobby.proto",
+	Metadata: "shared/proto/lobby/v1/lobby.proto",
 }
