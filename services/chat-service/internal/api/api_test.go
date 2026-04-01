@@ -407,3 +407,130 @@ func TestGetUnreadDMCount_ForbiddenForOthers(t *testing.T) {
 		t.Errorf("expected 403, got %d", rec.Code)
 	}
 }
+
+// --- conversations -----------------------------------------------------------
+
+func TestListDMConversations(t *testing.T) {
+	st := newMockStore()
+	playerID := uuid.New()
+
+	router := newTestRouter(st)
+	rec := getJSONAs(t, router, "/api/v1/players/"+playerID.String()+"/dm/conversations", playerID, sharedmw.RolePlayer)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	resp := decodeResponse[[]store.DMConversation](t, rec)
+	if len(resp) != 0 {
+		t.Errorf("expected 0 conversations, got %d", len(resp))
+	}
+}
+
+func TestListDMConversations_Forbidden(t *testing.T) {
+	st := newMockStore()
+	playerID := uuid.New()
+	otherID := uuid.New()
+
+	router := newTestRouter(st)
+	rec := getJSONAs(t, router, "/api/v1/players/"+playerID.String()+"/dm/conversations", otherID, sharedmw.RolePlayer)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}
+
+// --- mark DM read ------------------------------------------------------------
+
+func TestMarkDMRead(t *testing.T) {
+	st := newMockStore()
+	caller := uuid.New()
+	messageID := uuid.New()
+
+	router := newTestRouter(st)
+	rec := postJSONAs(t, router, "/api/v1/dm/"+messageID.String()+"/read", caller, sharedmw.RolePlayer, nil)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if !st.readMessages[messageID] {
+		t.Error("expected message to be marked as read")
+	}
+}
+
+// --- report room message -----------------------------------------------------
+
+func TestReportRoomMessage(t *testing.T) {
+	st := newMockStore()
+	roomID := uuid.New()
+	messageID := uuid.New()
+	playerID := uuid.New()
+
+	router := newTestRouter(st)
+	rec := postJSONAs(t, router, "/api/v1/rooms/"+roomID.String()+"/messages/"+messageID.String()+"/report", playerID, sharedmw.RolePlayer, nil)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if !st.reported[messageID] {
+		t.Error("expected message to be reported")
+	}
+}
+
+// --- report DM ---------------------------------------------------------------
+
+func TestReportDM(t *testing.T) {
+	st := newMockStore()
+	playerA := uuid.New()
+	playerB := uuid.New()
+	messageID := uuid.New()
+
+	router := newTestRouter(st)
+	rec := postJSONAs(t, router, "/api/v1/players/"+playerA.String()+"/dm/"+playerB.String()+"/report", playerA, sharedmw.RolePlayer, map[string]string{
+		"message_id": messageID.String(),
+	})
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if !st.reported[messageID] {
+		t.Error("expected DM to be reported")
+	}
+}
+
+func TestReportDM_Forbidden(t *testing.T) {
+	st := newMockStore()
+	playerA := uuid.New()
+	playerB := uuid.New()
+	intruder := uuid.New()
+	messageID := uuid.New()
+
+	router := newTestRouter(st)
+	rec := postJSONAs(t, router, "/api/v1/players/"+playerA.String()+"/dm/"+playerB.String()+"/report", intruder, sharedmw.RolePlayer, map[string]string{
+		"message_id": messageID.String(),
+	})
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}
+
+// --- send DM edge cases ------------------------------------------------------
+
+func TestSendDM_EmptyContent(t *testing.T) {
+	st := newMockStore()
+	sender := uuid.New()
+	receiver := uuid.New()
+
+	router := newTestRouter(st)
+	rec := postJSONAs(t, router, "/api/v1/players/"+receiver.String()+"/dm", sender, sharedmw.RolePlayer, map[string]string{
+		"content": "",
+	})
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty content, got %d", rec.Code)
+	}
+}
