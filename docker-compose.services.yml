@@ -166,6 +166,11 @@ services:
       - "traefik.http.services.ws-gateway-svc.loadbalancer.server.port=8084"
       - "traefik.http.services.ws-gateway-svc.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.ws-gateway-svc.loadbalancer.sticky.cookie.name=ws_srv"
+      # Presence REST endpoint — lower priority than WS routes.
+      - "traefik.http.routers.ws-gateway-presence.rule=PathPrefix(`/api/v1/presence`)"
+      - "traefik.http.routers.ws-gateway-presence.entrypoints=web"
+      - "traefik.http.routers.ws-gateway-presence.priority=50"
+      - "traefik.http.routers.ws-gateway-presence.service=ws-gateway-svc"
 
   rating-service:
     build:

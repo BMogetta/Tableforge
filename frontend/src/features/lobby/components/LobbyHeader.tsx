@@ -61,7 +61,7 @@ export function LobbyHeader({ onLogout }: Props) {
           </button>
 
           {/* DMs envelope */}
-          <button className={styles.iconBtn} title='Messages'>
+          <button className={styles.iconBtn} title='Messages' onClick={() => useAppStore.getState().setDmTarget('__inbox__')}>
             <svg
               width='16'
               height='16'

@@ -28,6 +28,14 @@ type Friendship struct {
 	UpdatedAt   time.Time        `json:"updated_at"`
 }
 
+type FriendshipView struct {
+	FriendID        uuid.UUID        `json:"friend_id"`
+	FriendUsername  string           `json:"friend_username"`
+	FriendAvatarURL *string          `json:"friend_avatar_url,omitempty"`
+	Status          FriendshipStatus `json:"status"`
+	CreatedAt       time.Time        `json:"created_at"`
+}
+
 type PlayerMute struct {
 	MuterID   uuid.UUID `json:"muter_id"`
 	MutedID   uuid.UUID `json:"muted_id"`
@@ -114,8 +122,8 @@ type UpsertProfileParams struct {
 type Store interface {
 	// Friendships
 	GetFriendship(ctx context.Context, playerA, playerB uuid.UUID) (Friendship, error)
-	ListFriends(ctx context.Context, playerID uuid.UUID) ([]Friendship, error)
-	ListPendingFriendRequests(ctx context.Context, playerID uuid.UUID) ([]Friendship, error)
+	ListFriends(ctx context.Context, playerID uuid.UUID) ([]FriendshipView, error)
+	ListPendingFriendRequests(ctx context.Context, playerID uuid.UUID) ([]FriendshipView, error)
 	SendFriendRequest(ctx context.Context, requesterID, addresseeID uuid.UUID) (Friendship, error)
 	AcceptFriendRequest(ctx context.Context, requesterID, addresseeID uuid.UUID) (Friendship, error)
 	DeclineFriendRequest(ctx context.Context, requesterID, addresseeID uuid.UUID) error

@@ -72,6 +72,10 @@ func (f *fakePublisher) PublishPlayerUnbanned(_ context.Context, banID, playerID
 	f.record(channelPlayerUnbanned)
 }
 
+func (f *fakePublisher) PublishFriendshipRequested(_ context.Context, requesterID, requesterUsername, addresseeID string) {
+	f.record(channelFriendshipRequested)
+}
+
 func (f *fakePublisher) PublishFriendshipAccepted(_ context.Context, friendship store.Friendship) {
 	f.record(channelFriendshipAccepted)
 }

@@ -32,6 +32,7 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 
 	// --- Direct messages -----------------------------------------------------
 	r.Post("/api/v1/players/{playerID}/dm", handleSendDM(st, pub))
+	r.Get("/api/v1/players/{playerID}/dm/conversations", handleListDMConversations(st))
 	r.Get("/api/v1/players/{playerID}/dm/unread", handleGetUnreadDMCount(st))
 	r.Get("/api/v1/players/{playerID}/dm/{otherPlayerID}", handleGetDMHistory(st))
 	r.Post("/api/v1/dm/{messageID}/read", handleMarkDMRead(st, pub))

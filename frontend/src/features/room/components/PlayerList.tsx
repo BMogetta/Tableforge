@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RoomViewPlayer } from '@/lib/api'
 import { mutes } from '@/features/room/api'
+import { friends } from '@/features/friends/api'
 import { ok, error, catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
 import { useAppStore } from '@/stores/store'
@@ -127,6 +128,18 @@ export function PlayerList({
                       }}
                       onBlock={() => handleBlock(p.id)}
                       onUnblock={() => handleUnblock(p.id)}
+                      onAddFriend={async () => {
+                        const [err] = await friends
+                          .sendRequest(currentPlayerId, p.id)
+                          .then(() => ok(null))
+                          .catch(e => error(catchToAppError(e)))
+                        if (err) { toast.showError(err) } else { toast.showInfo('Friend request sent!') }
+                        setOpenDropdownId(null)
+                      }}
+                      onSendDM={() => {
+                        useAppStore.getState().setDmTarget(p.id)
+                        setOpenDropdownId(null)
+                      }}
                     />
                   )}
                 </div>

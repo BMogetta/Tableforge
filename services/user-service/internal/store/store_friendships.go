@@ -26,33 +26,43 @@ func (s *pgStore) GetFriendship(ctx context.Context, playerA, playerB uuid.UUID)
 	return f, err
 }
 
-func (s *pgStore) ListFriends(ctx context.Context, playerID uuid.UUID) ([]Friendship, error) {
+func (s *pgStore) ListFriends(ctx context.Context, playerID uuid.UUID) ([]FriendshipView, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT requester_id, addressee_id, status, note, created_at, updated_at
-		FROM users.friendships
-		WHERE (requester_id = $1 OR addressee_id = $1)
-		  AND status = 'accepted'
+		SELECT
+			CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END AS friend_id,
+			p.username AS friend_username,
+			p.avatar_url AS friend_avatar_url,
+			f.status,
+			f.created_at
+		FROM users.friendships f
+		JOIN public.players p ON p.id = CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END
+		WHERE (f.requester_id = $1 OR f.addressee_id = $1) AND f.status = 'accepted'
 	`, playerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanFriendships(rows)
+	return scanFriendshipViews(rows)
 }
 
-func (s *pgStore) ListPendingFriendRequests(ctx context.Context, playerID uuid.UUID) ([]Friendship, error) {
+func (s *pgStore) ListPendingFriendRequests(ctx context.Context, playerID uuid.UUID) ([]FriendshipView, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT requester_id, addressee_id, status, note, created_at, updated_at
-		FROM users.friendships
-		WHERE addressee_id = $1
-		  AND status = 'pending'
-		ORDER BY created_at DESC
+		SELECT
+			f.requester_id AS friend_id,
+			p.username AS friend_username,
+			p.avatar_url AS friend_avatar_url,
+			f.status,
+			f.created_at
+		FROM users.friendships f
+		JOIN public.players p ON p.id = f.requester_id
+		WHERE f.addressee_id = $1 AND f.status = 'pending'
+		ORDER BY f.created_at DESC
 	`, playerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanFriendships(rows)
+	return scanFriendshipViews(rows)
 }
 
 func (s *pgStore) SendFriendRequest(ctx context.Context, requesterID, addresseeID uuid.UUID) (Friendship, error) {
@@ -153,6 +163,18 @@ func scanFriendships(rows pgx.Rows) ([]Friendship, error) {
 			return nil, err
 		}
 		out = append(out, f)
+	}
+	return out, rows.Err()
+}
+
+func scanFriendshipViews(rows pgx.Rows) ([]FriendshipView, error) {
+	var out []FriendshipView
+	for rows.Next() {
+		var fv FriendshipView
+		if err := rows.Scan(&fv.FriendID, &fv.FriendUsername, &fv.FriendAvatarURL, &fv.Status, &fv.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, fv)
 	}
 	return out, rows.Err()
 }

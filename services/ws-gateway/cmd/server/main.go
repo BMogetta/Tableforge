@@ -108,6 +108,8 @@ func main() {
 		promhttp.HandlerOpts{},
 	).ServeHTTP)
 
+	r.Get("/api/v1/presence", handler.PresenceHandler(ps))
+
 	r.With(authMW).Get("/ws/rooms/{roomID}", handler.RoomHandler(h, ps, userClient, gameClient))
 	r.With(authMW).Get("/ws/players/{playerID}", handler.PlayerHandler(h, userClient))
 

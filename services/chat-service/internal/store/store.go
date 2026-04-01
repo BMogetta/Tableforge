@@ -35,6 +35,16 @@ type DirectMessage struct {
 	CreatedAt  time.Time  `json:"timestamp"`
 }
 
+// DMConversation represents a unique DM conversation partner with summary info.
+type DMConversation struct {
+	OtherPlayerID  uuid.UUID  `json:"other_player_id"`
+	OtherUsername  string     `json:"other_username"`
+	OtherAvatarURL *string    `json:"other_avatar_url,omitempty"`
+	LastMessage    string     `json:"last_message"`
+	LastMessageAt  time.Time  `json:"last_message_at"`
+	UnreadCount    int        `json:"unread_count"`
+}
+
 // --- Store interface ---------------------------------------------------------
 
 type Store interface {
@@ -49,6 +59,7 @@ type Store interface {
 	GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID) ([]DirectMessage, error)
 	MarkDMRead(ctx context.Context, messageID uuid.UUID) error
 	GetUnreadDMCount(ctx context.Context, playerID uuid.UUID) (int, error)
+	ListDMConversations(ctx context.Context, playerID uuid.UUID) ([]DMConversation, error)
 	ReportDM(ctx context.Context, messageID uuid.UUID) error
 
 	// Room participants — needed to validate sender is not a spectator.

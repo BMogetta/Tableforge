@@ -101,6 +101,12 @@ interface AppState {
   setMatchFound: (matchId: string) => void
   clearQueue: () => void
 
+  // --- DM target (global) ----------------------------------------------------
+
+  /** When set, the DM overlay opens a conversation with this player. */
+  dmTarget: string | null
+  setDmTarget: (id: string | null) => void
+
   // --- Settings state --------------------------------------------------------
 
   /**
@@ -221,6 +227,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ queueStatus: QueueStatus.Queued, queueJoinedAt: joinedAt, matchId: null }),
   setMatchFound: matchId => set({ queueStatus: QueueStatus.MatchFound, matchId }),
   clearQueue: () => set({ queueStatus: QueueStatus.Idle, queueJoinedAt: null, matchId: null }),
+
+  dmTarget: null,
+  setDmTarget: (id) => set({ dmTarget: id }),
 
   // Settings
   settings: { ...DEFAULT_SETTINGS },

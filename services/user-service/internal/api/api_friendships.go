@@ -47,7 +47,7 @@ func handleListPendingRequests(st store.Store) http.HandlerFunc {
 	}
 }
 
-func handleSendFriendRequest(st store.Store) http.HandlerFunc {
+func handleSendFriendRequest(st store.Store, pub *Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requesterID, err := uuid.Parse(chi.URLParam(r, "playerID"))
 		if err != nil {
@@ -73,6 +73,8 @@ func handleSendFriendRequest(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to send friend request")
 			return
 		}
+		username, _ := sharedmw.UsernameFromContext(r.Context())
+		pub.PublishFriendshipRequested(r.Context(), requesterID.String(), username, targetID.String())
 		writeJSON(w, http.StatusCreated, friendship)
 	}
 }

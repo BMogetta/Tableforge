@@ -157,6 +157,65 @@ func (s *pgStore) GetUnreadDMCount(ctx context.Context, playerID uuid.UUID) (int
 	return count, nil
 }
 
+func (s *pgStore) ListDMConversations(ctx context.Context, playerID uuid.UUID) ([]DMConversation, error) {
+	rows, err := s.db.Query(ctx, `
+		WITH conversations AS (
+			SELECT DISTINCT
+				CASE WHEN sender_id = $1 THEN receiver_id ELSE sender_id END as other_id
+			FROM direct_messages
+			WHERE sender_id = $1 OR receiver_id = $1
+		),
+		latest_msg AS (
+			SELECT DISTINCT ON (
+				CASE WHEN dm.sender_id = $1 THEN dm.receiver_id ELSE dm.sender_id END
+			)
+				CASE WHEN dm.sender_id = $1 THEN dm.receiver_id ELSE dm.sender_id END as other_id,
+				dm.content as last_message,
+				dm.created_at as last_message_at
+			FROM direct_messages dm
+			WHERE dm.sender_id = $1 OR dm.receiver_id = $1
+			ORDER BY
+				CASE WHEN dm.sender_id = $1 THEN dm.receiver_id ELSE dm.sender_id END,
+				dm.created_at DESC
+		),
+		unread AS (
+			SELECT
+				sender_id as other_id,
+				COUNT(*) as unread_count
+			FROM direct_messages
+			WHERE receiver_id = $1 AND read_at IS NULL AND hidden = false
+			GROUP BY sender_id
+		)
+		SELECT
+			c.other_id,
+			p.username,
+			p.avatar_url,
+			COALESCE(lm.last_message, ''),
+			COALESCE(lm.last_message_at, NOW()),
+			COALESCE(u.unread_count, 0)
+		FROM conversations c
+		JOIN public.players p ON p.id = c.other_id
+		LEFT JOIN latest_msg lm ON lm.other_id = c.other_id
+		LEFT JOIN unread u ON u.other_id = c.other_id
+		ORDER BY lm.last_message_at DESC NULLS LAST`,
+		playerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ListDMConversations: %w", err)
+	}
+	defer rows.Close()
+
+	convos := []DMConversation{}
+	for rows.Next() {
+		var c DMConversation
+		if err := rows.Scan(&c.OtherPlayerID, &c.OtherUsername, &c.OtherAvatarURL, &c.LastMessage, &c.LastMessageAt, &c.UnreadCount); err != nil {
+			return nil, fmt.Errorf("ListDMConversations scan: %w", err)
+		}
+		convos = append(convos, c)
+	}
+	return convos, rows.Err()
+}
+
 func (s *pgStore) ReportDM(ctx context.Context, messageID uuid.UUID) error {
 	tag, err := s.db.Exec(ctx,
 		`UPDATE direct_messages SET reported = true WHERE id = $1`,

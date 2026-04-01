@@ -1,7 +1,12 @@
 import { createRootRoute, Outlet, useNavigate, useRouter } from '@tanstack/react-router'
-import { useEffect, Component, type ReactNode } from 'react'
+import { useEffect, useState, Component, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAppStore, type ResolvedSettings } from '../stores/store'
 import { auth, wsPlayerUrl, playerSettings } from '@/lib/api'
+import { friends } from '@/features/friends/api'
+import { keys } from '@/lib/queryClient'
+import { FriendsPanel, FriendsButton } from '@/features/friends/components/FriendsPanel'
+import { DMInboxPanel } from '@/features/friends/components/DMInboxPanel'
 import { ToastProvider } from '../ui/Toast'
 import { emitErrorLog } from '@/lib/telemetry'
 
@@ -202,18 +207,66 @@ function NotFound() {
 }
 
 function RootComponent() {
-  const { player, disconnectPlayerSocket } = useAppStore()
+  const { player, disconnectPlayerSocket, dmTarget, setDmTarget } = useAppStore()
+  const [friendsOpen, setFriendsOpen] = useState(false)
+  const [dmInboxOpen, setDmInboxOpen] = useState(false)
 
-  // beforeLoad already resolved auth.me() — no loading state needed here.
-  // Just keep the socket in sync with the player state.
   useEffect(() => {
-    if (!player) disconnectPlayerSocket()
+    if (!player) {
+      disconnectPlayerSocket()
+    }
   }, [player])
+
+  // Open DM inbox when dmTarget is set from anywhere (PlayerDropdown, FriendItem)
+  useEffect(() => {
+    if (dmTarget) {
+      setDmInboxOpen(true)
+    }
+  }, [dmTarget])
+
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: keys.friendsPending(player?.id ?? ''),
+    queryFn: () => friends.pending(player!.id),
+    enabled: !!player,
+    refetchInterval: 30_000,
+  })
+
+  const pendingCount = (pendingRequests ?? []).length
 
   return (
     <ToastProvider>
       <ErrorBoundary>
         <Outlet />
+
+        {player && (
+          <>
+            <FriendsButton
+              pendingCount={pendingCount}
+              onClick={() => setFriendsOpen(true)}
+            />
+
+            {friendsOpen && (
+              <FriendsPanel
+                onClose={() => setFriendsOpen(false)}
+                onOpenDM={id => {
+                  setFriendsOpen(false)
+                  setDmTarget(id)
+                  setDmInboxOpen(true)
+                }}
+              />
+            )}
+
+            {dmInboxOpen && (
+              <DMInboxPanel
+                onClose={() => {
+                  setDmInboxOpen(false)
+                  setDmTarget(null)
+                }}
+                initialTarget={dmTarget === '__inbox__' ? null : dmTarget}
+              />
+            )}
+          </>
+        )}
       </ErrorBoundary>
     </ToastProvider>
   )

@@ -134,6 +134,35 @@ func handleGetUnreadDMCount(st store.Store) http.HandlerFunc {
 	}
 }
 
+// GET /api/v1/players/{playerID}/dm/conversations
+func handleListDMConversations(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player id")
+			return
+		}
+
+		callerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		if callerID != playerID {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+
+		convos, err := st.ListDMConversations(r.Context(), playerID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list conversations")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, convos)
+	}
+}
+
 // POST /api/v1/dm/{messageID}/read
 // Broadcasts dm_read to the sender's player channel.
 func handleMarkDMRead(st store.Store, pub *Publisher) http.HandlerFunc {

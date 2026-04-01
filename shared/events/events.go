@@ -12,7 +12,7 @@
 // Channel ownership:
 //   game-service    → game.session.finished, game.move.applied
 //   match-service   → match.found, match.cancelled, match.ready
-//   user-service    → player.banned, player.unbanned, friendship.accepted
+//   user-service    → player.banned, player.unbanned, friendship.requested, friendship.accepted
 //   auth-service    → player.session.revoked
 //
 // These are DIFFERENT from the ws hub event types (those are client-facing).
@@ -145,6 +145,17 @@ type PlayerUnbanned struct {
 	PlayerID string `json:"player_id"`
 	BanID    string `json:"ban_id"`
 	LiftedBy string `json:"lifted_by"`
+}
+
+// Channel: friendship.requested
+// Published by: user-service when a friend request is sent.
+// Consumers:
+//   notification-service → send in-app notification to addressee
+type FriendshipRequested struct {
+	Meta
+	RequesterID      string `json:"requester_id"`
+	RequesterUsername string `json:"requester_username"`
+	AddresseeID      string `json:"addressee_id"`
 }
 
 // Channel: friendship.accepted

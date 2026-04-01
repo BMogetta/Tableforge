@@ -54,32 +54,46 @@ func (m *mockStore) GetFriendship(_ context.Context, playerA, playerB uuid.UUID)
 	return store.Friendship{}, store.ErrNotFound
 }
 
-func (m *mockStore) ListFriends(_ context.Context, playerID uuid.UUID) ([]store.Friendship, error) {
+func (m *mockStore) ListFriends(_ context.Context, playerID uuid.UUID) ([]store.FriendshipView, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var out []store.Friendship
+	var out []store.FriendshipView
 	for _, f := range m.friendships {
 		if f.Status == store.FriendshipStatusAccepted && (f.RequesterID == playerID || f.AddresseeID == playerID) {
-			out = append(out, f)
+			friendID := f.AddresseeID
+			if f.AddresseeID == playerID {
+				friendID = f.RequesterID
+			}
+			out = append(out, store.FriendshipView{
+				FriendID:       friendID,
+				FriendUsername: "mock-user",
+				Status:         f.Status,
+				CreatedAt:      f.CreatedAt,
+			})
 		}
 	}
 	if out == nil {
-		out = []store.Friendship{}
+		out = []store.FriendshipView{}
 	}
 	return out, nil
 }
 
-func (m *mockStore) ListPendingFriendRequests(_ context.Context, playerID uuid.UUID) ([]store.Friendship, error) {
+func (m *mockStore) ListPendingFriendRequests(_ context.Context, playerID uuid.UUID) ([]store.FriendshipView, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var out []store.Friendship
+	var out []store.FriendshipView
 	for _, f := range m.friendships {
 		if f.Status == store.FriendshipStatusPending && f.AddresseeID == playerID {
-			out = append(out, f)
+			out = append(out, store.FriendshipView{
+				FriendID:       f.RequesterID,
+				FriendUsername: "mock-user",
+				Status:         f.Status,
+				CreatedAt:      f.CreatedAt,
+			})
 		}
 	}
 	if out == nil {
-		out = []store.Friendship{}
+		out = []store.FriendshipView{}
 	}
 	return out, nil
 }

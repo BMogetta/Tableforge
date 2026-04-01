@@ -110,6 +110,10 @@ func (m *mockStore) GetUnreadDMCount(_ context.Context, playerID uuid.UUID) (int
 	return m.unreadCounts[playerID], nil
 }
 
+func (m *mockStore) ListDMConversations(_ context.Context, _ uuid.UUID) ([]store.DMConversation, error) {
+	return []store.DMConversation{}, nil
+}
+
 func (m *mockStore) ReportDM(_ context.Context, messageID uuid.UUID) error {
 	m.reported[messageID] = true
 	return nil

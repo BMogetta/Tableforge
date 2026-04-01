@@ -8,9 +8,11 @@ interface PlayerDropdownProps {
   onUnmute: () => void
   onBlock: () => void
   onUnblock: () => void
+  onAddFriend: () => void
+  onSendDM: () => void
 }
 
-export function PlayerDropdown({ isMuted, onMute, onUnmute, onBlock, onUnblock }: PlayerDropdownProps) {
+export function PlayerDropdown({ isMuted, onMute, onUnmute, onBlock, onUnblock, onAddFriend, onSendDM }: PlayerDropdownProps) {
   return (
     <div className={styles.dropdown}>
       {isMuted ? (
@@ -29,10 +31,10 @@ export function PlayerDropdown({ isMuted, onMute, onUnmute, onBlock, onUnblock }
         Unblock
       </button>
       <hr className={styles.dropdownDivider} />
-      <button className={styles.dropdownItem} disabled title='Coming soon'>
+      <button className={styles.dropdownItem} onClick={onAddFriend}>
         Add Friend
       </button>
-      <button className={styles.dropdownItem} disabled title='Coming soon'>
+      <button className={styles.dropdownItem} onClick={onSendDM}>
         Send DM
       </button>
     </div>

@@ -28,7 +28,7 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	// --- Friendships ---------------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/friends", handleListFriends(st))
 	r.Get("/api/v1/players/{playerID}/friends/pending", handleListPendingRequests(st))
-	r.Post("/api/v1/players/{playerID}/friends/{targetID}", handleSendFriendRequest(st))
+	r.Post("/api/v1/players/{playerID}/friends/{targetID}", handleSendFriendRequest(st, pub))
 	r.Put("/api/v1/players/{playerID}/friends/{requesterID}/accept", handleAcceptFriendRequest(st, pub))
 	r.Delete("/api/v1/players/{playerID}/friends/{requesterID}/decline", handleDeclineFriendRequest(st))
 	r.Delete("/api/v1/players/{playerID}/friends/{friendID}", handleRemoveFriend(st))

@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	channelFriendshipAccepted = "friendship.accepted"
-	channelPlayerBanned       = "player.banned"
+	channelFriendshipRequested = "friendship.requested"
+	channelFriendshipAccepted  = "friendship.accepted"
+	channelPlayerBanned        = "player.banned"
 )
 
 // Publisher is the interface used to deliver real-time WS events.
@@ -45,12 +46,12 @@ func New(rdb *redis.Client, st *store.Store, pub Publisher, log *slog.Logger) *C
 
 // Run blocks until ctx is cancelled.
 func (c *Consumer) Run(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelFriendshipAccepted, channelPlayerBanned)
+	sub := c.rdb.Subscribe(ctx, channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned)
 	defer sub.Close()
 
 	ch := sub.Channel()
 	c.log.Info("subscribed to Redis channels",
-		"channels", []string{channelFriendshipAccepted, channelPlayerBanned},
+		"channels", []string{channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned},
 	)
 
 	for {
@@ -73,6 +74,8 @@ func (c *Consumer) Run(ctx context.Context) error {
 
 func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
 	switch msg.Channel {
+	case channelFriendshipRequested:
+		return c.handleFriendshipRequested(ctx, msg.Payload)
 	case channelFriendshipAccepted:
 		return c.handleFriendshipAccepted(ctx, msg.Payload)
 	case channelPlayerBanned:
@@ -80,6 +83,50 @@ func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
 	default:
 		return fmt.Errorf("unknown channel: %s", msg.Channel)
 	}
+}
+
+func (c *Consumer) handleFriendshipRequested(ctx context.Context, payload string) error {
+	var evt events.FriendshipRequested
+	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+		return fmt.Errorf("unmarshal FriendshipRequested: %w", err)
+	}
+
+	addresseeID, err := uuid.Parse(evt.AddresseeID)
+	if err != nil {
+		return fmt.Errorf("invalid addressee_id: %w", err)
+	}
+
+	p := store.PayloadFriendRequest{
+		FromPlayerID: evt.RequesterID,
+		FromUsername:  evt.RequesterUsername,
+	}
+	payloadJSON, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("marshal PayloadFriendRequest: %w", err)
+	}
+
+	expires := time.Now().Add(7 * 24 * time.Hour)
+	n, err := c.store.Create(ctx, store.CreateParams{
+		PlayerID:        addresseeID,
+		Type:            store.NotificationTypeFriendRequest,
+		Payload:         payloadJSON,
+		ActionExpiresAt: &expires,
+	})
+	if err != nil {
+		return fmt.Errorf("create friend_request notification: %w", err)
+	}
+
+	c.pub.PublishToPlayer(ctx, addresseeID, sharedws.Event{
+		Type:    sharedws.EventNotificationReceived,
+		Payload: n,
+	})
+
+	c.log.Debug("sent friend_request notification",
+		"event_id", evt.EventID,
+		"requester_id", evt.RequesterID,
+		"addressee_id", addresseeID,
+	)
+	return nil
 }
 
 func (c *Consumer) handleFriendshipAccepted(ctx context.Context, payload string) error {

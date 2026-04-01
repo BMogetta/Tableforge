@@ -26,6 +26,8 @@ function renderDropdown(overrides?: Partial<{
     onUnmute: vi.fn(),
     onBlock: vi.fn(),
     onUnblock: vi.fn(),
+    onAddFriend: vi.fn(),
+    onSendDM: vi.fn(),
     ...overrides,
   }
   render(<PlayerDropdown {...props} />)
@@ -62,9 +64,15 @@ describe('PlayerDropdown', () => {
     expect(onUnblock).toHaveBeenCalledTimes(1)
   })
 
-  it('has disabled friend and DM buttons', () => {
-    renderDropdown()
-    expect(screen.getByText(/Add Friend/)).toBeDisabled()
-    expect(screen.getByText(/Send DM/)).toBeDisabled()
+  it('calls onAddFriend when clicking Add Friend', () => {
+    const { onAddFriend } = renderDropdown()
+    fireEvent.click(screen.getByText(/Add Friend/))
+    expect(onAddFriend).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls onSendDM when clicking Send DM', () => {
+    const { onSendDM } = renderDropdown()
+    fireEvent.click(screen.getByText(/Send DM/))
+    expect(onSendDM).toHaveBeenCalledTimes(1)
   })
 })

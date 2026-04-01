@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -162,6 +163,52 @@ func PlayerHandler(h *hub.Hub, uc userv1.UserServiceClient) http.HandlerFunc {
 
 		go c.ReadPump()
 		go c.WritePump()
+	}
+}
+
+// PresenceHandler returns the online/offline status for a list of player IDs.
+// GET /api/v1/presence?ids=uuid1,uuid2,...
+func PresenceHandler(ps *presence.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idsParam := r.URL.Query().Get("ids")
+		if idsParam == "" {
+			http.Error(w, "ids query param required", http.StatusBadRequest)
+			return
+		}
+
+		parts := strings.Split(idsParam, ",")
+		ids := make([]uuid.UUID, 0, len(parts))
+		for _, s := range parts {
+			id, err := uuid.Parse(strings.TrimSpace(s))
+			if err != nil {
+				continue
+			}
+			ids = append(ids, id)
+		}
+
+		if len(ids) == 0 {
+			http.Error(w, "no valid ids", http.StatusBadRequest)
+			return
+		}
+
+		// Cap at 100 to prevent abuse.
+		if len(ids) > 100 {
+			ids = ids[:100]
+		}
+
+		online, err := ps.ListOnline(r.Context(), ids)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		result := make(map[string]bool, len(online))
+		for id, ok := range online {
+			result[id.String()] = ok
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
 	}
 }
 
