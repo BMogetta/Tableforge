@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "grafana": {
+      "command": "/home/bruno/.local/bin/uvx",
+      "args": ["mcp-grafana"],
+      "env": {
+        "GRAFANA_URL": "http://localhost/grafana",
+        "GRAFANA_AUTH": "${GRAFANA_MCP_TOKEN}"
+      }
+    }
+  }
+}
