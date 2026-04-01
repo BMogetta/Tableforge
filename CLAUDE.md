@@ -60,6 +60,10 @@ make clean-test        # Remove auth state and player fixtures
 # Regenerate frontend/src/lib/api-generated.ts from Go API
 # Requires: swag (go install github.com/swaggo/swag/cmd/swag@latest)
 make gen-types
+
+# Regenerate protobuf Go stubs from .proto definitions
+# Requires: protoc, protoc-gen-go, protoc-gen-go-grpc
+make gen-proto
 ```
 
 ## Architecture

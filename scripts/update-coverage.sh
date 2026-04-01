@@ -16,12 +16,22 @@ trap 'rm -rf "$TMPDIR"' EXIT
 echo "Collecting Go coverage..."
 GO_CSV="$TMPDIR/go.csv"
 : > "$GO_CSV"
+HAS_ERRORS=0
 
 for svc_dir in "$ROOT"/services/*/; do
   [ -f "$svc_dir/go.mod" ] || continue
   svc_name=$(basename "$svc_dir")
 
   output=$(cd "$svc_dir" && go test ./... -v -cover -count=1 -timeout=120s 2>&1) || true
+
+  # Detect panics or build errors that make the results unreliable.
+  panics=$(echo "$output" | grep -c "^panic:" || true)
+  if [ "$panics" -gt 0 ]; then
+    echo "  $svc_name: PANIC — tests crashed, run 'go test ./services/$svc_name/...' to investigate"
+    echo "$svc_name,0,0,0.0" >> "$GO_CSV"
+    HAS_ERRORS=1
+    continue
+  fi
 
   passed=$(echo "$output" | grep -c "^--- PASS" || true)
   failed=$(echo "$output" | grep -c "^--- FAIL" || true)
@@ -33,6 +43,8 @@ for svc_dir in "$ROOT"/services/*/; do
   if [ -n "$coverages" ]; then
     avg=$(echo "$coverages" | awk '{s+=$1; n++} END {if(n>0) printf "%.1f", s/n; else print "0.0"}')
   fi
+
+  [ "$failed" -gt 0 ] && HAS_ERRORS=1
 
   echo "$svc_name,$passed,$failed,$avg" >> "$GO_CSV"
   echo "  $svc_name: $passed passed, ${avg}% coverage"
@@ -135,3 +147,9 @@ open('$README', 'w').write(new)
 
 echo ""
 echo "README.md updated."
+
+if [ "$HAS_ERRORS" -gt 0 ]; then
+  echo ""
+  echo "⚠ Some services had panics or test failures — check output above."
+  exit 1
+fi

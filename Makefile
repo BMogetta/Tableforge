@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-routing coverage logs ps clean clean-test gen-types setup lint
+.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-routing coverage logs ps clean clean-test gen-types gen-proto setup lint
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -134,6 +134,17 @@ gen-types:
 		--no-client
 
 	@echo "✓ TypeScript types generated at frontend/src/lib/api-generated.ts"
+
+# Regenerate all protobuf Go stubs from .proto definitions.
+# Requires: protoc, protoc-gen-go, protoc-gen-go-grpc
+gen-proto:
+	@for proto in shared/proto/*/v1/*.proto; do \
+		echo "  $$proto"; \
+		protoc --go_out=. --go_opt=paths=source_relative \
+		       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		       -I. "$$proto"; \
+	done
+	@echo "✓ Protobuf stubs regenerated"
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
