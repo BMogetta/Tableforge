@@ -28,10 +28,10 @@ import (
 	"log/slog"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/tableforge/shared/domain/matchmaking"
 	"github.com/tableforge/shared/domain/rating"
@@ -94,18 +94,22 @@ const (
 	keyDeclines       = "queue:declines:"        // list prefix: ISO timestamps of recent declines
 	keyBan            = "queue:ban:"             // string prefix: ban expiry unix timestamp
 	keyMatchmakeLock  = "queue:lock"             // SET NX EX lock for FindMatches
-	keyspacePrefix    = "__keyevent@0__:expired" // Redis keyspace notification channel
+
+	// TypeMatchExpiry is the Asynq task type for pending match expiration.
+	TypeMatchExpiry = "queue:match_expiry"
+	asynqQueue      = "default"
 
 	// shadowTTL is the TTL for shadow keys. Must be longer than
 	// ConfirmationWindowSecs so the shadow outlives the pending record.
 	shadowTTL = 60 * time.Second
 )
 
-func metaKey(playerID uuid.UUID) string     { return keyQueueMeta + playerID.String() }
-func pendingKey(matchID uuid.UUID) string   { return keyPending + matchID.String() }
-func shadowKey(matchID uuid.UUID) string    { return keyShadow + matchID.String() }
-func declinesKey(playerID uuid.UUID) string { return keyDeclines + playerID.String() }
-func banKey(playerID uuid.UUID) string      { return keyBan + playerID.String() }
+func metaKey(playerID uuid.UUID) string      { return keyQueueMeta + playerID.String() }
+func pendingKey(matchID uuid.UUID) string    { return keyPending + matchID.String() }
+func shadowKey(matchID uuid.UUID) string     { return keyShadow + matchID.String() }
+func expiryTaskID(matchID uuid.UUID) string  { return "queue:expiry:" + matchID.String() }
+func declinesKey(playerID uuid.UUID) string  { return keyDeclines + playerID.String() }
+func banKey(playerID uuid.UUID) string       { return keyBan + playerID.String() }
 
 // ---------------------------------------------------------------------------
 // Service
@@ -113,12 +117,14 @@ func banKey(playerID uuid.UUID) string      { return keyBan + playerID.String() 
 
 // Service is the ranked matchmaking queue. It is safe for concurrent use.
 type Service struct {
-	rdb          *redis.Client
-	ratingClient ratingv1.RatingServiceClient
-	lobbyClient  lobbyv1.LobbyServiceClient
-	gameClient   gamev1.GameServiceClient
-	matchmaker   *matchmaking.Matchmaker
-	rankedGameID string
+	rdb            *redis.Client
+	ratingClient   ratingv1.RatingServiceClient
+	lobbyClient    lobbyv1.LobbyServiceClient
+	gameClient     gamev1.GameServiceClient
+	matchmaker     *matchmaking.Matchmaker
+	rankedGameID   string
+	asynqClient    *asynq.Client
+	asynqInspector *asynq.Inspector
 }
 
 // New creates a new queue Service. gameID is the game used for ranked
@@ -130,17 +136,21 @@ func New(
 	lobbyClient lobbyv1.LobbyServiceClient,
 	gameClient gamev1.GameServiceClient,
 	gameID string,
+	asynqClient *asynq.Client,
+	asynqInspector *asynq.Inspector,
 ) *Service {
 	if gameID == "" {
 		gameID = DefaultRankedGameID
 	}
 	return &Service{
-		rdb:          rdb,
-		ratingClient: ratingClient,
-		lobbyClient:  lobbyClient,
-		gameClient:   gameClient,
-		matchmaker:   matchmaking.NewMatchmaker(matchmaking.DefaultQueueConfig()),
-		rankedGameID: gameID,
+		rdb:            rdb,
+		ratingClient:   ratingClient,
+		lobbyClient:    lobbyClient,
+		gameClient:     gameClient,
+		matchmaker:     matchmaking.NewMatchmaker(matchmaking.DefaultQueueConfig()),
+		rankedGameID:   gameID,
+		asynqClient:    asynqClient,
+		asynqInspector: asynqInspector,
 	}
 }
 
@@ -275,13 +285,14 @@ func (s *Service) Accept(ctx context.Context, playerID uuid.UUID, matchID uuid.U
 	mmrA, _ := strconv.ParseFloat(fields["mmr_a"], 64)
 	mmrB, _ := strconv.ParseFloat(fields["mmr_b"], 64)
 
-	// Both accepted — delete pending + shadow before starting the match
-	// to prevent double-processing.
+	// Both accepted — delete pending + shadow and cancel expiry task
+	// before starting the match to prevent double-processing.
 	deleted, err := s.rdb.Del(ctx, key, shadowKey(matchID)).Result()
 	if err != nil || deleted == 0 {
 		// Another instance already processed this — no-op.
 		return nil
 	}
+	s.cancelExpiry(matchID)
 
 	return s.startMatch(ctx, playerA, playerB, mmrA, mmrB)
 }
@@ -307,11 +318,12 @@ func (s *Service) Decline(ctx context.Context, playerID uuid.UUID, matchID uuid.
 		return ErrNotMatchParticipant
 	}
 
-	// Delete the pending + shadow records immediately.
+	// Delete the pending + shadow records and cancel expiry task.
 	deleted, err := s.rdb.Del(ctx, key, shadowKey(matchID)).Result()
 	if err != nil || deleted == 0 {
 		return nil // already resolved
 	}
+	s.cancelExpiry(matchID)
 
 	// Re-queue the other player if they had already accepted.
 	other := playerB
@@ -449,6 +461,8 @@ func (s *Service) FindAndPropose(ctx context.Context) {
 			"quality":  match.Quality,
 			"timeout":  ConfirmationWindowSecs,
 		}
+		s.scheduleExpiry(matchID)
+
 		s.publishToPlayer(ctx, pA, sharedws.Event{Type: sharedws.EventMatchFound, Payload: payload})
 		s.publishToPlayer(ctx, pB, sharedws.Event{Type: sharedws.EventMatchFound, Payload: payload})
 
@@ -461,39 +475,52 @@ func (s *Service) FindAndPropose(ctx context.Context) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// ListenExpiry — keyspace notification handler
-// ---------------------------------------------------------------------------
+// scheduleExpiry enqueues an Asynq task that fires after the confirmation
+// window expires. Replaces Redis keyspace notifications.
+func (s *Service) scheduleExpiry(matchID uuid.UUID) {
+	payload, _ := json.Marshal(map[string]string{"match_id": matchID.String()})
+	task := asynq.NewTask(TypeMatchExpiry, payload)
 
-// ListenExpiry subscribes to Redis keyspace notifications and handles
-// expired queue:pending:* keys. When a pending match expires, the players
-// are notified via match_cancelled. Call this in a goroutine; it blocks
-// until ctx is cancelled.
-func (s *Service) ListenExpiry(ctx context.Context) {
-	sub := s.rdb.Subscribe(ctx, keyspacePrefix)
-	defer sub.Close()
+	// Delete any existing task first (idempotent reschedule).
+	if s.asynqInspector != nil {
+		_ = s.asynqInspector.DeleteTask(asynqQueue, expiryTaskID(matchID))
+	}
 
-	ch := sub.Channel()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg, ok := <-ch:
-			if !ok {
-				return
-			}
-			expiredKey := msg.Payload
-			if !strings.HasPrefix(expiredKey, keyPending) {
-				continue
-			}
-			matchIDStr := strings.TrimPrefix(expiredKey, keyPending)
-			matchID, err := uuid.Parse(matchIDStr)
-			if err != nil {
-				continue
-			}
-			s.handleMatchExpiry(ctx, matchID)
+	if s.asynqClient != nil {
+		if _, err := s.asynqClient.Enqueue(task,
+			asynq.TaskID(expiryTaskID(matchID)),
+			asynq.ProcessIn(ConfirmationWindowSecs*time.Second),
+			asynq.MaxRetry(3),
+			asynq.Queue(asynqQueue),
+		); err != nil {
+			slog.Error("queue: schedule expiry failed", "match_id", matchID, "error", err)
 		}
 	}
+}
+
+// cancelExpiry removes the pending expiry task for a resolved match.
+func (s *Service) cancelExpiry(matchID uuid.UUID) {
+	if s.asynqInspector != nil {
+		if err := s.asynqInspector.DeleteTask(asynqQueue, expiryTaskID(matchID)); err != nil && err != asynq.ErrTaskNotFound {
+			slog.Error("queue: cancel expiry failed", "match_id", matchID, "error", err)
+		}
+	}
+}
+
+// HandleMatchExpiry is the Asynq handler for match expiry tasks.
+func (s *Service) HandleMatchExpiry(_ context.Context, task *asynq.Task) error {
+	var p struct {
+		MatchID string `json:"match_id"`
+	}
+	if err := json.Unmarshal(task.Payload(), &p); err != nil {
+		return fmt.Errorf("unmarshal match expiry payload: %w", err)
+	}
+	matchID, err := uuid.Parse(p.MatchID)
+	if err != nil {
+		return fmt.Errorf("invalid match_id: %w", err)
+	}
+	s.handleMatchExpiry(context.Background(), matchID)
+	return nil
 }
 
 // handleMatchExpiry is called when a queue:pending:* key expires.

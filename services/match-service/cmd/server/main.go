@@ -8,8 +8,11 @@ import (
 	"syscall"
 	"time"
 
+	"net/url"
+
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/hibiken/asynq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
@@ -82,9 +85,29 @@ func main() {
 	gameClient := gamev1.NewGameServiceClient(gameConn)
 	slog.Info("game-server gRPC connected", "addr", gameServerAddr)
 
+	// --- Asynq (match expiry tasks) ------------------------------------------
+	redisURL := config.MustEnv("REDIS_URL")
+	redisAddr := parseRedisAddr(redisURL)
+	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr}
+
+	asynqClient := asynq.NewClient(asynqRedis)
+	defer asynqClient.Close()
+	asynqInspector := asynq.NewInspector(asynqRedis)
+	defer asynqInspector.Close()
+
 	// --- Queue service -------------------------------------------------------
 	rankedGameID := config.Env("RANKED_GAME_ID", queue.DefaultRankedGameID)
-	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient, rankedGameID)
+	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient, rankedGameID, asynqClient, asynqInspector)
+
+	// --- Asynq server (match expiry handler) ---------------------------------
+	asynqSrv := asynq.NewServer(asynqRedis, asynq.Config{Concurrency: 5})
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(queue.TypeMatchExpiry, queueSvc.HandleMatchExpiry)
+	go func() {
+		if err := asynqSrv.Run(mux); err != nil {
+			slog.Error("asynq server error", "error", err)
+		}
+	}()
 
 	// --- Event consumer (player.banned) --------------------------------------
 	cons := consumer.New(rdb, queueSvc, slog.Default())
@@ -93,7 +116,6 @@ func main() {
 		consErr <- cons.Run(ctx)
 	}()
 
-	go queueSvc.ListenExpiry(ctx)
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
@@ -145,9 +167,24 @@ func main() {
 		}
 	}
 
+	asynqSrv.Shutdown()
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("HTTP shutdown error", "error", err)
 	}
+}
+
+func parseRedisAddr(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "localhost:6379"
+	}
+	host := u.Hostname()
+	port := u.Port()
+	if port == "" {
+		port = "6379"
+	}
+	return host + ":" + port
 }

@@ -126,7 +126,7 @@ PostgreSQL with schema separation:
 
 ### Redis Key Inventory
 
-See `shared/redis-keymap.md` for the full key map with TTLs and owners. Critical: Redis must run with `--notify-keyspace-events Ex` for turn timeout goroutines to fire.
+See `shared/redis-keymap.md` for the full key map with TTLs and owners.
 
 ### Observability
 
@@ -136,6 +136,6 @@ When running `make up-all`:
 - **Prometheus** — metrics scraped from `/metrics` endpoints
 - **Grafana** — dashboards at `http://localhost:3001`
 
-### Turn Timers — Stateless Caveat
+### Turn Timers & Match Expiry
 
-Turn timers are in-process goroutines in game-server. The system is **not safe for multi-instance horizontal scaling** without replacing them with a distributed scheduler (e.g., Asynq). Everything else (WS hub, presence, rate limiter) is stateless via Redis.
+Turn timers (game-server) and match confirmation expiry (match-service) use **Asynq** — a distributed task queue backed by Redis. Tasks are persisted and guaranteed exactly-once delivery, making the system safe for multi-instance horizontal scaling.

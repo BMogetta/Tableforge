@@ -2,10 +2,12 @@ package queue
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	ratingv1 "github.com/tableforge/shared/proto/rating/v1"
 	"google.golang.org/grpc"
@@ -195,5 +197,53 @@ func TestHandleMatchExpiry_RepeatedTimeouts_TriggerBan(t *testing.T) {
 	}
 	if !ban.Banned {
 		t.Error("expected player to be banned after repeated timeouts")
+	}
+}
+
+func TestHandleMatchExpiry_AsynqHandler(t *testing.T) {
+	svc, _ := newTestService(t)
+	ctx := context.Background()
+
+	matchID := uuid.New()
+	playerA := uuid.New()
+	playerB := uuid.New()
+
+	svc.rdb.HSet(ctx, shadowKey(matchID), map[string]any{
+		"player_a":   playerA.String(),
+		"player_b":   playerB.String(),
+		"accepted_a": "1",
+		"accepted_b": "0",
+	})
+
+	payload, _ := json.Marshal(map[string]string{"match_id": matchID.String()})
+	task := asynq.NewTask(TypeMatchExpiry, payload)
+
+	if err := svc.HandleMatchExpiry(ctx, task); err != nil {
+		t.Fatalf("HandleMatchExpiry: %v", err)
+	}
+
+	// Player A should be re-queued via the handler
+	_, err := svc.rdb.ZScore(ctx, keyQueueSortedSet, playerA.String()).Result()
+	if err != nil {
+		t.Errorf("player A should be re-queued via Asynq handler: %v", err)
+	}
+}
+
+func TestHandleMatchExpiry_AsynqHandler_InvalidPayload(t *testing.T) {
+	svc, _ := newTestService(t)
+
+	task := asynq.NewTask(TypeMatchExpiry, []byte("not json"))
+	if err := svc.HandleMatchExpiry(context.Background(), task); err == nil {
+		t.Error("expected error for invalid payload")
+	}
+}
+
+func TestHandleMatchExpiry_AsynqHandler_InvalidMatchID(t *testing.T) {
+	svc, _ := newTestService(t)
+
+	payload, _ := json.Marshal(map[string]string{"match_id": "not-a-uuid"})
+	task := asynq.NewTask(TypeMatchExpiry, payload)
+	if err := svc.HandleMatchExpiry(context.Background(), task); err == nil {
+		t.Error("expected error for invalid match_id")
 	}
 }

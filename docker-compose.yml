@@ -53,7 +53,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
-    command: redis-server --notify-keyspace-events Ex
     networks:
       - data_network
     volumes:

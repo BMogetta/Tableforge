@@ -99,9 +99,40 @@ func (h *GameHandler) IsParticipant(ctx context.Context, req *gamev1.IsParticipa
 	}, nil
 }
 
-func (h *GameHandler) GetMoveLog(_ context.Context, _ *gamev1.GetMoveLogRequest) (*gamev1.GetMoveLogResponse, error) {
-	// TODO: implement for replay-service
-	return nil, status.Error(codes.Unimplemented, "GetMoveLog not yet implemented")
+func (h *GameHandler) GetMoveLog(ctx context.Context, req *gamev1.GetMoveLogRequest) (*gamev1.GetMoveLogResponse, error) {
+	if req.SessionId == "" {
+		return nil, status.Error(codes.InvalidArgument, "session_id is required")
+	}
+	sessionID, err := uuid.Parse(req.SessionId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid session_id: %v", err)
+	}
+
+	session, err := h.st.GetGameSession(ctx, sessionID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "session not found: %v", err)
+	}
+
+	moves, err := h.st.ListSessionMoves(ctx, sessionID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list moves: %v", err)
+	}
+
+	protoMoves := make([]*gamev1.Move, len(moves))
+	for i, m := range moves {
+		protoMoves[i] = &gamev1.Move{
+			MoveNumber: int32(m.MoveNumber),
+			PlayerId:   m.PlayerID.String(),
+			Payload:    string(m.Payload),
+			AppliedAt:  m.AppliedAt.Format("2006-01-02T15:04:05Z07:00"),
+		}
+	}
+
+	return &gamev1.GetMoveLogResponse{
+		SessionId: sessionID.String(),
+		GameId:    session.GameID,
+		Moves:     protoMoves,
+	}, nil
 }
 
 func (h *GameHandler) GetRoomPlayers(ctx context.Context, req *gamev1.GetRoomPlayersRequest) (*gamev1.GetRoomPlayersResponse, error) {
