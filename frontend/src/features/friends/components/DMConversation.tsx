@@ -6,6 +6,7 @@ import { keys } from '@/lib/queryClient'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
 import type { DirectMessage } from '@/lib/api'
+import { sfx } from '@/lib/sfx'
 import styles from './DMConversation.module.css'
 
 interface DMConversationProps {
@@ -44,6 +45,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
     }
     const off = playerSocket.on(event => {
       if (event.type === 'dm_received' && (event.payload as { from?: string })?.from === otherPlayerId) {
+        sfx.play('chat.receive')
         qc.invalidateQueries({ queryKey: keys.dmHistory(player.id, otherPlayerId) })
         qc.invalidateQueries({ queryKey: keys.dmUnread(player.id) })
         qc.invalidateQueries({ queryKey: keys.dmConversations(player.id) })

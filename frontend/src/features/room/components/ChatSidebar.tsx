@@ -6,6 +6,7 @@ import { useAppStore } from '@/stores/store'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
 import { keys } from '@/lib/queryClient'
+import { sfx } from '@/lib/sfx'
 import styles from './ChatSidebar.module.css'
 
 interface Props {
@@ -104,6 +105,7 @@ export function ChatSidebar({
     const off = socket.on(event => {
       if (event.type === 'chat_message') {
         const msg = event.payload
+        if (msg.player_id !== player.id) sfx.play('chat.receive')
         qc.setQueryData<RoomMessage[]>(keys.roomMessages(roomId), (prev = []) => {
           // Deduplicate by id in case the HTTP resync already added it.
           if (prev.some(m => m.message_id === msg.message_id)) return prev
