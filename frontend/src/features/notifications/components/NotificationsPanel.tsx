@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { notifications } from '@/features/notifications/api'
 import { useAppStore } from '@/stores/store'
@@ -24,27 +24,28 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
 
   const acceptMut = useMutation({
     mutationFn: (id: string) => notifications.accept(player.id, id),
-    onSuccess: () => invalidate(),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => setPendingId(null),
+    onSettled: () => { invalidate(); setPendingId(null) },
   })
 
   const declineMut = useMutation({
     mutationFn: (id: string) => notifications.decline(player.id, id),
-    onSuccess: () => invalidate(),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => setPendingId(null),
+    onSettled: () => { invalidate(); setPendingId(null) },
   })
 
   // Mark all unread as read when panel opens
   const safeItems = items ?? []
-  const unread = safeItems.filter(n => !n.read_at)
-  if (unread.length > 0) {
+  const markedRef = useRef(false)
+  useEffect(() => {
+    const unread = safeItems.filter(n => !n.read_at)
+    if (unread.length === 0 || markedRef.current) return
+    markedRef.current = true
     for (const n of unread) {
       notifications.markRead(player.id, n.id).catch(() => {})
     }
-    queryClient.invalidateQueries({ queryKey: keys.notifications(player.id) })
-  }
+    invalidate()
+  }, [safeItems])
 
   function handleAccept(id: string) {
     setPendingId(id)

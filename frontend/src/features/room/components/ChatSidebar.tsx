@@ -81,18 +81,14 @@ export function ChatSidebar({
 
   const blockMutation = useMutation({
     mutationFn: (targetId: string) => mutes.mute(player.id, targetId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.mutes(player.id) })
-    },
     onError: e => toast.showError(catchToAppError(e)),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.mutes(player.id) }),
   })
 
   const unblockMutation = useMutation({
     mutationFn: (targetId: string) => mutes.unmute(player.id, targetId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.mutes(player.id) })
-    },
     onError: e => toast.showError(catchToAppError(e)),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.mutes(player.id) }),
   })
 
   // Initial load + periodic resync every 30s.
@@ -135,6 +131,7 @@ export function ChatSidebar({
       setDraft('')
       inputRef.current?.focus()
     },
+    onError: e => toast.showError(catchToAppError(e)),
   })
 
   // ---------------------------------------------------------------------------

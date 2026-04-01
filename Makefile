@@ -163,6 +163,7 @@ setup:
 	check golangci-lint --version; \
 	check swag --version; \
 	check npx --version; \
+	check uvx --version; \
 	echo ""; \
 	if [ "$$fail" = "1" ]; then \
 		echo "Some required tools are missing. Install them and re-run make setup."; \

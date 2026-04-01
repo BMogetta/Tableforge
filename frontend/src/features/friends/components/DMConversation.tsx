@@ -69,12 +69,12 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
 
   const sendMut = useMutation({
     mutationFn: (content: string) => dm.send(player.id, otherPlayerId, content),
-    onSuccess: () => {
-      setText('')
+    onSuccess: () => setText(''),
+    onError: e => toast.showError(catchToAppError(e)),
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: keys.dmHistory(player.id, otherPlayerId) })
       qc.invalidateQueries({ queryKey: keys.dmConversations(player.id) })
     },
-    onError: e => toast.showError(catchToAppError(e)),
   })
 
   function handleSend(e: React.FormEvent) {

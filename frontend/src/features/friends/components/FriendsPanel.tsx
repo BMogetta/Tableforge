@@ -55,23 +55,20 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
 
   const acceptMut = useMutation({
     mutationFn: (requesterId: string) => friends.acceptRequest(player.id, requesterId),
-    onSuccess: () => invalidate(),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => setPendingId(null),
+    onSettled: () => { invalidate(); setPendingId(null) },
   })
 
   const declineMut = useMutation({
     mutationFn: (requesterId: string) => friends.declineRequest(player.id, requesterId),
-    onSuccess: () => invalidate(),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => setPendingId(null),
+    onSettled: () => { invalidate(); setPendingId(null) },
   })
 
   const removeMut = useMutation({
     mutationFn: (friendId: string) => friends.remove(player.id, friendId),
-    onSuccess: () => invalidate(),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => setPendingId(null),
+    onSettled: () => { invalidate(); setPendingId(null) },
   })
 
   async function handleAddFriend(e: React.FormEvent) {
