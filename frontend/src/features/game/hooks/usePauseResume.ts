@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { sessions } from '@/lib/api/sessions'
+import { keys } from '@/lib/queryClient'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
 
@@ -47,6 +48,7 @@ export interface PauseResumeState {
  */
 export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): PauseResumeState {
   const toast = useToast()
+  const qc = useQueryClient()
 
   const [isSuspended, setIsSuspended] = useState(false)
   const [pauseVotes, setPauseVotes] = useState<string[]>([])
@@ -59,9 +61,15 @@ export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): 
   const pauseMutation = useMutation({
     mutationFn: () => sessions.pause(sessionId, playerId),
     onSuccess: res => {
-      setVotedPause(true)
-      setPauseVotes(res.votes)
-      setPauseRequired(res.required)
+      if (res.all_voted) {
+        setIsSuspended(true)
+        setPauseVotes([])
+        setVotedPause(true)
+      } else {
+        setVotedPause(true)
+        setPauseVotes(res.votes)
+        setPauseRequired(res.required)
+      }
     },
     onError: e => toast.showError(catchToAppError(e)),
   })
@@ -69,9 +77,19 @@ export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): 
   const resumeMutation = useMutation({
     mutationFn: () => sessions.resume(sessionId, playerId),
     onSuccess: res => {
-      setVotedResume(true)
-      setResumeVotes(res.votes)
-      setResumeRequired(res.required)
+      if (res.all_voted) {
+        // Consensus reached — resume immediately without waiting for WS event.
+        // Invalidate session query so the timer picks up the fresh last_move_at.
+        setIsSuspended(false)
+        setResumeVotes([])
+        setVotedPause(false)
+        setVotedResume(false)
+        qc.invalidateQueries({ queryKey: keys.session(sessionId) })
+      } else {
+        setVotedResume(true)
+        setResumeVotes(res.votes)
+        setResumeRequired(res.required)
+      }
     },
     onError: e => toast.showError(catchToAppError(e)),
   })
@@ -106,6 +124,7 @@ export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): 
       setResumeVotes([])
       setVotedPause(false)
       setVotedResume(false)
+      qc.invalidateQueries({ queryKey: keys.session(sessionId) })
     },
 
     // Mutations

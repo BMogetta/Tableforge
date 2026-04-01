@@ -49,6 +49,10 @@ func (t *AsynqTimer) Schedule(session store.GameSession) {
 	t.enqueue(TypeTurnTimeout, turnTaskID(session.ID), session.ID, dur)
 }
 
+func (t *AsynqTimer) ScheduleIn(sessionID uuid.UUID, delay time.Duration) {
+	t.enqueue(TypeTurnTimeout, turnTaskID(sessionID), sessionID, delay)
+}
+
 func (t *AsynqTimer) Cancel(sessionID uuid.UUID) {
 	t.deleteTask(turnTaskID(sessionID))
 }

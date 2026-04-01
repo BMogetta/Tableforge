@@ -411,9 +411,14 @@ func (s *PGStore) SuspendSession(ctx context.Context, id uuid.UUID, reason strin
 }
 
 func (s *PGStore) ResumeSession(ctx context.Context, id uuid.UUID) error {
+	// After resume, players get 40% of the turn timeout (pause is not free time).
+	// Set last_move_at = NOW() - 60% * turn_timeout_secs so the frontend
+	// calculates remaining = timeout - elapsed = timeout - 60% = 40%.
 	_, err := s.pool.Exec(ctx,
 		`UPDATE game_sessions
-		 SET suspended_at = NULL, suspended_reason = NULL
+		 SET last_move_at = NOW() - (COALESCE(turn_timeout_secs, 30) * 0.6) * INTERVAL '1 second',
+		     suspended_at = NULL,
+		     suspended_reason = NULL
 		 WHERE id = $1`,
 		id,
 	)

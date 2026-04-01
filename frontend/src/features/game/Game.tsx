@@ -175,7 +175,7 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   const canPause =
     !isSpectator && !gameOver.isOver && !pauseResume.isSuspended && !pauseResume.votedPause
-  const canResume = !isSpectator && pauseResume.isSuspended && !pauseResume.votedResume
+  const canResume = !isSpectator && pauseResume.isSuspended && !pauseResume.votedResume && !gameOver.isOver
 
   let statusText = ''
   if (isSpectator) {
@@ -210,6 +210,9 @@ export function Game({ sessionId }: { sessionId: string }) {
         <GameHeader
           gameId={session.game_id}
           moveCount={session.move_count}
+          turnTimeoutSecs={session.turn_timeout_secs}
+          lastMoveAt={session.last_move_at ?? session.started_at ?? ''}
+          isSuspended={pauseResume.isSuspended}
           canPause={canPause}
           isPausePending={pauseResume.isPausePending}
           isOver={gameOver.isOver}
@@ -243,7 +246,7 @@ export function Game({ sessionId }: { sessionId: string }) {
           />
         )}
 
-        {pauseResume.isSuspended ? (
+        {pauseResume.isSuspended && !gameOver.isOver ? (
           <SuspendedScreen
             resumeVotes={pauseResume.resumeVotes}
             resumeRequired={pauseResume.resumeRequired}

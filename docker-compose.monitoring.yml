@@ -68,21 +68,6 @@ services:
       - monitoring_network
     restart: unless-stopped
 
-  promtail:
-    image: grafana/promtail:3.0.0
-    container_name: promtail
-    profiles: [monitoring]
-    user: root
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./infra/promtail-config.yaml:/etc/promtail/config.yaml
-    networks:
-      - monitoring_network
-    depends_on:
-      - loki
-    restart: unless-stopped
-
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus

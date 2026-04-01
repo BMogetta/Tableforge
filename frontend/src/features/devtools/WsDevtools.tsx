@@ -98,20 +98,36 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
 
       {/* Expanded payload */}
       {isExpanded && (
-        <pre
-          data-testid='event-payload'
-          style={{
-            margin: 0,
-            padding: '6px 10px 10px 24px',
-            fontSize: 11,
-            color: 'var(--color-text-secondary, #7a7568)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            borderTop: '1px solid var(--color-border, rgba(255,255,255,0.06))',
-          }}
-        >
-          {JSON.stringify(event.payload, null, 2)}
-        </pre>
+        <div style={{ borderTop: '1px solid var(--color-border, rgba(255,255,255,0.06))' }}>
+          <pre
+            data-testid='event-payload'
+            style={{
+              margin: 0,
+              padding: '6px 10px 6px 24px',
+              fontSize: 11,
+              color: 'var(--color-text-secondary, #7a7568)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+            }}
+          >
+            {JSON.stringify(event.payload, null, 2)}
+          </pre>
+          <button
+            style={{
+              margin: '0 10px 6px 24px',
+              padding: '2px 8px',
+              fontSize: 10,
+              background: 'transparent',
+              border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+              color: 'var(--color-text-muted, #555)',
+              borderRadius: 3,
+              cursor: 'pointer',
+            }}
+            onClick={() => navigator.clipboard.writeText(JSON.stringify(event.payload, null, 2))}
+          >
+            Copy
+          </button>
+        </div>
       )}
     </div>
   )

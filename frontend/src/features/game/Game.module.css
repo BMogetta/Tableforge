@@ -46,6 +46,27 @@
   color: var(--color-text-muted);
 }
 
+.turnTimer {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.turnTimerUrgent {
+  color: var(--color-danger);
+  animation: pulse-timer 1s ease-in-out infinite;
+}
+
+@keyframes pulse-timer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.turnTimerPaused {
+  opacity: 0.5;
+}
+
 /* Status bar — shows current turn, win/loss, and pause state */
 .status {
   display: flex;

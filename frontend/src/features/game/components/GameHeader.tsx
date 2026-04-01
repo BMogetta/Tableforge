@@ -1,8 +1,12 @@
+import { TurnTimer } from './TurnTimer'
 import styles from '../Game.module.css'
 
 interface Props {
   gameId: string
   moveCount: number
+  turnTimeoutSecs: number
+  lastMoveAt: string
+  isSuspended: boolean
   canPause: boolean
   isPausePending: boolean
   isOver: boolean
@@ -29,8 +33,12 @@ interface Props {
 export function GameHeader({
   gameId,
   moveCount,
+  turnTimeoutSecs,
+  lastMoveAt,
+  isSuspended,
   canPause,
   isPausePending,
+  isOver,
   onLobby,
   onPause,
 }: Props) {
@@ -46,6 +54,7 @@ export function GameHeader({
       <div className={styles.gameInfo}>
         <span className={styles.gameId}>{gameId}</span>
         <span className={styles.moveCount}>Move {moveCount}</span>
+        <TurnTimer turnTimeoutSecs={turnTimeoutSecs} lastMoveAt={lastMoveAt} isOver={isOver} isSuspended={isSuspended} />
       </div>
       {canPause && (
         <button

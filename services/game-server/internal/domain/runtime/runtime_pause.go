@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -143,8 +144,9 @@ func (svc *Service) VoteResume(ctx context.Context, sessionID, playerID uuid.UUI
 		}
 		if svc.timer != nil {
 			resumed, err := svc.store.GetGameSession(ctx, sessionID)
-			if err == nil {
-				svc.timer.Schedule(resumed)
+			if err == nil && resumed.TurnTimeoutSecs != nil && *resumed.TurnTimeoutSecs > 0 {
+				penalty := time.Duration(float64(*resumed.TurnTimeoutSecs)*ResumePenalty) * time.Second
+				svc.timer.ScheduleIn(resumed.ID, penalty)
 			}
 		}
 	}

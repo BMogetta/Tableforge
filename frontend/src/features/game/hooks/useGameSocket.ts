@@ -59,8 +59,10 @@ export function useGameSocket({
   ): void {
     const current = qc.getQueryData<SessionCache>(keys.session(sessionId))
 
-    // Deduplicate — ignore events that are older than or equal to what we have.
+    // Deduplicate move_applied events — ignore if older than or equal to cached.
+    // Never deduplicate game_over — timeouts can end a game without changing move_count.
     if (
+      type === 'move_applied' &&
       current?.session?.move_count !== undefined &&
       payload.session.move_count <= current.session.move_count
     ) {

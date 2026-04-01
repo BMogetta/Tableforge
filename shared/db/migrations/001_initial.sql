@@ -193,7 +193,7 @@ CREATE TABLE game_results (
     game_id       TEXT         NOT NULL,
     winner_id     UUID         REFERENCES players(id),
     is_draw       BOOLEAN      NOT NULL DEFAULT FALSE,
-    ended_by      TEXT         NOT NULL CHECK (ended_by IN ('win', 'draw', 'forfeit', 'suspended')),
+    ended_by      TEXT         NOT NULL CHECK (ended_by IN ('win', 'draw', 'forfeit', 'suspended', 'timeout', 'ready_timeout')),
     duration_secs INT,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

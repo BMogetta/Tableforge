@@ -14,6 +14,9 @@ describe('GameHeader', () => {
   const defaults = {
     gameId: 'tictactoe',
     moveCount: 5,
+    turnTimeoutSecs: 30,
+    lastMoveAt: new Date().toISOString(),
+    isSuspended: false,
     canPause: false,
     isPausePending: false,
     isOver: false,
