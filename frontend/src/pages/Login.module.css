@@ -1,269 +1,126 @@
 .root {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated chess board background */
+.board {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+.cell {
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  animation: cellPulse 4s ease-in-out infinite;
+}
+
+@keyframes cellPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Center panel */
+.panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  padding: var(--space-8);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  text-align: center;
 }
 
 .header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 32px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-surface);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.logoIcon {
-  font-size: 20px;
-}
-
-.logoText {
-  font-family: var(--font-display);
-  font-size: 16px;
-  letter-spacing: 0.2em;
-  color: var(--amber);
-}
-
-.playerInfo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--border-bright);
-}
-
-.username {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  max-width: 1100px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 32px;
-  gap: 32px;
-}
-
-.left,
-.right {
-  display: flex;
   flex-direction: column;
-  gap: 32px;
-}
-
-.sectionTitle {
-  font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: 0.15em;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  margin-bottom: 16px;
-  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 
-.count {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  background: var(--amber-glow);
-  color: var(--amber);
-  padding: 1px 7px;
-  border-radius: 10px;
-  border: 1px solid rgba(212, 168, 83, 0.2);
-}
-
-.actionGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Game selector */
-.gameSelector {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-
-.gameOption {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 10px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.gameOption:hover {
-  border-color: var(--border-bright);
-  color: var(--text-primary);
-}
-
-.gameOptionActive {
-  border-color: var(--amber-dim);
-  background: var(--amber-glow);
-  color: var(--amber);
-}
-
-.gamePlayerCount {
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-}
-
-.gameOptionActive .gamePlayerCount {
-  color: var(--amber-dim);
-}
-
-.joinRow {
-  display: flex;
-  gap: 8px;
-}
-
-.joinRow .input {
-  flex: 1;
-}
-
-.error {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--danger);
-}
-
-.empty {
-  font-size: 12px;
-  color: var(--text-muted);
-  padding: 24px 0;
-}
-
-.roomList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.roomCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  transition:
-    border-color var(--transition),
-    background var(--transition);
-}
-
-.roomCard:hover {
-  border-color: var(--border-bright);
-  background: var(--bg-elevated);
-}
-
-.roomInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.roomCode {
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.15em;
-  color: var(--amber);
-}
-
-/* Private room — lock icon shown instead of the join code. */
-.roomCodePrivate {
-  font-size: 15px;
+.emblem {
+  font-size: 48px;
   line-height: 1;
-  color: var(--text-muted);
+  margin-bottom: var(--space-2);
 }
 
-.roomGame {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  letter-spacing: 0.25em;
+  color: var(--color-interactive);
+  margin: 0;
 }
 
-.roomMeta {
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.actions {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.loginBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  justify-content: center;
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.footer {
+  margin-top: var(--space-6);
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
-.roomPlayers {
-  font-size: 12px;
-  color: var(--text-secondary);
+/* Access denied variant */
+.errorBlock {
+  margin-top: var(--space-4);
+  text-align: center;
 }
 
-/* Leaderboard table */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.table th {
-  text-align: left;
-  font-size: 10px;
+.errorCode {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-danger);
   letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 400;
+  margin: 0 0 var(--space-2);
 }
 
-.table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-secondary);
-}
-
-.table tr:last-child td {
-  border-bottom: none;
-}
-.table tr:hover td {
-  background: var(--bg-elevated);
-}
-
-.rank {
-  color: var(--text-muted) !important;
-  font-size: 11px;
-  width: 24px;
-}
-
-.table tr:nth-child(1) .rank {
-  color: var(--amber) !important;
-}
-.table tr:nth-child(2) .rank {
-  color: var(--text-secondary) !important;
-}
-.table tr:nth-child(3) .rank {
-  color: #8b6914 !important;
+.errorDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }

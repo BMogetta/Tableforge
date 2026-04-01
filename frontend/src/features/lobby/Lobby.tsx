@@ -25,6 +25,7 @@ export function Lobby() {
   async function handleLogout() {
     await auth.logout()
     setPlayer(null)
+    window.location.href = '/login'
   }
 
   return (

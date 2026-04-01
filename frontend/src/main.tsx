@@ -1,3 +1,10 @@
+// If this window was opened as an OAuth popup, close it.
+// The opener polls auth.me() to detect when login succeeded.
+// Don't close on error redirects so the user can see the error.
+if (window.opener && !window.location.search.includes('error')) {
+  window.close()
+}
+
 // Telemetry must be imported before React and the app so the providers
 // are registered before any fetch calls or renders happen.
 import { initWebVitals, initErrorHandler, initConsoleBridge } from './lib/telemetry'
