@@ -240,7 +240,7 @@ export interface DirectMessage {
   read_at?: string
   reported: boolean
   hidden: boolean
-  created_at: string
+  timestamp: string
 }
 
 export interface QueuePosition {

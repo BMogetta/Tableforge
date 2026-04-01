@@ -117,6 +117,39 @@ React 19 + TypeScript app served via Nginx in Docker.
 Feature modules in `src/features/`: `auth`, `game`, `lobby`, `room`, `admin`, `devtools`.
 Game renderers (pluggable) in `src/games/`: `tictactoe`, `loveletter`.
 
+#### Styling Guidelines
+
+##### Typography & Units
+
+- `--font-scale` is a **unitless multiplier** (default `1`). Users can change it
+  at runtime via JS (`document.documentElement.style.setProperty('--font-scale', n)`).
+- All `--text-*` tokens are already pre-multiplied: `calc(Nrem * var(--font-scale))`.
+  Never multiply by `--font-scale` again at the usage site.
+- Typography → always `rem`-based tokens (`--text-sm`, `--text-base`, etc.)
+- Component spacing → `--space-N` tokens (px internally, scale with layout not font)
+- Borders, radius, shadows → raw `px` values, they do not scale with font
+- Never hardcode color values in component rules — always use semantic tokens
+  (`--color-interactive-glow`, not `rgba(212, 168, 83, 0.2)`)
+
+##### Tokens
+
+- Always use semantic variables (`--color-bg-surface`, not primitives like `--slate-900`)
+- Spacing only via `--space-N` tokens, never hardcoded pixel values
+- Z-index only via `--z-*` scale tokens (`--z-dropdown`, `--z-modal`, `--z-toast`, etc.)
+- For themes, the accent color is always `--color-interactive`
+
+##### Components
+
+- Buttons: `.btn` + `.btn-{variant}` classes from global.css, never inline styles for buttons
+- Cards: `.card` class from global.css, overrides in `.module.css`
+- Do not create new utility classes without updating `global.css`
+
+##### Conventions
+
+- CSS Modules for all page and component styles
+- Local variables at the top of the module or in `:local` scope
+- Never use `!important`
+
 ### Database
 
 PostgreSQL with schema separation:

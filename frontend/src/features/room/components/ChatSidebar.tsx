@@ -74,7 +74,7 @@ export function ChatSidebar({
   // Fetch permanently blocked player IDs from the backend once on mount.
   const { data: blockedList = [] } = useQuery({
     queryKey: keys.mutes(player.id),
-    queryFn: () => mutes.list(player.id, player.id),
+    queryFn: () => mutes.list(player.id),
     staleTime: 60_000,
   })
   const blockedIds = new Set(blockedList.map(m => m.muted_id))

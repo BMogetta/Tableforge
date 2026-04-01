@@ -24,7 +24,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
 
   const { data: messages = [] } = useQuery({
     queryKey: keys.dmHistory(player.id, otherPlayerId),
-    queryFn: () => dm.history(player.id, player.id, otherPlayerId),
+    queryFn: () => dm.history(player.id, otherPlayerId),
     refetchInterval: 10_000,
   })
 
@@ -54,10 +54,16 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
 
   // Mark unread as read on open
   useEffect(() => {
+    let marked = false
     for (const msg of safeMessages) {
       if (msg.sender_id !== player.id && !msg.read_at) {
         dm.markRead(player.id, msg.id).catch(() => {})
+        marked = true
       }
+    }
+    if (marked) {
+      qc.invalidateQueries({ queryKey: keys.dmUnread(player.id) })
+      qc.invalidateQueries({ queryKey: keys.dmConversations(player.id) })
     }
   }, [safeMessages])
 
@@ -97,7 +103,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
               className={`${styles.bubble} ${msg.sender_id === player.id ? styles.mine : styles.theirs}`}
             >
               <p className={styles.text}>{msg.content}</p>
-              <time className={styles.time}>{formatTime(msg.created_at)}</time>
+              <time className={styles.time}>{formatTime(msg.timestamp)}</time>
             </div>
           ))
         )}

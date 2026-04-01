@@ -320,6 +320,7 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
+  --space-7: 28px;
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
@@ -333,13 +334,13 @@
   --font-display: "Cinzel", serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  --font-scale: 1rem;
+  --font-scale: 1;
 
-  --text-xs: calc(var(--font-scale) * 0.6875);
-  --text-sm: calc(var(--font-scale) * 0.75);
-  --text-base: calc(var(--font-scale) * 0.875);
-  --text-lg: calc(var(--font-scale) * 1);
-  --text-xl: calc(var(--font-scale) * 1.25);
+  --text-xs: calc(0.6875rem * var(--font-scale));
+  --text-sm: calc(0.75rem * var(--font-scale));
+  --text-base: calc(0.875rem * var(--font-scale));
+  --text-lg: calc(1rem * var(--font-scale));
+  --text-xl: calc(1.25rem * var(--font-scale));
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
@@ -362,6 +363,24 @@
   /* Elevation shadows (light theme only — dark uses borders) */
   --shadow-sm: 0 1px 3px rgba(44, 24, 16, 0.08);
   --shadow-md: 0 4px 12px rgba(44, 24, 16, 0.12);
+
+  /* Z-index scale */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-noise: 9999;
+
+  /* Layout constants */
+  --layout-sidebar-width: 240px;
+  --layout-navbar-height: 56px;
+  --layout-content-max: 1200px;
+
+  /* Icon sizes */
+  --size-icon-sm: 14px;
+  --size-icon-md: 16px;
+  --size-icon-lg: 20px;
 }
 
 /* -----------------------------------------------------------------------------
@@ -386,7 +405,7 @@ body {
   background: var(--color-bg-base);
   color: var(--color-text-primary);
   font-family: var(--font-mono);
-  font-size: calc(var(--text-base) * var(--font-scale));
+  font-size: var(--text-base);
   line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -399,7 +418,7 @@ body::before {
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-noise);
   opacity: var(--noise-opacity);
 }
 
@@ -440,7 +459,7 @@ input {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 10px 20px;
+  padding: 10px var(--space-5);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
   letter-spacing: 0.1em;
@@ -533,7 +552,7 @@ input {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 /* Divider */
@@ -546,7 +565,7 @@ input {
 /* Badges */
 .badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px var(--space-2);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -555,7 +574,7 @@ input {
 .badge-amber {
   background: var(--color-interactive-glow);
   color: var(--color-interactive);
-  border: 1px solid rgba(212, 168, 83, 0.2);
+  border: 1px solid var(--color-border-bright);
 }
 .badge-muted {
   background: var(--color-bg-elevated);

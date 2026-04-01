@@ -3,7 +3,7 @@
   position: fixed;
   bottom: var(--space-6);
   right: var(--space-6);
-  z-index: 9998;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

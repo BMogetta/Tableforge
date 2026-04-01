@@ -80,11 +80,8 @@ export const mutes = {
       method: 'DELETE',
       body: JSON.stringify({ player_id: playerId }),
     }),
-  list: (callerId: string, playerId: string) =>
-    request<PlayerMute[]>(`/players/${playerId}/mutes`, {
-      method: 'GET',
-      body: JSON.stringify({ player_id: callerId }),
-    }),
+  list: (playerId: string) =>
+    request<PlayerMute[]>(`/players/${playerId}/mutes`),
 }
 
 // --- Direct messages ---------------------------------------------------------
@@ -95,16 +92,10 @@ export const dm = {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId, content }),
     }),
-  history: (callerId: string, playerA: string, playerB: string) =>
-    request<DirectMessage[]>(`/players/${playerA}/dm/${playerB}`, {
-      method: 'GET',
-      body: JSON.stringify({ player_id: callerId }),
-    }),
+  history: (playerA: string, playerB: string) =>
+    request<DirectMessage[]>(`/players/${playerA}/dm/${playerB}`),
   unreadCount: (playerId: string) =>
-    request<{ count: number }>(`/players/${playerId}/dm/unread`, {
-      method: 'GET',
-      body: JSON.stringify({ player_id: playerId }),
-    }),
+    request<{ count: number }>(`/players/${playerId}/dm/unread`),
   markRead: (callerId: string, messageId: string) =>
     request<void>(`/dm/${messageId}/read`, {
       method: 'POST',
