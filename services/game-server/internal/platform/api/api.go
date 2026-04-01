@@ -92,7 +92,7 @@ func NewRouter(
 		r.Post("/sessions/{sessionID}/ready", handlePlayerReady(rt, hub, st))
 		r.Get("/sessions/{sessionID}/events", handleGetSessionEvents(eventStore))
 		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub, st))
-		r.Post("/sessions/{sessionID}/rematch", handleRematch(rt, hub))
+		r.Post("/sessions/{sessionID}/rematch", handleRematch(lobbyService, rt, hub))
 		r.Post("/sessions/{sessionID}/pause", handleVotePause(rt, hub))
 		r.Post("/sessions/{sessionID}/resume", handleVoteResume(rt, hub))
 		r.With(requireRole(sharedmw.RoleManager)).Delete("/sessions/{sessionID}", handleForceCloseSession(st, hub))

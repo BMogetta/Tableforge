@@ -11,7 +11,9 @@ ON CONFLICT (game_id) DO NOTHING;
 -- ── Owners ────────────────────────────────────────────────────────────────────
 
 INSERT INTO allowed_emails (email, role, note)
-VALUES ('brunomogetta@gmail.com', 'owner', 'project owner')
+VALUES 
+    ('brunomogetta@gmail.com', 'owner', 'project owner'),
+    ('patriarcaleandro@gmail.com', 'owner', 'project collaborator')
 ON CONFLICT (email) DO NOTHING;
 
 -- ── Players ───────────────────────────────────────────────────────────────────

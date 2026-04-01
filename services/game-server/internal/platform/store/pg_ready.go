@@ -24,7 +24,24 @@ func (s *PGStore) VoteReady(ctx context.Context, sessionID uuid.UUID, playerID u
 		return false, fmt.Errorf("VoteReady: %w", err)
 	}
 
-	return s.allPlayersVoted(ctx, sessionID, "ready_players")
+	// Compare ready_players array length against human player count.
+	var allReady bool
+	err = s.pool.QueryRow(ctx,
+		`SELECT
+		     COALESCE(array_length(gs.ready_players, 1), 0)
+		     >=
+		     (SELECT COUNT(*)
+		      FROM room_players rp
+		      JOIN players p ON p.id = rp.player_id
+		      WHERE rp.room_id = gs.room_id AND p.is_bot = FALSE)
+		 FROM game_sessions gs
+		 WHERE gs.id = $1`,
+		sessionID,
+	).Scan(&allReady)
+	if err != nil {
+		return false, fmt.Errorf("VoteReady: check all ready: %w", err)
+	}
+	return allReady, nil
 }
 
 // ClearReadyVotes resets the ready_players array to empty for the session.

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { rooms, type LobbySetting } from '@/lib/api'
+import { rooms } from '@/features/room/api'
+import type { LobbySetting } from '@/lib/api'
 import styles from './RoomSettings.module.css'
 import { catchToAppError } from '@/utils/errors'
 

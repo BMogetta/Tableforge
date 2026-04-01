@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/tableforge/game-server/internal/domain/lobby"
 	"github.com/tableforge/game-server/internal/domain/runtime"
 	"github.com/tableforge/game-server/internal/platform/events"
 	"github.com/tableforge/game-server/internal/platform/store"
@@ -278,7 +280,7 @@ type rematchRequest struct {
 // @Success  200       {object} RematchResponse
 // @Failure  404       {object} map[string]string
 // @Router   /sessions/{sessionID}/rematch [post]
-func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
+func handleRematch(lobbySvc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
 		if err != nil {
@@ -303,11 +305,34 @@ func handleRematch(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 			return
 		}
 		if rematchReady {
-			slog.Info("rematch ready: returning to lobby", "room_id", roomID)
-			hub.Broadcast(roomID, ws.Event{
-				Type:    ws.EventRematchReady,
-				Payload: map[string]any{"room_id": roomID},
-			})
+			// Auto-start a new session with the same settings.
+			newSession, err := lobbySvc.StartGame(r.Context(), roomID, playerID, store.SessionModeCasual)
+			if err != nil {
+				slog.Error("rematch: auto-start failed", "room_id", roomID, "error", err)
+				// Fall back to sending players to the room.
+				hub.Broadcast(roomID, ws.Event{
+					Type:    ws.EventRematchReady,
+					Payload: map[string]any{"room_id": roomID},
+				})
+			} else {
+				rt.StartSession(r.Context(), newSession, hub, runtime.DefaultReadyTimeout)
+				hub.Broadcast(roomID, ws.Event{
+					Type:    ws.EventGameStarted,
+					Payload: map[string]any{"session": newSession},
+				})
+
+				// If the first player to move is a bot, fire immediately.
+				var initialState struct {
+					CurrentPlayerID string `json:"current_player_id"`
+				}
+				if err := json.Unmarshal(newSession.State, &initialState); err == nil {
+					if firstPlayer, err := uuid.Parse(initialState.CurrentPlayerID); err == nil {
+						rt.MaybeFireBot(r.Context(), hub, newSession.ID, firstPlayer)
+					}
+				}
+
+				slog.Info("rematch: new session started", "room_id", roomID, "session_id", newSession.ID)
+			}
 		} else {
 			hub.Broadcast(roomID, ws.Event{
 				Type: ws.EventRematchVote,

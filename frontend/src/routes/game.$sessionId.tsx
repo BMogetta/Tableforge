@@ -37,24 +37,33 @@ function GameLoadingWrapper({
   )
 }
 
+/**
+ * Gate component that manages the loading → game transition.
+ * Keyed by sessionId in the parent so React remounts it entirely
+ * on rematch — no stale gameReady state leaking between sessions.
+ */
+function GameGate({ sessionId }: { sessionId: string }) {
+  const isSpectator = useAppStore(s => s.isSpectator)
+  const [gameReady, setGameReady] = useState(false)
+
+  const handleReady = () => setGameReady(true)
+  const handleTimeout = () => {
+    window.location.href = '/'
+  }
+
+  if (!isSpectator && !gameReady) {
+    return (
+      <GameLoadingWrapper sessionId={sessionId} onReady={handleReady} onTimeout={handleTimeout} />
+    )
+  }
+
+  return <Game sessionId={sessionId} />
+}
+
 export const Route = createFileRoute('/game/$sessionId')({
   beforeLoad: requireAuth,
   component: () => {
     const { sessionId } = Route.useParams()
-    const isSpectator = useAppStore(s => s.isSpectator)
-    const [gameReady, setGameReady] = useState(false)
-
-    const handleReady = () => setGameReady(true)
-    const handleTimeout = () => {
-      window.location.href = '/'
-    }
-
-    if (!isSpectator && !gameReady) {
-      return (
-        <GameLoadingWrapper sessionId={sessionId} onReady={handleReady} onTimeout={handleTimeout} />
-      )
-    }
-
-    return <Game sessionId={sessionId} />
+    return <GameGate key={sessionId} sessionId={sessionId} />
   },
 })

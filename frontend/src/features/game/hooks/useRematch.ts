@@ -18,8 +18,10 @@ export interface RematchState {
   voteRematch: () => void
   /** Called by useGameSocket when rematch_vote WS event is received. */
   onRematchVote: (votes: number, total: number) => void
-  /** Called by useGameSocket when rematch_ready WS event is received. */
+  /** Called by useGameSocket when rematch_ready WS event is received (fallback). */
   onRematchReady: (roomId: string) => void
+  /** Called by useGameSocket when game_started is received during rematch. */
+  onRematchGameStarted: (sessionId: string) => void
 }
 
 /**
@@ -65,6 +67,9 @@ export function useRematch({ sessionId, playerId }: UseRematchOptions): RematchS
     },
     onRematchReady: (roomId: string) => {
       navigate({ to: '/rooms/$roomId', params: { roomId } })
+    },
+    onRematchGameStarted: (sessionId: string) => {
+      navigate({ to: '/game/$sessionId', params: { sessionId } })
     },
   }
 }

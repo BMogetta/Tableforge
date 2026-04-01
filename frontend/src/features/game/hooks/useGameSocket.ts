@@ -15,7 +15,7 @@ interface UseGameSocketOptions {
     PauseResumeState,
     'setPauseVoteUpdate' | 'setResumeVoteUpdate' | 'onSessionSuspended' | 'onSessionResumed'
   >
-  rematch: Pick<RematchState, 'onRematchVote' | 'onRematchReady'>
+  rematch: Pick<RematchState, 'onRematchVote' | 'onRematchReady' | 'onRematchGameStarted'>
   onGameOver: (winnerId: string | null, isDraw: boolean) => void
   onPresenceUpdate: (playerId: string, online: boolean) => void
 }
@@ -111,6 +111,9 @@ export function useGameSocket({
       }
       if (event.type === 'rematch_ready') {
         rematch.onRematchReady(event.payload.room_id)
+      }
+      if (event.type === 'game_started') {
+        rematch.onRematchGameStarted(event.payload.session.id)
       }
       if (event.type === 'pause_vote_update') {
         pauseResume.setPauseVoteUpdate(event.payload.votes ?? [], event.payload.required ?? 0)

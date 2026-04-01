@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { notifications, dm } from '@/lib/api'
+import { notifications } from '@/features/notifications/api'
+import { dm } from '@/features/room/api'
 import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import { Settings } from '@/ui/Settings'
+import { NotificationsPanel } from '@/features/notifications/components/NotificationsPanel'
 import styles from './LobbyHeader.module.css'
 import { Link } from '@tanstack/react-router'
 
@@ -14,6 +16,7 @@ interface Props {
 export function LobbyHeader({ onLogout }: Props) {
   const player = useAppStore(s => s.player)!
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [notifsOpen, setNotifsOpen] = useState(false)
 
   const { data: notifList = [] } = useQuery({
     queryKey: keys.notifications(player.id),
@@ -27,7 +30,7 @@ export function LobbyHeader({ onLogout }: Props) {
     refetchInterval: 30_000,
   })
 
-  const unreadNotifs = notifList.filter(n => !n.read_at).length
+  const unreadNotifs = (notifList ?? []).filter(n => !n.read_at).length
   const unreadDMCount = unreadDMs?.count ?? 0
 
   return (
@@ -40,7 +43,7 @@ export function LobbyHeader({ onLogout }: Props) {
 
         <div className={styles.actions}>
           {/* Notifications bell */}
-          <button className={styles.iconBtn} title='Notifications'>
+          <button className={styles.iconBtn} title='Notifications' onClick={() => setNotifsOpen(true)}>
             <svg
               width='16'
               height='16'
@@ -110,6 +113,11 @@ export function LobbyHeader({ onLogout }: Props) {
           </button>
         </div>
       </header>
+
+      {/* Notifications panel */}
+      {notifsOpen && (
+        <NotificationsPanel items={notifList} onClose={() => setNotifsOpen(false)} />
+      )}
 
       {/* Settings modal */}
       {settingsOpen && (

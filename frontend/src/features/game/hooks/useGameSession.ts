@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { rooms } from '@/lib/api'
+import { rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
 import { GameData } from '@/games/registry'
 import { GameSessionDTO } from '@/lib/api-generated'
