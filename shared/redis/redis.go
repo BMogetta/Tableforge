@@ -3,7 +3,8 @@ package redisutil
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
@@ -14,20 +15,23 @@ import (
 func Connect(ctx context.Context, rawURL string) *redis.Client {
 	opts, err := redis.ParseURL(rawURL)
 	if err != nil {
-		log.Fatalf("redis: parse url: %v", err)
+		slog.Error("redis: parse url", "error", err)
+		os.Exit(1)
 	}
 
 	rdb := redis.NewClient(opts)
 
 	if err := redisotel.InstrumentTracing(rdb); err != nil {
-		log.Fatalf("redis: instrument tracing: %v", err)
+		slog.Error("redis: instrument tracing", "error", err)
+		os.Exit(1)
 	}
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Fatalf("redis: ping: %v", err)
+		slog.Error("redis: ping", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("redis: connected")
+	slog.Info("redis: connected")
 	return rdb
 }
 
