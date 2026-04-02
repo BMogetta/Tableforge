@@ -110,7 +110,7 @@ services:
       - "traefik.http.routers.game-server.priority=10"
       - "traefik.http.routers.game-server.service=game-server-svc"
       - "traefik.http.services.game-server-svc.loadbalancer.server.port=8080"
-      - "traefik.http.routers.game-server.middlewares=api-ratelimit"
+      - "traefik.http.routers.game-server.middlewares=security-headers@file,api-ratelimit"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=50"
 
@@ -126,6 +126,8 @@ services:
       - --providers.docker=true
       - --providers.docker.network=app_network
       - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/config
+      - --providers.file.watch=true
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --accesslog=true
@@ -141,6 +143,7 @@ services:
       - "9090:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/traefik/config:/etc/traefik/config:ro
       - traefik_certs:/certs
     networks:
       - app_network
@@ -169,6 +172,7 @@ services:
       - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
       - "traefik.http.routers.frontend.entrypoints=web"
       - "traefik.http.routers.frontend.priority=1"
+      - "traefik.http.routers.frontend.middlewares=security-headers@file"
       - "traefik.http.routers.frontend.service=frontend-svc"
       - "traefik.http.services.frontend-svc.loadbalancer.server.port=3000"
 

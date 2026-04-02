@@ -1,0 +1,35 @@
+# Security headers middleware — applied to all public-facing routers.
+# Traefik watches this file for changes (no restart needed).
+#
+# CSP notes:
+#   - 'unsafe-inline' in style-src: required by CSS Modules runtime injection
+#   - avatars.githubusercontent.com: GitHub profile images
+#   - ws:/wss: WebSocket connections to ws-gateway
+#   - /otlp: browser-side OpenTelemetry trace export
+#   - blob: used by audio/SFX playback
+
+http:
+  middlewares:
+    security-headers:
+      headers:
+        # -- Standard security headers --
+        contentTypeNosniff: true
+        browserXssFilter: true
+        frameDeny: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+
+        # -- Custom response headers --
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+
+        # -- Content Security Policy --
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self';
+          style-src 'self' 'unsafe-inline';
+          font-src 'self';
+          img-src 'self' data: https://avatars.githubusercontent.com;
+          connect-src 'self' ws://localhost wss://localhost;
+          media-src 'self' blob:;
+          frame-ancestors 'none'

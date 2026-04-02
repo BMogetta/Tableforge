@@ -35,6 +35,7 @@ services:
       - "traefik.http.routers.auth-service.rule=PathPrefix(`/auth`)"
       - "traefik.http.routers.auth-service.entrypoints=web"
       - "traefik.http.routers.auth-service.priority=100"
+      - "traefik.http.routers.auth-service.middlewares=security-headers@file"
       - "traefik.http.routers.auth-service.service=auth-service-svc"
       - "traefik.http.services.auth-service-svc.loadbalancer.server.port=8081"
 
@@ -82,6 +83,7 @@ services:
       - "traefik.http.routers.user-service.rule=PathRegexp(`^/api/v1/players/search`) || PathRegexp(`^/api/v1/players/[^/]+/(profile|friends|block|mute|mutes|achievements|report|settings)`) || PathRegexp(`^/api/v1/admin/(players|allowed-emails|bans|reports)`)"
       - "traefik.http.routers.user-service.entrypoints=web"
       - "traefik.http.routers.user-service.priority=50"
+      - "traefik.http.routers.user-service.middlewares=security-headers@file"
       - "traefik.http.routers.user-service.service=user-service-svc"
       - "traefik.http.services.user-service-svc.loadbalancer.server.port=8082"
       # gRPC (internal only — not exposed via Traefik):
@@ -122,6 +124,7 @@ services:
       - "traefik.http.routers.chat-service.rule=PathPrefix(`/api/v1/rooms`) && PathRegexp(`messages`) || PathRegexp(`^/api/v1/players/[^/]+/dm`) || PathPrefix(`/api/v1/dm`)"
       - "traefik.http.routers.chat-service.entrypoints=web"
       - "traefik.http.routers.chat-service.priority=50"
+      - "traefik.http.routers.chat-service.middlewares=security-headers@file"
       - "traefik.http.routers.chat-service.service=chat-service-svc"
       - "traefik.http.services.chat-service-svc.loadbalancer.server.port=8083"
 
@@ -162,6 +165,7 @@ services:
       - "traefik.http.routers.ws-gateway.rule=PathPrefix(`/ws`)"
       - "traefik.http.routers.ws-gateway.entrypoints=web"
       - "traefik.http.routers.ws-gateway.priority=150"
+      - "traefik.http.routers.ws-gateway.middlewares=security-headers@file"
       - "traefik.http.routers.ws-gateway.service=ws-gateway-svc"
       - "traefik.http.services.ws-gateway-svc.loadbalancer.server.port=8084"
       - "traefik.http.services.ws-gateway-svc.loadbalancer.sticky.cookie=true"
@@ -170,6 +174,7 @@ services:
       - "traefik.http.routers.ws-gateway-presence.rule=PathPrefix(`/api/v1/presence`)"
       - "traefik.http.routers.ws-gateway-presence.entrypoints=web"
       - "traefik.http.routers.ws-gateway-presence.priority=50"
+      - "traefik.http.routers.ws-gateway-presence.middlewares=security-headers@file"
       - "traefik.http.routers.ws-gateway-presence.service=ws-gateway-svc"
 
   rating-service:
@@ -208,6 +213,7 @@ services:
       - "traefik.http.routers.rating-service.rule=PathRegexp(`^/api/v1/ratings/`) || PathRegexp(`^/api/v1/players/[^/]+/ratings/`)"
       - "traefik.http.routers.rating-service.entrypoints=web"
       - "traefik.http.routers.rating-service.priority=50"
+      - "traefik.http.routers.rating-service.middlewares=security-headers@file"
       - "traefik.http.routers.rating-service.service=rating-svc"
       - "traefik.http.services.rating-svc.loadbalancer.server.port=8085"
       # gRPC (internal only — not exposed via Traefik):
@@ -250,6 +256,7 @@ services:
       - "traefik.http.routers.match-service.rule=PathPrefix(`/api/v1/queue`)"
       - "traefik.http.routers.match-service.entrypoints=web"
       - "traefik.http.routers.match-service.priority=50"
+      - "traefik.http.routers.match-service.middlewares=security-headers@file"
       - "traefik.http.routers.match-service.service=match-svc"
       - "traefik.http.services.match-svc.loadbalancer.server.port=8087"
 
@@ -292,5 +299,6 @@ services:
       - "traefik.http.routers.notification-service.rule=PathRegexp(`^/api/v1/players/[^/]+/notifications`) || PathRegexp(`^/api/v1/notifications/`)"
       - "traefik.http.routers.notification-service.entrypoints=web"
       - "traefik.http.routers.notification-service.priority=50"
+      - "traefik.http.routers.notification-service.middlewares=security-headers@file"
       - "traefik.http.routers.notification-service.service=notification-svc"
       - "traefik.http.services.notification-svc.loadbalancer.server.port=8086"

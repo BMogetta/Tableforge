@@ -41,6 +41,7 @@ services:
       - "traefik.http.routers.otel-collector.rule=PathPrefix(`/otlp`)"
       - "traefik.http.routers.otel-collector.entrypoints=web"
       - "traefik.http.routers.otel-collector.priority=200"
+      - "traefik.http.routers.otel-collector.middlewares=security-headers@file"
       - "traefik.http.routers.otel-collector.service=otel-collector-svc"
       - "traefik.http.services.otel-collector-svc.loadbalancer.server.port=4318"
 
@@ -113,6 +114,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
       - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.middlewares=security-headers@file"
       - "traefik.http.routers.grafana.service=grafana-svc"
       - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
 
