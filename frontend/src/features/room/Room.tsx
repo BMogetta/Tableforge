@@ -14,6 +14,7 @@ import { InviteCode } from './components/InviteCode'
 import { RoomActions } from './components/RoomActions'
 import { ConnectionBanner, type SocketStatus } from './components/ConnectionBanner'
 import styles from './Room.module.css'
+import { testId } from '@/utils/testId'
 
 export function Room({ roomId }: { roomId: string }) {
   const player = useAppStore(s => s.player)!
@@ -290,7 +291,7 @@ export function Room({ roomId }: { roomId: string }) {
           <header className={styles.header}>
             <div>
               <p className={styles.gameLabel}>{room.game_id}</p>
-              <h1 data-testid='room-code' className={styles.code}>{room.code}</h1>
+              <h1 {...testId('room-code')} className={styles.code}>{room.code}</h1>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className='badge badge-amber'>Waiting</span>

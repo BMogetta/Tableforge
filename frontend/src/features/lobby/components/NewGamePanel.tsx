@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import styles from './NewGamePanel.module.css'
 import { useNavigate } from '@tanstack/react-router'
+import { testId } from '@/utils/testId'
 
 type Tab = 'casual' | 'ranked'
 
@@ -144,7 +145,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
           {gameList.map((g: GameInfo) => (
             <button
               key={g.id}
-              data-testid={`game-option-${g.id}`}
+              {...testId(`game-option-${g.id}`)}
               className={`${styles.gameOption} ${effectiveGame === g.id ? styles.gameOptionActive : ''}`}
               onClick={() => onGameChange(g.id)}
             >
@@ -177,7 +178,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
         {tab === 'casual' && (
           <div className={styles.casualBody}>
             <button
-              data-testid='create-room-btn'
+              {...testId('create-room-btn')}
               className='btn btn-primary'
               onClick={() => createRoom.mutate()}
               disabled={createRoom.isPending || !effectiveGame}
@@ -187,7 +188,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
 
             <div className={styles.joinRow}>
               <input
-                data-testid='join-code-input'
+                {...testId('join-code-input')}
                 className='input'
                 aria-label='Room code'
                 placeholder='Room code'
@@ -198,7 +199,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
                 style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
               />
               <button
-                data-testid='join-btn'
+                {...testId('join-btn')}
                 className='btn btn-ghost'
                 onClick={() => joinRoom.mutate()}
                 disabled={joinRoom.isPending}

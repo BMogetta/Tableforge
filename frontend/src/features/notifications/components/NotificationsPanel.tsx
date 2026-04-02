@@ -8,6 +8,7 @@ import { useToast } from '@/ui/Toast'
 import type { Notification } from '@/lib/api'
 import { NotificationItem } from './NotificationItem'
 import styles from './NotificationsPanel.module.css'
+import { testId } from '@/utils/testId'
 
 interface NotificationsPanelProps {
   items: Notification[]
@@ -59,7 +60,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} data-testid='notifications-panel' role='dialog' aria-modal='true' aria-labelledby='notifications-title'>
+      <div className={styles.panel} {...testId('notifications-panel')} role='dialog' aria-modal='true' aria-labelledby='notifications-title'>
         <div className={styles.header}>
           <h2 className={styles.title} id='notifications-title'>Notifications</h2>
           <button className={styles.closeBtn} onClick={onClose}>

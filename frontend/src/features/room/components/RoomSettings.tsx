@@ -3,6 +3,7 @@ import { rooms } from '@/features/room/api'
 import type { LobbySetting } from '@/lib/api'
 import styles from './RoomSettings.module.css'
 import { catchToAppError } from '@/utils/errors'
+import { testId } from '@/utils/testId'
 
 interface Props {
   roomId: string
@@ -46,7 +47,7 @@ export function RoomSettings({
   if (descriptors.length === 0) return null
 
   return (
-    <section className={styles.root} data-testid='lobby-settings'>
+    <section className={styles.root} {...testId('lobby-settings')}>
       <p className='label'>Game Settings</p>
       <div className={styles.list}>
         {descriptors.map(setting => (
@@ -78,7 +79,7 @@ interface RowProps {
 
 function SettingRow({ setting, value, isOwner, isPending, error, onChange }: RowProps) {
   return (
-    <div className={styles.row} data-testid={`setting-row-${setting.key}`}>
+    <div className={styles.row} {...testId(`setting-row-${setting.key}`)}>
       <div className={styles.labelGroup}>
         <span className={styles.settingLabel}>{setting.label}</span>
         {setting.description && <span className={styles.settingDesc}>{setting.description}</span>}
@@ -117,7 +118,7 @@ function SettingControl({ setting, value, isPending, onChange }: ControlProps) {
         className={styles.select}
         value={value}
         disabled={isPending}
-        data-testid={`setting-select-${setting.key}`}
+        {...testId(`setting-select-${setting.key}`)}
         onChange={e => onChange(e.target.value)}
       >
         {setting.options.map(opt => (
@@ -138,7 +139,7 @@ function SettingControl({ setting, value, isPending, onChange }: ControlProps) {
         disabled={isPending}
         min={setting.min}
         max={setting.max}
-        data-testid={`setting-input-${setting.key}`}
+        {...testId(`setting-input-${setting.key}`)}
         onChange={e => onChange(e.target.value)}
         onBlur={e => onChange(e.target.value)}
       />
@@ -155,14 +156,14 @@ function ReadonlyValue({ setting, value }: { setting: LobbySetting; value: strin
   if (setting.type === 'select' && setting.options) {
     const opt = setting.options.find(o => o.value === value)
     return (
-      <span className={styles.readonlyValue} data-testid={`setting-value-${setting.key}`}>
+      <span className={styles.readonlyValue} {...testId(`setting-value-${setting.key}`)}>
         {opt?.label ?? value}
       </span>
     )
   }
 
   return (
-    <span className={styles.readonlyValue} data-testid={`setting-value-${setting.key}`}>
+    <span className={styles.readonlyValue} {...testId(`setting-value-${setting.key}`)}>
       {value}
     </span>
   )

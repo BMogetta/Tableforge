@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import styles from '../Game.module.css'
+import { testId } from '@/utils/testId'
 
 interface TurnTimerProps {
   turnTimeoutSecs: number
@@ -42,7 +43,7 @@ export function TurnTimer({ turnTimeoutSecs, lastMoveAt, isOver, isSuspended }: 
   return (
     <span
       className={`${styles.turnTimer} ${urgent ? styles.turnTimerUrgent : ''} ${paused ? styles.turnTimerPaused : ''}`}
-      data-testid='turn-timer'
+      {...testId('turn-timer')}
     >
       {secs}s{paused ? ' (paused)' : ''}
     </span>

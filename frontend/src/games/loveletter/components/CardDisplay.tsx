@@ -1,4 +1,5 @@
 import styles from './CardDisplay.module.css'
+import { testId } from '@/utils/testId'
 
 export type CardName =
   | 'spy'
@@ -82,7 +83,7 @@ export function CardDisplay({
 
   return (
     <div
-      data-testid='card-display'
+      {...testId('card-display')}
       data-selected={selected}
       data-disabled={disabled}
       data-facedown={faceDown}

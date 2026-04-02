@@ -6,6 +6,7 @@ import type {
   NotificationType,
 } from '@/lib/api'
 import styles from './NotificationItem.module.css'
+import { testId } from '@/utils/testId'
 
 interface NotificationItemProps {
   notification: Notification
@@ -28,7 +29,7 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
   return (
     <div
       className={`${styles.item} ${isRead ? styles.read : styles.unread}`}
-      data-testid={`notification-${n.id}`}
+      {...testId(`notification-${n.id}`)}
     >
       <div className={styles.header}>
         <span className={styles.type}>{labels[n.type]}</span>
@@ -40,7 +41,7 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
       <p className={styles.body}>{describeNotification(n)}</p>
 
       {n.action_taken && (
-        <span className={styles.actionTaken} data-testid='action-taken'>
+        <span className={styles.actionTaken} {...testId('action-taken')}>
           {n.action_taken === 'accepted' ? 'Accepted' : 'Declined'}
         </span>
       )}
@@ -52,7 +53,7 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
             style={{ padding: '4px 12px', fontSize: 12 }}
             disabled={pending}
             onClick={() => onAccept?.(n.id)}
-            data-testid='accept-btn'
+            {...testId('accept-btn')}
           >
             Accept
           </button>
@@ -61,7 +62,7 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
             style={{ padding: '4px 12px', fontSize: 12 }}
             disabled={pending}
             onClick={() => onDecline?.(n.id)}
-            data-testid='decline-btn'
+            {...testId('decline-btn')}
           >
             Decline
           </button>
@@ -69,7 +70,7 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
       )}
 
       {hasAction && isExpired && (
-        <span className={styles.expired} data-testid='expired'>Expired</span>
+        <span className={styles.expired} {...testId('expired')}>Expired</span>
       )}
     </div>
   )

@@ -1,4 +1,5 @@
 import styles from '../Game.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   resumeVotes: string[]
@@ -22,7 +23,7 @@ interface Props {
  * - ← Back to Lobby button to abandon the paused game.
  *
  * @testability
- * - Assert data-testid="suspended-screen" is present.
+ * - Assert {...testId('suspended-screen')} is present.
  * - Assert resume vote count is shown when resumeVotes.length > 0.
  * - Assert "Vote to Resume" button calls onResume.
  * - Assert button is absent when canResume is false.
@@ -39,18 +40,18 @@ export function SuspendedScreen({
   onBackToLobby,
 }: Props) {
   return (
-    <div className={styles.suspendedScreen} data-testid='suspended-screen'>
+    <div className={styles.suspendedScreen} {...testId('suspended-screen')}>
       <span className={styles.suspendedIcon}>⏸</span>
       <p className={styles.suspendedTitle}>Game Paused</p>
       <p className={styles.suspendedBody}>All players must vote to resume the game.</p>
       {resumeVotes.length > 0 && (
-        <p className={styles.voteCount} data-testid='resume-vote-count'>
+        <p className={styles.voteCount} {...testId('resume-vote-count')}>
           {resumeVotes.length} / {resumeRequired} voted to resume
         </p>
       )}
       {canResume && (
         <button
-          data-testid='vote-resume-btn'
+          {...testId('vote-resume-btn')}
           className='btn btn-primary'
           onClick={onResume}
           disabled={isPending}

@@ -1,5 +1,6 @@
 import { TurnTimer } from './TurnTimer'
 import styles from '../Game.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   gameId: string
@@ -58,7 +59,7 @@ export function GameHeader({
       </div>
       {canPause && (
         <button
-          data-testid='pause-btn'
+          {...testId('pause-btn')}
           className='btn btn-ghost'
           onClick={onPause}
           disabled={isPausePending}

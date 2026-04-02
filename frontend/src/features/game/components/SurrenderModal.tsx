@@ -1,4 +1,5 @@
 import styles from './SurrenderModal.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   onConfirm: () => void
@@ -27,7 +28,7 @@ export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
             className='btn btn-danger'
             onClick={onConfirm}
             disabled={isPending}
-            data-testid='confirm-surrender-btn'
+            {...testId('confirm-surrender-btn')}
           >
             {isPending ? 'Forfeiting...' : 'Forfeit'}
           </button>

@@ -1,4 +1,5 @@
 import styles from './FriendsPanel.module.css'
+import { testId } from '@/utils/testId'
 
 interface FriendItemProps {
   friendId: string
@@ -12,7 +13,7 @@ interface FriendItemProps {
 
 export function FriendItem({ friendId, username, avatarUrl, online, onDM, onRemove, removePending }: FriendItemProps) {
   return (
-    <div className={styles.friendRow} data-testid={`friend-${friendId}`}>
+    <div className={styles.friendRow} {...testId(`friend-${friendId}`)}>
       <span className={styles.presenceDot} data-online={String(online)} />
       {avatarUrl && <img src={avatarUrl} alt='' className={styles.avatar} />}
       <span className={styles.friendName}>{username}</span>
@@ -21,7 +22,7 @@ export function FriendItem({ friendId, username, avatarUrl, online, onDM, onRemo
           className={styles.actionBtn}
           onClick={() => onDM(friendId)}
           title='Send DM'
-          data-testid='dm-btn'
+          {...testId('dm-btn')}
         >
           DM
         </button>
@@ -30,7 +31,7 @@ export function FriendItem({ friendId, username, avatarUrl, online, onDM, onRemo
           onClick={() => onRemove(friendId)}
           disabled={removePending}
           title='Remove friend'
-          data-testid='remove-btn'
+          {...testId('remove-btn')}
         >
           {removePending ? '...' : 'x'}
         </button>

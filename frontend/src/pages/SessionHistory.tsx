@@ -8,6 +8,7 @@ import styles from './SessionHistory.module.css'
 import { useNavigate } from '@tanstack/react-router'
 import { sessions } from '@/lib/api/sessions'
 import { MoveDTO } from '@/lib/api-generated'
+import { testId } from '@/utils/testId'
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -64,7 +65,7 @@ function EventRow({ event, base, index }: { event: SessionEventDTO; base: string
     <div
       className={`${styles.eventRow} ${open ? styles.eventRowOpen : ''}`}
       style={{ animationDelay: `${index * 30}ms` }}
-      data-testid='event-row'
+      {...testId('event-row')}
     >
       <div className={styles.eventMeta}>
         <span className={styles.eventIndex}>{String(index + 1).padStart(3, '0')}</span>
@@ -78,14 +79,14 @@ function EventRow({ event, base, index }: { event: SessionEventDTO; base: string
             className={styles.eventToggle}
             onClick={() => setOpen(o => !o)}
             aria-label='toggle payload'
-            data-testid='event-toggle'
+            {...testId('event-toggle')}
           >
             {open ? '▲' : '▼'}
           </button>
         )}
       </div>
       {open && hasPayload && (
-        <pre className={styles.eventPayload} data-testid='event-payload'>
+        <pre className={styles.eventPayload} {...testId('event-payload')}>
           {JSON.stringify(event.payload, null, 2)}
         </pre>
       )}
@@ -126,7 +127,7 @@ function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
   return (
     <div className={styles.replayRoot}>
       <div className={styles.replayHeader}>
-        <span className={styles.replayStep} data-testid='replay-step-label'>
+        <span className={styles.replayStep} {...testId('replay-step-label')}>
           {step === 0 ? 'Initial state' : `Move ${step} of ${moves.length}`}
         </span>
         {currentMove && (
@@ -191,7 +192,7 @@ function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
 
         <button
           className={`btn btn-ghost ${styles.replayBtn}`}
-          data-testid='replay-next-btn'
+          {...testId('replay-next-btn')}
           onClick={() => setStep(s => Math.min(moves.length, s + 1))}
           disabled={step === moves.length}
         >
@@ -199,7 +200,7 @@ function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
         </button>
         <button
           className={`btn btn-ghost ${styles.replayBtn}`}
-          data-testid='replay-last-btn'
+          {...testId('replay-last-btn')}
           onClick={() => setStep(moves.length)}
           disabled={step === moves.length}
         >
@@ -256,7 +257,7 @@ export function SessionHistory({ sessionId }: { sessionId: string }) {
         <header className={styles.header}>
           <button
             className='btn btn-ghost'
-            data-testid='back-to-lobby-btn'
+            {...testId('back-to-lobby-btn')}
             onClick={() => navigate({ to: '/' })}
             style={{ fontSize: 11 }}
           >
@@ -269,7 +270,7 @@ export function SessionHistory({ sessionId }: { sessionId: string }) {
           {session?.finished_at && (
             <div
               className={styles.resultBadge}
-              data-testid='result-badge'
+              {...testId('result-badge')}
               data-result={isWinner ? 'win' : isDraw ? 'draw' : 'loss'}
             >
               {isWinner ? 'WIN' : isDraw ? 'DRAW' : result?.winner_id ? 'LOSS' : 'ENDED'}
@@ -282,7 +283,7 @@ export function SessionHistory({ sessionId }: { sessionId: string }) {
           <div className={styles.statsBar}>
             <div className={styles.stat}>
               <span className={styles.statLabel}>Moves</span>
-              <span className={styles.statValue} data-testid='stat-move-count'>
+              <span className={styles.statValue} {...testId('stat-move-count')}>
                 {session.move_count}
               </span>
             </div>
@@ -324,14 +325,14 @@ export function SessionHistory({ sessionId }: { sessionId: string }) {
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${tab === 'events' ? styles.tabActive : ''}`}
-            data-testid='tab-events'
+            {...testId('tab-events')}
             onClick={() => setTab('events')}
           >
             EVENT LOG
           </button>
           <button
             className={`${styles.tab} ${tab === 'replay' ? styles.tabActive : ''}`}
-            data-testid='tab-replay'
+            {...testId('tab-replay')}
             onClick={() => setTab('replay')}
           >
             REPLAY

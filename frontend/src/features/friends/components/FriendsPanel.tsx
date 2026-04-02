@@ -8,6 +8,7 @@ import { useToast } from '@/ui/Toast'
 import { FriendItem } from './FriendItem'
 import { PendingRequestItem } from './PendingRequestItem'
 import styles from './FriendsPanel.module.css'
+import { testId } from '@/utils/testId'
 
 type Tab = 'friends' | 'pending'
 
@@ -102,7 +103,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} data-testid='friends-panel' role='dialog' aria-modal='true' aria-labelledby='friends-title'>
+      <div className={styles.panel} {...testId('friends-panel')} role='dialog' aria-modal='true' aria-labelledby='friends-title'>
         <div className={styles.header}>
           <h2 className={styles.title} id='friends-title'>Friends</h2>
           <button className={styles.closeBtn} onClick={onClose}>x</button>
@@ -194,7 +195,7 @@ interface FriendsButtonProps {
 
 export function FriendsButton({ pendingCount, onClick }: FriendsButtonProps) {
   return (
-    <button className={styles.floatingBtn} onClick={onClick} data-testid='friends-btn'>
+    <button className={styles.floatingBtn} onClick={onClick} {...testId('friends-btn')}>
       <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'>
         <path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' />
         <circle cx='9' cy='7' r='4' />

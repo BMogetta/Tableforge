@@ -8,6 +8,7 @@ import { Settings } from '@/ui/Settings'
 import { NotificationsPanel } from '@/features/notifications/components/NotificationsPanel'
 import styles from './LobbyHeader.module.css'
 import { Link } from '@tanstack/react-router'
+import { testId } from '@/utils/testId'
 
 interface Props {
   onLogout: () => void
@@ -97,7 +98,7 @@ export function LobbyHeader({ onLogout }: Props) {
 
           <Link to='/profile/$playerId' params={{ playerId: player.id }} className={styles.playerInfo}>
             {player.avatar_url && <img src={player.avatar_url} alt='' className={styles.avatar} />}
-            <span data-testid='player-username' className={styles.username}>
+            <span {...testId('player-username')} className={styles.username}>
               {player.username}
             </span>
           </Link>

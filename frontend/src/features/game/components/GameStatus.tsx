@@ -1,4 +1,5 @@
 import styles from '../Game.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   statusText: string
@@ -22,7 +23,7 @@ interface Props {
  *
  * @testability
  * Render with props and assert:
- * - data-testid="game-status" contains the expected statusText.
+ * - {...testId('game-status')} contains the expected statusText.
  * - Presence indicator is absent when isSpectator is true or isSuspended is true.
  * - data-online="true" when opponentOnline is true.
  */
@@ -43,19 +44,19 @@ export function GameStatus({
         className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver || isSuspended ? styles.dotOver : ''}`}
       />
       <span
-        data-testid='game-status'
+        {...testId('game-status')}
         className={`${styles.statusText} ${winnerId === playerId ? styles.win : ''} ${winnerId && winnerId !== playerId ? styles.lose : ''} ${isSuspended ? styles.suspended : ''}`}
       >
         {statusText}
       </span>
       {!isSpectator && !isSuspended && opponentId && (
-        <span className={styles.opponentPresence} data-testid='opponent-presence'>
+        <span className={styles.opponentPresence} {...testId('opponent-presence')}>
           <span
             className={styles.presenceDot}
             data-online={String(opponentOnline)}
-            data-testid='opponent-presence-dot'
+            {...testId('opponent-presence-dot')}
           />
-          <span data-testid='opponent-presence-text'>
+          <span {...testId('opponent-presence-text')}>
             {opponentOnline ? 'Opponent online' : 'Opponent offline'}
           </span>
         </span>

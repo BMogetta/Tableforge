@@ -182,6 +182,24 @@ Target: WCAG 2.1 AA compliance.
   linking to their heading
 - Avoid `div`/`span` with `onClick` — always use `button` or anchor
 
+#### Test IDs
+
+All interactive and assertable elements must have a `data-testid` attribute for
+Playwright e2e tests. Test IDs are **conditionally rendered** — they appear in
+dev and test mode but are stripped from production builds.
+
+- Use the `testId()` helper from `@/utils/testId`:
+  ```tsx
+  import { testId } from '@/utils/testId'
+  <button {...testId('submit-btn')}>Submit</button>
+  ```
+- Dynamic IDs use template literals: `{...testId(\`player-row-${id}\`)}`
+- Never hardcode `data-testid="..."` directly — always use the helper
+- The helper checks `import.meta.env.DEV || import.meta.env.VITE_TEST_MODE`
+- Vitest runs with `DEV=true`, Playwright runs with `VITE_TEST_MODE=true`
+- When adding new interactive elements, include a `testId` — e2e tests depend on
+  stable selectors to avoid fragile CSS/text-based queries
+
 ### Database
 
 PostgreSQL with schema separation:

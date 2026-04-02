@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { type CardName } from './CardDisplay'
 import { CardDisplay } from './CardDisplay'
 import styles from './ChancellorModal.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   /** The 3 cards the Chancellor player must choose from. */
@@ -64,7 +65,7 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
                 {kept !== null && returnOrder.includes(card) && (
                   <span
                     className={styles.tagReturn}
-                    data-testid={`return-order-${returnOrder.indexOf(card) + 1}`}
+                    {...testId(`return-order-${returnOrder.indexOf(card) + 1}`)}
                   >
                     {returnOrder.indexOf(card) + 1}
                   </span>
@@ -91,7 +92,7 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
                       onClick={() => handleReturn(card)}
                     />
                     {isSelected && (
-                      <span className={styles.tagReturn} data-testid={`return-order-${pos + 1}`}>
+                      <span className={styles.tagReturn} {...testId(`return-order-${pos + 1}`)}>
                         {pos + 1}
                       </span>
                     )}

@@ -2,6 +2,7 @@ import type { BotProfile } from '@/lib/api'
 import type { AppError } from '@/utils/errors'
 import { ErrorMessage } from '@/ui/ErrorMessage'
 import styles from '../Room.module.css'
+import { testId } from '@/utils/testId'
 
 interface BotSectionProps {
   profiles: BotProfile[]
@@ -18,7 +19,7 @@ export function BotSection({ profiles, selectedProfile, onSelectProfile, onAdd, 
       <p className='label'>Add Bot</p>
       <div className={styles.botRow}>
         <select
-          data-testid='add-bot-select'
+          {...testId('add-bot-select')}
           className={styles.botSelect}
           value={selectedProfile}
           disabled={adding}
@@ -31,7 +32,7 @@ export function BotSection({ profiles, selectedProfile, onSelectProfile, onAdd, 
           ))}
         </select>
         <button
-          data-testid='add-bot-btn'
+          {...testId('add-bot-btn')}
           className='btn btn-secondary'
           disabled={adding}
           onClick={onAdd}

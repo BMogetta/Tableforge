@@ -1,4 +1,5 @@
 import styles from '../Game.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   votes: string[]
@@ -31,14 +32,14 @@ export function PauseVoteOverlay({
   onVote,
 }: Props) {
   return (
-    <div className={styles.voteOverlay} data-testid='pause-vote-overlay'>
+    <div className={styles.voteOverlay} {...testId('pause-vote-overlay')}>
       <p className={styles.voteTitle}>Pause requested</p>
       <p className={styles.voteCount}>
         {votes.length} / {required} voted
       </p>
       {!isSpectator && !votedPause && (
         <button
-          data-testid='vote-pause-btn'
+          {...testId('vote-pause-btn')}
           className='btn btn-ghost'
           onClick={onVote}
           disabled={isPending}

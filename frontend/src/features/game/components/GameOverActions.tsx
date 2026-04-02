@@ -1,4 +1,5 @@
 import styles from '../Game.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   isSpectator: boolean
@@ -43,13 +44,13 @@ export function GameOverActions({
       <button className='btn btn-ghost' onClick={onBackToLobby}>
         Back to Lobby
       </button>
-      <button className='btn btn-ghost' data-testid='view-replay-btn' onClick={onViewReplay}>
+      <button className='btn btn-ghost' {...testId('view-replay-btn')} onClick={onViewReplay}>
         View Replay
       </button>
       {!isSpectator && (
         <button
           className='btn btn-primary'
-          data-testid='rematch-btn'
+          {...testId('rematch-btn')}
           onClick={onRematch}
           disabled={votedRematch || isRematchPending}
         >

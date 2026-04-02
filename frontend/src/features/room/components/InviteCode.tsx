@@ -1,4 +1,5 @@
 import styles from '../Room.module.css'
+import { testId } from '@/utils/testId'
 
 interface InviteCodeProps {
   code: string
@@ -19,7 +20,7 @@ export function InviteCode({ code, isPrivate }: InviteCodeProps) {
         <p className='label'>Invite Code</p>
       )}
       <div className={styles.codeBox}>
-        <span data-testid='room-code-display' className={styles.codeDisplay}>
+        <span {...testId('room-code-display')} className={styles.codeDisplay}>
           {code}
         </span>
         <button

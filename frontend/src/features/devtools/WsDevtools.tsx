@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useWsDevtoolsStore, type CapturedEvent } from './store'
 import type { WsEventType } from '@/lib/ws'
+import { testId } from '@/utils/testId'
 
 // ---------------------------------------------------------------------------
 // Filter mode
@@ -49,7 +50,7 @@ interface EventRowProps {
 function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
   return (
     <div
-      data-testid='event-row'
+      {...testId('event-row')}
       data-event-type={event.type}
       style={{
         borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))',
@@ -59,7 +60,7 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
     >
       {/* Summary row */}
       <div
-        data-testid='event-summary'
+        {...testId('event-summary')}
         onClick={onToggle}
         style={{
           display: 'flex',
@@ -86,7 +87,7 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
                 : 'rgba(100,200,120,0.12)',
             color: event.source === 'room' ? 'var(--color-interactive, #7b8cde)' : '#64c878',
           }}
-          data-testid='event-source'
+          {...testId('event-source')}
         >
           {sourceLabel(event.source)}
         </span>
@@ -100,7 +101,7 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
       {isExpanded && (
         <div style={{ borderTop: '1px solid var(--color-border, rgba(255,255,255,0.06))' }}>
           <pre
-            data-testid='event-payload'
+            {...testId('event-payload')}
             style={{
               margin: 0,
               padding: '6px 10px 6px 24px',
@@ -205,7 +206,7 @@ export function WsDevtools() {
 
   return (
     <div
-      data-testid='ws-devtools'
+      {...testId('ws-devtools')}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -216,7 +217,7 @@ export function WsDevtools() {
     >
       {/* Toolbar */}
       <div
-        data-testid='ws-devtools-toolbar'
+        {...testId('ws-devtools-toolbar')}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -237,7 +238,7 @@ export function WsDevtools() {
           {Object.values(FilterMode).map(mode => (
             <button
               key={mode}
-              data-testid={`filter-mode-${mode}`}
+              {...testId(`filter-mode-${mode}`)}
               data-active={filterMode === mode}
               onClick={() => setFilterMode(mode)}
               style={{
@@ -266,7 +267,7 @@ export function WsDevtools() {
         {/* Filter input */}
         {filterMode !== FilterMode.all && (
           <input
-            data-testid='filter-input'
+            {...testId('filter-input')}
             value={filterInput}
             onChange={e => setFilterInput(e.target.value)}
             placeholder='move_applied, game_over...'
@@ -290,7 +291,7 @@ export function WsDevtools() {
 
         {/* Auto-scroll indicator */}
         <span
-          data-testid='autoscroll-indicator'
+          {...testId('autoscroll-indicator')}
           style={{
             fontSize: 10,
             color: autoScroll
@@ -303,7 +304,7 @@ export function WsDevtools() {
 
         {/* Clear button */}
         <button
-          data-testid='clear-btn'
+          {...testId('clear-btn')}
           onClick={clear}
           style={{
             padding: '2px 8px',
@@ -324,7 +325,7 @@ export function WsDevtools() {
       {/* Event list */}
       <div
         ref={listRef}
-        data-testid='event-list'
+        {...testId('event-list')}
         onScroll={handleScroll}
         style={{
           flex: 1,
@@ -334,7 +335,7 @@ export function WsDevtools() {
       >
         {visibleEvents.length === 0 ? (
           <div
-            data-testid='empty-state'
+            {...testId('empty-state')}
             style={{
               padding: '24px 10px',
               textAlign: 'center',

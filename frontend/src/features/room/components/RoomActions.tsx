@@ -1,6 +1,7 @@
 import type { AppError } from '@/utils/errors'
 import { ErrorMessage } from '@/ui/ErrorMessage'
 import styles from '../Room.module.css'
+import { testId } from '@/utils/testId'
 
 interface RoomActionsProps {
   isSpectator: boolean
@@ -33,7 +34,7 @@ export function RoomActions({
         ) : isOwner ? (
           <>
             <button
-              data-testid='start-game-btn'
+              {...testId('start-game-btn')}
               data-can-start={canStart}
               className='btn btn-primary'
               onClick={onStart}

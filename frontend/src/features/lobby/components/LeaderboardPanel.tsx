@@ -4,6 +4,7 @@ import { leaderboard } from '@/features/lobby/api'
 import type { Rating } from '@/lib/api'
 import { keys } from '@/lib/queryClient'
 import styles from './LeaderboardPanel.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   gameId: string
@@ -26,7 +27,7 @@ export function LeaderboardPanel({ gameId }: Props) {
       ) : entries.length === 0 ? (
         <p className={styles.empty}>No ranked games played yet.</p>
       ) : (
-        <table data-testid='leaderboard-table' className={styles.table}>
+        <table {...testId('leaderboard-table')} className={styles.table}>
           <thead>
             <tr>
               <th>#</th>
@@ -38,7 +39,7 @@ export function LeaderboardPanel({ gameId }: Props) {
           </thead>
           <tbody>
             {entries.map((e: Rating, i: number) => (
-              <tr key={e.player_id} data-testid='leaderboard-row'>
+              <tr key={e.player_id} {...testId('leaderboard-row')}>
                 <td className={styles.rank}>{i + 1}</td>
                 <td>
                   <Link to='/profile/$playerId' params={{ playerId: e.player_id }} className={styles.player}>

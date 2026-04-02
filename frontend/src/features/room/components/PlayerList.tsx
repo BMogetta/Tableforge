@@ -7,6 +7,7 @@ import { useToast } from '@/ui/Toast'
 import { useAppStore } from '@/stores/store'
 import { PlayerDropdown } from './PlayerDropdown'
 import styles from '../Room.module.css'
+import { testId } from '@/utils/testId'
 
 interface PlayerListProps {
   players: RoomViewPlayer[]
@@ -74,7 +75,7 @@ export function PlayerList({
 
   return (
     <section className={styles.playersSection}>
-      <p className='label' data-testid='player-count'>
+      <p className='label' {...testId('player-count')}>
         Players ({players.length}/{maxPlayers})
       </p>
       <div className={styles.playerList}>
@@ -87,12 +88,12 @@ export function PlayerList({
             <div
               key={p.id}
               className={styles.playerRow}
-              data-testid={p.is_bot ? `bot-row-${p.id}` : `player-row-${p.id}`}
+              {...testId(p.is_bot ? `bot-row-${p.id}` : `player-row-${p.id}`)}
             >
               <span
                 className={styles.presenceDot}
                 data-online={String(presenceMap[p.id] ?? false)}
-                data-testid={`presence-dot-${p.id}`}
+                {...testId(`presence-dot-${p.id}`)}
               />
               {p.avatar_url && <img src={p.avatar_url} alt='' className={styles.avatar} />}
 
@@ -158,7 +159,7 @@ export function PlayerList({
               {isSelf && <span className='badge badge-muted'>You</span>}
               {isOwner && p.is_bot && (
                 <button
-                  data-testid={`remove-bot-btn-${p.id}`}
+                  {...testId(`remove-bot-btn-${p.id}`)}
                   className={styles.removeBotBtn}
                   disabled={removingBotId === p.id}
                   onClick={() => onRemoveBot(p.id)}
@@ -179,7 +180,7 @@ export function PlayerList({
       </div>
 
       {spectatorCount > 0 && (
-        <p className={styles.spectatorCount} data-testid='spectator-count'>
+        <p className={styles.spectatorCount} {...testId('spectator-count')}>
           {spectatorCount} watching
         </p>
       )}

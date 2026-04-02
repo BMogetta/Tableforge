@@ -4,6 +4,7 @@ import { keys } from '@/lib/queryClient'
 import { RoomCard } from './RoomCard'
 import styles from './OpenRooms.module.css'
 import { useNavigate } from '@tanstack/react-router'
+import { testId } from '@/utils/testId'
 
 export function OpenRooms() {
   const navigate = useNavigate()
@@ -26,7 +27,7 @@ export function OpenRooms() {
       ) : roomList.length === 0 ? (
         <p className={styles.empty}>No open rooms. Create one to get started.</p>
       ) : (
-        <div data-testid='lobby-room-list' className={styles.list}>
+        <div {...testId('lobby-room-list')} className={styles.list}>
           {roomList.map(view => (
             <RoomCard
               key={view.room.id}

@@ -1,5 +1,6 @@
 import type { RoomView } from '@/lib/api'
 import styles from './RoomCard.module.css'
+import { testId } from '@/utils/testId'
 
 interface Props {
   view: RoomView
@@ -11,18 +12,18 @@ export function RoomCard({ view, onJoin }: Props) {
   const isPrivate = settings?.room_visibility === 'private'
 
   return (
-    <div data-testid='room-card' className={styles.card}>
+    <div {...testId('room-card')} className={styles.card}>
       <div className={styles.info}>
         {isPrivate ? (
           <span
-            data-testid='room-card-private-icon'
+            {...testId('room-card-private-icon')}
             className={styles.codePrivate}
             title='Private room'
           >
             🔒
           </span>
         ) : (
-          <span data-testid='room-card-code' className={styles.code}>
+          <span {...testId('room-card-code')} className={styles.code}>
             {room.code}
           </span>
         )}
