@@ -22,7 +22,7 @@ for svc_dir in "$ROOT"/services/*/; do
   [ -f "$svc_dir/go.mod" ] || continue
   svc_name=$(basename "$svc_dir")
 
-  output=$(cd "$svc_dir" && go test ./... -v -cover -count=1 -timeout=120s 2>&1) || true
+  output=$(cd "$svc_dir" && go test ./... -v -cover -count=1 -timeout=600s 2>&1) || true
 
   # Detect panics or build errors that make the results unreliable.
   panics=$(echo "$output" | grep -c "^panic:" || true)

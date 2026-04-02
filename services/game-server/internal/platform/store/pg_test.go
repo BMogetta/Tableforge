@@ -2,68 +2,24 @@ package store_test
 
 import (
 	"context"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/recess/game-server/internal/platform/store"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/recess/shared/testutil"
 )
 
-// newTestStore spins up a real Postgres container and runs migrations.
-// It registers a cleanup function to terminate the container after the test.
 func newTestStore(t *testing.T) store.Store {
 	t.Helper()
-	ctx := context.Background()
-
-	container, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:16-alpine"),
-		postgres.WithDatabase("recess_test"),
-		postgres.WithUsername("test"),
-		postgres.WithPassword("test"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(30*time.Second),
-		),
+	dsn := testutil.NewTestDB(t,
+		testutil.MigrationInitial,
+		testutil.MigrationUserService,
+		testutil.MigrationRating,
 	)
-	if err != nil {
-		t.Fatalf("failed to start postgres container: %v", err)
-	}
-
-	t.Cleanup(func() {
-		if err := container.Terminate(ctx); err != nil {
-			t.Logf("failed to terminate container: %v", err)
-		}
-	})
-
-	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		t.Fatalf("failed to get connection string: %v", err)
-	}
-
-	s, err := store.New(ctx, dsn)
+	s, err := store.New(context.Background(), dsn)
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-
-	for _, path := range []string{
-		"../../../../../shared/db/migrations/001_initial.sql",
-		"../../../../../shared/db/migrations/002_user_service.sql",
-		"../../../../../shared/db/migrations/003_rating_service.sql",
-	} {
-		migration, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("failed to read migration %s: %v", path, err)
-		}
-		if err := s.Exec(ctx, string(migration)); err != nil {
-			t.Fatalf("failed to run migration %s: %v", path, err)
-		}
-	}
-
 	t.Cleanup(s.Close)
 	return s
 }

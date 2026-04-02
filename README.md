@@ -64,16 +64,16 @@ Optional interfaces: `StateFilter` (hidden information), `TurnTimeoutHandler` (c
 
 | Service | Tests | Coverage |
 |---------|-------|----------|
-| auth-service | 19 passed | ![47.1%](https://img.shields.io/badge/coverage-47.1%25-yellow) |
-| chat-service | 12 passed | ![23.6%](https://img.shields.io/badge/coverage-23.6%25-red) |
-| game-server | 162 passed | ![42.1%](https://img.shields.io/badge/coverage-42.1%25-yellow) |
-| match-service | 0 passed | ![0.0%](https://img.shields.io/badge/coverage-0.0%25-lightgrey) |
-| notification-service | 10 passed | ![22.6%](https://img.shields.io/badge/coverage-22.6%25-red) |
-| rating-service | 11 passed | ![40.6%](https://img.shields.io/badge/coverage-40.6%25-yellow) |
-| user-service | 19 passed | ![16.7%](https://img.shields.io/badge/coverage-16.7%25-red) |
+| auth-service | 26 passed | ![59.0%](https://img.shields.io/badge/coverage-59.0%25-yellow) |
+| chat-service | 30 passed | ![56.3%](https://img.shields.io/badge/coverage-56.3%25-yellow) |
+| game-server | 208 passed | ![41.5%](https://img.shields.io/badge/coverage-41.5%25-yellow) |
+| match-service | 22 passed | ![32.0%](https://img.shields.io/badge/coverage-32.0%25-red) |
+| notification-service | 17 passed | ![42.5%](https://img.shields.io/badge/coverage-42.5%25-yellow) |
+| rating-service | 19 passed | ![53.1%](https://img.shields.io/badge/coverage-53.1%25-yellow) |
+| user-service | 67 passed | ![44.8%](https://img.shields.io/badge/coverage-44.8%25-yellow) |
 | ws-gateway | 11 passed | ![23.0%](https://img.shields.io/badge/coverage-23.0%25-red) |
-| frontend (vitest) | 243 passed | ![72.1%](https://img.shields.io/badge/coverage-72.1%25-green) |
+| frontend (vitest) | 243 passed | ![70.9%](https://img.shields.io/badge/coverage-70.9%25-green) |
 
-_Last updated: 2026-04-01_
+_Last updated: 2026-04-02_
 
 <!-- coverage:end -->

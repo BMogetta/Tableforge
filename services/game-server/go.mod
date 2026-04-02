@@ -9,12 +9,10 @@ require (
 	github.com/hibiken/asynq v0.26.0
 	github.com/jackc/pgx/v5 v5.9.1
 	github.com/prometheus/client_golang v1.23.2
+	github.com/recess/shared v0.0.0-00010101000000-000000000000
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/riandyrn/otelchi v0.12.2
 	github.com/swaggo/swag v1.16.6
-	github.com/recess/shared v0.0.0-00010101000000-000000000000
-	github.com/testcontainers/testcontainers-go v0.29.1
-	github.com/testcontainers/testcontainers-go/modules/postgres v0.29.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 	google.golang.org/grpc v1.79.2
 )
@@ -78,6 +76,8 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
+	github.com/testcontainers/testcontainers-go v0.29.1 // indirect
+	github.com/testcontainers/testcontainers-go/modules/postgres v0.29.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
