@@ -20,7 +20,7 @@ scrape_configs:
   # All per-service breakdown available via labels (service, router)
   - job_name: traefik
     static_configs:
-      - targets: ["traefik:8080"]
+      - targets: ["traefik:80"]
 
   # game-server direct scrape (Go runtime + app metrics via /metrics)
   # Keep this even though OTel also pushes metrics — it gives you Go runtime

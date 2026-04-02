@@ -29,7 +29,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='LCP'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='LCP'}[5m])) by (le))",
           "legendFormat": "p75 LCP"
         }
       ]
@@ -57,7 +57,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='CLS'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='CLS'}[5m])) by (le))",
           "legendFormat": "p75 CLS"
         }
       ]
@@ -85,7 +85,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='INP'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='INP'}[5m])) by (le))",
           "legendFormat": "p75 INP"
         }
       ]
@@ -113,7 +113,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='TTFB'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='TTFB'}[5m])) by (le))",
           "legendFormat": "p75 TTFB"
         }
       ]
@@ -141,7 +141,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='FCP'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='FCP'}[5m])) by (le))",
           "legendFormat": "p75 FCP"
         }
       ]
@@ -157,22 +157,22 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='LCP'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='LCP'}[5m])) by (le))",
           "legendFormat": "LCP"
         },
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='FCP'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='FCP'}[5m])) by (le))",
           "legendFormat": "FCP"
         },
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='TTFB'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='TTFB'}[5m])) by (le))",
           "legendFormat": "TTFB"
         },
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_bucket{vital_name='INP'}[5m])) by (le))",
+          "expr": "histogram_quantile(0.75, sum(rate(otel_web_vitals_milliseconds_bucket{vital_name='INP'}[5m])) by (le))",
           "legendFormat": "INP"
         }
       ]
@@ -185,17 +185,17 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "sum(increase(otel_web_vitals_count{vital_rating='good'}[1h]))",
+          "expr": "sum(increase(otel_web_vitals_milliseconds_count{vital_rating='good'}[1h]))",
           "legendFormat": "Good"
         },
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "sum(increase(otel_web_vitals_count{vital_rating='needs-improvement'}[1h]))",
+          "expr": "sum(increase(otel_web_vitals_milliseconds_count{vital_rating='needs-improvement'}[1h]))",
           "legendFormat": "Needs improvement"
         },
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "sum(increase(otel_web_vitals_count{vital_rating='poor'}[1h]))",
+          "expr": "sum(increase(otel_web_vitals_milliseconds_count{vital_rating='poor'}[1h]))",
           "legendFormat": "Poor"
         }
       ],
@@ -212,7 +212,7 @@
       "targets": [
         {
           "datasource": { "uid": "prometheus" },
-          "expr": "sum(rate(otel_web_vitals_count[1m])) by (vital_name)",
+          "expr": "sum(rate(otel_web_vitals_milliseconds_count[1m])) by (vital_name)",
           "legendFormat": "{{vital_name}}"
         }
       ]

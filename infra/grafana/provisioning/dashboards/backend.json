@@ -1,0 +1,205 @@
+{
+  "uid": "recess-backend",
+  "title": "Recess — Backend",
+  "tags": ["recess", "backend"],
+  "timezone": "browser",
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": { "uid": "prometheus" },
+        "query": "label_values(traefik_service_requests_total, service)",
+        "regex": "/(.+)-svc@docker/",
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request rate by service (req/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(traefik_service_requests_total{service=~\"${service}-svc@docker\"}[1m])) by (service)",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (4xx + 5xx)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20 }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(traefik_service_requests_total{service=~\"${service}-svc@docker\", code=~\"4..|5..\"}[1m])) by (service, code)",
+          "legendFormat": "{{service}} {{code}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latency p50 / p95 / p99",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(traefik_service_request_duration_seconds_bucket{service=~\"${service}-svc@docker\"}[5m])) by (le, service))",
+          "legendFormat": "p50 {{service}}"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{service=~\"${service}-svc@docker\"}[5m])) by (le, service))",
+          "legendFormat": "p95 {{service}}"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum(rate(traefik_service_request_duration_seconds_bucket{service=~\"${service}-svc@docker\"}[5m])) by (le, service))",
+          "legendFormat": "p99 {{service}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Active connections",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 16, "w": 6, "h": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 200 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(traefik_open_connections)",
+          "legendFormat": "Open connections"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Traffic by method",
+      "type": "piechart",
+      "gridPos": { "x": 6, "y": 16, "w": 6, "h": 5 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(increase(traefik_service_requests_total{service=~\"${service}-svc@docker\"}[1h])) by (method)",
+          "legendFormat": "{{method}}"
+        }
+      ],
+      "options": { "pieType": "donut", "legendDisplayMode": "table" }
+    },
+    {
+      "id": 6,
+      "title": "Response bytes/s by service",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 5 },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "sum(rate(traefik_service_responses_bytes_total{service=~\"${service}-svc@docker\"}[1m])) by (service)",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Go runtime — goroutines (game-server)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 21, "w": 8, "h": 6 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "go_goroutines{job=\"game-server\"}",
+          "legendFormat": "goroutines"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Go runtime — heap in use (game-server)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 21, "w": 8, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "go_memstats_heap_inuse_bytes{job=\"game-server\"}",
+          "legendFormat": "heap in use"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Go runtime — GC pause p99 (game-server)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 21, "w": 8, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum(rate(go_gc_duration_seconds_bucket{job=\"game-server\"}[5m])) by (le))",
+          "legendFormat": "p99 GC pause"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "DB query duration p95 (game-server → PostgreSQL)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 27, "w": 12, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(otel_db_client_operation_duration_seconds_bucket{service_name=\"game-server\"}[5m])) by (le, pgx_operation_type))",
+          "legendFormat": "p95 {{pgx_operation_type}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "gRPC server duration p95",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 27, "w": 12, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(otel_rpc_server_duration_milliseconds_bucket[5m])) by (le, service_name, rpc_method))",
+          "legendFormat": "{{service_name}} {{rpc_method}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38
+}

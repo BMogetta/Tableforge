@@ -83,6 +83,7 @@ services:
       - prometheus-data:/prometheus
     networks:
       - monitoring_network
+      - app_network
     restart: unless-stopped
 
   grafana:
@@ -115,7 +116,8 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
       - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.routers.grafana.middlewares=security-headers@file"
+      # Grafana is excluded from security-headers — it requires 'unsafe-eval'
+      # for table panels and transformations, and manages its own CSP.
       - "traefik.http.routers.grafana.service=grafana-svc"
       - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
 

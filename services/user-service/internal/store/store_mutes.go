@@ -36,7 +36,7 @@ func (s *pgStore) GetMutedPlayers(ctx context.Context, playerID uuid.UUID) ([]Pl
 	}
 	defer rows.Close()
 
-	var out []PlayerMute
+	out := make([]PlayerMute, 0)
 	for rows.Next() {
 		var m PlayerMute
 		if err := rows.Scan(&m.MuterID, &m.MutedID, &m.CreatedAt); err != nil {
