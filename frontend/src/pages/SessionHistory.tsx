@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
-import { SessionEvent } from '@/lib/api'
+import { SessionEventDTO } from '@/lib/api-generated'
 import { keys } from '@/lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
@@ -54,10 +54,10 @@ function formatRelative(iso: string, baseIso: string): string {
 
 // --- Components --------------------------------------------------------------
 
-function EventRow({ event, base, index }: { event: SessionEvent; base: string; index: number }) {
+function EventRow({ event, base, index }: { event: SessionEventDTO; base: string; index: number }) {
   const [open, setOpen] = useState(false)
-  const label = EVENT_LABELS[event.type] ?? event.type
-  const accent = EVENT_ACCENT[event.type] ?? 'var(--text-muted)'
+  const label = EVENT_LABELS[event.event_type] ?? event.event_type
+  const accent = EVENT_ACCENT[event.event_type] ?? 'var(--text-muted)'
   const hasPayload = event.payload && Object.keys(event.payload).length > 0
 
   return (
@@ -298,7 +298,7 @@ export function SessionHistory({ sessionId }: { sessionId: string }) {
                   <span className={styles.statValue}>
                     {Math.round(
                       (new Date(session.finished_at).getTime() -
-                        new Date(session.started_at).getTime()) /
+                        new Date(session.started_at!).getTime()) /
                         1000,
                     )}
                     s

@@ -99,8 +99,22 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   const move = useMutation({
     mutationFn: (payload: Record<string, unknown>) => sessions.move(sessionId, player.id, payload),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: keys.session(sessionId) })
+    },
     onSuccess: res => {
       setMoveError(null)
+
+      // Guard: if a WS event already pushed a newer move_count, skip this
+      // stale HTTP response to avoid overwriting fresher cache data.
+      const current = qc.getQueryData<SessionCache>(keys.session(sessionId))
+      if (
+        current?.session?.move_count !== undefined &&
+        res.session.move_count <= current.session.move_count
+      ) {
+        return
+      }
+
       qc.setQueryData(keys.session(sessionId), {
         session: res.session,
         state: res.state,
