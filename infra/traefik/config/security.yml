@@ -26,7 +26,7 @@ http:
         # -- Content Security Policy --
         contentSecurityPolicy: >-
           default-src 'self';
-          script-src 'self';
+          script-src 'self' 'unsafe-inline';
           style-src 'self' 'unsafe-inline';
           font-src 'self';
           img-src 'self' data: https://avatars.githubusercontent.com;

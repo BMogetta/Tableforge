@@ -4,9 +4,10 @@ import type { Rating, GameInfo, QueuePosition } from '@/lib/api'
 // --- Leaderboard -------------------------------------------------------------
 
 export const leaderboard = {
-  get: (gameId: string, limit = 20) => {
+  get: async (gameId: string, limit = 20) => {
     const params = new URLSearchParams({ limit: String(limit) })
-    return request<Rating[]>(`/ratings/${gameId}/leaderboard?${params}`)
+    const res = await request<{ entries: Rating[]; total: number }>(`/ratings/${gameId}/leaderboard?${params}`)
+    return res.entries
   },
 }
 

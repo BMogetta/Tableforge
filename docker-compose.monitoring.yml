@@ -41,7 +41,8 @@ services:
       - "traefik.http.routers.otel-collector.rule=PathPrefix(`/otlp`)"
       - "traefik.http.routers.otel-collector.entrypoints=web"
       - "traefik.http.routers.otel-collector.priority=200"
-      - "traefik.http.routers.otel-collector.middlewares=security-headers@file"
+      - "traefik.http.routers.otel-collector.middlewares=otel-strip,security-headers@file"
+      - "traefik.http.middlewares.otel-strip.stripprefix.prefixes=/otlp"
       - "traefik.http.routers.otel-collector.service=otel-collector-svc"
       - "traefik.http.services.otel-collector-svc.loadbalancer.server.port=4318"
 

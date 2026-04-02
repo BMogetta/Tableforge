@@ -46,7 +46,7 @@ registerInstrumentations({
   instrumentations: [
     new FetchInstrumentation({
       propagateTraceHeaderCorsUrls: [/.*/],
-      ignoreUrls: [/\/auth\//],
+      ignoreUrls: [/\/auth\//, /\/otlp\//],
     }),
   ],
   tracerProvider,

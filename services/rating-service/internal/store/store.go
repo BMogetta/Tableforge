@@ -81,7 +81,7 @@ func (s *pgStore) GetRating(ctx context.Context, playerID uuid.UUID, gameID stri
 	const q = `
 		SELECT player_id, game_id, mmr, display_rating, games_played,
 		       win_streak, loss_streak, updated_at
-		FROM ratings
+		FROM ratings.ratings
 		WHERE player_id = $1 AND game_id = $2`
 
 	pr := &PlayerRating{}
@@ -121,7 +121,7 @@ func (s *pgStore) GetRatings(ctx context.Context, playerIDs []uuid.UUID, gameID 
 	const q = `
 		SELECT player_id, game_id, mmr, display_rating, games_played,
 		       win_streak, loss_streak, updated_at
-		FROM ratings
+		FROM ratings.ratings
 		WHERE player_id = ANY($1) AND game_id = $2`
 
 	rows, err := s.db.Query(ctx, q, playerIDs, gameID)
@@ -147,7 +147,7 @@ func (s *pgStore) GetLeaderboard(ctx context.Context, gameID string, limit, offs
 	const q = `
 		SELECT player_id, game_id, mmr, display_rating, games_played,
 		       win_streak, loss_streak, updated_at
-		FROM ratings
+		FROM ratings.ratings
 		WHERE game_id = $1
 		  AND games_played >= $2
 		ORDER BY display_rating DESC
@@ -176,7 +176,7 @@ func (s *pgStore) GetLeaderboard(ctx context.Context, gameID string, limit, offs
 func (s *pgStore) CountLeaderboard(ctx context.Context, gameID string, minGames int) (int, error) {
 	var count int
 	err := s.db.QueryRow(ctx,
-		`SELECT COUNT(*) FROM ratings WHERE game_id = $1 AND games_played >= $2`,
+		`SELECT COUNT(*) FROM ratings.ratings WHERE game_id = $1 AND games_played >= $2`,
 		gameID, minGames,
 	).Scan(&count)
 	if err != nil {
@@ -193,8 +193,8 @@ func (s *pgStore) UpsertRatings(ctx context.Context, updates []*PlayerRating, hi
 	defer tx.Rollback(ctx)
 
 	const upsertQ = `
-		INSERT INTO ratings (player_id, game_id, mmr, display_rating, games_played,
-		                     win_streak, loss_streak, updated_at)
+		INSERT INTO ratings.ratings (player_id, game_id, mmr, display_rating, games_played,
+		                             win_streak, loss_streak, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
 		ON CONFLICT (player_id, game_id) DO UPDATE SET
 			mmr            = EXCLUDED.mmr,
@@ -214,7 +214,7 @@ func (s *pgStore) UpsertRatings(ctx context.Context, updates []*PlayerRating, hi
 	}
 
 	const histQ = `
-		INSERT INTO rating_history (player_id, game_id, result_id, mmr_before, mmr_after, delta)
+		INSERT INTO ratings.rating_history (player_id, game_id, result_id, mmr_before, mmr_after, delta)
 		VALUES ($1,$2,$3,$4,$5,$6)`
 
 	for _, h := range history {
