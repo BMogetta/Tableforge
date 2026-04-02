@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { type CardName } from './CardDisplay'
 import { CardDisplay } from './CardDisplay'
 import styles from './ChancellorModal.module.css'
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ChancellorModal({ choices, onConfirm }: Props) {
+  const trapRef = useFocusTrap<HTMLDivElement>()
   const [kept, setKept] = useState<CardName | null>(null)
   // returnOrder holds the 2 cards to return, in the order they'll go to the
   // bottom of the deck. Index 0 = first at bottom, index 1 = second at bottom.
@@ -43,7 +45,7 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='chancellor-title'>
+      <div ref={trapRef} className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='chancellor-title'>
         <h2 className={styles.title} id='chancellor-title'>Chancellor</h2>
         <p className={styles.description}>
           Choose 1 card to keep. The other 2 will be placed at the bottom of the deck — click them

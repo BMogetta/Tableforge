@@ -8,6 +8,7 @@ import { useToast } from '@/ui/Toast'
 import type { Notification } from '@/lib/api'
 import { NotificationItem } from './NotificationItem'
 import styles from './NotificationsPanel.module.css'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { testId } from '@/utils/testId'
 
 interface NotificationsPanelProps {
@@ -16,6 +17,7 @@ interface NotificationsPanelProps {
 }
 
 export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) {
+  const trapRef = useFocusTrap<HTMLDivElement>()
   const player = useAppStore(s => s.player)!
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -60,7 +62,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} {...testId('notifications-panel')} role='dialog' aria-modal='true' aria-labelledby='notifications-title'>
+      <div ref={trapRef} className={styles.panel} {...testId('notifications-panel')} role='dialog' aria-modal='true' aria-labelledby='notifications-title'>
         <div className={styles.header}>
           <h2 className={styles.title} id='notifications-title'>Notifications</h2>
           <button className={styles.closeBtn} onClick={onClose}>

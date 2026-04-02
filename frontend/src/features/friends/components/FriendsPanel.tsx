@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { friends, players, presence } from '@/features/friends/api'
 import { useAppStore } from '@/stores/store'
@@ -18,6 +19,7 @@ interface FriendsPanelProps {
 }
 
 export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
+  const trapRef = useFocusTrap<HTMLDivElement>()
   const player = useAppStore(s => s.player)!
   const toast = useToast()
   const qc = useQueryClient()
@@ -103,7 +105,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} {...testId('friends-panel')} role='dialog' aria-modal='true' aria-labelledby='friends-title'>
+      <div ref={trapRef} className={styles.panel} {...testId('friends-panel')} role='dialog' aria-modal='true' aria-labelledby='friends-title'>
         <div className={styles.header}>
           <h2 className={styles.title} id='friends-title'>Friends</h2>
           <button className={styles.closeBtn} onClick={onClose}>x</button>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import styles from './RoundSummary.module.css'
 
 interface PlayerResult {
@@ -29,6 +30,7 @@ export function RoundSummary({
   autoDismissMs = AUTO_DISMISS_MS,
   onDismiss,
 }: Props) {
+  const trapRef = useFocusTrap<HTMLDivElement>()
   const [remaining, setRemaining] = useState(autoDismissMs)
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function RoundSummary({
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='round-summary-title'>
+      <div ref={trapRef} className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='round-summary-title'>
         <div className={styles.header}>
           <span className={styles.roundLabel} id='round-summary-title'>Round {round} complete</span>
           {winner ? (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useQuery } from '@tanstack/react-query'
 import { dmConversations, type DMConversation as DMConversationType } from '@/features/friends/api'
 import { useAppStore } from '@/stores/store'
@@ -13,6 +14,7 @@ interface DMInboxPanelProps {
 }
 
 export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
+  const trapRef = useFocusTrap<HTMLDivElement>()
   const player = useAppStore(s => s.player)!
   const [selectedId, setSelectedId] = useState<string | null>(initialTarget ?? null)
   const [selectedUsername, setSelectedUsername] = useState('')
@@ -42,7 +44,7 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} {...testId('dm-inbox-panel')} role='dialog' aria-modal='true' aria-labelledby='dm-inbox-title'>
+      <div ref={trapRef} className={styles.panel} {...testId('dm-inbox-panel')} role='dialog' aria-modal='true' aria-labelledby='dm-inbox-title'>
         <div className={styles.header}>
           <h2 className={styles.title} id='dm-inbox-title'>Messages</h2>
           <button className={styles.closeBtn} onClick={onClose}>x</button>

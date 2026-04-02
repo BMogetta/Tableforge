@@ -1,3 +1,4 @@
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import styles from './SurrenderModal.module.css'
 import { testId } from '@/utils/testId'
 
@@ -8,9 +9,12 @@ interface Props {
 }
 
 export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
+  const trapRef = useFocusTrap<HTMLDivElement>()
+
   return (
     <div className={styles.overlay}>
       <div
+        ref={trapRef}
         className={styles.dialog}
         role='dialog'
         aria-modal='true'
