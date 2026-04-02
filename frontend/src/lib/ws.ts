@@ -1,4 +1,6 @@
 import { GameSessionDTO } from './api-generated'
+import { emitErrorLog } from './telemetry'
+import { getDeviceContextAttrs } from './device'
 // TODO review (if) this is not the actual game session received, is is possible for WS to have different types, it will have to be unified later
 
 export type WsEventType =
@@ -227,6 +229,13 @@ export class RoomSocket {
       if (!this.closed) {
         this.attemptCount++
         if (this.attemptCount >= RoomSocket.MAX_ATTEMPTS) {
+          emitErrorLog('WebSocket connection lost after max retries', {
+            'error.type': 'ws.disconnect',
+            'ws.url': this.url,
+            'ws.attempts': String(this.attemptCount),
+            'ws.socket_type': 'room',
+            ...getDeviceContextAttrs(),
+          })
           this.emit('ws_disconnected')
           return
         }
@@ -304,6 +313,13 @@ export class PlayerSocket {
       if (!this.closed) {
         this.attemptCount++
         if (this.attemptCount >= PlayerSocket.MAX_ATTEMPTS) {
+          emitErrorLog('WebSocket connection lost after max retries', {
+            'error.type': 'ws.disconnect',
+            'ws.url': this.url,
+            'ws.attempts': String(this.attemptCount),
+            'ws.socket_type': 'player',
+            ...getDeviceContextAttrs(),
+          })
           this.emit('ws_disconnected')
           return
         }

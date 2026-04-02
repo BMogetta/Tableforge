@@ -49,6 +49,10 @@ func (m *mockStore) UpsertOAuthIdentity(_ context.Context, params UpsertOAuthPar
 	return identity, nil
 }
 
+func (m *mockStore) CreateSession(_ context.Context, _ CreateSessionParams) error {
+	return nil
+}
+
 func (m *mockStore) GetPlayer(_ context.Context, id uuid.UUID) (Player, error) {
 	p, ok := m.players[id]
 	if !ok {

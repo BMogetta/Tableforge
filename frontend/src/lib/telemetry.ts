@@ -159,23 +159,27 @@ export function emitErrorLog(message: string, attrs: Record<string, string>) {
 }
 
 export function initErrorHandler() {
-  window.addEventListener('error', event => {
+  window.addEventListener('error', async event => {
+    const { getDeviceContextAttrs } = await import('./device')
     emitErrorLog(event.message, {
       'error.type': 'uncaught',
       'error.source': event.filename ?? '',
       'error.line': String(event.lineno ?? ''),
       'error.col': String(event.colno ?? ''),
       'error.stack': event.error?.stack ?? '',
+      ...getDeviceContextAttrs(),
     })
   })
 
-  window.addEventListener('unhandledrejection', event => {
+  window.addEventListener('unhandledrejection', async event => {
+    const { getDeviceContextAttrs } = await import('./device')
     const reason = event.reason
     const message =
       reason instanceof Error ? reason.message : String(reason ?? 'Unhandled promise rejection')
     emitErrorLog(message, {
       'error.type': 'unhandledrejection',
       'error.stack': reason instanceof Error ? (reason.stack ?? '') : '',
+      ...getDeviceContextAttrs(),
     })
   })
 }

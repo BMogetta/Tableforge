@@ -9,6 +9,7 @@ import { FriendsPanel, FriendsButton } from '@/features/friends/components/Frien
 import { DMInboxPanel } from '@/features/friends/components/DMInboxPanel'
 import { ToastProvider } from '../ui/Toast'
 import { emitErrorLog } from '@/lib/telemetry'
+import { getDeviceContextAttrs } from '@/lib/device'
 
 const SETTINGS_CACHE_KEY = 'tf:settings'
 
@@ -42,6 +43,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
       'error.type': 'react.boundary',
       'error.stack': error.stack ?? '',
       'error.component': info.componentStack ?? '',
+      ...getDeviceContextAttrs(),
     })
   }
 

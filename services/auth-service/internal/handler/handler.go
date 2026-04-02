@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	authjwt "github.com/recess/auth-service/internal/jwt"
@@ -22,6 +23,16 @@ type Store interface {
 	IsEmailAllowed(ctx context.Context, email string) (bool, error)
 	UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthParams) (OAuthIdentity, error)
 	GetPlayer(ctx context.Context, id uuid.UUID) (Player, error)
+	CreateSession(ctx context.Context, params CreateSessionParams) error
+}
+
+// CreateSessionParams holds data for a new player_sessions row.
+type CreateSessionParams struct {
+	PlayerID       uuid.UUID
+	UserAgent      string
+	AcceptLanguage string
+	IPAddress      string
+	ExpiresAt      time.Time
 }
 
 // UpsertOAuthParams mirrors store.UpsertOAuthParams without importing the monolith store.
@@ -168,6 +179,17 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create session row — best-effort, don't block login on failure.
+	if err := h.store.CreateSession(ctx, CreateSessionParams{
+		PlayerID:       player.ID,
+		UserAgent:      r.UserAgent(),
+		AcceptLanguage: r.Header.Get("Accept-Language"),
+		IPAddress:      clientIP(r),
+		ExpiresAt:      time.Now().Add(middleware.JWTTTL),
+	}); err != nil {
+		slog.Error("auth: create session", "player_id", player.ID, "error", err)
+	}
+
 	authjwt.SetSessionCookie(w, token, h.secure)
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
@@ -205,6 +227,22 @@ func randomState() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+// clientIP extracts the client IP from the request, preferring X-Forwarded-For
+// (set by Traefik) and falling back to RemoteAddr.
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if i := strings.Index(xff, ","); i != -1 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	host := r.RemoteAddr
+	if i := strings.LastIndex(host, ":"); i != -1 {
+		return host[:i]
+	}
+	return host
 }
 
 // sanitizeUsername lowercases and strips characters that aren't alphanumeric

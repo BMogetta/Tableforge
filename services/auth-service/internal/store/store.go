@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -110,6 +111,29 @@ func (s *Store) UpsertOAuthIdentity(ctx context.Context, params handler.UpsertOA
 	}
 
 	return handler.OAuthIdentity{PlayerID: playerID}, nil
+}
+
+// CreateSession inserts a new row into player_sessions with device info
+// captured from the HTTP request.
+func (s *Store) CreateSession(ctx context.Context, params handler.CreateSessionParams) error {
+	deviceInfo := map[string]string{
+		"user_agent":      params.UserAgent,
+		"accept_language": params.AcceptLanguage,
+		"ip_address":      params.IPAddress,
+	}
+	info, err := json.Marshal(deviceInfo)
+	if err != nil {
+		return fmt.Errorf("marshal device_info: %w", err)
+	}
+	_, err = s.pool.Exec(ctx,
+		`INSERT INTO player_sessions (player_id, device_info, expires_at)
+		 VALUES ($1, $2, $3)`,
+		params.PlayerID, info, params.ExpiresAt,
+	)
+	if err != nil {
+		return fmt.Errorf("insert session: %w", err)
+	}
+	return nil
 }
 
 // GetPlayer fetches a player by ID.

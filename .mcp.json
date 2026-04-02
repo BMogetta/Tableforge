@@ -5,8 +5,16 @@
       "args": ["mcp-grafana"],
       "env": {
         "GRAFANA_URL": "http://localhost/grafana",
-        "GRAFANA_AUTH": "${GRAFANA_MCP_TOKEN}"
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "glsa_Sg1IIdSCHFRG5uoVgYYlPaGx403UzoMd_48f42053"
       }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://recess:recess@localhost:5432/recess"
+      ]
     }
   }
 }
