@@ -179,45 +179,36 @@ export function Settings({ onClose }: Props) {
         </Section>
 
         {/* ── Audio ── */}
-        <Section
-          title='Audio'
-          note='Audio system coming soon — settings are saved but not yet applied.'
-        >
+        <Section title='Audio'>
           <ToggleRow
             label='Mute All'
             checked={settings.mute_all}
             onChange={v => change('mute_all', v)}
-            disabled
           />
           <VolumeRow
             label='Master Volume'
             value={settings.volume_master}
             onChange={v => change('volume_master', v)}
-            disabled
           />
           <VolumeRow
             label='Sound Effects'
             value={settings.volume_sfx}
             onChange={v => change('volume_sfx', v)}
-            disabled
           />
           <VolumeRow
             label='UI Sounds'
             value={settings.volume_ui}
             onChange={v => change('volume_ui', v)}
-            disabled
           />
           <VolumeRow
             label='Notifications'
             value={settings.volume_notifications}
             onChange={v => change('volume_notifications', v)}
-            disabled
           />
           <VolumeRow
             label='Music'
             value={settings.volume_music}
             onChange={v => change('volume_music', v)}
-            disabled
           />
         </Section>
 

@@ -169,13 +169,13 @@ describe('ToggleRow', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'true')
   })
 
-  it('disabled toggle does not update store', () => {
+  it('mute all toggle updates store', () => {
     renderSettings()
     const toggle = screen.getByRole('switch', { name: 'Mute All' })
-    expect(toggle).toBeDisabled()
+    expect(toggle).not.toBeDisabled()
+    expect(toggle).toHaveAttribute('aria-checked', String(DEFAULT_SETTINGS.mute_all))
     fireEvent.click(toggle)
-    // Store should remain at default.
-    expect(useAppStore.getState().settings.mute_all).toBe(DEFAULT_SETTINGS.mute_all)
+    expect(useAppStore.getState().settings.mute_all).toBe(!DEFAULT_SETTINGS.mute_all)
   })
 })
 
@@ -210,10 +210,12 @@ describe('VolumeRow', () => {
     expect(slider).toBeInTheDocument()
   })
 
-  it('slider is disabled in stub state', () => {
+  it('volume slider is interactive', () => {
     renderSettings()
     const slider = screen.getByRole('slider', { name: 'Master Volume volume' })
-    expect(slider).toBeDisabled()
+    expect(slider).not.toBeDisabled()
+    fireEvent.change(slider, { target: { value: '0.5' } })
+    expect(useAppStore.getState().settings.volume_master).toBe(0.5)
   })
 })
 
