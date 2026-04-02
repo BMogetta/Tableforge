@@ -7,14 +7,17 @@ import { wsRoomUrl, type RoomView, type LobbySetting, type BotProfile } from '@/
 import { ok, error, catchToAppError, type AppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
 import { RoomSettings } from './components/RoomSettings'
-import { ChatSidebar } from './components/ChatSidebar'
+import { ChatPopover } from './components/ChatPopover'
 import { PlayerList } from './components/PlayerList'
 import { BotSection } from './components/BotSection'
 import { InviteCode } from './components/InviteCode'
 import { RoomActions } from './components/RoomActions'
 import { ConnectionBanner, type SocketStatus } from './components/ConnectionBanner'
+import { RoomToolbar, SettingsIcon, BotIcon, InviteIcon, ChatIcon } from './components/RoomToolbar'
 import styles from './Room.module.css'
 import { testId } from '@/utils/testId'
+
+type PopoverId = 'settings' | 'bot' | 'invite' | 'chat'
 
 export function Room({ roomId }: { roomId: string }) {
   const player = useAppStore(s => s.player)!
@@ -35,7 +38,7 @@ export function Room({ roomId }: { roomId: string }) {
   const [ownerId, setOwnerId] = useState<string | null>(null)
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [settingDescriptors, setSettingDescriptors] = useState<LobbySetting[]>([])
-  const [chatOpen, setChatOpen] = useState(true)
+  const [activePopover, setActivePopover] = useState<PopoverId | null>(null)
 
   // --- Bot state --------------------------------------------------------------
   const [botProfiles, setBotProfiles] = useState<BotProfile[]>([])
@@ -59,13 +62,8 @@ export function Room({ roomId }: { roomId: string }) {
       return next
     })
   }
-  function handleMuteAll() {
-    setMuteAll(true)
-  }
-  function handleUnmuteAll() {
-    setMuteAll(false)
-    setMutedIds(new Set())
-  }
+  function handleMuteAll() { setMuteAll(true) }
+  function handleUnmuteAll() { setMuteAll(false); setMutedIds(new Set()) }
 
   // --- Stable refs for socket handler ----------------------------------------
   const navigateRef = useRef(navigate)
@@ -99,39 +97,29 @@ export function Room({ roomId }: { roomId: string }) {
   }, [roomId, player.id])
 
   useEffect(() => {
-    if (!view) {
-      return
-    }
+    if (!view) return
     setOwnerId(view.room.owner_id)
     setIsSpectator(!view.players.some(p => p.id === player.id))
   }, [view, player.id, setIsSpectator])
 
-  // Load game setting descriptors
   useEffect(() => {
-    if (!view) {
-      return
-    }
+    if (!view) return
     gameRegistry
       .list()
       .then(games => {
         const game = games.find(g => g.id === view.room.game_id)
-        if (game) {
-          setSettingDescriptors(game.settings)
-        }
+        if (game) setSettingDescriptors(game.settings)
       })
       .catch(() => {})
   }, [view?.room.game_id])
 
-  // Load bot profiles
   useEffect(() => {
     bots
       .profiles()
       .then(profiles => {
         setBotProfiles(profiles)
         setGameHasBotAdapter(profiles.length > 0)
-        if (profiles.length > 0) {
-          setSelectedProfile(profiles[0].name)
-        }
+        if (profiles.length > 0) setSelectedProfile(profiles[0].name)
       })
       .catch(() => {})
   }, [])
@@ -141,24 +129,14 @@ export function Room({ roomId }: { roomId: string }) {
   useEffect(() => { startingRef.current = starting }, [starting])
 
   useEffect(() => {
-    if (!socket) {
-      return
-    }
+    if (!socket) return
     refreshRef.current()
 
     const off = socket.on(event => {
-      if (event.type === 'ws_connected') {
-        setSocketStatus('connected')
-      }
-      if (event.type === 'ws_reconnecting') {
-        setSocketStatus('reconnecting')
-      }
-      if (event.type === 'ws_disconnected') {
-        setSocketStatus('disconnected')
-      }
-      if (event.type === 'player_joined' || event.type === 'player_left') {
-        refreshRef.current()
-      }
+      if (event.type === 'ws_connected') setSocketStatus('connected')
+      if (event.type === 'ws_reconnecting') setSocketStatus('reconnecting')
+      if (event.type === 'ws_disconnected') setSocketStatus('disconnected')
+      if (event.type === 'player_joined' || event.type === 'player_left') refreshRef.current()
       if (event.type === 'game_started') {
         if (!startingRef.current) {
           navigateRef.current({
@@ -171,9 +149,7 @@ export function Room({ roomId }: { roomId: string }) {
         setOwnerId(event.payload.owner_id)
         refreshRef.current()
       }
-      if (event.type === 'room_closed') {
-        navigateRef.current({ to: '/' })
-      }
+      if (event.type === 'room_closed') navigateRef.current({ to: '/' })
       if (event.type === 'setting_updated') {
         setSettings(prev => ({ ...prev, [event.payload.key]: event.payload.value }))
       }
@@ -251,6 +227,10 @@ export function Room({ roomId }: { roomId: string }) {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
+  function togglePopover(id: PopoverId) {
+    setActivePopover(prev => (prev === id ? null : id))
+  }
+
   // --- Render ----------------------------------------------------------------
 
   if (!view) {
@@ -273,50 +253,23 @@ export function Room({ roomId }: { roomId: string }) {
   const canAddBot = isOwner && hasOpenSlot && gameHasBotAdapter && botProfiles.length > 0
 
   const visibleDescriptors = settingDescriptors.filter(s => {
-    if (s.key === 'first_mover_seat') {
-      return settings['first_mover_policy'] === 'fixed'
-    }
+    if (s.key === 'first_mover_seat') return settings['first_mover_policy'] === 'fixed'
     return true
   })
 
-  return (
-    <div
-      className={`${styles.root} page-enter`}
-      {...(import.meta.env.VITE_TEST_MODE === 'true' && { 'data-socket-status': socketStatus })}
-    >
-      <ConnectionBanner status={socketStatus} />
+  const hasSettings = visibleDescriptors.length > 0
 
-      <div className={styles.layout}>
-        <div className={styles.panel}>
-          <header className={styles.header}>
-            <div>
-              <p className={styles.gameLabel}>{room.game_id}</p>
-              <h1 {...testId('room-code')} className={styles.code}>{room.code}</h1>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className='badge badge-amber'>Waiting</span>
-              {isSpectator && <span className='badge badge-muted'>Spectating</span>}
-            </div>
-          </header>
+  const toolbarItems = [
+    { id: 'settings' as const, label: 'Settings', icon: SettingsIcon, visible: hasSettings },
+    { id: 'bot' as const, label: 'Add Bot', icon: BotIcon, visible: canAddBot },
+    { id: 'invite' as const, label: 'Invite Code', icon: InviteIcon, visible: isParticipant },
+    { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true },
+  ]
 
-          <hr className='divider' />
-
-          <PlayerList
-            players={view.players}
-            maxPlayers={room.max_players}
-            ownerId={ownerId}
-            currentPlayerId={player.id}
-            isOwner={isOwner}
-            mutedIds={mutedIds}
-            spectatorCount={spectatorCount}
-            removingBotId={removingBotId}
-            onMute={handleMute}
-            onUnmute={handleUnmute}
-            onRemoveBot={handleRemoveBot}
-          />
-
-          <hr className='divider' />
-
+  const popoverContent = (() => {
+    switch (activePopover) {
+      case 'settings':
+        return (
           <RoomSettings
             roomId={roomId}
             playerId={player.id}
@@ -325,53 +278,90 @@ export function Room({ roomId }: { roomId: string }) {
             values={settings}
             onSettingChange={handleSettingChange}
           />
-
-          {canAddBot && (
-            <>
-              <hr className='divider' />
-              <BotSection
-                profiles={botProfiles}
-                selectedProfile={selectedProfile}
-                onSelectProfile={setSelectedProfile}
-                onAdd={handleAddBot}
-                adding={addingBot}
-                error={botError}
-              />
-            </>
-          )}
-
-          <hr className='divider' />
-
-          {isParticipant && (
-            <>
-              <InviteCode code={room.code} isPrivate={isPrivate} />
-              <hr className='divider' />
-            </>
-          )}
-
-          <RoomActions
-            isSpectator={isSpectator}
-            isOwner={isOwner}
-            canStart={canStart}
-            starting={starting}
-            startError={startError}
-            playersNeeded={2 - view.players.length}
-            onStart={handleStart}
-            onLeave={handleLeave}
+        )
+      case 'bot':
+        return (
+          <BotSection
+            profiles={botProfiles}
+            selectedProfile={selectedProfile}
+            onSelectProfile={setSelectedProfile}
+            onAdd={handleAddBot}
+            adding={addingBot}
+            error={botError}
           />
-        </div>
+        )
+      case 'invite':
+        return <InviteCode code={room.code} isPrivate={isPrivate} />
+      case 'chat':
+        return (
+          <ChatPopover
+            roomId={roomId}
+            mutedIds={mutedIds}
+            muteAll={muteAll}
+            onMute={handleMute}
+            onUnmute={handleUnmute}
+            onMuteAll={handleMuteAll}
+            onUnmuteAll={handleUnmuteAll}
+            roomPlayers={view.players}
+          />
+        )
+      default:
+        return null
+    }
+  })()
 
-        <ChatSidebar
-          roomId={roomId}
-          open={chatOpen}
-          onToggle={() => setChatOpen(v => !v)}
+  return (
+    <div
+      className={`${styles.root} page-enter`}
+      {...(import.meta.env.VITE_TEST_MODE === 'true' && { 'data-socket-status': socketStatus })}
+    >
+      <ConnectionBanner status={socketStatus} />
+
+      <div className={styles.panel}>
+        <header className={styles.header}>
+          <div>
+            <p className={styles.gameLabel}>{room.game_id}</p>
+            <h1 {...testId('room-code')} className={styles.code}>{room.code}</h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className='badge badge-amber'>Waiting</span>
+            {isSpectator && <span className='badge badge-muted'>Spectating</span>}
+          </div>
+        </header>
+
+        <RoomToolbar
+          items={toolbarItems}
+          activePopover={activePopover}
+          onToggle={togglePopover}
+        >
+          {popoverContent}
+        </RoomToolbar>
+
+        <PlayerList
+          players={view.players}
+          maxPlayers={room.max_players}
+          ownerId={ownerId}
+          currentPlayerId={player.id}
+          isOwner={isOwner}
           mutedIds={mutedIds}
-          muteAll={muteAll}
+          spectatorCount={spectatorCount}
+          removingBotId={removingBotId}
           onMute={handleMute}
           onUnmute={handleUnmute}
-          onMuteAll={handleMuteAll}
-          onUnmuteAll={handleUnmuteAll}
-          roomPlayers={view.players}
+          onRemoveBot={handleRemoveBot}
+        />
+
+        <hr className='divider' />
+
+        <RoomActions
+          isSpectator={isSpectator}
+          isOwner={isOwner}
+          canStart={canStart}
+          starting={starting}
+          startError={startError}
+          playersNeeded={2 - view.players.length}
+          onStart={handleStart}
+          onLeave={handleLeave}
         />
       </div>
     </div>
