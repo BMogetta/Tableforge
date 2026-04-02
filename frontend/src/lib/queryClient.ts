@@ -35,4 +35,7 @@ export const keys = {
   friends: (playerId: string) => ['friends', playerId] as const,
   friendsPending: (playerId: string) => ['friends', playerId, 'pending'] as const,
   mutes: (playerId: string) => ['mutes', playerId] as const,
+  playerStats: (id: string) => ['players', id, 'stats'] as const,
+  playerMatches: (id: string, offset?: number) => ['players', id, 'matches', offset ?? 0] as const,
+  playerProfile: (id: string) => ['players', id, 'profile'] as const,
 }

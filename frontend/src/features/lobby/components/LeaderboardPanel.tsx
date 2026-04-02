@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { leaderboard } from '@/features/lobby/api'
 import type { Rating } from '@/lib/api'
 import { keys } from '@/lib/queryClient'
@@ -40,10 +41,10 @@ export function LeaderboardPanel({ gameId }: Props) {
               <tr key={e.player_id} data-testid='leaderboard-row'>
                 <td className={styles.rank}>{i + 1}</td>
                 <td>
-                  <div className={styles.player}>
+                  <Link to='/profile/$playerId' params={{ playerId: e.player_id }} className={styles.player}>
                     {e.avatar_url && <img src={e.avatar_url} alt='' className={styles.avatar} />}
                     <span>{e.username}</span>
-                  </div>
+                  </Link>
                 </td>
                 <td className={styles.rating}>{Math.round(e.display_rating)}</td>
                 <td className={styles.win}>{e.win_streak}</td>

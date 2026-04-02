@@ -78,6 +78,7 @@ func NewRouter(
 
 		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
 		r.Get("/players/{playerID}/stats", handleGetPlayerStats(st))
+		r.Get("/players/{playerID}/matches", handleListPlayerMatches(st))
 		r.Post("/rooms", handleCreateRoom(lobbyService))
 		r.Get("/rooms", handleListRooms(lobbyService))
 		r.Get("/rooms/{roomID}", handleGetRoom(lobbyService))

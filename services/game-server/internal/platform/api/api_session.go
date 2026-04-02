@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -49,6 +50,47 @@ func handleGetPlayerStats(st store.Store) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, stats)
+	}
+}
+
+// GET /api/v1/players/{playerID}/matches?limit=20&offset=0
+func handleListPlayerMatches(st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player_id")
+			return
+		}
+
+		limit := 20
+		offset := 0
+		if v := r.URL.Query().Get("limit"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 100 {
+				limit = n
+			}
+		}
+		if v := r.URL.Query().Get("offset"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				offset = n
+			}
+		}
+
+		matches, err := st.ListPlayerMatches(r.Context(), playerID, limit, offset)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list matches")
+			return
+		}
+
+		total, err := st.CountPlayerMatches(r.Context(), playerID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to count matches")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"matches": matches,
+			"total":   total,
+		})
 	}
 }
 

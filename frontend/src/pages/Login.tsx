@@ -58,7 +58,7 @@ export function Login() {
         <header className={styles.header}>
           <div className={styles.emblem}>&#9823;</div>
           <h1 className={styles.title}>RECESS</h1>
-          <p className={styles.subtitle}>Multiplayer board games, forged in steel</p>
+          <p className={styles.subtitle}>Multiplayer board games</p>
         </header>
 
         <hr className='divider' />

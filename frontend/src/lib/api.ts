@@ -428,9 +428,34 @@ export const auth = {
 
 // --- Players -----------------------------------------------------------------
 
+export interface MatchHistoryEntry {
+  id: string
+  session_id: string
+  game_id: string
+  outcome: 'win' | 'loss' | 'draw' | 'forfeit'
+  ended_by: string
+  duration_secs?: number
+  created_at: string
+}
+
+export interface MatchHistoryResponse {
+  matches: MatchHistoryEntry[]
+  total: number
+}
+
+export interface PlayerProfile {
+  player_id: string
+  bio?: string
+  country?: string
+  updated_at: string
+}
+
 export const players = {
   stats: (id: string) => request<PlayerStats>(`/players/${id}/stats`),
   sessions: (id: string) => request<GameSessionDTO[]>(`/players/${id}/sessions`),
+  matches: (id: string, limit = 20, offset = 0) =>
+    request<MatchHistoryResponse>(`/players/${id}/matches?limit=${limit}&offset=${offset}`),
+  profile: (id: string) => request<PlayerProfile>(`/players/${id}/profile`),
 }
 
 // --- Player settings ---------------------------------------------------------

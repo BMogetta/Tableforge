@@ -95,12 +95,12 @@ export function LobbyHeader({ onLogout }: Props) {
 
           <div className={styles.divider} />
 
-          <div className={styles.playerInfo}>
+          <Link to='/profile/$playerId' params={{ playerId: player.id }} className={styles.playerInfo}>
             {player.avatar_url && <img src={player.avatar_url} alt='' className={styles.avatar} />}
             <span data-testid='player-username' className={styles.username}>
               {player.username}
             </span>
-          </div>
+          </Link>
 
           {(player.role === 'manager' || player.role === 'owner') && (
             <Link to='/admin' className='btn btn-ghost' style={{ padding: '6px 12px' }}>

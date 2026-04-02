@@ -1,0 +1,110 @@
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { useAppStore } from '@/stores/store'
+import { players } from '@/lib/api'
+import { keys } from '@/lib/queryClient'
+import { ProfileHeader } from './components/ProfileHeader'
+import { MatchHistory } from './components/MatchHistory'
+import styles from './Profile.module.css'
+
+const PAGE_SIZE = 20
+
+export function Profile({ playerId }: { playerId: string }) {
+  const navigate = useNavigate()
+  const currentPlayer = useAppStore(s => s.player)
+  const [page, setPage] = useState(0)
+
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: keys.playerStats(playerId),
+    queryFn: () => players.stats(playerId),
+    staleTime: 30_000,
+  })
+
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: keys.playerProfile(playerId),
+    queryFn: () => players.profile(playerId),
+    staleTime: 60_000,
+  })
+
+  const { data: matchData, isLoading: matchesLoading } = useQuery({
+    queryKey: keys.playerMatches(playerId, page),
+    queryFn: () => players.matches(playerId, PAGE_SIZE, page * PAGE_SIZE),
+    staleTime: 30_000,
+  })
+
+  const isOwnProfile = currentPlayer?.id === playerId
+  const isLoading = statsLoading || profileLoading
+
+  return (
+    <div className={`${styles.root} page-enter`}>
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <button
+            className='btn btn-ghost'
+            onClick={() => navigate({ to: '/' })}
+            style={{ fontSize: 11 }}
+          >
+            ← Lobby
+          </button>
+
+          <ProfileHeader
+            playerId={playerId}
+            username={currentPlayer && isOwnProfile ? currentPlayer.username : undefined}
+            avatarUrl={currentPlayer && isOwnProfile ? currentPlayer.avatar_url : undefined}
+            bio={profile?.bio}
+            country={profile?.country}
+            isLoading={isLoading}
+          />
+        </header>
+
+        {stats && (
+          <div className={styles.statsBar}>
+            <div className={styles.stat}>
+              <span className={styles.statLabel}>Games</span>
+              <span className={styles.statValue}>{stats.total_games}</span>
+            </div>
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statLabel}>Wins</span>
+              <span className={styles.statValue}>{stats.wins}</span>
+            </div>
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statLabel}>Losses</span>
+              <span className={styles.statValue}>{stats.losses}</span>
+            </div>
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statLabel}>Draws</span>
+              <span className={styles.statValue}>{stats.draws}</span>
+            </div>
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statLabel}>Win Rate</span>
+              <span className={styles.statValue}>
+                {stats.total_games > 0
+                  ? `${Math.round((stats.wins / stats.total_games) * 100)}%`
+                  : '—'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className={styles.sectionTitle}>Match History</div>
+
+        <MatchHistory
+          matches={matchData?.matches ?? []}
+          total={matchData?.total ?? 0}
+          page={page}
+          pageSize={PAGE_SIZE}
+          isLoading={matchesLoading}
+          onPageChange={setPage}
+          onViewReplay={sessionId =>
+            navigate({ to: '/sessions/$sessionId/history', params: { sessionId } })
+          }
+        />
+      </div>
+    </div>
+  )
+}

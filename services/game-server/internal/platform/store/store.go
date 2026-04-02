@@ -139,6 +139,17 @@ type GameResult struct {
 	CreatedAt    time.Time  `json:"created_at"`
 }
 
+// MatchHistoryEntry is a GameResult enriched with the queried player's outcome.
+type MatchHistoryEntry struct {
+	ID           uuid.UUID `json:"id"`
+	SessionID    uuid.UUID `json:"session_id"`
+	GameID       string    `json:"game_id"`
+	Outcome      Outcome   `json:"outcome"`
+	EndedBy      EndedBy   `json:"ended_by"`
+	DurationSecs *int      `json:"duration_secs,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 type Outcome string
 
 const (
@@ -235,6 +246,8 @@ type Store interface {
 	CreateGameResult(ctx context.Context, params CreateGameResultParams) (GameResult, error)
 	GetPlayerStats(ctx context.Context, playerID uuid.UUID) (PlayerStats, error)
 	ListPlayerHistory(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]GameResult, error)
+	ListPlayerMatches(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]MatchHistoryEntry, error)
+	CountPlayerMatches(ctx context.Context, playerID uuid.UUID) (int, error)
 
 	// Rematch
 	UpsertRematchVote(ctx context.Context, sessionID, playerID uuid.UUID) error

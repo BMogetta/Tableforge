@@ -16,6 +16,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TestErrorRouteImport } from './routes/test.error'
 import { Route as RoomsRoomIdRouteImport } from './routes/rooms.$roomId'
+import { Route as ProfilePlayerIdRouteImport } from './routes/profile.$playerId'
 import { Route as GameSessionIdRouteImport } from './routes/game.$sessionId'
 import { Route as SessionsSessionIdHistoryRouteImport } from './routes/sessions.$sessionId.history'
 
@@ -54,6 +55,11 @@ const RoomsRoomIdRoute = RoomsRoomIdRouteImport.update({
   path: '/rooms/$roomId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfilePlayerIdRoute = ProfilePlayerIdRouteImport.update({
+  id: '/profile/$playerId',
+  path: '/profile/$playerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GameSessionIdRoute = GameSessionIdRouteImport.update({
   id: '/game/$sessionId',
   path: '/game/$sessionId',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/rate-limited': typeof RateLimitedRoute
   '/game/$sessionId': typeof GameSessionIdRoute
+  '/profile/$playerId': typeof ProfilePlayerIdRoute
   '/rooms/$roomId': typeof RoomsRoomIdRoute
   '/test/error': typeof TestErrorRoute
   '/sessions/$sessionId/history': typeof SessionsSessionIdHistoryRoute
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/rate-limited': typeof RateLimitedRoute
   '/game/$sessionId': typeof GameSessionIdRoute
+  '/profile/$playerId': typeof ProfilePlayerIdRoute
   '/rooms/$roomId': typeof RoomsRoomIdRoute
   '/test/error': typeof TestErrorRoute
   '/sessions/$sessionId/history': typeof SessionsSessionIdHistoryRoute
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/rate-limited': typeof RateLimitedRoute
   '/game/$sessionId': typeof GameSessionIdRoute
+  '/profile/$playerId': typeof ProfilePlayerIdRoute
   '/rooms/$roomId': typeof RoomsRoomIdRoute
   '/test/error': typeof TestErrorRoute
   '/sessions/$sessionId/history': typeof SessionsSessionIdHistoryRoute
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/rate-limited'
     | '/game/$sessionId'
+    | '/profile/$playerId'
     | '/rooms/$roomId'
     | '/test/error'
     | '/sessions/$sessionId/history'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/rate-limited'
     | '/game/$sessionId'
+    | '/profile/$playerId'
     | '/rooms/$roomId'
     | '/test/error'
     | '/sessions/$sessionId/history'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/rate-limited'
     | '/game/$sessionId'
+    | '/profile/$playerId'
     | '/rooms/$roomId'
     | '/test/error'
     | '/sessions/$sessionId/history'
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RateLimitedRoute: typeof RateLimitedRoute
   GameSessionIdRoute: typeof GameSessionIdRoute
+  ProfilePlayerIdRoute: typeof ProfilePlayerIdRoute
   RoomsRoomIdRoute: typeof RoomsRoomIdRoute
   TestErrorRoute: typeof TestErrorRoute
   SessionsSessionIdHistoryRoute: typeof SessionsSessionIdHistoryRoute
@@ -199,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomsRoomIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/$playerId': {
+      id: '/profile/$playerId'
+      path: '/profile/$playerId'
+      fullPath: '/profile/$playerId'
+      preLoaderRoute: typeof ProfilePlayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/game/$sessionId': {
       id: '/game/$sessionId'
       path: '/game/$sessionId'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RateLimitedRoute: RateLimitedRoute,
   GameSessionIdRoute: GameSessionIdRoute,
+  ProfilePlayerIdRoute: ProfilePlayerIdRoute,
   RoomsRoomIdRoute: RoomsRoomIdRoute,
   TestErrorRoute: TestErrorRoute,
   SessionsSessionIdHistoryRoute: SessionsSessionIdHistoryRoute,

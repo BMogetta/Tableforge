@@ -580,6 +580,16 @@ func (f *FakeStore) checkAllVotedByID(sessionID uuid.UUID, votes []uuid.UUID) bo
 	return len(votes) >= len(f.RoomPlayers[gs.RoomID])
 }
 
+// --- Match history -----------------------------------------------------------
+
+func (f *FakeStore) ListPlayerMatches(_ context.Context, _ uuid.UUID, _, _ int) ([]store.MatchHistoryEntry, error) {
+	return nil, nil
+}
+
+func (f *FakeStore) CountPlayerMatches(_ context.Context, _ uuid.UUID) (int, error) {
+	return 0, nil
+}
+
 // --- Player settings ---------------------------------------------------------
 
 // --- Exec (used by test migrations) ------------------------------------------
