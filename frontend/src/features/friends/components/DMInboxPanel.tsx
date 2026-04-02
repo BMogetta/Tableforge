@@ -41,9 +41,9 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} data-testid='dm-inbox-panel'>
+      <div className={styles.panel} data-testid='dm-inbox-panel' role='dialog' aria-modal='true' aria-labelledby='dm-inbox-title'>
         <div className={styles.header}>
-          <h2 className={styles.title}>Messages</h2>
+          <h2 className={styles.title} id='dm-inbox-title'>Messages</h2>
           <button className={styles.closeBtn} onClick={onClose}>x</button>
         </div>
 

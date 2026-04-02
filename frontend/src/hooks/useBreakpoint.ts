@@ -1,26 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
-// Breakpoints mirror industry-standard Tailwind defaults.
+// Breakpoints — desktop-first (max-width).
 // sm: 640, md: 768, lg: 1024, xl: 1280
 export type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
-const BREAKPOINTS: { name: Breakpoint; minWidth: number }[] = [
-  { name: 'xl', minWidth: 1280 },
-  { name: 'lg', minWidth: 1024 },
-  { name: 'md', minWidth: 768 },
-  { name: 'sm', minWidth: 640 },
-  { name: 'xs', minWidth: 0 },
+// Ordered largest-first so the first match wins.
+const BREAKPOINTS: { name: Breakpoint; query: string }[] = [
+  { name: 'xl', query: '(min-width: 1280px)' },
+  { name: 'lg', query: '(min-width: 1024px)' },
+  { name: 'md', query: '(min-width: 768px)' },
+  { name: 'sm', query: '(min-width: 640px)' },
 ]
 
+const ORDER: Record<Breakpoint, number> = { xs: 0, sm: 1, md: 2, lg: 3, xl: 4 }
+
 function getCurrentBreakpoint(): Breakpoint {
-  if (typeof window === 'undefined') return 'xs'
+  if (typeof window === 'undefined') return 'xl'
   for (const bp of BREAKPOINTS) {
-    if (window.innerWidth >= bp.minWidth) return bp.name
+    if (window.matchMedia(bp.query).matches) return bp.name
   }
   return 'xs'
 }
-
-const ORDER: Record<Breakpoint, number> = { xs: 0, sm: 1, md: 2, lg: 3, xl: 4 }
 
 export interface BreakpointState {
   breakpoint: Breakpoint
@@ -38,23 +38,29 @@ export function useBreakpoint(): BreakpointState {
   const [breakpoint, setBreakpoint] = useState<Breakpoint>(getCurrentBreakpoint)
 
   useEffect(() => {
-    const queries = BREAKPOINTS.slice(0, -1).map(({ minWidth }) => {
-      const mq = window.matchMedia(`(min-width: ${minWidth}px)`)
-      const handler = () => setBreakpoint(getCurrentBreakpoint())
+    const handler = () => setBreakpoint(getCurrentBreakpoint())
+
+    const mediaQueries = BREAKPOINTS.map(({ query }) => {
+      const mq = window.matchMedia(query)
       mq.addEventListener('change', handler)
-      return { mq, handler }
+      return mq
     })
 
     return () => {
-      queries.forEach(({ mq, handler }) => mq.removeEventListener('change', handler))
+      mediaQueries.forEach(mq => mq.removeEventListener('change', handler))
     }
   }, [])
 
+  const isAtLeast = useCallback(
+    (bp: Breakpoint) => ORDER[breakpoint] >= ORDER[bp],
+    [breakpoint],
+  )
+
   return {
     breakpoint,
-    isMobile: ORDER[breakpoint] < ORDER['sm'],
-    isTablet: ORDER[breakpoint] >= ORDER['sm'] && ORDER[breakpoint] < ORDER['lg'],
-    isDesktop: ORDER[breakpoint] >= ORDER['lg'],
-    isAtLeast: (bp: Breakpoint) => ORDER[breakpoint] >= ORDER[bp],
+    isMobile: ORDER[breakpoint] < ORDER.sm,
+    isTablet: ORDER[breakpoint] >= ORDER.sm && ORDER[breakpoint] < ORDER.lg,
+    isDesktop: ORDER[breakpoint] >= ORDER.lg,
+    isAtLeast,
   }
 }

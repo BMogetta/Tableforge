@@ -38,7 +38,7 @@ export function GameStatus({
   opponentOnline,
 }: Props) {
   return (
-    <div className={styles.status}>
+    <div className={styles.status} role='status' aria-live='polite' aria-atomic='true'>
       <div
         className={`${styles.statusDot} ${isMyTurn ? styles.dotActive : ''} ${isOver || isSuspended ? styles.dotOver : ''}`}
       />

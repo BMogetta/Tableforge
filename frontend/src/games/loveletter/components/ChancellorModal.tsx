@@ -42,8 +42,8 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <h2 className={styles.title}>Chancellor</h2>
+      <div className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='chancellor-title'>
+        <h2 className={styles.title} id='chancellor-title'>Chancellor</h2>
         <p className={styles.description}>
           Choose 1 card to keep. The other 2 will be placed at the bottom of the deck — click them
           in the order you want them stacked.

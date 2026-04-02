@@ -154,6 +154,34 @@ Game renderers (pluggable) in `src/games/`: `tictactoe`, `loveletter`.
 - Local variables at the top of the module or in `:local` scope
 - Never use `!important`
 
+#### Responsive
+
+Desktop-first strategy. Default styles target desktop (1280px+).
+Use `max-width` media queries to adapt down:
+- `1024px` — small desktop / laptop adjustments
+- `768px`  — tablet: collapse sidebars, simplify navigation
+- `640px`  — mobile: single column, hide secondary panels
+
+Never use `min-width` unless building a genuinely mobile-first component.
+Breakpoint values: 640 / 768 / 1024 / 1280px — no other values.
+For global font scaling on small screens, adjust `--font-scale` on `:root`,
+never override individual `--text-*` tokens.
+
+#### Accessibility
+
+Target: WCAG 2.1 AA compliance.
+
+- Interactive elements must be semantic: `<button>` for actions, `<a>` for navigation
+- Every `<input>` must have an associated `<label>` via `htmlFor` or `aria-label`
+- Never use `outline: none` without replacing with `box-shadow` focus ring
+  using `var(--color-focus-ring)`
+- Dynamic content that updates (game state, chat messages, turn changes)
+  must use `aria-live="polite"`
+- Game board elements without native HTML equivalent must have `role` + `aria-label`
+- Modals/panels must have `role="dialog"`, `aria-modal="true"`, and `aria-labelledby`
+  linking to their heading
+- Avoid `div`/`span` with `onClick` — always use `button` or anchor
+
 ### Database
 
 PostgreSQL with schema separation:

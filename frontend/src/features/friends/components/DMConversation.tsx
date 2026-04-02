@@ -114,6 +114,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
       <form className={styles.inputRow} onSubmit={handleSend}>
         <input
           className={styles.input}
+          aria-label='Direct message'
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder='Type a message...'

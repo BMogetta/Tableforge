@@ -189,6 +189,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
               <input
                 data-testid='join-code-input'
                 className='input'
+                aria-label='Room code'
                 placeholder='Room code'
                 value={joinCode}
                 onChange={e => setJoinCode(e.target.value)}

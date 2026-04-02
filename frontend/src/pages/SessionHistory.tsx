@@ -176,6 +176,7 @@ function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
         <div className={styles.replaySliderWrap}>
           <input
             type='range'
+            aria-label='Replay step'
             min={0}
             max={moves.length}
             value={step}

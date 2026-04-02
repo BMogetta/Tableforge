@@ -96,6 +96,7 @@ function EmailsPanel({ callerRole }: { callerRole: string }) {
       <div className={styles.addRow}>
         <input
           className='input'
+          aria-label='Email address'
           placeholder='email@example.com'
           value={newEmail}
           onChange={e => setNewEmail(e.target.value)}

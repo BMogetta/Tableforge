@@ -59,9 +59,9 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} data-testid='notifications-panel'>
+      <div className={styles.panel} data-testid='notifications-panel' role='dialog' aria-modal='true' aria-labelledby='notifications-title'>
         <div className={styles.header}>
-          <h2 className={styles.title}>Notifications</h2>
+          <h2 className={styles.title} id='notifications-title'>Notifications</h2>
           <button className={styles.closeBtn} onClick={onClose}>
             x
           </button>

@@ -296,7 +296,7 @@ export function ChatSidebar({
             <span className={styles.count}>{visibleMessages.length}</span>
           </div>
 
-          <div className={styles.messages}>
+          <div className={styles.messages} aria-live='polite' aria-relevant='additions'>
             {visibleMessages.length === 0 && systemMessages.length === 0 ? (
               <p className={styles.empty}>No messages yet. Type /help for commands.</p>
             ) : (
@@ -324,6 +324,7 @@ export function ChatSidebar({
             <input
               ref={inputRef}
               className={`input ${styles.input}`}
+              aria-label='Chat message'
               placeholder='Message or /command...'
               value={draft}
               onChange={e => setDraft(e.target.value)}

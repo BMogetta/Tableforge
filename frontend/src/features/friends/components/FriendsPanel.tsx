@@ -102,15 +102,16 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.panel} data-testid='friends-panel'>
+      <div className={styles.panel} data-testid='friends-panel' role='dialog' aria-modal='true' aria-labelledby='friends-title'>
         <div className={styles.header}>
-          <h2 className={styles.title}>Friends</h2>
+          <h2 className={styles.title} id='friends-title'>Friends</h2>
           <button className={styles.closeBtn} onClick={onClose}>x</button>
         </div>
 
         <form className={styles.addFriendRow} onSubmit={handleAddFriend}>
           <input
             className={styles.addFriendInput}
+            aria-label='Add friend by username'
             value={addUsername}
             onChange={e => setAddUsername(e.target.value)}
             placeholder='Add by username...'
