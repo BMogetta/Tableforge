@@ -27,6 +27,11 @@ const (
 	channelPlayerBanned        = "player.banned"
 )
 
+// NotificationCreator persists notifications. Implemented by *store.Store.
+type NotificationCreator interface {
+	Create(ctx context.Context, p store.CreateParams) (store.Notification, error)
+}
+
 // Publisher is the interface used to deliver real-time WS events.
 type Publisher interface {
 	PublishToPlayer(ctx context.Context, playerID uuid.UUID, event sharedws.Event)
@@ -35,12 +40,12 @@ type Publisher interface {
 // Consumer subscribes to event channels and creates notifications.
 type Consumer struct {
 	rdb   *redis.Client
-	store *store.Store
+	store NotificationCreator
 	pub   Publisher
 	log   *slog.Logger
 }
 
-func New(rdb *redis.Client, st *store.Store, pub Publisher, log *slog.Logger) *Consumer {
+func New(rdb *redis.Client, st NotificationCreator, pub Publisher, log *slog.Logger) *Consumer {
 	return &Consumer{rdb: rdb, store: st, pub: pub, log: log}
 }
 

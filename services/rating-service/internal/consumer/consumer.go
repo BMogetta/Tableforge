@@ -8,20 +8,24 @@ import (
 	"log/slog"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/recess/rating-service/internal/service"
 	"github.com/recess/shared/events"
 )
 
 const channelGameSessionFinished = "game.session.finished"
 
-// Consumer subscribes to game.session.finished and forwards events to Service.
+// Processor handles game session finished events.
+type Processor interface {
+	ProcessGameFinished(ctx context.Context, evt events.GameSessionFinished) error
+}
+
+// Consumer subscribes to game.session.finished and forwards events to a Processor.
 type Consumer struct {
 	rdb *redis.Client
-	svc *service.Service
+	svc Processor
 	log *slog.Logger
 }
 
-func New(rdb *redis.Client, svc *service.Service, log *slog.Logger) *Consumer {
+func New(rdb *redis.Client, svc Processor, log *slog.Logger) *Consumer {
 	return &Consumer{rdb: rdb, svc: svc, log: log}
 }
 
@@ -55,8 +59,17 @@ func (c *Consumer) Run(ctx context.Context) error {
 }
 
 func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
+	switch msg.Channel {
+	case channelGameSessionFinished:
+		return c.handleGameSessionFinished(ctx, msg.Payload)
+	default:
+		return fmt.Errorf("unknown channel: %s", msg.Channel)
+	}
+}
+
+func (c *Consumer) handleGameSessionFinished(ctx context.Context, payload string) error {
 	var evt events.GameSessionFinished
-	if err := json.Unmarshal([]byte(msg.Payload), &evt); err != nil {
+	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
 		return fmt.Errorf("unmarshal GameSessionFinished: %w", err)
 	}
 
