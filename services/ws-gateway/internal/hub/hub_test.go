@@ -2,6 +2,7 @@ package hub
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -185,5 +186,232 @@ func TestMultipleClientsPerRoom(t *testing.T) {
 
 	if count != 1 {
 		t.Errorf("expected 1 client after unsubscribe, got %d", count)
+	}
+}
+
+func TestFanout_DeliversToAllClients(t *testing.T) {
+	h := New(nil)
+	roomID := uuid.New()
+
+	c1 := newTestClient(h, roomID, uuid.New(), false)
+	c2 := newTestClient(h, roomID, uuid.New(), false)
+	spec := newTestClient(h, roomID, uuid.New(), true)
+
+	h.SubscribeRoom(roomID, c1)
+	h.SubscribeRoom(roomID, c2)
+	h.SubscribeRoom(roomID, spec)
+
+	data := []byte(`{"type":"move_applied","payload":{}}`)
+	h.fanout(roomID, "move_applied", data)
+
+	// All three should receive.
+	for i, c := range []*Client{c1, c2, spec} {
+		select {
+		case msg := <-c.send:
+			if string(msg) != string(data) {
+				t.Errorf("client %d: payload mismatch", i)
+			}
+		default:
+			t.Errorf("client %d: expected message", i)
+		}
+	}
+}
+
+func TestFanout_DropsSlowClient(t *testing.T) {
+	h := New(nil)
+	roomID := uuid.New()
+
+	fast := newTestClient(h, roomID, uuid.New(), false)
+	// Slow client: unbuffered channel that's already full.
+	slow := &Client{
+		hub:      h,
+		RoomID:   roomID,
+		PlayerID: uuid.New(),
+		send:     make(chan []byte), // unbuffered — will block
+	}
+
+	h.SubscribeRoom(roomID, fast)
+	h.SubscribeRoom(roomID, slow)
+
+	data := []byte(`{"type":"move_applied"}`)
+	h.fanout(roomID, "move_applied", data)
+
+	// Fast client gets the message.
+	select {
+	case <-fast.send:
+	default:
+		t.Error("fast client should receive message")
+	}
+
+	// Slow client's channel should be closed (dropped).
+	_, open := <-slow.send
+	if open {
+		t.Error("slow client channel should be closed")
+	}
+}
+
+func TestFanoutSpectatorsOnly(t *testing.T) {
+	h := New(nil)
+	roomID := uuid.New()
+
+	participant := newTestClient(h, roomID, uuid.New(), false)
+	spectator := newTestClient(h, roomID, uuid.New(), true)
+
+	h.SubscribeRoom(roomID, participant)
+	h.SubscribeRoom(roomID, spectator)
+
+	data := []byte(`{"type":"spectator_joined"}`)
+	h.fanoutSpectatorsOnly(roomID, "spectator_joined", data)
+
+	// Only spectator receives.
+	select {
+	case <-spectator.send:
+	default:
+		t.Error("spectator should receive message")
+	}
+
+	select {
+	case <-participant.send:
+		t.Error("participant should not receive spectator-only message")
+	default:
+	}
+}
+
+func TestFanoutSpectatorsOnly_RespectsBlocklist(t *testing.T) {
+	h := New(nil)
+	roomID := uuid.New()
+
+	spectator := newTestClient(h, roomID, uuid.New(), true)
+	h.SubscribeRoom(roomID, spectator)
+
+	// rematch_vote is blocklisted — should not be delivered even to spectators-only fanout.
+	data := []byte(`{"type":"rematch_vote"}`)
+	h.fanoutSpectatorsOnly(roomID, "rematch_vote", data)
+
+	select {
+	case <-spectator.send:
+		t.Error("blocklisted event should not be delivered via fanoutSpectatorsOnly")
+	default:
+	}
+}
+
+func TestFanoutPlayer(t *testing.T) {
+	h := New(nil)
+	playerID := uuid.New()
+	otherID := uuid.New()
+
+	c1 := newTestClient(h, uuid.Nil, playerID, false)
+	c2 := newTestClient(h, uuid.Nil, playerID, false)
+	other := newTestClient(h, uuid.Nil, otherID, false)
+
+	h.SubscribePlayer(playerID, c1)
+	h.SubscribePlayer(playerID, c2)
+	h.SubscribePlayer(otherID, other)
+
+	data := []byte(`{"type":"dm_received","payload":{}}`)
+	h.fanoutPlayer(playerID, data)
+
+	// Both of playerID's clients receive.
+	for i, c := range []*Client{c1, c2} {
+		select {
+		case msg := <-c.send:
+			if string(msg) != string(data) {
+				t.Errorf("client %d: payload mismatch", i)
+			}
+		default:
+			t.Errorf("client %d: expected message", i)
+		}
+	}
+
+	// Other player does NOT receive.
+	select {
+	case <-other.send:
+		t.Error("other player should not receive message")
+	default:
+	}
+}
+
+func TestFanoutPlayer_DropsSlowClient(t *testing.T) {
+	h := New(nil)
+	playerID := uuid.New()
+
+	fast := newTestClient(h, uuid.Nil, playerID, false)
+	slow := &Client{
+		hub:      h,
+		PlayerID: playerID,
+		send:     make(chan []byte),
+	}
+
+	h.SubscribePlayer(playerID, fast)
+	h.SubscribePlayer(playerID, slow)
+
+	h.fanoutPlayer(playerID, []byte(`{"type":"dm_received"}`))
+
+	select {
+	case <-fast.send:
+	default:
+		t.Error("fast client should receive message")
+	}
+
+	_, open := <-slow.send
+	if open {
+		t.Error("slow client channel should be closed")
+	}
+}
+
+func TestGracefulShutdown(t *testing.T) {
+	h := New(nil)
+	roomID := uuid.New()
+	playerID := uuid.New()
+
+	roomClient := newTestClient(h, roomID, uuid.New(), false)
+	playerClient := newTestClient(h, uuid.Nil, playerID, false)
+
+	h.SubscribeRoom(roomID, roomClient)
+	h.SubscribePlayer(playerID, playerClient)
+
+	h.gracefulShutdown(5 * time.Second)
+
+	// Both channels should be closed.
+	_, open := <-roomClient.send
+	if open {
+		t.Error("room client channel should be closed after shutdown")
+	}
+
+	_, open = <-playerClient.send
+	if open {
+		t.Error("player client channel should be closed after shutdown")
+	}
+}
+
+func TestSpectatorCount_EmptyRoom(t *testing.T) {
+	h := New(nil)
+	count := h.SpectatorCount(uuid.New())
+	if count != 0 {
+		t.Errorf("expected 0 for non-existent room, got %d", count)
+	}
+}
+
+func TestDisconnectPlayer_NoClients(t *testing.T) {
+	h := New(nil)
+	// Should not panic when no clients exist.
+	h.DisconnectPlayer(uuid.New())
+}
+
+func TestSendDirect_FullChannel(t *testing.T) {
+	h := New(nil)
+	c := &Client{
+		hub:      h,
+		PlayerID: uuid.New(),
+		send:     make(chan []byte), // unbuffered
+	}
+
+	// Should not block — drops silently.
+	h.SendDirect(c, []byte(`{"type":"test"}`))
+
+	select {
+	case <-c.send:
+		t.Error("unbuffered channel should not have received (no reader)")
+	default:
 	}
 }

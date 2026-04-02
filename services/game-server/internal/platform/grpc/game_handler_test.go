@@ -147,3 +147,103 @@ func TestGetRoomPlayers_MissingRoomID(t *testing.T) {
 		t.Fatal("expected error for empty room_id")
 	}
 }
+
+// --- IsParticipant -----------------------------------------------------------
+
+func TestIsParticipant_True(t *testing.T) {
+	h, st := newTestHandler()
+
+	roomID := uuid.New()
+	playerA := uuid.New()
+	playerB := uuid.New()
+
+	st.RoomPlayers[roomID] = []store.RoomPlayer{
+		{PlayerID: playerA, Seat: 0},
+		{PlayerID: playerB, Seat: 1},
+	}
+
+	resp, err := h.IsParticipant(context.Background(), &gamev1.IsParticipantRequest{
+		RoomId:   roomID.String(),
+		PlayerId: playerA.String(),
+	})
+	if err != nil {
+		t.Fatalf("IsParticipant: %v", err)
+	}
+	if !resp.IsParticipant {
+		t.Error("expected player to be a participant")
+	}
+}
+
+func TestIsParticipant_False(t *testing.T) {
+	h, st := newTestHandler()
+
+	roomID := uuid.New()
+	st.RoomPlayers[roomID] = []store.RoomPlayer{
+		{PlayerID: uuid.New(), Seat: 0},
+	}
+
+	resp, err := h.IsParticipant(context.Background(), &gamev1.IsParticipantRequest{
+		RoomId:   roomID.String(),
+		PlayerId: uuid.NewString(),
+	})
+	if err != nil {
+		t.Fatalf("IsParticipant: %v", err)
+	}
+	if resp.IsParticipant {
+		t.Error("expected player to NOT be a participant")
+	}
+}
+
+func TestIsParticipant_SpectatorsAllowed(t *testing.T) {
+	h, st := newTestHandler()
+
+	roomID := uuid.New()
+	st.RoomPlayers[roomID] = []store.RoomPlayer{}
+	st.RoomSettings[roomID] = map[string]string{
+		"allow_spectators": "true",
+	}
+
+	resp, err := h.IsParticipant(context.Background(), &gamev1.IsParticipantRequest{
+		RoomId:   roomID.String(),
+		PlayerId: uuid.NewString(),
+	})
+	if err != nil {
+		t.Fatalf("IsParticipant: %v", err)
+	}
+	if resp.SpectatorsAllowed != true {
+		t.Error("expected spectators_allowed to be true")
+	}
+}
+
+func TestIsParticipant_MissingFields(t *testing.T) {
+	h, _ := newTestHandler()
+
+	_, err := h.IsParticipant(context.Background(), &gamev1.IsParticipantRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing fields")
+	}
+}
+
+func TestIsParticipant_InvalidRoomID(t *testing.T) {
+	h, _ := newTestHandler()
+
+	_, err := h.IsParticipant(context.Background(), &gamev1.IsParticipantRequest{
+		RoomId:   "bad",
+		PlayerId: uuid.NewString(),
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid room_id")
+	}
+}
+
+func TestIsParticipant_InvalidPlayerID(t *testing.T) {
+	h, _ := newTestHandler()
+
+	_, err := h.IsParticipant(context.Background(), &gamev1.IsParticipantRequest{
+		RoomId:   uuid.NewString(),
+		PlayerId: "bad",
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid player_id")
+	}
+}
