@@ -3,6 +3,7 @@
 #
 # CSP notes:
 #   - 'unsafe-inline' in style-src: required by CSS Modules runtime injection
+#   - fonts.googleapis.com / fonts.gstatic.com: Google Fonts (Cinzel, JetBrains Mono)
 #   - avatars.githubusercontent.com: GitHub profile images
 #   - ws:/wss: WebSocket connections to ws-gateway
 #   - /otlp: browser-side OpenTelemetry trace export
@@ -27,8 +28,8 @@ http:
         contentSecurityPolicy: >-
           default-src 'self';
           script-src 'self';
-          style-src 'self' 'unsafe-inline';
-          font-src 'self';
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          font-src 'self' https://fonts.gstatic.com;
           img-src 'self' data: https://avatars.githubusercontent.com;
           connect-src 'self' ws://localhost wss://localhost;
           media-src 'self' blob:;

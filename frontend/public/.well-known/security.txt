@@ -1,0 +1,3 @@
+Contact: mailto:brunomogetta@gmail.com
+Expires: 2027-01-01T00:00:00z
+Preferred-Languages: en, es
