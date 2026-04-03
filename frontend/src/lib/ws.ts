@@ -1,7 +1,7 @@
-import { GameSessionDTO } from './api-generated'
+import type { GameSessionDTO } from './api-generated'
+import type { RoomView, Notification } from './api'
 import { emitErrorLog } from './telemetry'
 import { getDeviceContextAttrs } from './device'
-// TODO review (if) this is not the actual game session received, is is possible for WS to have different types, it will have to be unified later
 
 export type WsEventType =
   // Game flow
@@ -141,15 +141,42 @@ export interface WsPayloadMatchReady {
   session_id: string
 }
 
+export interface WsPayloadPlayerJoined extends RoomView {}
+
+export interface WsPayloadPlayerLeft {
+  player_id: string
+}
+
+export interface WsPayloadDMReceived {
+  message_id: string
+  from: string
+  content: string
+  timestamp: string
+}
+
+export interface WsPayloadDMRead {
+  message_id: string
+}
+
 export interface WsPayloadPauseVoteUpdate {
   votes: string[]
   required: number
+}
+
+export interface WsPayloadSessionSuspended {
+  suspended_at: string
 }
 
 export interface WsPayloadResumeVoteUpdate {
   votes: string[]
   required: number
 }
+
+export interface WsPayloadSessionResumed {
+  resumed_at: string
+}
+
+export interface WsPayloadNotificationReceived extends Notification {}
 
 // --- Discriminated union -----------------------------------------------------
 
@@ -163,26 +190,26 @@ export type WsEvent =
   | { type: 'rematch_ready'; payload: WsPayloadRematchReady }
   | { type: 'owner_changed'; payload: WsPayloadOwnerChanged }
   | { type: 'room_closed'; payload: null }
-  | { type: 'player_joined'; payload: unknown } // TODO: type when used
-  | { type: 'player_left'; payload: unknown } // TODO: type when used
+  | { type: 'player_joined'; payload: WsPayloadPlayerJoined }
+  | { type: 'player_left'; payload: WsPayloadPlayerLeft }
   | { type: 'setting_updated'; payload: WsPayloadSettingUpdated }
   | { type: 'presence_update'; payload: WsPayloadPresenceUpdate }
   | { type: 'spectator_joined'; payload: WsPayloadSpectatorCount }
   | { type: 'spectator_left'; payload: WsPayloadSpectatorCount }
   | { type: 'chat_message'; payload: WsPayloadChatMessage }
   | { type: 'chat_message_hidden'; payload: WsPayloadChatMessageHidden }
-  | { type: 'dm_received'; payload: unknown } // TODO: type when used
-  | { type: 'dm_read'; payload: unknown } // TODO: type when used
+  | { type: 'dm_received'; payload: WsPayloadDMReceived }
+  | { type: 'dm_read'; payload: WsPayloadDMRead }
   | { type: 'pause_vote_update'; payload: WsPayloadPauseVoteUpdate }
-  | { type: 'session_suspended'; payload: unknown } // TODO: type when used
+  | { type: 'session_suspended'; payload: WsPayloadSessionSuspended }
   | { type: 'resume_vote_update'; payload: WsPayloadResumeVoteUpdate }
-  | { type: 'session_resumed'; payload: unknown } // TODO: type when used
+  | { type: 'session_resumed'; payload: WsPayloadSessionResumed }
   | { type: 'queue_joined'; payload: WsPayloadQueueJoined }
   | { type: 'queue_left'; payload: WsPayloadQueueLeft }
   | { type: 'match_found'; payload: WsPayloadMatchFound }
   | { type: 'match_cancelled'; payload: WsPayloadMatchCancelled }
   | { type: 'match_ready'; payload: WsPayloadMatchReady }
-  | { type: 'notification_received'; payload: unknown } // TODO: type when used
+  | { type: 'notification_received'; payload: WsPayloadNotificationReceived }
   | { type: 'ws_connected'; payload: null }
   | { type: 'ws_reconnecting'; payload: null }
   | { type: 'ws_disconnected'; payload: null }

@@ -44,7 +44,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
       return
     }
     const off = playerSocket.on(event => {
-      if (event.type === 'dm_received' && (event.payload as { from?: string })?.from === otherPlayerId) {
+      if (event.type === 'dm_received' && event.payload.from === otherPlayerId) {
         sfx.play('chat.receive')
         qc.invalidateQueries({ queryKey: keys.dmHistory(player.id, otherPlayerId) })
         qc.invalidateQueries({ queryKey: keys.dmUnread(player.id) })
