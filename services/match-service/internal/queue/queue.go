@@ -97,7 +97,7 @@ const (
 
 	// TypeMatchExpiry is the Asynq task type for pending match expiration.
 	TypeMatchExpiry = "queue:match_expiry"
-	asynqQueue      = "default"
+	asynqQueue      = "match"
 
 	// shadowTTL is the TTL for shadow keys. Must be longer than
 	// ConfirmationWindowSecs so the shadow outlives the pending record.

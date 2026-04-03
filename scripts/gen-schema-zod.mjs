@@ -56,7 +56,12 @@ function buildEndpointZod(schema, name) {
 
   for (const [key, prop] of Object.entries(props)) {
     let zodExpr = propToZod(prop)
-    if (!required.has(key)) zodExpr += '.optional()'
+    if (!required.has(key)) {
+      // Go serializes nil struct pointers as `null` (not omitted), so $ref
+      // fields need .nullish() (accepts null | undefined). Primitive optional
+      // fields use omitempty in Go and are simply absent, so .optional() suffices.
+      zodExpr += prop['$ref'] ? '.nullish()' : '.optional()'
+    }
     fields.push(`  ${JSON.stringify(key)}: ${zodExpr}`)
   }
 

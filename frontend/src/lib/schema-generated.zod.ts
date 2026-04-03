@@ -137,7 +137,7 @@ export const applyMoveResponseSchema = z.object({
   "session": gameSessionSchema,
   "state": z.unknown(),
   "is_over": z.boolean(),
-  "result": gameResultSchema.optional()
+  "result": gameResultSchema.nullish()
 })
 export type ApplyMoveResponse = z.infer<typeof applyMoveResponseSchema>
 
@@ -192,7 +192,7 @@ export type GetRoomMessagesResponse = z.infer<typeof getRoomMessagesResponseSche
 export const getSessionResponseSchema = z.object({
   "session": gameSessionSchema,
   "state": z.unknown(),
-  "result": gameResultRecordSchema.optional()
+  "result": gameResultRecordSchema.nullish()
 })
 export type GetSessionResponse = z.infer<typeof getSessionResponseSchema>
 

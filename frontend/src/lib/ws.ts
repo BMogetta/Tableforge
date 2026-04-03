@@ -267,7 +267,7 @@ export class RoomSocket {
           return
         }
         this.emit('ws_reconnecting')
-        const delay = Math.min(2 ** this.attemptCount * 1000, RoomSocket.MAX_BACKOFF_MS)
+        const delay = Math.min(500 * 2 ** (this.attemptCount - 1), RoomSocket.MAX_BACKOFF_MS)
         this.reconnectTimer = setTimeout(() => this.connect(), delay)
       }
     }
@@ -351,7 +351,7 @@ export class PlayerSocket {
           return
         }
         this.emit('ws_reconnecting')
-        const delay = Math.min(2 ** this.attemptCount * 1000, PlayerSocket.MAX_BACKOFF_MS)
+        const delay = Math.min(500 * 2 ** (this.attemptCount - 1), PlayerSocket.MAX_BACKOFF_MS)
         this.reconnectTimer = setTimeout(() => this.connect(), delay)
       }
     }

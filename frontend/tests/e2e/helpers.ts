@@ -69,6 +69,27 @@ export function getPair(projectName: string): PlayerPair {
 
 // --- Shared helpers ----------------------------------------------------------
 
+/**
+ * Cleans up any active game sessions and rooms for a player via the API.
+ * Call before tests to prevent stale state from blocking room creation.
+ */
+async function cleanupPlayer(page: Page, playerId: string) {
+  // Surrender any active sessions
+  const sessRes = await page.request.get(`/api/v1/players/${playerId}/sessions`)
+  if (sessRes.ok()) {
+    const sessions: { id: string; room_id: string }[] = await sessRes.json()
+    for (const session of sessions) {
+      await page.request.post(`/api/v1/sessions/${session.id}/surrender`, {
+        data: { player_id: playerId },
+      })
+      // Leave the room after surrendering
+      await page.request.post(`/api/v1/rooms/${session.room_id}/leave`, {
+        data: { player_id: playerId },
+      })
+    }
+  }
+}
+
 /** Creates two authenticated browser contexts and navigates both to the lobby. */
 export async function createPlayerContexts(browser: Browser, pair: PlayerPair) {
   const p1Ctx = await browser.newContext({ storageState: pair.p1State })
@@ -80,6 +101,8 @@ export async function createPlayerContexts(browser: Browser, pair: PlayerPair) {
   const p2 = await p2Ctx.newPage()
   p2.on('console', msg => console.log('P2:', msg.text()))
   p2.on('pageerror', err => console.log('P2 ERROR:', err.message))
+
+  await Promise.all([cleanupPlayer(p1, pair.p1Id), cleanupPlayer(p2, pair.p2Id)])
 
   await p1.goto('/')
   await p2.goto('/')

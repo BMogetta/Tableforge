@@ -16,7 +16,8 @@ const (
 	TypeTurnTimeout  = "timer:turn"
 	TypeReadyTimeout = "timer:ready"
 
-	defaultQueue = "default"
+	// Queue name must match the Queues map in the asynq.Server config.
+	defaultQueue = "game"
 )
 
 func turnTaskID(sessionID uuid.UUID) string {

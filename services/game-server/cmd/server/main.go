@@ -124,6 +124,7 @@ func main() {
 
 	asynqSrv := asynq.NewServer(asynqRedis, asynq.Config{
 		Concurrency: 10,
+		Queues:      map[string]int{"game": 1},
 	})
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(runtime.TypeTurnTimeout, timerHandlers.HandleTurnTimeout)

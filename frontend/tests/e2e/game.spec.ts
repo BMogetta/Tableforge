@@ -31,9 +31,9 @@ test.describe('TicTacToe game', () => {
 
     // Neither player moves. The server's turn timer fires after default_timeout_secs
     // (5s in test mode, 30s in dev) and broadcasts game_over with the idle player
-    // as the loser. Timeout is 10s to give the server margin.
-    await expect(p1.getByTestId('game-status')).toContainText('You lost', { timeout: 10_000 })
-    await expect(p2.getByTestId('game-status')).toContainText('You won', { timeout: 10_000 })
+    // as the loser. Asynq task scheduling adds ~3-5s latency, so allow 20s total.
+    await expect(p1.getByTestId('game-status')).toContainText('You lost', { timeout: 20_000 })
+    await expect(p2.getByTestId('game-status')).toContainText('You won', { timeout: 20_000 })
 
     await p1Ctx.close()
     await p2Ctx.close()

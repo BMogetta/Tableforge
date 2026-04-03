@@ -100,7 +100,10 @@ func main() {
 	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient, rankedGameID, asynqClient, asynqInspector)
 
 	// --- Asynq server (match expiry handler) ---------------------------------
-	asynqSrv := asynq.NewServer(asynqRedis, asynq.Config{Concurrency: 5})
+	asynqSrv := asynq.NewServer(asynqRedis, asynq.Config{
+		Concurrency: 5,
+		Queues:      map[string]int{"match": 1},
+	})
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(queue.TypeMatchExpiry, queueSvc.HandleMatchExpiry)
 	go func() {
