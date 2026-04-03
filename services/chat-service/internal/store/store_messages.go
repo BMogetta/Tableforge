@@ -133,10 +133,10 @@ func (s *pgStore) GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID) 
 	return messages, rows.Err()
 }
 
-func (s *pgStore) MarkDMRead(ctx context.Context, messageID uuid.UUID) error {
+func (s *pgStore) MarkDMRead(ctx context.Context, messageID, receiverID uuid.UUID) error {
 	_, err := s.db.Exec(ctx,
-		`UPDATE direct_messages SET read_at = NOW() WHERE id = $1 AND read_at IS NULL`,
-		messageID,
+		`UPDATE direct_messages SET read_at = NOW() WHERE id = $1 AND receiver_id = $2 AND read_at IS NULL`,
+		messageID, receiverID,
 	)
 	if err != nil {
 		return fmt.Errorf("MarkDMRead: %w", err)
@@ -216,10 +216,12 @@ func (s *pgStore) ListDMConversations(ctx context.Context, playerID uuid.UUID) (
 	return convos, rows.Err()
 }
 
-func (s *pgStore) ReportDM(ctx context.Context, messageID uuid.UUID) error {
+func (s *pgStore) ReportDM(ctx context.Context, messageID, playerA, playerB uuid.UUID) error {
 	tag, err := s.db.Exec(ctx,
-		`UPDATE direct_messages SET reported = true WHERE id = $1`,
-		messageID,
+		`UPDATE direct_messages SET reported = true
+		 WHERE id = $1
+		   AND ((sender_id = $2 AND receiver_id = $3) OR (sender_id = $3 AND receiver_id = $2))`,
+		messageID, playerA, playerB,
 	)
 	if err != nil {
 		return fmt.Errorf("ReportDM: %w", err)

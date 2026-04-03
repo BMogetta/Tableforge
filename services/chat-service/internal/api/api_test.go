@@ -101,7 +101,7 @@ func (m *mockStore) GetDMHistory(_ context.Context, playerA, playerB uuid.UUID) 
 	return result, nil
 }
 
-func (m *mockStore) MarkDMRead(_ context.Context, messageID uuid.UUID) error {
+func (m *mockStore) MarkDMRead(_ context.Context, messageID, _ uuid.UUID) error {
 	m.readMessages[messageID] = true
 	return nil
 }
@@ -114,7 +114,7 @@ func (m *mockStore) ListDMConversations(_ context.Context, _ uuid.UUID) ([]store
 	return []store.DMConversation{}, nil
 }
 
-func (m *mockStore) ReportDM(_ context.Context, messageID uuid.UUID) error {
+func (m *mockStore) ReportDM(_ context.Context, messageID, _, _ uuid.UUID) error {
 	m.reported[messageID] = true
 	return nil
 }
@@ -250,6 +250,7 @@ func TestGetRoomMessages(t *testing.T) {
 	st := newMockStore()
 	roomID := uuid.New()
 	playerID := uuid.New()
+	st.participants[st.participantKey(roomID, playerID)] = true
 	st.roomMessages[roomID] = []store.RoomMessage{
 		{ID: uuid.New(), RoomID: roomID, PlayerID: playerID, Content: "msg1", CreatedAt: time.Now()},
 		{ID: uuid.New(), RoomID: roomID, PlayerID: playerID, Content: "msg2", CreatedAt: time.Now()},
@@ -466,6 +467,7 @@ func TestReportRoomMessage(t *testing.T) {
 	roomID := uuid.New()
 	messageID := uuid.New()
 	playerID := uuid.New()
+	st.participants[st.participantKey(roomID, playerID)] = true
 
 	router := newTestRouter(st)
 	rec := postJSONAs(t, router, "/api/v1/rooms/"+roomID.String()+"/messages/"+messageID.String()+"/report", playerID, sharedmw.RolePlayer, nil)

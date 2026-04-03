@@ -76,6 +76,22 @@ func handleGetRoomMessages(st store.Store) http.HandlerFunc {
 			return
 		}
 
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		participant, err := st.IsRoomParticipant(r.Context(), roomID, playerID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify participant")
+			return
+		}
+		if !participant {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+
 		messages, err := st.GetRoomMessages(r.Context(), roomID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to get messages")
@@ -89,9 +105,31 @@ func handleGetRoomMessages(st store.Store) http.HandlerFunc {
 // POST /api/v1/rooms/{roomID}/messages/{messageID}/report
 func handleReportRoomMessage(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid room id")
+			return
+		}
+
 		messageID, err := uuid.Parse(chi.URLParam(r, "messageID"))
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid message id")
+			return
+		}
+
+		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		participant, err := st.IsRoomParticipant(r.Context(), roomID, playerID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify participant")
+			return
+		}
+		if !participant {
+			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
 

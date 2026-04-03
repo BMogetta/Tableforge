@@ -219,7 +219,7 @@ func TestMarkDMReadAndUnreadCount(t *testing.T) {
 		t.Errorf("expected 2 unread, got %d", count)
 	}
 
-	if err := env.store.MarkDMRead(ctx, dm2.ID); err != nil {
+	if err := env.store.MarkDMRead(ctx, dm2.ID, bob); err != nil {
 		t.Fatalf("MarkDMRead: %v", err)
 	}
 
@@ -285,7 +285,7 @@ func TestReportDM(t *testing.T) {
 
 	dm, _ := env.store.SaveDM(ctx, alice, bob, "offensive dm")
 
-	if err := env.store.ReportDM(ctx, dm.ID); err != nil {
+	if err := env.store.ReportDM(ctx, dm.ID, alice, bob); err != nil {
 		t.Fatalf("ReportDM: %v", err)
 	}
 
@@ -297,7 +297,7 @@ func TestReportDM(t *testing.T) {
 
 func TestReportDMNotFound(t *testing.T) {
 	env := newTestEnv(t)
-	err := env.store.ReportDM(context.Background(), uuid.New())
+	err := env.store.ReportDM(context.Background(), uuid.New(), uuid.New(), uuid.New())
 	if err == nil {
 		t.Error("expected error for non-existent DM")
 	}

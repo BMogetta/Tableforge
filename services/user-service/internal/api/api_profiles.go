@@ -9,6 +9,8 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 )
 
+// Intentionally public — players can view each other's profiles in a multiplayer game.
+// The write endpoint (handleUpsertProfile) checks ownership.
 func handleGetProfile(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
@@ -60,6 +62,7 @@ func handleUpsertProfile(st store.Store) http.HandlerFunc {
 	}
 }
 
+// Intentionally public — achievements are visible on player profiles.
 func handleListAchievements(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))

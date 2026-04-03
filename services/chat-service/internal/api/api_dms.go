@@ -179,7 +179,7 @@ func handleMarkDMRead(st store.Store, pub *Publisher) http.HandlerFunc {
 			return
 		}
 
-		if err := st.MarkDMRead(r.Context(), messageID); err != nil {
+		if err := st.MarkDMRead(r.Context(), messageID, callerID); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to mark message as read")
 			return
 		}
@@ -231,7 +231,7 @@ func handleReportDM(st store.Store) http.HandlerFunc {
 			return
 		}
 
-		if err := st.ReportDM(r.Context(), messageID); err != nil {
+		if err := st.ReportDM(r.Context(), messageID, playerID, otherID); err != nil {
 			writeError(w, http.StatusNotFound, "message not found")
 			return
 		}

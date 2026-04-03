@@ -287,3 +287,44 @@ When running `make up-all`:
 ### Turn Timers & Match Expiry
 
 Turn timers (game-server) and match confirmation expiry (match-service) use **Asynq** — a distributed task queue backed by Redis. Tasks are persisted and guaranteed exactly-once delivery, making the system safe for multi-instance horizontal scaling.
+
+### Security
+
+#### Ownership checks (Broken Access Control prevention)
+
+Every endpoint that takes `{playerID}` in the URL **must** verify the caller
+owns the resource before proceeding. The canonical pattern:
+
+```go
+callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
+if callerID != playerID {
+    writeError(w, http.StatusForbidden, "forbidden")
+    return
+}
+```
+
+Rules:
+- Apply this check in every handler where `playerID` identifies a private
+  resource (settings, friends, DMs, unread counts, conversations).
+- For room-scoped endpoints (`{roomID}`), verify the caller is a room
+  participant via `store.IsRoomParticipant` before reading or mutating data.
+- If a resource is intentionally public (profiles, achievements), document it
+  with a comment above the handler explaining why no ownership check is needed.
+- Never trust a `player_id` from the request body — always derive identity from
+  `sharedmw.PlayerIDFromContext` (JWT context). Request body fields named
+  `player_id` should not exist; if they do, the handler must ignore them.
+
+#### Store-level authorization
+
+When a store operation is sensitive (mark-as-read, report, hide), the SQL query
+itself must scope to the authorized identity — don't rely only on the handler
+check. Example: `WHERE id = $1 AND receiver_id = $2` instead of `WHERE id = $1`.
+
+#### Injection prevention
+
+- SQL: always use parameterized queries (`$1`, `$2`). Never use `fmt.Sprintf`
+  or string concatenation for SQL.
+- Redis: build keys via helper functions (`RoomChannelKey`, `PlayerChannelKey`),
+  never from raw user input.
+- Errors: return generic messages ("forbidden", "not found"). Never reflect
+  user input or internal details (query text, stack traces) in responses.

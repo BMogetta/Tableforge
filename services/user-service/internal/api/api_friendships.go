@@ -40,6 +40,11 @@ func handleListFriends(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid player id")
 			return
 		}
+		callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
+		if callerID != playerID {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
 		friends, err := st.ListFriends(r.Context(), playerID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to list friends")
