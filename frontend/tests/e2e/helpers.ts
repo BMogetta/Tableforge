@@ -58,6 +58,23 @@ export async function waitForGameReady(page: Page) {
   )
 }
 
+// P1 creates a TicTacToe room, P2 joins via the room code.
+// Does NOT start the game — callers decide what happens next.
+export async function setupRoom(p1: Page, p2: Page) {
+  await p1.getByTestId('game-option-tictactoe').click()
+  await p1.getByTestId('create-room-btn').click()
+  await expect(p1).toHaveURL(/\/rooms\//)
+
+  const code = await p1.getByTestId('room-code').textContent()
+  const roomId = p1.url().split('/rooms/')[1]
+
+  await p2.getByTestId('join-code-input').fill(code!)
+  await p2.getByTestId('join-btn').click()
+  await expect(p2).toHaveURL(/\/rooms\//)
+
+  return { roomId, code: code! }
+}
+
 // P1 creates a room, P2 joins via the room code, P1 starts the game.
 // Both pages are asserted to have navigated to /game/:id before returning.
 //

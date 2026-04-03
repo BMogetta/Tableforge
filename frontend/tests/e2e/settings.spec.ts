@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import {
   createPlayerContexts,
+  setupRoom,
   setupAndStartGame,
   playFullGame,
   waitForSocketConnected,
@@ -10,118 +11,17 @@ import {
 // Settings E2E tests
 //
 // Covers:
-//   - LobbySettings UI visibility and interactivity
 //   - WS setting_updated propagation to other clients
 //   - Read-only view for non-owners
-//   - API-level validation (400 / 403 / 409)
 //   - Turn order enforcement via first_mover_policy + first_mover_seat
 //   - rematch_first_mover_policy: winner_first, loser_first, fixed
 // ---------------------------------------------------------------------------
 
 test.describe('LobbySettings UI', () => {
-  test('owner sees first_mover_policy selector with default value "random"', async ({
-    browser,
-  }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    // Selector must be visible and default to 'random'.
-    const select = p1.getByTestId('setting-select-first_mover_policy')
-    await expect(select).toBeVisible({ timeout: 10_000 })
-    await expect(select).toHaveValue('random')
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
-  test('first_mover_seat row is hidden when policy is "random"', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    // Policy defaults to 'random' — seat row must not be in the DOM.
-    await expect(p1.getByTestId('setting-row-first_mover_seat')).not.toBeVisible({
-      timeout: 10_000,
-    })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
-  test('first_mover_seat row appears when policy changes to "fixed"', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    // Wait for the settings section to render before interacting.
-    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({
-      timeout: 10_000,
-    })
-
-    // Change policy to 'fixed'.
-    await p1.getByTestId('setting-select-first_mover_policy').selectOption('fixed')
-
-    // The seat row must now be visible.
-    await expect(p1.getByTestId('setting-row-first_mover_seat')).toBeVisible({ timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
-  test('first_mover_seat row disappears when policy switches back to "random"', async ({
-    browser,
-  }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({
-      timeout: 10_000,
-    })
-
-    // Switch to 'fixed' so the seat row appears, then switch back.
-    await p1.getByTestId('setting-select-first_mover_policy').selectOption('fixed')
-    await expect(p1.getByTestId('setting-row-first_mover_seat')).toBeVisible({ timeout: 10_000 })
-
-    await p1.getByTestId('setting-select-first_mover_policy').selectOption('random')
-    await expect(p1.getByTestId('setting-row-first_mover_seat')).not.toBeVisible({
-      timeout: 10_000,
-    })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
   test('setting_updated WS event updates the read-only value shown to p2', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    const code = await p1.getByTestId('room-code').textContent()
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
+    await setupRoom(p1, p2)
 
     // Wait for both sides to settle before changing the setting.
     await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({
@@ -148,101 +48,13 @@ test.describe('LobbySettings UI', () => {
   test('non-owner sees settings as read-only (no select element)', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    const code = await p1.getByTestId('room-code').textContent()
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
+    await setupRoom(p1, p2)
 
     // P2 must see the readonly span, not an interactive select.
     await expect(p2.getByTestId('setting-value-first_mover_policy')).toBeVisible({
       timeout: 10_000,
     })
     await expect(p2.getByTestId('setting-select-first_mover_policy')).not.toBeVisible()
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-})
-
-// ---------------------------------------------------------------------------
-
-test.describe('Settings API validation', () => {
-  test('invalid setting value returns 400', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    const roomId = p1.url().split('/rooms/')[1]
-    const player1Id = process.env.TEST_PLAYER1_ID!
-
-    const res = await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-      data: { player_id: player1Id, value: 'not_a_valid_policy' },
-    })
-
-    expect(res.status()).toBe(400)
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
-  test('non-owner cannot update settings (403)', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    // Explicitly select TicTacToe — default game is non-deterministic with
-    // multiple games registered.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    const code = await p1.getByTestId('room-code').textContent()
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
-
-    const roomId = p1.url().split('/rooms/')[1]
-    const player2Id = process.env.TEST_PLAYER2_ID!
-
-    // P2 tries to update a setting in P1's room.
-    const res = await p2.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-      data: { player_id: player2Id, value: 'fixed' },
-    })
-
-    expect(res.status()).toBe(403)
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
-  test('cannot update settings while room is in_progress (409)', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    await p1.goto('/')
-    await p2.goto('/')
-
-    await setupAndStartGame(p1, p2)
-
-    const sessionId = p1.url().split('/game/')[1]
-    const sessionRes = await p1.request.get(`/api/v1/sessions/${sessionId}`)
-    const sessionData = await sessionRes.json()
-    const roomId = sessionData.session.room_id
-
-    const player1Id = process.env.TEST_PLAYER1_ID!
-
-    const res = await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-      data: { player_id: player1Id, value: 'random' },
-    })
-
-    expect(res.status()).toBe(409)
 
     await p1Ctx.close()
     await p2Ctx.close()

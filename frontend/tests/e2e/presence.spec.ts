@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createPlayerContexts, setupAndStartGame } from './helpers'
+import { createPlayerContexts, setupRoom, setupAndStartGame } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Presence tests
@@ -16,16 +16,7 @@ test.describe('Player presence', () => {
   test('presence dot shown in room player list', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
-
-    const code = await p1.getByTestId('room-code').textContent()
-
-    // P2 joins — P1 should see P2's presence dot go online.
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
+    await setupRoom(p1, p2)
 
     const p2Id = process.env.TEST_PLAYER2_ID!
 
@@ -43,16 +34,9 @@ test.describe('Player presence', () => {
   test('presence dot goes offline when player leaves room', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
+    await setupRoom(p1, p2)
 
-    const code = await p1.getByTestId('room-code').textContent()
     const p2Id = process.env.TEST_PLAYER2_ID!
-
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
 
     // Wait for P2 to appear online.
     await expect(p1.locator(`[data-testid="presence-dot-${p2Id}"]`)).toHaveAttribute(

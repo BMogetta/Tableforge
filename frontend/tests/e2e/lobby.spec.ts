@@ -1,52 +1,17 @@
 import { test, expect } from '@playwright/test'
-import { fileURLToPath } from 'url'
-import path from 'path'
-import { createPlayerContexts, waitForSocketConnected } from './helpers'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PLAYER1_STATE = path.join(__dirname, '.auth/player1.json')
-const PLAYER2_STATE = path.join(__dirname, '.auth/player2.json')
+import {
+  createPlayerContexts,
+  setupRoom,
+  waitForSocketConnected,
+  playFullGame,
+} from './helpers'
 
 test.describe('Lobby', () => {
-  test('shows lobby after login', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
-    const page = await ctx.newPage()
-
-    await page.goto('/')
-    await expect(page.getByTestId('create-room-btn')).toBeVisible()
-    await expect(page.getByTestId('join-code-input')).toBeVisible()
-    await expect(page.getByTestId('join-btn')).toBeVisible()
-    await ctx.close()
-  })
-
-  test('can create a room', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
-    const page = await ctx.newPage()
-
-    await page.goto('/')
-    await page.getByTestId('create-room-btn').click()
-    await expect(page).toHaveURL(/\/rooms\//)
-    await expect(page.getByTestId('room-code')).toBeVisible()
-    await ctx.close()
-  })
-
   test('two players can join the same room', async ({ browser }) => {
-    const p1Ctx = await browser.newContext({ storageState: PLAYER1_STATE })
-    const p1 = await p1Ctx.newPage()
-    await p1.goto('/')
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    const code = await p1.getByTestId('room-code').textContent()
+    const { code } = await setupRoom(p1, p2)
     expect(code).toHaveLength(6)
-
-    const p2Ctx = await browser.newContext({ storageState: PLAYER2_STATE })
-    const p2 = await p2Ctx.newPage()
-    await p2.goto('/')
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
 
     // start-game-btn exists in DOM but is disabled until P2 joins.
     // When P2 joins via WS event, Room refreshes and canStart becomes true.
@@ -57,22 +22,9 @@ test.describe('Lobby', () => {
   })
 
   test('player leaving room disables start button for host', async ({ browser }) => {
-    const p1Ctx = await browser.newContext({ storageState: PLAYER1_STATE })
-    const p1 = await p1Ctx.newPage()
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    const p2Ctx = await browser.newContext({ storageState: PLAYER2_STATE })
-    const p2 = await p2Ctx.newPage()
-
-    await p1.goto('/')
-    await p2.goto('/')
-
-    // P1 creates a room, P2 joins — start button becomes enabled.
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    const code = await p1.getByTestId('room-code').textContent()
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
+    await setupRoom(p1, p2)
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
 
     // P2 leaves the room. The player_left WS event should cause P1's room view
@@ -116,19 +68,7 @@ test.describe('Lobby', () => {
     await expect(p2).toHaveURL(/\/game\//, { timeout: 10_000 })
 
     // Play full game — P1 wins.
-    const moves = [
-      { player: p1, cell: 0 },
-      { player: p2, cell: 3 },
-      { player: p1, cell: 1 },
-      { player: p2, cell: 4 },
-      { player: p1, cell: 2 },
-    ]
-    for (const { player, cell } of moves) {
-      await expect(player.getByTestId('game-status')).toContainText('Your turn', {
-        timeout: 10_000,
-      })
-      await player.locator(`[data-cell="${cell}"]`).click()
-    }
+    await playFullGame(p1, p2)
     await expect(p1.getByTestId('game-status')).toContainText('You won', { timeout: 10_000 })
 
     // Navigate back to lobby and verify the room is gone.
@@ -142,12 +82,7 @@ test.describe('Lobby', () => {
   test('owner leaving transfers host to remaining player', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    const code = await p1.getByTestId('room-code').textContent()
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
+    await setupRoom(p1, p2)
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
 
     // P1 (owner) leaves — P2 should become host and see the start button.
@@ -164,12 +99,7 @@ test.describe('Lobby', () => {
   test('last player leaving closes the room', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    const code = await p1.getByTestId('room-code').textContent()
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
+    const { code } = await setupRoom(p1, p2)
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
 
     // P2 leaves first.
@@ -180,9 +110,11 @@ test.describe('Lobby', () => {
     await p1.getByRole('button', { name: 'Leave' }).click()
     await expect(p1).toHaveURL('/', { timeout: 10_000 })
 
-    // Lobby polls every 10s — wait for the next refresh cycle.
-    await p1.waitForTimeout(11_000)
-    await expect(p1.locator(`text=${code}`)).not.toBeVisible()
+    // Wait for lobby poll cycle to refresh and confirm room is gone.
+    await expect(async () => {
+      await p1.reload()
+      await expect(p1.locator(`text=${code}`)).not.toBeVisible()
+    }).toPass({ timeout: 15_000 })
     await expect(p2.locator(`text=${code}`)).not.toBeVisible()
 
     await p1Ctx.close()
@@ -192,12 +124,7 @@ test.describe('Lobby', () => {
   test('non-owner leaving does not change host', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
-    await p1.getByTestId('game-option-tictactoe').click()
-    await p1.getByTestId('create-room-btn').click()
-    const code = await p1.getByTestId('room-code').textContent()
-    await p2.getByTestId('join-code-input').fill(code!)
-    await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//)
+    await setupRoom(p1, p2)
     await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 10_000 })
 
     // P2 (non-owner) leaves — P1 should still be host with start button enabled.

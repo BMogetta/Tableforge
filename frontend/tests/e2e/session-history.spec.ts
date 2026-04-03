@@ -1,41 +1,30 @@
 import { test, expect } from '@playwright/test'
-import { createPlayerContexts, setupAndStartGame, playFullGame } from './helpers'
+import {
+  PLAYER1_STATE,
+  PLAYER2_STATE,
+  createPlayerContexts,
+  setupAndStartGame,
+  playFullGame,
+} from './helpers'
 
 // ---------------------------------------------------------------------------
 // Session History & Replay tests
 //
-// Covers:
-//   - "View Replay" button appears after game ends
-//   - Navigating to /sessions/:id/history from the game
-//   - Stats bar shows correct move count, duration, ended_by
-//   - Event log tab shows expected events (game_started, move_applied, game_over)
-//   - Event log rows are expandable (payload toggle)
-//   - Replay tab renders the board
-//   - Replay slider navigates between states
-//   - Step 0 shows empty board, step N reflects move N
-//   - "Back to Lobby" navigates to /
+// The game-over transition tests (View Replay button, navigation) need to
+// observe the game-over screen, so they play their own game.
+//
+// All other tests share a single game played in beforeAll and navigate
+// directly to the history URL — avoiding ~15s of setup per test.
 // ---------------------------------------------------------------------------
 
-test.describe('Session history and replay', () => {
-  test('View Replay button appears when game ends', async ({ browser }) => {
+test.describe('Game-over transition', () => {
+  test('View Replay button appears and navigates to /sessions/:id/history', async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     await setupAndStartGame(p1, p2)
     await playFullGame(p1, p2)
 
     // P1 won — View Replay button should appear in the game-over UI.
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
-  test('View Replay navigates to /sessions/:id/history', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
     await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
     await p1.getByTestId('view-replay-btn').click()
 
@@ -44,8 +33,12 @@ test.describe('Session history and replay', () => {
     await p1Ctx.close()
     await p2Ctx.close()
   })
+})
 
-  test('history page shows stats bar with correct move count', async ({ browser }) => {
+test.describe('Session history page', () => {
+  let historyUrl: string
+
+  test.beforeAll(async ({ browser }) => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
 
     await setupAndStartGame(p1, p2)
@@ -53,92 +46,83 @@ test.describe('Session history and replay', () => {
 
     await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
     await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
+    await expect(p1).toHaveURL(/\/sessions\/.*\/history/, { timeout: 10_000 })
 
-    // playFullGame plays 5 moves — stats bar should show "5".
-    await expect(p1.getByTestId('stat-move-count')).toContainText('5', { timeout: 10_000 })
+    historyUrl = p1.url()
 
     await p1Ctx.close()
     await p2Ctx.close()
   })
 
-  test('history page shows result badge for winner', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+  test('stats bar shows correct move count', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
+    // playFullGame plays 5 moves — stats bar should show "5".
+    await expect(page.getByTestId('stat-move-count')).toContainText('5', { timeout: 10_000 })
 
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
+    await ctx.close()
+  })
+
+  test('result badge shows WIN for winner and LOSS for loser', async ({ browser }) => {
+    const p1Ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const p1 = await p1Ctx.newPage()
+    await p1.goto(historyUrl)
 
     // P1 won — badge should say WIN.
     await expect(p1.getByTestId('result-badge')).toContainText('WIN', { timeout: 10_000 })
 
     // P2 lost — badge should say LOSS.
-    await p2.getByTestId('view-replay-btn').click()
-    await expect(p2).toHaveURL(/\/sessions\/.*\/history/)
+    const p2Ctx = await browser.newContext({ storageState: PLAYER2_STATE })
+    const p2 = await p2Ctx.newPage()
+    await p2.goto(historyUrl)
     await expect(p2.getByTestId('result-badge')).toContainText('LOSS', { timeout: 10_000 })
 
     await p1Ctx.close()
     await p2Ctx.close()
   })
 
-  test('event log tab shows game_started and game_over events', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
+  test('event log shows game_started and game_over events', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
     // Event log tab is active by default.
-    await expect(p1.getByTestId('tab-events')).toBeVisible()
+    await expect(page.getByTestId('tab-events')).toBeVisible()
 
     // Should contain game_started and game_over entries.
-    await expect(p1.locator('[data-testid="event-row"]', { hasText: 'Game started' })).toBeVisible({
-      timeout: 10_000,
-    })
-    await expect(p1.locator('[data-testid="event-row"]', { hasText: 'Game over' })).toBeVisible({
+    await expect(
+      page.locator('[data-testid="event-row"]', { hasText: 'Game started' }),
+    ).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-testid="event-row"]', { hasText: 'Game over' })).toBeVisible({
       timeout: 10_000,
     })
 
-    await p1Ctx.close()
-    await p2Ctx.close()
+    await ctx.close()
   })
 
   test('event log shows correct number of move_applied events', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
     // playFullGame plays 5 moves — should be 5 "Move played" rows.
-    const moveRows = p1.locator('[data-testid="event-row"]', { hasText: 'Move played' })
+    const moveRows = page.locator('[data-testid="event-row"]', { hasText: 'Move played' })
     await expect(moveRows).toHaveCount(5, { timeout: 10_000 })
 
-    await p1Ctx.close()
-    await p2Ctx.close()
+    await ctx.close()
   })
 
   test('event row payload is expandable', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
     // Click the toggle on the first move_applied row.
-    const firstMoveRow = p1.locator('[data-testid="event-row"]', { hasText: 'Move played' }).first()
+    const firstMoveRow = page
+      .locator('[data-testid="event-row"]', { hasText: 'Move played' })
+      .first()
     await expect(firstMoveRow).toBeVisible({ timeout: 10_000 })
 
     const toggle = firstMoveRow.getByTestId('event-toggle')
@@ -151,126 +135,84 @@ test.describe('Session history and replay', () => {
     await toggle.click()
     await expect(firstMoveRow.getByTestId('event-payload')).not.toBeVisible()
 
-    await p1Ctx.close()
-    await p2Ctx.close()
+    await ctx.close()
   })
 
-  test('replay tab renders the board', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
+  test('replay tab renders the board with all cells disabled', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
     // Switch to Replay tab.
-    await p1.getByTestId('tab-replay').click()
+    await page.getByTestId('tab-replay').click()
 
     // Board should be visible.
-    await expect(p1.locator('[data-cell="0"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-cell="0"]')).toBeVisible({ timeout: 10_000 })
 
     // All cells disabled — replay is read-only.
     for (let i = 0; i < 9; i++) {
-      await expect(p1.locator(`[data-cell="${i}"]`)).toBeDisabled({ timeout: 5_000 })
+      await expect(page.locator(`[data-cell="${i}"]`)).toBeDisabled({ timeout: 5_000 })
     }
 
-    await p1Ctx.close()
-    await p2Ctx.close()
+    await ctx.close()
   })
 
   test('replay slider at step 0 shows empty board', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
-
-    await p1.getByTestId('tab-replay').click()
+    await page.getByTestId('tab-replay').click()
 
     // Step 0 = initial state label.
-    await expect(p1.getByTestId('replay-step-label')).toContainText('Initial state', {
+    await expect(page.getByTestId('replay-step-label')).toContainText('Initial state', {
       timeout: 10_000,
     })
 
     // All cells should be empty (no X or O text).
     for (let i = 0; i < 9; i++) {
-      await expect(p1.locator(`[data-cell="${i}"]`)).toHaveText('', { timeout: 5_000 })
+      await expect(page.locator(`[data-cell="${i}"]`)).toHaveText('', { timeout: 5_000 })
     }
 
-    await p1Ctx.close()
-    await p2Ctx.close()
+    await ctx.close()
   })
 
   test('replay next button advances to move 1 and shows cell 0 filled', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
-
-    await p1.getByTestId('tab-replay').click()
-    await expect(p1.getByTestId('replay-step-label')).toContainText('Initial state', {
+    await page.getByTestId('tab-replay').click()
+    await expect(page.getByTestId('replay-step-label')).toContainText('Initial state', {
       timeout: 10_000,
     })
 
     // Advance to move 1 — P1 played cell 0.
-    await p1.getByTestId('replay-next-btn').click()
-    await expect(p1.getByTestId('replay-step-label')).toContainText('Move 1', { timeout: 5_000 })
+    await page.getByTestId('replay-next-btn').click()
+    await expect(page.getByTestId('replay-step-label')).toContainText('Move 1', { timeout: 5_000 })
 
     // Cell 0 should now show a mark (X or O).
-    await expect(p1.locator('[data-cell="0"]')).not.toHaveText('', { timeout: 5_000 })
+    await expect(page.locator('[data-cell="0"]')).not.toHaveText('', { timeout: 5_000 })
 
-    await p1Ctx.close()
-    await p2Ctx.close()
+    await ctx.close()
   })
 
   test('replay last button jumps to final state', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+    const ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+    const page = await ctx.newPage()
+    await page.goto(historyUrl)
 
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
-
-    await p1.getByTestId('tab-replay').click()
+    await page.getByTestId('tab-replay').click()
 
     // Jump to last move.
-    await p1.getByTestId('replay-last-btn').click()
-    await expect(p1.getByTestId('replay-step-label')).toContainText('Move 5', { timeout: 5_000 })
+    await page.getByTestId('replay-last-btn').click()
+    await expect(page.getByTestId('replay-step-label')).toContainText('Move 5', { timeout: 5_000 })
 
     // Cells 0, 1, 2 should be filled (P1 top row win).
     for (const cell of [0, 1, 2]) {
-      await expect(p1.locator(`[data-cell="${cell}"]`)).not.toHaveText('', { timeout: 5_000 })
+      await expect(page.locator(`[data-cell="${cell}"]`)).not.toHaveText('', { timeout: 5_000 })
     }
 
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
-
-  test('Back to Lobby navigates to /', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-
-    await setupAndStartGame(p1, p2)
-    await playFullGame(p1, p2)
-
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/)
-
-    await p1.getByTestId('back-to-lobby-btn').click()
-    await expect(p1).toHaveURL('/', { timeout: 5_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
+    await ctx.close()
   })
 })

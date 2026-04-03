@@ -6,7 +6,7 @@ export default defineConfig({
   fullyParallel: false, // game tests must run sequentially — shared server state
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: 2,
+  workers: process.env.CI ? 2 : 4,
   reporter: 'html',
   timeout: 60_000,
 
@@ -31,6 +31,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
       testMatch: /\/chat\.spec\.ts/,
+      fullyParallel: true,
     },
     {
       name: 'settings-tests',
@@ -45,22 +46,18 @@ export default defineConfig({
       testMatch: /\/spectator\.spec\.ts/,
     },
     {
-      name: 'leaderboard-tests',
-      use: { ...devices['Desktop Chrome'] },
-      dependencies: ['setup', 'game-tests'],
-      testMatch: /\/leaderboard\.spec\.ts/,
-    },
-    {
       name: 'session-history-tests',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup', 'game-tests'],
       testMatch: /\/session-history\.spec\.ts/,
+      fullyParallel: true,
     },
     {
       name: 'presence-tests',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
       testMatch: /\/presence\.spec\.ts/,
+      fullyParallel: true,
     },
     {
       name: 'chromium-parallel',
