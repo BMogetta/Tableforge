@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-routing coverage logs ps clean clean-test gen-types gen-proto setup lint
+.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-e2e-readme test-routing coverage logs ps clean clean-test gen-types gen-proto setup lint
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +70,11 @@ coverage:
 # Requires: make up-app first.
 test-routing:
 	@bash scripts/test-routing.sh
+
+# Run Playwright tests and update the e2e section in README.md.
+# Requires: make up-test && make seed-test first.
+test-e2e-readme:
+	@bash scripts/update-e2e-readme.sh
 
 # Run all Playwright tests.
 # Requires: make up-test && make seed-test first.
