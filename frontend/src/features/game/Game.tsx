@@ -21,6 +21,7 @@ import { usePauseResume } from './hooks/usePauseResume'
 import { useRematch } from './hooks/useRematch'
 import { SessionCache } from './api/session-cache'
 import { ResultStatus } from '@/lib/api'
+import { requestPermission, acquireWakeLock, releaseWakeLock } from '@/lib/turn-notifier'
 
 export function Game({ sessionId }: { sessionId: string }) {
   const player = useAppStore(s => s.player)!
@@ -65,6 +66,14 @@ export function Game({ sessionId }: { sessionId: string }) {
     setShowSurrenderModal(false)
     setMoveError(null)
   }, [sessionId])
+
+  // Request notification permission on game start + manage WakeLock.
+  useEffect(() => {
+    if (isSpectator) return
+    requestPermission()
+    acquireWakeLock()
+    return () => { releaseWakeLock() }
+  }, [sessionId, isSpectator])
 
   function handleGameOver(winnerId: string | null, isDraw: boolean) {
     setGameOver({ isOver: true, winnerId, isDraw })

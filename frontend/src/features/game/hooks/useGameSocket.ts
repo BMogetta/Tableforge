@@ -5,6 +5,8 @@ import { type RoomSocket, type PlayerSocket, type WsPayloadMoveResult } from '@/
 import type { PauseResumeState } from './usePauseResume'
 import type { RematchState } from './useRematch'
 import { ResultStatus } from '@/lib/api'
+import { notifyTurn } from '@/lib/turn-notifier'
+import { useAppStore } from '@/stores/store'
 import type { SessionCache } from '../api/session-cache'
 
 interface UseGameSocketOptions {
@@ -75,6 +77,11 @@ export function useGameSocket({
         state: payload.state,
         is_over: false,
       })
+      // Notify if it's now the local player's turn and the tab is hidden.
+      const localId = useAppStore.getState().player?.id
+      if (localId && payload.state.current_player_id === localId) {
+        notifyTurn()
+      }
     } else {
       qc.setQueryData(keys.session(sessionId), {
         session: payload.session,
