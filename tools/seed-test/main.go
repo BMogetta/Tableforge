@@ -63,6 +63,13 @@ func main() {
 		}
 	}
 
+	// Lower turn timeouts so e2e tests don't wait 30s for a timeout.
+	_, err = conn.Exec(ctx,
+		`UPDATE game_configs SET default_timeout_secs = 5, min_timeout_secs = 5`)
+	if err != nil {
+		log.Printf("warn: update game_configs timeouts: %v", err)
+	}
+
 	out := make(map[string]string, playerCount)
 	for i, id := range ids {
 		out[fmt.Sprintf("player%d_id", i+1)] = id

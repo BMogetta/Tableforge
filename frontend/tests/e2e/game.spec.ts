@@ -29,11 +29,11 @@ test.describe('TicTacToe game', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupAndStartGame(p1, p2, pair.p1Id)
 
-    // Neither player moves. The server's turn timer fires after default_timeout_secs (30s)
-    // and broadcasts game_over with the idle player as the loser.
-    // Timeout is 35s to give the server a few seconds of margin.
-    await expect(p1.getByTestId('game-status')).toContainText('You lost', { timeout: 35_000 })
-    await expect(p2.getByTestId('game-status')).toContainText('You won', { timeout: 35_000 })
+    // Neither player moves. The server's turn timer fires after default_timeout_secs
+    // (5s in test mode, 30s in dev) and broadcasts game_over with the idle player
+    // as the loser. Timeout is 10s to give the server margin.
+    await expect(p1.getByTestId('game-status')).toContainText('You lost', { timeout: 10_000 })
+    await expect(p2.getByTestId('game-status')).toContainText('You won', { timeout: 10_000 })
 
     await p1Ctx.close()
     await p2Ctx.close()
