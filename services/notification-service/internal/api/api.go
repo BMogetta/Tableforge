@@ -90,6 +90,9 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, apierrors.InternalError)
 		return
 	}
+	if notifications == nil {
+		notifications = []store.Notification{}
+	}
 	writeJSON(w, http.StatusOK, notifications)
 }
 
