@@ -139,3 +139,58 @@ func TestGameSessionFlow(t *testing.T) {
 		t.Errorf("expected move_count 1, got %d", fetched.MoveCount)
 	}
 }
+
+func TestMoveStateAfterRoundTrip(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	owner, _ := s.CreatePlayer(ctx, "frank")
+	room, _ := s.CreateRoom(ctx, store.CreateRoomParams{
+		Code:       "MOVE0001",
+		GameID:     "tictactoe",
+		OwnerID:    owner.ID,
+		MaxPlayers: 2,
+	})
+
+	initialState := []byte(`{"current_player_id":"` + owner.ID.String() + `","data":{}}`)
+	session, err := s.CreateGameSession(ctx, room.ID, "tictactoe", initialState, nil, store.SessionModeCasual)
+	if err != nil {
+		t.Fatalf("CreateGameSession: %v", err)
+	}
+
+	stateAfter := []byte(`{"current_player_id":"` + owner.ID.String() + `","data":{"board":["X","","","","","","","",""]}}`)
+	move, err := s.RecordMove(ctx, store.RecordMoveParams{
+		SessionID:  session.ID,
+		PlayerID:   owner.ID,
+		Payload:    []byte(`{"x":0,"y":0}`),
+		StateAfter: stateAfter,
+		MoveNumber: 1,
+	})
+	if err != nil {
+		t.Fatalf("RecordMove: %v", err)
+	}
+	if string(move.StateAfter) != string(stateAfter) {
+		t.Errorf("RecordMove: state_after mismatch")
+	}
+
+	// Verify ListSessionMoves returns state_after.
+	moves, err := s.ListSessionMoves(ctx, session.ID)
+	if err != nil {
+		t.Fatalf("ListSessionMoves: %v", err)
+	}
+	if len(moves) != 1 {
+		t.Fatalf("expected 1 move, got %d", len(moves))
+	}
+	if string(moves[0].StateAfter) != string(stateAfter) {
+		t.Errorf("ListSessionMoves: state_after mismatch")
+	}
+
+	// Verify GetMoveAt returns state_after.
+	fetched, err := s.GetMoveAt(ctx, session.ID, 1)
+	if err != nil {
+		t.Fatalf("GetMoveAt: %v", err)
+	}
+	if string(fetched.StateAfter) != string(stateAfter) {
+		t.Errorf("GetMoveAt: state_after mismatch")
+	}
+}

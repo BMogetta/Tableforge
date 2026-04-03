@@ -387,6 +387,7 @@ func (f *FakeStore) RecordMove(_ context.Context, params store.RecordMoveParams)
 		SessionID:  params.SessionID,
 		PlayerID:   params.PlayerID,
 		Payload:    params.Payload,
+		StateAfter: params.StateAfter,
 		MoveNumber: params.MoveNumber,
 		AppliedAt:  time.Now(),
 	}

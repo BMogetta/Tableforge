@@ -40,14 +40,6 @@ export function Profile({ playerId }: { playerId: string }) {
     <div className={`${styles.root} page-enter`}>
       <div className={styles.container}>
         <header className={styles.header}>
-          <button
-            className='btn btn-ghost'
-            onClick={() => navigate({ to: '/' })}
-            style={{ fontSize: 11 }}
-          >
-            ← Lobby
-          </button>
-
           <ProfileHeader
             playerId={playerId}
             username={currentPlayer && isOwnProfile ? currentPlayer.username : undefined}

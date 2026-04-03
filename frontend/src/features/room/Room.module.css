@@ -1,5 +1,5 @@
 .root {
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -41,10 +41,15 @@
     background var(--transition);
 }
 
-.toolbarBtn:hover {
+.toolbarBtn:hover:not(:disabled) {
   color: var(--color-text-primary);
   border-color: var(--color-border-bright);
   background: var(--color-bg-hover);
+}
+
+.toolbarBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .toolbarBtnActive {

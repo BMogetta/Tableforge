@@ -5,9 +5,10 @@ import { testId } from '@/utils/testId'
 interface Props {
   view: RoomView
   onJoin: () => void
+  disabled?: boolean
 }
 
-export function RoomCard({ view, onJoin }: Props) {
+export function RoomCard({ view, onJoin, disabled }: Props) {
   const { room, players, settings } = view
   const isPrivate = settings?.room_visibility === 'private'
 
@@ -34,7 +35,7 @@ export function RoomCard({ view, onJoin }: Props) {
           {players.length}/{room.max_players} players
         </span>
         {!isPrivate && (
-          <button className='btn btn-ghost' onClick={onJoin} style={{ padding: '4px 12px' }}>
+          <button className='btn btn-ghost' onClick={onJoin} disabled={disabled} style={{ padding: '4px 12px' }}>
             Join →
           </button>
         )}

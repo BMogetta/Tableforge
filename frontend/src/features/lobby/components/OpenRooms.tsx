@@ -7,7 +7,7 @@ import styles from './OpenRooms.module.css'
 import { useNavigate } from '@tanstack/react-router'
 import { testId } from '@/utils/testId'
 
-export function OpenRooms() {
+export function OpenRooms({ disabled }: { disabled?: boolean }) {
   const navigate = useNavigate()
 
   const { data: roomList = [], isLoading } = useQuery({
@@ -37,6 +37,7 @@ export function OpenRooms() {
             <RoomCard
               key={view.room.id}
               view={view}
+              disabled={disabled}
               onJoin={() =>
                 navigate({
                   to: '/rooms/$roomId',

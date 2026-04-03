@@ -58,6 +58,14 @@ func New(s store.Store, registry GameRegistry) *Service {
 }
 
 // CreateRoom creates a new room and adds the owner as the first player.
+// TODO: CreateRoom and JoinRoom should reject human players who are already
+// in another waiting room or have an active (unfinished) game session.
+// Currently only the frontend blocks this via ActiveGameBanner; the backend
+// does not enforce it. Enforcement requires a store query like
+// "SELECT 1 FROM room_players rp JOIN rooms r ON r.id = rp.room_id
+//  WHERE rp.player_id = $1 AND r.status IN ('waiting','in_progress')
+//  AND r.deleted_at IS NULL" or checking ListActiveSessions.
+
 func (svc *Service) CreateRoom(ctx context.Context, gameID string, ownerID uuid.UUID, turnTimeoutSecs *int) (RoomView, error) {
 	game, err := svc.registry.Get(gameID)
 	if err != nil {

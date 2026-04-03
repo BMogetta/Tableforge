@@ -6,7 +6,7 @@ import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import { Settings } from '@/ui/Settings'
 import { NotificationsPanel } from '@/features/notifications/components/NotificationsPanel'
-import styles from './LobbyHeader.module.css'
+import styles from './AppHeader.module.css'
 import { Link } from '@tanstack/react-router'
 import { testId } from '@/utils/testId'
 
@@ -14,7 +14,7 @@ interface Props {
   onLogout: () => void
 }
 
-export function LobbyHeader({ onLogout }: Props) {
+export function AppHeader({ onLogout }: Props) {
   const player = useAppStore(s => s.player)!
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifsOpen, setNotifsOpen] = useState(false)
@@ -37,10 +37,10 @@ export function LobbyHeader({ onLogout }: Props) {
   return (
     <>
       <header className={styles.header}>
-        <div className={styles.logo}>
+        <Link to='/' className={styles.logo}>
           <span className={styles.logoIcon}>♟</span>
           <span className={styles.logoText}>RECESS</span>
-        </div>
+        </Link>
 
         <div className={styles.actions}>
           {/* Notifications bell */}

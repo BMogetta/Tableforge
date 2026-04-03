@@ -61,15 +61,12 @@ export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): 
   const pauseMutation = useMutation({
     mutationFn: () => sessions.pause(sessionId, playerId),
     onSuccess: res => {
+      setVotedPause(true)
       if (res.all_voted) {
         setIsSuspended(true)
         setPauseVotes([])
-        setVotedPause(true)
-      } else {
-        setVotedPause(true)
-        setPauseVotes(res.votes)
-        setPauseRequired(res.required)
       }
+      // Vote list is updated via WS pause_vote_update event.
     },
     onError: e => toast.showError(catchToAppError(e)),
   })
@@ -77,19 +74,15 @@ export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): 
   const resumeMutation = useMutation({
     mutationFn: () => sessions.resume(sessionId, playerId),
     onSuccess: res => {
+      setVotedResume(true)
       if (res.all_voted) {
-        // Consensus reached — resume immediately without waiting for WS event.
-        // Invalidate session query so the timer picks up the fresh last_move_at.
         setIsSuspended(false)
         setResumeVotes([])
         setVotedPause(false)
         setVotedResume(false)
         qc.invalidateQueries({ queryKey: keys.session(sessionId) })
-      } else {
-        setVotedResume(true)
-        setResumeVotes(res.votes)
-        setResumeRequired(res.required)
       }
+      // Vote list is updated via WS resume_vote_update event.
     },
     onError: e => toast.showError(catchToAppError(e)),
   })

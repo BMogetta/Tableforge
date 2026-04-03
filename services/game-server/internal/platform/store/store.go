@@ -96,6 +96,7 @@ type Move struct {
 	SessionID  uuid.UUID `json:"session_id"`
 	PlayerID   uuid.UUID `json:"player_id"`
 	Payload    []byte    `json:"payload"`
+	StateAfter []byte    `json:"state_after,omitempty"`
 	MoveNumber int       `json:"move_number"`
 	AppliedAt  time.Time `json:"applied_at"`
 }
@@ -286,6 +287,7 @@ type RecordMoveParams struct {
 	SessionID  uuid.UUID
 	PlayerID   uuid.UUID
 	Payload    []byte
+	StateAfter []byte
 	MoveNumber int
 }
 

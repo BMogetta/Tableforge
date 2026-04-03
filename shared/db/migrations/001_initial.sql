@@ -164,6 +164,7 @@ CREATE TABLE moves (
     session_id   UUID         NOT NULL REFERENCES game_sessions(id) ON DELETE CASCADE,
     player_id    UUID         NOT NULL REFERENCES players(id),
     payload      JSONB        NOT NULL DEFAULT '{}',
+    state_after  BYTEA,
     move_number  INT          NOT NULL,
     applied_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     UNIQUE (session_id, move_number)

@@ -203,6 +203,7 @@ export function Room({ roomId }: { roomId: string }) {
       setBotError(err)
     } else {
       refreshRef.current()
+      setActivePopover(null)
     }
     setAddingBot(false)
   }
@@ -250,7 +251,6 @@ export function Room({ roomId }: { roomId: string }) {
   const canStart = isOwner && view.players.length >= 2
   const isPrivate = settings['room_visibility'] === 'private'
   const hasOpenSlot = view.players.length < room.max_players
-  const canAddBot = isOwner && hasOpenSlot && gameHasBotAdapter && botProfiles.length > 0
 
   const visibleDescriptors = settingDescriptors.filter(s => {
     if (s.key === 'first_mover_seat') return settings['first_mover_policy'] === 'fixed'
@@ -259,9 +259,11 @@ export function Room({ roomId }: { roomId: string }) {
 
   const hasSettings = visibleDescriptors.length > 0
 
+  const showBotButton = isOwner && gameHasBotAdapter && botProfiles.length > 0
+
   const toolbarItems = [
     { id: 'settings' as const, label: 'Settings', icon: SettingsIcon, visible: hasSettings },
-    { id: 'bot' as const, label: 'Add Bot', icon: BotIcon, visible: canAddBot },
+    { id: 'bot' as const, label: 'Add Bot', icon: BotIcon, visible: showBotButton, disabled: !hasOpenSlot },
     { id: 'invite' as const, label: 'Invite Code', icon: InviteIcon, visible: isParticipant },
     { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true },
   ]

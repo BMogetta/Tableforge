@@ -10,6 +10,7 @@ interface ToolbarItem {
   icon: ReactNode
   badge?: number
   visible: boolean
+  disabled?: boolean
 }
 
 interface Props {
@@ -31,6 +32,7 @@ export function RoomToolbar({ items, activePopover, onToggle, children }: Props)
             className={`${styles.toolbarBtn} ${activePopover === item.id ? styles.toolbarBtnActive : ''}`}
             onClick={() => onToggle(item.id)}
             title={item.label}
+            disabled={item.disabled}
             {...testId(`toolbar-${item.id}`)}
           >
             {item.icon}

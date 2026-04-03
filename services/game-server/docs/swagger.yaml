@@ -51,15 +51,7 @@ definitions:
         type: integer
       name:
         type: string
-      pause_votes:
-        items:
-          type: string
-        type: array
       ready_players:
-        items:
-          type: string
-        type: array
-      resume_votes:
         items:
           type: string
         type: array
@@ -89,6 +81,8 @@ definitions:
         type: string
       session_id:
         type: string
+      state_after:
+        type: string
     type: object
   MoveResponse:
     properties:
@@ -107,13 +101,11 @@ definitions:
           changed.
         type: boolean
       required:
-        description: Required is the total number of participants who must vote.
+        description: Required is the number of human participants who must vote.
         type: integer
       votes:
-        description: Votes is the list of player IDs that have voted so far.
-        items:
-          type: string
-        type: array
+        description: Votes is the number of players that have voted so far.
+        type: integer
     type: object
   ReadyVoteResult:
     properties:

@@ -533,13 +533,13 @@ func (s *PGStore) GetLastFinishedSession(ctx context.Context, roomID uuid.UUID) 
 
 func (s *PGStore) RecordMove(ctx context.Context, params RecordMoveParams) (Move, error) {
 	row := s.pool.QueryRow(ctx,
-		`INSERT INTO moves (session_id, player_id, payload, move_number)
-		 VALUES ($1, $2, $3, $4)
-		 RETURNING id, session_id, player_id, payload, move_number, applied_at`,
-		params.SessionID, params.PlayerID, params.Payload, params.MoveNumber,
+		`INSERT INTO moves (session_id, player_id, payload, state_after, move_number)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, session_id, player_id, payload, state_after, move_number, applied_at`,
+		params.SessionID, params.PlayerID, params.Payload, params.StateAfter, params.MoveNumber,
 	)
 	var m Move
-	if err := row.Scan(&m.ID, &m.SessionID, &m.PlayerID, &m.Payload, &m.MoveNumber, &m.AppliedAt); err != nil {
+	if err := row.Scan(&m.ID, &m.SessionID, &m.PlayerID, &m.Payload, &m.StateAfter, &m.MoveNumber, &m.AppliedAt); err != nil {
 		return Move{}, fmt.Errorf("RecordMove: %w", err)
 	}
 	return m, nil
@@ -559,7 +559,7 @@ func (s *PGStore) ListSessionMoves(ctx context.Context, sessionID uuid.UUID) ([]
 	moves := []Move{}
 	for rows.Next() {
 		var m Move
-		if err := rows.Scan(&m.ID, &m.SessionID, &m.PlayerID, &m.Payload, &m.MoveNumber, &m.AppliedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.SessionID, &m.PlayerID, &m.Payload, &m.StateAfter, &m.MoveNumber, &m.AppliedAt); err != nil {
 			return nil, fmt.Errorf("ListSessionMoves scan: %w", err)
 		}
 		moves = append(moves, m)
@@ -574,7 +574,7 @@ func (s *PGStore) GetMoveAt(ctx context.Context, sessionID uuid.UUID, moveNumber
 		sessionID, moveNumber,
 	)
 	var m Move
-	if err := row.Scan(&m.ID, &m.SessionID, &m.PlayerID, &m.Payload, &m.MoveNumber, &m.AppliedAt); err != nil {
+	if err := row.Scan(&m.ID, &m.SessionID, &m.PlayerID, &m.Payload, &m.StateAfter, &m.MoveNumber, &m.AppliedAt); err != nil {
 		return Move{}, fmt.Errorf("GetMoveAt: %w", err)
 	}
 	return m, nil

@@ -15,9 +15,10 @@ interface Props {
   gameList: GameInfo[]
   effectiveGame: string
   onGameChange: (id: string) => void
+  disabled?: boolean
 }
 
-export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
+export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }: Props) {
   const player = useAppStore(s => s.player)!
   const playerSocket = useAppStore(s => s.playerSocket)
   const queueStatus = useAppStore(s => s.queueStatus)
@@ -181,7 +182,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
               {...testId('create-room-btn')}
               className='btn btn-primary'
               onClick={() => createRoom.mutate()}
-              disabled={createRoom.isPending || !effectiveGame}
+              disabled={disabled || createRoom.isPending || !effectiveGame}
             >
               {createRoom.isPending ? 'Creating...' : '+ Create Room'}
             </button>
@@ -202,7 +203,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
                 {...testId('join-btn')}
                 className='btn btn-ghost'
                 onClick={() => joinRoom.mutate()}
-                disabled={joinRoom.isPending}
+                disabled={disabled || joinRoom.isPending}
               >
                 Join
               </button>
@@ -216,7 +217,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange }: Props) {
               <button
                 className='btn btn-primary'
                 onClick={() => joinQueue.mutate()}
-                disabled={joinQueue.isPending || !effectiveGame}
+                disabled={disabled || joinQueue.isPending || !effectiveGame}
               >
                 {joinQueue.isPending ? 'Joining...' : 'Find Match'}
               </button>

@@ -5,7 +5,6 @@ import { SessionEventDTO } from '@/lib/api-generated'
 import { keys } from '@/lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
-import { useNavigate } from '@tanstack/react-router'
 import { sessions } from '@/lib/api/sessions'
 import { MoveDTO } from '@/lib/api-generated'
 import { testId } from '@/utils/testId'
@@ -108,12 +107,10 @@ function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
   }
 
   const currentMove = moves[step - 1] ?? null
-  const stateAfter = currentMove
+  const stateAfter = currentMove?.state_after
     ? (() => {
-        const raw = (currentMove as MoveDTO & { state_after?: string }).state_after
-        if (!raw) return null
         try {
-          return JSON.parse(atob(raw)) as { current_player_id: string; data: unknown }
+          return JSON.parse(atob(currentMove.state_after!)) as { current_player_id: string; data: unknown }
         } catch {
           return null
         }
@@ -216,7 +213,6 @@ function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
 type Tab = 'events' | 'replay'
 
 export function SessionHistory({ sessionId }: { sessionId: string }) {
-  const navigate = useNavigate()
   const player = useAppStore(s => s.player)!
   const [tab, setTab] = useState<Tab>('events')
 
@@ -255,14 +251,6 @@ export function SessionHistory({ sessionId }: { sessionId: string }) {
       <div className={styles.container}>
         {/* Header */}
         <header className={styles.header}>
-          <button
-            className='btn btn-ghost'
-            {...testId('back-to-lobby-btn')}
-            onClick={() => navigate({ to: '/' })}
-            style={{ fontSize: 11 }}
-          >
-            ← Lobby
-          </button>
           <div className={styles.headerCenter}>
             <span className={styles.gameLabel}>{session?.game_id ?? '—'}</span>
             <span className={styles.sessionId}>{sessionId?.slice(0, 8).toUpperCase()}</span>

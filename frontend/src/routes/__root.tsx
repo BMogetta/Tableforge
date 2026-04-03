@@ -5,6 +5,7 @@ import { useAppStore, type ResolvedSettings } from '../stores/store'
 import { auth, wsPlayerUrl, playerSettings } from '@/lib/api'
 import { friends } from '@/features/friends/api'
 import { keys } from '@/lib/queryClient'
+import { AppHeader } from '@/features/lobby/components/AppHeader'
 import { FriendsPanel, FriendsButton } from '@/features/friends/components/FriendsPanel'
 import { DMInboxPanel } from '@/features/friends/components/DMInboxPanel'
 import { ToastProvider } from '../ui/Toast'
@@ -209,7 +210,7 @@ function NotFound() {
 }
 
 function RootComponent() {
-  const { player, disconnectPlayerSocket, dmTarget, setDmTarget } = useAppStore()
+  const { player, setPlayer, disconnectPlayerSocket, dmTarget, setDmTarget } = useAppStore()
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [dmInboxOpen, setDmInboxOpen] = useState(false)
 
@@ -218,6 +219,12 @@ function RootComponent() {
       disconnectPlayerSocket()
     }
   }, [player])
+
+  async function handleLogout() {
+    await auth.logout()
+    setPlayer(null)
+    window.location.href = '/login'
+  }
 
   // Open DM inbox when dmTarget is set from anywhere (PlayerDropdown, FriendItem)
   useEffect(() => {
@@ -238,7 +245,12 @@ function RootComponent() {
   return (
     <ToastProvider>
       <ErrorBoundary>
-        <Outlet />
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          {player && <AppHeader onLogout={handleLogout} />}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Outlet />
+          </div>
+        </div>
 
         {player && (
           <>

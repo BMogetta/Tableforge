@@ -191,6 +191,7 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		SessionID:  sessionID,
 		PlayerID:   playerID,
 		Payload:    payloadJSON,
+		StateAfter: stateJSON,
 		MoveNumber: moveNumber,
 	}); err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: record move: %w", err)

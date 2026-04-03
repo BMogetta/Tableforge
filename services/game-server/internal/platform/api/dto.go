@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"time"
 
@@ -58,12 +59,13 @@ func sessionToDTO(s store.GameSession) GameSessionDTO {
 }
 
 // MoveDTO is the client-facing representation of a session move.
-// Excludes StateAfter []byte and converts Payload to interface{}.
+// StateAfter is base64-encoded JSON of the game state after this move.
 type MoveDTO struct {
 	ID         uuid.UUID   `json:"id"`
 	SessionID  uuid.UUID   `json:"session_id"`
 	PlayerID   uuid.UUID   `json:"player_id"`
 	Payload    interface{} `json:"payload"`
+	StateAfter string      `json:"state_after,omitempty"`
 	MoveNumber int         `json:"move_number"`
 	AppliedAt  time.Time   `json:"applied_at"`
 }
@@ -73,11 +75,16 @@ func moveToDTO(m store.Move) MoveDTO {
 	if len(m.Payload) > 0 {
 		json.Unmarshal(m.Payload, &payload)
 	}
+	var stateAfter string
+	if len(m.StateAfter) > 0 {
+		stateAfter = base64.StdEncoding.EncodeToString(m.StateAfter)
+	}
 	return MoveDTO{
 		ID:         m.ID,
 		SessionID:  m.SessionID,
 		PlayerID:   m.PlayerID,
 		Payload:    payload,
+		StateAfter: stateAfter,
 		MoveNumber: m.MoveNumber,
 		AppliedAt:  m.AppliedAt,
 	}

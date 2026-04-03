@@ -1,5 +1,5 @@
 .root {
-  min-height: 100vh;
+  flex: 1;
   background: var(--color-bg-base);
   padding: var(--space-6) var(--space-4) var(--space-12);
 }

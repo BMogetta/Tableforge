@@ -500,19 +500,7 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "pause_votes": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "ready_players": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "resume_votes": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -556,6 +544,9 @@ const docTemplate = `{
                 },
                 "session_id": {
                     "type": "string"
+                },
+                "state_after": {
+                    "type": "string"
                 }
             }
         },
@@ -582,15 +573,12 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "required": {
-                    "description": "Required is the total number of participants who must vote.",
+                    "description": "Required is the number of human participants who must vote.",
                     "type": "integer"
                 },
                 "votes": {
-                    "description": "Votes is the list of player IDs that have voted so far.",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                    "description": "Votes is the number of players that have voted so far.",
+                    "type": "integer"
                 }
             }
         },

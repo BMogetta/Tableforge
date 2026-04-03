@@ -13,7 +13,7 @@ import { GameStatus } from './components/GameStatus'
 import { PauseVoteOverlay } from './components/PauseVoteOverlay'
 import { SuspendedScreen } from './components/SuspendedScreen'
 import { GameOverActions } from './components/GameOverActions'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useBlocker } from '@tanstack/react-router'
 import { GAME_RENDERERS } from '@/games/registry'
 import { useGameSession } from './hooks/useGameSession'
 import { useGameSocket } from './hooks/useGameSocket'
@@ -49,6 +49,15 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   const [showSurrenderModal, setShowSurrenderModal] = useState(false)
   const [moveError, setMoveError] = useState<AppError | null>(null)
+
+  // Block navigation (back button, logo click) during active game.
+  // Shows surrender modal instead of navigating away.
+  const isActiveGame = !gameOver.isOver && !isSpectator
+  const blocker = useBlocker({
+    shouldBlockFn: () => isActiveGame,
+    withResolver: true,
+    enableBeforeUnload: () => isActiveGame,
+  })
 
   // Reset all local state when sessionId changes (rematch creates a new session).
   useEffect(() => {
@@ -306,10 +315,13 @@ export function Game({ sessionId }: { sessionId: string }) {
         )}
       </div>
 
-      {showSurrenderModal && (
+      {(showSurrenderModal || blocker.status === 'blocked') && (
         <SurrenderModal
           onConfirm={() => surrender.mutate()}
-          onCancel={() => setShowSurrenderModal(false)}
+          onCancel={() => {
+            setShowSurrenderModal(false)
+            if (blocker.status === 'blocked') blocker.reset()
+          }}
           isPending={surrender.isPending}
         />
       )}
