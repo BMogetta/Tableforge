@@ -63,6 +63,22 @@ func main() {
 		}
 	}
 
+	// Clean up stale rooms and sessions from previous test runs so players
+	// don't get stuck in "active game" state.
+	for _, id := range ids {
+		// Mark active sessions as finished so the player is free.
+		_, _ = conn.Exec(ctx,
+			`UPDATE game_sessions SET finished_at = NOW(), deleted_at = NOW()
+			 WHERE room_id IN (SELECT room_id FROM room_players WHERE player_id = $1)
+			   AND finished_at IS NULL`, id)
+		// Remove player from all rooms.
+		_, _ = conn.Exec(ctx,
+			`DELETE FROM room_players WHERE player_id = $1`, id)
+	}
+	// Delete rooms with no players left.
+	_, _ = conn.Exec(ctx,
+		`DELETE FROM rooms WHERE id NOT IN (SELECT DISTINCT room_id FROM room_players)`)
+
 	// Lower turn timeouts so e2e tests don't wait 30s for a timeout.
 	_, err = conn.Exec(ctx,
 		`UPDATE game_configs SET default_timeout_secs = 5, min_timeout_secs = 5`)

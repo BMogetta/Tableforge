@@ -105,12 +105,12 @@ Optional interfaces: `StateFilter` (hidden information), `TurnTimeoutHandler` (c
 |---------|--------|--------|
 | chat-tests | 0/5 | ![fail](https://img.shields.io/badge/-all_fail-red) |
 | chromium-parallel | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| game-tests | 0/15 | ![fail](https://img.shields.io/badge/-all_fail-red) |
+| game-tests | 2/15 | ![partial](https://img.shields.io/badge/-2_of_15-yellow) |
 | presence-tests | 1/5 | ![partial](https://img.shields.io/badge/-1_of_5-yellow) |
 | session-history-tests | 0/10 | ![skip](https://img.shields.io/badge/-skipped-lightgrey) |
 | settings-tests | 0/7 | ![fail](https://img.shields.io/badge/-all_fail-red) |
-| spectator-tests | 5/12 | ![partial](https://img.shields.io/badge/-5_of_12-yellow) |
-| **Total** | **7/55** | ![progress](https://img.shields.io/badge/-7_of_55-yellow) |
+| spectator-tests | 4/12 | ![partial](https://img.shields.io/badge/-4_of_12-yellow) |
+| **Total** | **8/55** | ![progress](https://img.shields.io/badge/-8_of_55-yellow) |
 
 _Last updated: 2026-04-03_
 <!-- e2e:end -->
