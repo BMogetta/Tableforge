@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { Card } from '@/ui/cards'
 import { type CardName } from './CardDisplay'
-import { CardDisplay } from './CardDisplay'
+import { CardFace } from './CardFace'
 import styles from './ChancellorModal.module.css'
 import { testId } from '@/utils/testId'
 
@@ -57,11 +58,14 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
           <div className={styles.cards}>
             {choices.map((card, i) => (
               <div key={`${card}-${i}`} className={styles.cardSlot}>
-                <CardDisplay
-                  card={card}
-                  selected={kept === card}
-                  disabled={kept !== null && kept !== card && !remaining.includes(card)}
+                <Card
+                  front={
+                    <div className={styles.face}>
+                      <CardFace card={card} />
+                    </div>
+                  }
                   onClick={() => handleKeep(card)}
+                  disabled={kept !== null && kept !== card && !remaining.includes(card)}
                 />
                 {kept === card && <span className={styles.tagKeep}>Keep</span>}
                 {kept !== null && returnOrder.includes(card) && (
@@ -85,15 +89,17 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
             <div className={styles.cards}>
               {remaining.map((card, i) => {
                 const pos = returnOrder.indexOf(card)
-                const isSelected = pos !== -1
                 return (
                   <div key={`${card}-${i}`} className={styles.cardSlot}>
-                    <CardDisplay
-                      card={card}
-                      selected={isSelected}
+                    <Card
+                      front={
+                        <div className={styles.face}>
+                          <CardFace card={card} />
+                        </div>
+                      }
                       onClick={() => handleReturn(card)}
                     />
-                    {isSelected && (
+                    {pos !== -1 && (
                       <span className={styles.tagReturn} {...testId(`return-order-${pos + 1}`)}>
                         {pos + 1}
                       </span>
