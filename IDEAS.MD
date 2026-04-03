@@ -2,11 +2,11 @@
 
 ---
 
-## 4. TODO — Grafana subdomain migration
+## 4. DONE — Grafana subdomain migration
 
-- [ ] Move Grafana from `localhost/grafana` (path) to `grafana.localhost` (subdomain)
-- [ ] Remove `GF_SERVER_ROOT_URL` env var — no longer needed with subdomain
-- [ ] Update Traefik label: `Host(\`grafana.localhost\`)` instead of `PathPrefix(\`/grafana\`)`
+- [x] Move Grafana from `localhost/grafana` (path) to `grafana.localhost` (subdomain)
+- [x] Remove `GF_SERVER_SERVE_FROM_SUB_PATH` env var — no longer needed with subdomain
+- [x] Update Traefik label: `Host(\`grafana.localhost\`)` instead of `PathPrefix(\`/grafana\`)`
 - [ ] Move all other services to subdomains: `recess.localhost`, `traefik.localhost`, etc.
 - [ ] Verify `*.localhost` resolves on all team machines (Windows may need `/etc/hosts` entry)
 
@@ -14,7 +14,7 @@ Subdomain routing advantage: each service thinks it's at root `/`, no base path 
 
 ---
 
-## 6. Turn notifications when tab is hidden
+## 6. DONE — Turn notifications when tab is hidden
 
 Combination of **Web Notifications API** + pre-unlocked `AudioContext`.
 
@@ -84,11 +84,10 @@ await wakeLock.release()
 
 ### TODOs
 
-- [ ] Create `src/lib/turn-notifier.ts`
-- [ ] Call `unlock()` on every player interaction during a game
-- [ ] Request `Notification` permission when a game session starts
-- [ ] Integrate with WebSocket handler that receives opponent move events
-- [ ] Add WakeLock on game start, release on game end
+- [x] Create `src/lib/turn-notifier.ts`
+- [x] Request `Notification` permission when a game session starts
+- [x] Integrate with WebSocket handler that receives opponent move events
+- [x] Add WakeLock on game start, release on game end
 
 ---
 
