@@ -123,6 +123,7 @@ clean:
 # Run this after adding or modifying shared/schemas/*.json.
 gen-types:
 	@bash scripts/gen-schema-types.sh
+	@node scripts/gen-schema-zod.mjs
 
 # Regenerate all protobuf Go stubs from .proto definitions.
 # Requires: protoc, protoc-gen-go, protoc-gen-go-grpc
