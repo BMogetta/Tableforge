@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/notification.json",
+  "title": "Notification",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "player_id": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["friend_request", "friend_request_accepted", "room_invitation", "ban_issued"]
+    },
+    "payload": {},
+    "read_at": { "type": "string", "format": "date-time" },
+    "action_taken": { "type": "string" },
+    "action_expires_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "player_id", "type", "payload", "created_at"]
+}

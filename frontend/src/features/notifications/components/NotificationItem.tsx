@@ -17,6 +17,7 @@ interface NotificationItemProps {
 
 const labels: Record<NotificationType, string> = {
   friend_request: 'Friend Request',
+  friend_request_accepted: 'Friend Request Accepted',
   room_invitation: 'Room Invitation',
   ban_issued: 'Ban Notice',
 }

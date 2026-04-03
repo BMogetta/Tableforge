@@ -34,6 +34,9 @@ export type MatchHistoryEntry = z.infer<typeof matchHistoryEntrySchema>
 export const moveSchema = z.object({ "id": z.string(), "session_id": z.string(), "player_id": z.string(), "payload": z.any(), "state_after": z.string().optional(), "move_number": z.number().int(), "applied_at": z.string().datetime({ offset: true }) })
 export type Move = z.infer<typeof moveSchema>
 
+export const notificationSchema = z.object({ "id": z.string(), "player_id": z.string(), "type": z.enum(["friend_request","friend_request_accepted","room_invitation","ban_issued"]), "payload": z.any(), "read_at": z.string().datetime({ offset: true }).optional(), "action_taken": z.string().optional(), "action_expires_at": z.string().datetime({ offset: true }).optional(), "created_at": z.string().datetime({ offset: true }) })
+export type Notification = z.infer<typeof notificationSchema>
+
 export const pauseVoteResultSchema = z.object({ "all_voted": z.boolean(), "votes": z.number().int(), "required": z.number().int() })
 export type PauseVoteResult = z.infer<typeof pauseVoteResultSchema>
 

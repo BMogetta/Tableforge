@@ -45,6 +45,7 @@ export type ResultStatus = (typeof ResultStatus)[keyof typeof ResultStatus]
 
 export const NotificationType = {
   FriendRequest: 'friend_request',
+  FriendRequestAccepted: 'friend_request_accepted',
   RoomInvitation: 'room_invitation',
   BanIssued: 'ban_issued',
 } as const
