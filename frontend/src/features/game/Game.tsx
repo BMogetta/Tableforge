@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/store'
 import { sessions } from '@/lib/api/sessions'
 import { catchToAppError, type AppError } from '@/utils/errors'
+import { testAttr } from '@/utils/testId'
 import { useToast } from '@/ui/Toast'
 import { ErrorMessage } from '@/ui/ErrorMessage'
 import { keys } from '@/lib/queryClient'
@@ -236,7 +237,7 @@ export function Game({ sessionId }: { sessionId: string }) {
   return (
     <div
       className={`${styles.root} page-enter`}
-      {...(import.meta.env.VITE_TEST_MODE === 'true' && { 'data-socket-status': socketStatus })}
+      {...testAttr('socket-status', socketStatus)}
     >
       <div className={styles.panel}>
         <GameHeader

@@ -16,7 +16,7 @@ import { RoomActions } from './components/RoomActions'
 import { ConnectionBanner, type SocketStatus } from './components/ConnectionBanner'
 import { RoomToolbar, SettingsIcon, BotIcon, InviteIcon, ChatIcon } from './components/RoomToolbar'
 import styles from './Room.module.css'
-import { testId } from '@/utils/testId'
+import { testId, testAttr } from '@/utils/testId'
 
 type PopoverId = 'settings' | 'bot' | 'invite' | 'chat'
 
@@ -316,7 +316,7 @@ export function Room({ roomId }: { roomId: string }) {
   return (
     <div
       className={`${styles.root} page-enter`}
-      {...(import.meta.env.VITE_TEST_MODE === 'true' && { 'data-socket-status': socketStatus })}
+      {...testAttr('socket-status', socketStatus)}
     >
       <ConnectionBanner status={socketStatus} />
 
