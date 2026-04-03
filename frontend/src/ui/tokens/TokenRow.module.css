@@ -1,0 +1,9 @@
+/* TokenRow — horizontal line of tokens */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+}

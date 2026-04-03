@@ -55,7 +55,7 @@ export interface CardZoneEntry<T> {
 export interface CardZoneProps<T> {
   cards: CardZoneEntry<T>[]
   renderCard: (card: T, index: number) => ReactNode
-  layout?: 'pile' | 'spread'
+  layout?: 'pile' | 'spread' | 'stack'
   zoneRef?: RefObject<HTMLElement | null>
   motionProps?: MotionProps
 }

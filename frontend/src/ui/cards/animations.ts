@@ -74,3 +74,13 @@ export const dealVariants: Variants = {
   animate: { opacity: 1, scale: 1 },
   exit: { opacity: 0, scale: 0.8, y: -30 },
 }
+
+// ---------------------------------------------------------------------------
+// slideIn — card slides into a vertical stack position from above
+// ---------------------------------------------------------------------------
+
+export const slideInVariants: Variants = {
+  initial: { opacity: 0, y: -30, scale: 0.95 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: 20, scale: 0.9 },
+}

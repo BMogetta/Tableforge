@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getFlyOutTarget } from '../animations'
+import { getFlyOutTarget, slideInVariants } from '../animations'
 
 function mockRect(
   left: number,
@@ -28,5 +28,18 @@ describe('getFlyOutTarget', () => {
 
     expect(result.x).toBe(0)
     expect(result.y).toBe(-window.innerHeight)
+  })
+})
+
+describe('slideInVariants', () => {
+  it('has initial, animate, and exit states', () => {
+    expect(slideInVariants).toHaveProperty('initial')
+    expect(slideInVariants).toHaveProperty('animate')
+    expect(slideInVariants).toHaveProperty('exit')
+  })
+
+  it('starts with opacity 0 and ends with opacity 1', () => {
+    expect((slideInVariants.initial as Record<string, number>).opacity).toBe(0)
+    expect((slideInVariants.animate as Record<string, number>).opacity).toBe(1)
   })
 })

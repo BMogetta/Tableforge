@@ -17,6 +17,7 @@ export {
   liftWhileHover,
   getFlyOutTarget,
   flyInVariants,
+  slideInVariants,
   dealVariants,
   springTransition,
 } from './animations'

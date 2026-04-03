@@ -42,6 +42,11 @@ describe('CardZone', () => {
     expect(screen.getByTestId('card-zone')).toBeInTheDocument()
   })
 
+  it('renders with stack layout', () => {
+    const { container } = renderTestZone({ layout: 'stack' })
+    expect(container.querySelector('[class*="stack"]')).toBeInTheDocument()
+  })
+
   it('respects per-card faceDown state', () => {
     renderTestZone()
     const cards = screen.getAllByTestId('card')

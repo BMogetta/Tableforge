@@ -2,7 +2,7 @@ import { useRef, useImperativeHandle } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { testId } from '@/utils/testId'
 import { Card } from './Card'
-import { flyInVariants, springTransition } from './animations'
+import { flyInVariants, slideInVariants, springTransition } from './animations'
 import type { CardZoneProps } from './types'
 import styles from './CardZone.module.css'
 
@@ -29,7 +29,7 @@ export function CardZone<T>({
           <motion.div
             key={entry.key}
             className={styles.entry}
-            variants={flyInVariants}
+            variants={layoutMode === 'stack' ? slideInVariants : flyInVariants}
             initial="initial"
             animate="animate"
             exit="exit"
