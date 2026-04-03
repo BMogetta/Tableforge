@@ -9,9 +9,12 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -34,6 +37,13 @@ var upgrader = websocket.Upgrader{
 // Determines participant vs spectator status via game.v1.IsParticipant gRPC.
 func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc gamev1.GameServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Debug: check if cookie is present
+		if _, err := r.Cookie("tf_session"); err != nil {
+			fmt.Fprintf(os.Stderr, "WS-DEBUG: no cookie in room request url=%s err=%v\n", r.URL.String(), err)
+		} else {
+			fmt.Fprintf(os.Stderr, "WS-DEBUG: cookie present in room request url=%s\n", r.URL.String())
+		}
+
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
 		if err != nil {
 			http.Error(w, "invalid room id", http.StatusBadRequest)
@@ -47,7 +57,11 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 			return
 		}
 
-		ctx := r.Context()
+		// Use a detached context for pre-upgrade gRPC checks — the HTTP request
+		// context is canceled when the browser closes the connection during fast
+		// React re-renders, causing "context canceled" on the gRPC round-trip.
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
 		// Ban check via user-service gRPC.
 		if uc != nil {
@@ -65,15 +79,18 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 		// Participant + spectator check via game-server gRPC.
 		isParticipant, spectatorsAllowed, err := checkParticipant(ctx, gc, roomID, playerID)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "WS-DEBUG: checkParticipant FAILED room=%s player=%s err=%v\n", roomID, playerID, err)
 			http.Error(w, "room not found", http.StatusNotFound)
 			return
 		}
 
 		if !isParticipant && !spectatorsAllowed {
+			fmt.Fprintf(os.Stderr, "WS-DEBUG: spectator REJECTED room=%s player=%s\n", roomID, playerID)
 			http.Error(w, "spectators not allowed in this room", http.StatusForbidden)
 			return
 		}
 
+		fmt.Fprintf(os.Stderr, "WS-DEBUG: UPGRADING room=%s player=%s participant=%v\n", roomID, playerID, isParticipant)
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
@@ -138,7 +155,8 @@ func PlayerHandler(h *hub.Hub, uc userv1.UserServiceClient) http.HandlerFunc {
 			return
 		}
 
-		ctx := r.Context()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
 		// Ban check via user-service gRPC.
 		if uc != nil {
