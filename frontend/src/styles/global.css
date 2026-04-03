@@ -617,6 +617,30 @@ input {
   animation: pulse 2s ease infinite;
 }
 
+/* Skeleton shimmer — use on placeholder elements while loading.
+   Apply .skeleton to a div/span with explicit width + height. */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-elevated) 25%,
+    var(--color-bg-hover) 50%,
+    var(--color-bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease infinite;
+  border-radius: var(--radius);
+}
+
 /* -----------------------------------------------------------------------------
    8. BREAKPOINTS
    Desktop-first strategy — use max-width in media queries.

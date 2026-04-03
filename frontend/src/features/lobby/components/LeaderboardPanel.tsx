@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { leaderboard } from '@/features/lobby/api'
 import type { Rating } from '@/lib/api'
 import { keys } from '@/lib/queryClient'
+import { LeaderboardSkeleton } from './LeaderboardSkeleton'
 import styles from './LeaderboardPanel.module.css'
 import { testId } from '@/utils/testId'
 
@@ -23,7 +24,7 @@ export function LeaderboardPanel({ gameId }: Props) {
       <h2 className={styles.title}>Leaderboard</h2>
 
       {isLoading ? (
-        <p className={styles.empty}>Loading...</p>
+        <LeaderboardSkeleton />
       ) : entries.length === 0 ? (
         <p className={styles.empty}>No ranked games played yet.</p>
       ) : (

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
 import { RoomCard } from './RoomCard'
+import { RoomCardSkeleton } from './RoomCardSkeleton'
 import styles from './OpenRooms.module.css'
 import { useNavigate } from '@tanstack/react-router'
 import { testId } from '@/utils/testId'
@@ -23,7 +24,11 @@ export function OpenRooms() {
       </h2>
 
       {isLoading ? (
-        <p className={styles.empty}>Loading...</p>
+        <div className={styles.list}>
+          <RoomCardSkeleton />
+          <RoomCardSkeleton />
+          <RoomCardSkeleton />
+        </div>
       ) : roomList.length === 0 ? (
         <p className={styles.empty}>No open rooms. Create one to get started.</p>
       ) : (
