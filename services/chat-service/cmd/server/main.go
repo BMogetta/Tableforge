@@ -50,10 +50,17 @@ func main() {
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer rdb.Close()
 
+	// --- JSON Schema validation ----------------------------------------------
+	schemaReg, err := sharedmw.NewSchemaRegistry()
+	if err != nil {
+		slog.Error("failed to compile JSON schemas", "error", err)
+		panic(err)
+	}
+
 	// --- HTTP server ---------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
 	pub := api.NewPublisher(rdb)
-	router := api.NewRouter(st, pub, authMW, serviceName)
+	router := api.NewRouter(st, pub, authMW, schemaReg, serviceName)
 
 	addr := config.Env("HTTP_ADDR", ":8083")
 	srv := &http.Server{

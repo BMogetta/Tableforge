@@ -13,6 +13,9 @@ import { z } from 'zod'
 export const botProfileSchema = z.object({ "name": z.string(), "iterations": z.number().int(), "determinizations": z.number().int(), "exploration_c": z.number(), "aggressiveness": z.number(), "risk_aversion": z.number() })
 export type BotProfile = z.infer<typeof botProfileSchema>
 
+export const directMessageSchema = z.object({ "message_id": z.string(), "sender_id": z.string(), "receiver_id": z.string(), "content": z.string(), "read_at": z.string().datetime({ offset: true }).optional(), "reported": z.boolean(), "hidden": z.boolean(), "timestamp": z.string().datetime({ offset: true }) })
+export type DirectMessage = z.infer<typeof directMessageSchema>
+
 export const gameResultSchema = z.object({ "status": z.enum(["win","draw"]), "winner_id": z.string().optional() })
 export type GameResult = z.infer<typeof gameResultSchema>
 
@@ -43,6 +46,9 @@ export type PauseVoteResult = z.infer<typeof pauseVoteResultSchema>
 export const playerSchema = z.object({ "id": z.string(), "username": z.string(), "role": z.enum(["player","manager","owner"]), "avatar_url": z.string().optional(), "is_bot": z.boolean(), "created_at": z.string().datetime({ offset: true }), "deleted_at": z.string().datetime({ offset: true }).optional() })
 export type Player = z.infer<typeof playerSchema>
 
+export const playerMuteSchema = z.object({ "muter_id": z.string(), "muted_id": z.string(), "created_at": z.string().datetime({ offset: true }) })
+export type PlayerMute = z.infer<typeof playerMuteSchema>
+
 export const playerStatsSchema = z.object({ "player_id": z.string(), "total_games": z.number().int(), "wins": z.number().int(), "losses": z.number().int(), "draws": z.number().int(), "forfeits": z.number().int() })
 export type PlayerStats = z.infer<typeof playerStatsSchema>
 
@@ -54,6 +60,9 @@ export type ReadyVoteResult = z.infer<typeof readyVoteResultSchema>
 
 export const roomSchema = z.object({ "id": z.string(), "code": z.string(), "game_id": z.string(), "owner_id": z.string(), "status": z.enum(["waiting","in_progress","finished"]), "max_players": z.number().int(), "turn_timeout_secs": z.number().int().optional(), "created_at": z.string().datetime({ offset: true }), "updated_at": z.string().datetime({ offset: true }), "deleted_at": z.string().datetime({ offset: true }).optional() })
 export type Room = z.infer<typeof roomSchema>
+
+export const roomMessageSchema = z.object({ "message_id": z.string(), "room_id": z.string(), "player_id": z.string(), "content": z.string(), "reported": z.boolean(), "hidden": z.boolean(), "timestamp": z.string().datetime({ offset: true }) })
+export type RoomMessage = z.infer<typeof roomMessageSchema>
 
 export const roomPlayerSchema = z.object({ "id": z.string(), "username": z.string(), "role": z.enum(["player","manager","owner"]), "avatar_url": z.string().optional(), "is_bot": z.boolean(), "created_at": z.string().datetime({ offset: true }), "deleted_at": z.string().datetime({ offset: true }).optional(), "seat": z.number().int(), "joined_at": z.string().datetime({ offset: true }) })
 export type RoomPlayer = z.infer<typeof roomPlayerSchema>
@@ -105,12 +114,21 @@ export type CreateRoomResponse = z.infer<typeof createRoomResponseSchema>
 export const declineMatchRequestSchema = z.object({ "match_id": z.string().min(1) })
 export type DeclineMatchRequest = z.infer<typeof declineMatchRequestSchema>
 
+export const getDmHistoryResponseSchema = z.array(directMessageSchema)
+export type GetDmHistoryResponse = z.infer<typeof getDmHistoryResponseSchema>
+
+export const getDmUnreadCountResponseSchema = z.object({ "count": z.number().int() })
+export type GetDmUnreadCountResponse = z.infer<typeof getDmUnreadCountResponseSchema>
+
 export const getLeaderboardResponseSchema = z.object({
   "game_id": z.string(),
   "entries": z.array(leaderboardEntrySchema),
   "total": z.number().int()
 })
 export type GetLeaderboardResponse = z.infer<typeof getLeaderboardResponseSchema>
+
+export const getMutesResponseSchema = z.array(playerMuteSchema)
+export type GetMutesResponse = z.infer<typeof getMutesResponseSchema>
 
 export const getPlayerRatingResponseSchema = z.object({ "player_id": z.string(), "game_id": z.string(), "display_rating": z.number(), "games_played": z.number().int(), "win_streak": z.number().int(), "loss_streak": z.number().int() })
 export type GetPlayerRatingResponse = z.infer<typeof getPlayerRatingResponseSchema>
@@ -124,6 +142,9 @@ export const getRoomResponseSchema = z.object({
   "settings": z.record(z.string(), z.string())
 })
 export type GetRoomResponse = z.infer<typeof getRoomResponseSchema>
+
+export const getRoomMessagesResponseSchema = z.array(roomMessageSchema)
+export type GetRoomMessagesResponse = z.infer<typeof getRoomMessagesResponseSchema>
 
 export const getSessionResponseSchema = z.object({
   "session": gameSessionSchema,
@@ -156,6 +177,21 @@ export type ListRoomsResponse = z.infer<typeof listRoomsResponseSchema>
 
 export const removeBotRequestSchema = z.object({ "player_id": z.string().min(1) })
 export type RemoveBotRequest = z.infer<typeof removeBotRequestSchema>
+
+export const reportDmRequestSchema = z.object({ "message_id": z.string().min(1) })
+export type ReportDmRequest = z.infer<typeof reportDmRequestSchema>
+
+export const sendDmRequestSchema = z.object({ "content": z.string().min(1) })
+export type SendDmRequest = z.infer<typeof sendDmRequestSchema>
+
+export const sendDmResponseSchema = directMessageSchema
+export type SendDmResponse = z.infer<typeof sendDmResponseSchema>
+
+export const sendRoomMessageRequestSchema = z.object({ "content": z.string().min(1) })
+export type SendRoomMessageRequest = z.infer<typeof sendRoomMessageRequestSchema>
+
+export const sendRoomMessageResponseSchema = roomMessageSchema
+export type SendRoomMessageResponse = z.infer<typeof sendRoomMessageResponseSchema>
 
 export const startGameRequestSchema = z.object({ "player_id": z.string().min(1) })
 export type StartGameRequest = z.infer<typeof startGameRequestSchema>

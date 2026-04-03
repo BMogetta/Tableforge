@@ -1,0 +1,5 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "send_room_message.response.json",
+  "$ref": "defs/room_message.json"
+}

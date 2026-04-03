@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "report_dm.request.json",
+  "title": "ReportDmRequest",
+  "type": "object",
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": ["message_id"]
+}

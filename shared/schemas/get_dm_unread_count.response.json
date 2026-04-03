@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_dm_unread_count.response.json",
+  "type": "object",
+  "properties": {
+    "count": { "type": "integer" }
+  },
+  "required": ["count"]
+}

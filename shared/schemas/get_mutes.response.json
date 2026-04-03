@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_mutes.response.json",
+  "type": "array",
+  "items": { "$ref": "defs/player_mute.json" }
+}

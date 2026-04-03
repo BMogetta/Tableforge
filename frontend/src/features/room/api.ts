@@ -1,5 +1,4 @@
 import { request, validatedRequest } from '@/lib/api'
-import type { RoomMessage, PlayerMute, DirectMessage } from '@/lib/api'
 import type {
   CreateRoomRequest,
   JoinRoomRequest,
@@ -8,6 +7,9 @@ import type {
   UpdateRoomSettingRequest,
   AddBotRequest,
   RemoveBotRequest,
+  SendRoomMessageRequest,
+  SendDmRequest,
+  ReportDmRequest,
 } from '@/lib/schema-generated.zod'
 import {
   createRoomResponseSchema,
@@ -16,6 +18,12 @@ import {
   gameSessionSchema,
   botProfileSchema,
   addBotResponseSchema,
+  sendRoomMessageResponseSchema,
+  getRoomMessagesResponseSchema,
+  sendDmResponseSchema,
+  getDmHistoryResponseSchema,
+  getDmUnreadCountResponseSchema,
+  getMutesResponseSchema,
 } from '@/lib/schema-generated.zod'
 import { z } from 'zod'
 
@@ -63,12 +71,14 @@ export const rooms = {
       body: JSON.stringify(body),
     })
   },
-  messages: (roomId: string) => request<RoomMessage[]>(`/rooms/${roomId}/messages`),
-  sendMessage: (roomId: string, playerId: string, content: string) =>
-    request<RoomMessage>(`/rooms/${roomId}/messages`, {
+  messages: (roomId: string) => validatedRequest(getRoomMessagesResponseSchema, `/rooms/${roomId}/messages`),
+  sendMessage: (roomId: string, playerId: string, content: string) => {
+    const body: SendRoomMessageRequest = { content }
+    return validatedRequest(sendRoomMessageResponseSchema, `/rooms/${roomId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId, content }),
-    }),
+      body: JSON.stringify({ player_id: playerId, ...body }),
+    })
+  },
 }
 
 // --- Bots --------------------------------------------------------------------
@@ -105,29 +115,33 @@ export const mutes = {
       body: JSON.stringify({ player_id: playerId }),
     }),
   list: (playerId: string) =>
-    request<PlayerMute[]>(`/players/${playerId}/mutes`),
+    validatedRequest(getMutesResponseSchema, `/players/${playerId}/mutes`),
 }
 
 // --- Direct messages ---------------------------------------------------------
 
 export const dm = {
-  send: (playerId: string, receiverId: string, content: string) =>
-    request<DirectMessage>(`/players/${receiverId}/dm`, {
+  send: (playerId: string, receiverId: string, content: string) => {
+    const body: SendDmRequest = { content }
+    return validatedRequest(sendDmResponseSchema, `/players/${receiverId}/dm`, {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId, content }),
-    }),
+      body: JSON.stringify({ player_id: playerId, ...body }),
+    })
+  },
   history: (playerA: string, playerB: string) =>
-    request<DirectMessage[]>(`/players/${playerA}/dm/${playerB}`),
+    validatedRequest(getDmHistoryResponseSchema, `/players/${playerA}/dm/${playerB}`),
   unreadCount: (playerId: string) =>
-    request<{ count: number }>(`/players/${playerId}/dm/unread`),
+    validatedRequest(getDmUnreadCountResponseSchema, `/players/${playerId}/dm/unread`),
   markRead: (callerId: string, messageId: string) =>
     request<void>(`/dm/${messageId}/read`, {
       method: 'POST',
       body: JSON.stringify({ player_id: callerId }),
     }),
-  report: (callerId: string, playerA: string, playerB: string, messageId: string) =>
-    request<void>(`/players/${playerA}/dm/${playerB}/report`, {
+  report: (callerId: string, playerA: string, playerB: string, messageId: string) => {
+    const body: ReportDmRequest = { message_id: messageId }
+    return request<void>(`/players/${playerA}/dm/${playerB}/report`, {
       method: 'POST',
-      body: JSON.stringify({ player_id: callerId, message_id: messageId }),
-    }),
+      body: JSON.stringify({ player_id: callerId, ...body }),
+    })
+  },
 }

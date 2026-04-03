@@ -11,7 +11,7 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 )
 
-func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, serviceName string) http.Handler {
+func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry, serviceName string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
@@ -20,23 +20,31 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		w.Write([]byte("ok"))
 	})
 
+	// validate wraps schema validation; no-op when schemas is nil (tests).
+	validate := func(name string) func(http.Handler) http.Handler {
+		if schemas == nil {
+			return func(next http.Handler) http.Handler { return next }
+		}
+		return schemas.ValidateBody(name)
+	}
+
 	r.Group(func(r chi.Router) {
 		r.Use(authMW)
 
 	// --- Room chat -----------------------------------------------------------
-	r.Post("/api/v1/rooms/{roomID}/messages", handleSendRoomMessage(st, pub))
+	r.With(validate("send_room_message.request")).Post("/api/v1/rooms/{roomID}/messages", handleSendRoomMessage(st, pub))
 	r.Get("/api/v1/rooms/{roomID}/messages", handleGetRoomMessages(st))
 	r.Post("/api/v1/rooms/{roomID}/messages/{messageID}/report", handleReportRoomMessage(st))
 	r.With(requireRole(sharedmw.RoleManager)).
 		Delete("/api/v1/rooms/{roomID}/messages/{messageID}", handleHideRoomMessage(st, pub))
 
 	// --- Direct messages -----------------------------------------------------
-	r.Post("/api/v1/players/{playerID}/dm", handleSendDM(st, pub))
+	r.With(validate("send_dm.request")).Post("/api/v1/players/{playerID}/dm", handleSendDM(st, pub))
 	r.Get("/api/v1/players/{playerID}/dm/conversations", handleListDMConversations(st))
 	r.Get("/api/v1/players/{playerID}/dm/unread", handleGetUnreadDMCount(st))
 	r.Get("/api/v1/players/{playerID}/dm/{otherPlayerID}", handleGetDMHistory(st))
 	r.Post("/api/v1/dm/{messageID}/read", handleMarkDMRead(st, pub))
-	r.Post("/api/v1/players/{playerID}/dm/{otherPlayerID}/report", handleReportDM(st))
+	r.With(validate("report_dm.request")).Post("/api/v1/players/{playerID}/dm/{otherPlayerID}/report", handleReportDM(st))
 	}) // end auth group
 
 	return r

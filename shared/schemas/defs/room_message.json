@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/room_message.json",
+  "title": "RoomMessage",
+  "type": "object",
+  "properties": {
+    "message_id": { "type": "string" },
+    "room_id": { "type": "string" },
+    "player_id": { "type": "string" },
+    "content": { "type": "string" },
+    "reported": { "type": "boolean" },
+    "hidden": { "type": "boolean" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["message_id", "room_id", "player_id", "content", "reported", "hidden", "timestamp"]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_mute.json",
+  "title": "PlayerMute",
+  "type": "object",
+  "properties": {
+    "muter_id": { "type": "string" },
+    "muted_id": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["muter_id", "muted_id", "created_at"]
+}

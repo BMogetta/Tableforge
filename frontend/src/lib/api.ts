@@ -168,16 +168,6 @@ export interface Room {
   created_at: string
 }
 
-export interface RoomMessage {
-  message_id: string
-  room_id: string
-  player_id: string
-  content: string
-  reported: boolean
-  hidden: boolean
-  timestamp: string
-}
-
 export interface RoomView {
   room: Room
   players: RoomPlayer[]
@@ -188,27 +178,6 @@ export interface RoomView {
   // WS events in Room.tsx; may be absent on initial HTTP fetch.
   spectator_count?: number
 }
-
-// Mutes are cross-session and server-side — they survive reconnects.
-export interface PlayerMute {
-  muter_id: string
-  muted_id: string
-  created_at: string
-}
-
-// DirectMessage mirrors store.DirectMessage on the Go side.
-export interface DirectMessage {
-  id: string
-  sender_id: string
-  receiver_id: string
-  content: string
-  read_at?: string
-  reported: boolean
-  hidden: boolean
-  timestamp: string
-}
-
-
 
 // --- Notification types ------------------------------------------------------
 

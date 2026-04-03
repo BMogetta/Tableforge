@@ -5,7 +5,7 @@ import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
-import type { DirectMessage } from '@/lib/api'
+import type { DirectMessage } from '@/lib/schema-generated.zod'
 import { sfx } from '@/lib/sfx'
 import styles from './DMConversation.module.css'
 
@@ -59,7 +59,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
     let marked = false
     for (const msg of safeMessages) {
       if (msg.sender_id !== player.id && !msg.read_at) {
-        dm.markRead(player.id, msg.id).catch(() => {})
+        dm.markRead(player.id, msg.message_id).catch(() => {})
         marked = true
       }
     }
@@ -101,7 +101,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
         ) : (
           safeMessages.map((msg: DirectMessage) => (
             <div
-              key={msg.id}
+              key={msg.message_id}
               className={`${styles.bubble} ${msg.sender_id === player.id ? styles.mine : styles.theirs}`}
             >
               <p className={styles.text}>{msg.content}</p>

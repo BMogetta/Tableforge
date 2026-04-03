@@ -139,7 +139,7 @@ func newTestRouter(st store.Store) http.Handler {
 	// Stub publisher with nil redis — events logged but not published.
 	pub := &Publisher{rdb: nil}
 	noopAuth := func(next http.Handler) http.Handler { return next }
-	return NewRouter(st, pub, noopAuth, "chat-service-test")
+	return NewRouter(st, pub, noopAuth, nil, "chat-service-test")
 }
 
 func withAuth(r *http.Request, playerID uuid.UUID, role string) *http.Request {
