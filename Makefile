@@ -122,7 +122,6 @@ clean:
 # Source of truth for request/response DTOs shared between Go and TS.
 # Run this after adding or modifying shared/schemas/*.json.
 gen-types:
-	@bash scripts/gen-schema-types.sh
 	@node scripts/gen-schema-zod.mjs
 
 # Regenerate all protobuf Go stubs from .proto definitions.
@@ -155,16 +154,16 @@ setup:
 	check npm --version; \
 	check docker --version; \
 	check docker compose version 2>/dev/null || check docker-compose --version; \
+	check jq --version; \
+	echo ""; \
+	echo "Code generation (required for make gen-types / gen-proto):"; \
 	check protoc --version; \
 	check protoc-gen-go --version; \
 	check protoc-gen-go-grpc --version; \
-	check jq --version; \
 	echo ""; \
 	echo "Optional:"; \
 	check golangci-lint --version; \
-	check swag --version; \
 	check npx --version; \
-	check uvx --version; \
 	echo ""; \
 	if [ "$$fail" = "1" ]; then \
 		echo "Some required tools are missing. Install them and re-run make setup."; \
@@ -172,6 +171,9 @@ setup:
 	else \
 		echo "All required tools installed."; \
 	fi
+	@echo ""
+	@echo "Installing frontend dependencies..."
+	@cd frontend && npm install
 
 # ── Lint ──────────────────────────────────────────────────────────────────────
 

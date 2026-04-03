@@ -19,10 +19,28 @@ that's been saying "we should play something" for three weeks.
 | Observability| OpenTelemetry → Tempo, Loki, Prometheus, Grafana |
 | Infra        | Docker Compose, Traefik                   |
 
+## Prerequisites
+
+- [Make](https://www.gnu.org/software/make/)
+- [Docker](https://docs.docker.com/get-docker/) with `docker compose`
+- [Go](https://go.dev/dl/) 1.25+
+- [Node.js](https://nodejs.org/) 22+
+- [jq](https://jqlang.github.io/jq/download/)
+
+For code generation (`make gen-types`, `make gen-proto`):
+- [protoc](https://grpc.io/docs/protoc-installation/) + `protoc-gen-go` + `protoc-gen-go-grpc`
+
+## Setup
+
+```bash
+git clone https://github.com/BMogetta/recess.git && cd recess
+make setup                 # verify tools + install frontend deps
+cp .env.example .env       # fill in GitHub OAuth + JWT secret
+```
+
 ## Quick Start
 
 ```bash
-cp .env.example .env      # fill in GitHub OAuth + JWT secret
 make up                    # postgres + redis + game-server
 make up-app                # + traefik + frontend
 make up-all                # + full observability stack

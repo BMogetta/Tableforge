@@ -54,17 +54,29 @@ make test-ui           # Interactive Playwright UI
 make clean-test        # Remove auth state and player fixtures
 ```
 
+### Setup
+
+```bash
+make setup    # Check required tools + install frontend deps
+```
+
 ### Code Generation
 
 ```bash
-# Regenerate frontend/src/lib/api-generated.ts from Go API
-# Requires: swag (go install github.com/swaggo/swag/cmd/swag@latest)
+# Regenerate frontend/src/lib/schema-generated.zod.ts from JSON Schema definitions
+# Generates Zod schemas + inferred TypeScript types
 make gen-types
 
 # Regenerate protobuf Go stubs from .proto definitions
 # Requires: protoc, protoc-gen-go, protoc-gen-go-grpc
 make gen-proto
 ```
+
+### Adding dependencies
+
+When adding a new external tool or dependency that is required to build or run
+the project, also add it to `make setup` in the Makefile so it is checked
+during environment verification.
 
 ## Architecture
 
@@ -101,7 +113,10 @@ See `shared/contracts.md` for the complete service contract map and versioning r
 - `shared/events/` — Redis Pub/Sub event structs
 - `shared/domain/rating/` — ELO/MMR engine (shared between game-server and rating-service)
 - `shared/domain/matchmaking/` — matchmaker algorithm (shared between match-service and simulate tool)
-- `shared/middleware/` — JWT auth + OpenTelemetry HTTP middleware
+- `shared/middleware/` — JWT auth, OpenTelemetry HTTP middleware, JSON Schema request validation
+- `shared/schemas/` — JSON Schema definitions (single source of truth for API DTOs)
+  - `shared/schemas/defs/` — reusable type definitions (`$ref` targets)
+  - Root-level `*.request.json` / `*.response.json` — endpoint-specific schemas
 - `shared/redis/` — Redis client wrapper
 - `shared/telemetry/` — OTel setup (traces, metrics, logs)
 - `shared/config/` — Environment variable loader
@@ -181,6 +196,49 @@ Target: WCAG 2.1 AA compliance.
 - Modals/panels must have `role="dialog"`, `aria-modal="true"`, and `aria-labelledby`
   linking to their heading
 - Avoid `div`/`span` with `onClick` — always use `button` or anchor
+
+#### JSON Schema & Zod
+
+JSON Schema is the **single source of truth** for all API DTOs shared between
+Go and TypeScript. The pipeline:
+
+```
+shared/schemas/*.json  →  Go: embedded + validated at runtime (middleware)
+                       →  TS: Zod schemas + inferred types (generated)
+```
+
+##### Schema file conventions
+
+- Endpoint schemas: `{verb}_{noun}.{request|response}.json` (e.g., `create_room.request.json`)
+- Shared types: `defs/{type_name}.json` (e.g., `defs/game_session.json`)
+- Title field → PascalCase type name (e.g., `"title": "CreateRoomRequest"`)
+- Use `$ref` to reference defs: `{ "$ref": "defs/game_session.json" }`
+- No `DTO` suffix — use domain names (`GameSession`, not `GameSessionDTO`)
+
+##### Adding a new endpoint
+
+1. Create `shared/schemas/{verb}_{noun}.request.json` and/or `.response.json`
+2. If the response uses new types, create them in `shared/schemas/defs/`
+3. Run `make gen-types` to regenerate `frontend/src/lib/schema-generated.zod.ts`
+4. In the game-server router, add `validate("{verb}_{noun}.request")` middleware
+5. In the frontend API layer, use `validatedRequest(schema, path, init)` for the response
+
+##### Validation rules
+
+- **Backend request validation**: all POST/PUT/DELETE endpoints with a body
+  MUST have a JSON Schema and the `validate()` middleware wired in the router.
+  The middleware returns 400 with structured error details on failure.
+- **Frontend response validation**: use `validatedRequest()` with the Zod schema
+  for all endpoints that have a response schema. This validates the server
+  response at runtime. `SchemaError` is thrown on mismatch — loud in dev/test
+  (console.error + full details), generic message in production.
+- **Frontend request validation**: NOT needed. TypeScript types enforce request
+  shape at compile time, and the backend validates at runtime. Only validate
+  user input with Zod when building request bodies from form data or dynamic
+  sources where TypeScript alone can't guarantee correctness (e.g., `minLength`,
+  numeric ranges).
+- Endpoints without a response schema (void, other services) use `request<T>()`
+  without Zod validation.
 
 #### Test IDs
 

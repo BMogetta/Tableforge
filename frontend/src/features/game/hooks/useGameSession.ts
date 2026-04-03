@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
 import { GameData } from '@/games/registry'
-import { GameSession } from '@/lib/schema-generated'
+import { GameSession } from '@/lib/schema-generated.zod'
 import { sessions } from '@/lib/api/sessions'
 
 interface UseGameSessionOptions {

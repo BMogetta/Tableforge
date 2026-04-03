@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
-import { SessionEvent } from '@/lib/schema-generated'
+import { SessionEvent, Move } from '@/lib/schema-generated.zod'
 import { keys } from '@/lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
 import { sessions } from '@/lib/api/sessions'
-import { Move } from '@/lib/schema-generated'
 import { testId } from '@/utils/testId'
 
 // --- Helpers -----------------------------------------------------------------

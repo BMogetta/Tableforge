@@ -1,4 +1,4 @@
-import type { GameSession } from './schema-generated'
+import type { GameSession } from './schema-generated.zod'
 import type { RoomView, Notification } from './api'
 import { emitErrorLog } from './telemetry'
 import { getDeviceContextAttrs } from './device'

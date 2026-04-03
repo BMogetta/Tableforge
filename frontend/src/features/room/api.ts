@@ -1,4 +1,4 @@
-import { request } from '@/lib/api'
+import { request, validatedRequest } from '@/lib/api'
 import type {
   RoomView,
   RoomMessage,
@@ -8,7 +8,6 @@ import type {
   Player,
 } from '@/lib/api'
 import type {
-  GameSession,
   CreateRoomRequest,
   JoinRoomRequest,
   LeaveRoomRequest,
@@ -16,7 +15,12 @@ import type {
   UpdateRoomSettingRequest,
   AddBotRequest,
   RemoveBotRequest,
-} from '@/lib/schema-generated'
+} from '@/lib/schema-generated.zod'
+import {
+  createRoomResponseSchema,
+  joinRoomResponseSchema,
+  gameSessionSchema,
+} from '@/lib/schema-generated.zod'
 
 // --- Rooms -------------------------------------------------------------------
 
@@ -29,14 +33,14 @@ export const rooms = {
       player_id: playerId,
       ...(turnTimeoutSecs != null && { turn_timeout_secs: turnTimeoutSecs }),
     }
-    return request<RoomView>('/rooms', {
+    return validatedRequest(createRoomResponseSchema, '/rooms', {
       method: 'POST',
       body: JSON.stringify(body),
     })
   },
   join: (code: string, playerId: string) => {
     const body: JoinRoomRequest = { code, player_id: playerId }
-    return request<RoomView>('/rooms/join', {
+    return validatedRequest(joinRoomResponseSchema, '/rooms/join', {
       method: 'POST',
       body: JSON.stringify(body),
     })
@@ -50,7 +54,7 @@ export const rooms = {
   },
   start: (roomId: string, playerId: string) => {
     const body: StartGameRequest = { player_id: playerId }
-    return request<GameSession>(`/rooms/${roomId}/start`, {
+    return validatedRequest(gameSessionSchema, `/rooms/${roomId}/start`, {
       method: 'POST',
       body: JSON.stringify(body),
     })

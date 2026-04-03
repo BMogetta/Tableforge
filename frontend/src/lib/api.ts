@@ -1,6 +1,7 @@
 // All types mirror the Go store models.
 
-import { GameSession } from './schema-generated'
+import { z } from 'zod'
+import { GameSession } from './schema-generated.zod'
 import { FontSize, SkinId } from './skins'
 import { tracer } from './telemetry'
 import { SpanKind, SpanStatusCode, context, propagation } from '@opentelemetry/api'
@@ -397,6 +398,47 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
       throw err
     }
   })
+}
+
+/**
+ * Like request(), but validates the response body against a Zod schema.
+ * The schema drives the return type — no separate generic needed.
+ *
+ * On validation failure:
+ * - Dev/test: throws SchemaError with full Zod details (caught by e2e tests)
+ * - Production: throws SchemaError with generic message (no internals leaked)
+ */
+export async function validatedRequest<T extends z.ZodTypeAny>(
+  schema: T,
+  path: string,
+  init?: RequestInit,
+): Promise<z.infer<T>> {
+  const data = await request<unknown>(path, init)
+  const result = schema.safeParse(data)
+  if (!result.success) {
+    const isDev = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE
+    const details = isDev
+      ? result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`)
+      : undefined
+    const message = isDev
+      ? `Response validation failed: ${path}`
+      : 'Unexpected response from server'
+    if (isDev) {
+      console.error(`[SchemaError] ${path}`, result.error.issues)
+    }
+    throw new SchemaError(message, details)
+  }
+  return result.data
+}
+
+export class SchemaError extends Error {
+  constructor(
+    message: string,
+    public details?: string[],
+  ) {
+    super(message)
+    this.name = 'SchemaError'
+  }
 }
 
 export class ApiError extends Error {
