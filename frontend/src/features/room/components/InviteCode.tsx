@@ -24,8 +24,7 @@ export function InviteCode({ code, isPrivate }: InviteCodeProps) {
           {code}
         </span>
         <button
-          className='btn btn-ghost'
-          style={{ padding: '4px 10px', fontSize: 11 }}
+          className='btn btn-ghost btn-sm'
           onClick={() => navigator.clipboard.writeText(code)}
         >
           Copy

@@ -122,10 +122,9 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
           autoFocus
         />
         <button
-          className='btn btn-primary'
+          className='btn btn-primary btn-sm'
           type='submit'
           disabled={sendMut.isPending || !text.trim()}
-          style={{ padding: '6px 14px', fontSize: 12 }}
         >
           Send
         </button>

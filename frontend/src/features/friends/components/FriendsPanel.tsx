@@ -121,10 +121,9 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
             disabled={addPending}
           />
           <button
-            className='btn btn-primary'
+            className='btn btn-primary btn-sm'
             type='submit'
             disabled={addPending || !addUsername.trim()}
-            style={{ padding: '4px 12px', fontSize: 11 }}
           >
             {addPending ? '...' : 'Add'}
           </button>

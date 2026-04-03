@@ -50,8 +50,7 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
       {hasAction && !isExpired && (
         <div className={styles.actions}>
           <button
-            className='btn btn-primary'
-            style={{ padding: '4px 12px', fontSize: 12 }}
+            className='btn btn-primary btn-sm'
             disabled={pending}
             onClick={() => onAccept?.(n.id)}
             {...testId('accept-btn')}
@@ -59,8 +58,7 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
             Accept
           </button>
           <button
-            className='btn btn-ghost'
-            style={{ padding: '4px 12px', fontSize: 12 }}
+            className='btn btn-ghost btn-sm'
             disabled={pending}
             onClick={() => onDecline?.(n.id)}
             {...testId('decline-btn')}

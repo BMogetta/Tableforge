@@ -35,7 +35,7 @@ export function RoomCard({ view, onJoin, disabled }: Props) {
           {players.length}/{room.max_players} players
         </span>
         {!isPrivate && (
-          <button className='btn btn-ghost' onClick={onJoin} disabled={disabled} style={{ padding: '4px 12px' }}>
+          <button className='btn btn-ghost btn-sm' onClick={onJoin} disabled={disabled}>
             Join →
           </button>
         )}

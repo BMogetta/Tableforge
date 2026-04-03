@@ -46,9 +46,8 @@ export function GameHeader({
   return (
     <header className={styles.header}>
       <button
-        className='btn btn-ghost'
+        className='btn btn-ghost btn-sm'
         onClick={onLobby}
-        style={{ padding: '4px 10px', fontSize: 11 }}
       >
         ← Lobby
       </button>
@@ -60,10 +59,9 @@ export function GameHeader({
       {canPause && (
         <button
           {...testId('pause-btn')}
-          className='btn btn-ghost'
+          className='btn btn-ghost btn-sm'
           onClick={onPause}
           disabled={isPausePending}
-          style={{ padding: '4px 10px', fontSize: 11 }}
         >
           ⏸ Pause
         </button>

@@ -17,8 +17,7 @@ export function PendingRequestItem({ requesterId, username, avatarUrl, onAccept,
       <span className={styles.friendName}>{username}</span>
       <div className={styles.friendActions}>
         <button
-          className='btn btn-primary'
-          style={{ padding: '3px 10px', fontSize: 11 }}
+          className='btn btn-primary btn-sm'
           onClick={() => onAccept(requesterId)}
           disabled={pending}
           {...testId('accept-btn')}
@@ -26,8 +25,7 @@ export function PendingRequestItem({ requesterId, username, avatarUrl, onAccept,
           Accept
         </button>
         <button
-          className='btn btn-ghost'
-          style={{ padding: '3px 10px', fontSize: 11 }}
+          className='btn btn-ghost btn-sm'
           onClick={() => onDecline(requesterId)}
           disabled={pending}
           {...testId('decline-btn')}

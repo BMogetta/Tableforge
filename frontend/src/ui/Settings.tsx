@@ -69,9 +69,8 @@ export function Settings({ onClose }: Props) {
         <h2 className={styles.title}>Settings</h2>
         {onClose && (
           <button
-            className='btn btn-ghost'
+            className='btn btn-ghost btn-sm'
             onClick={onClose}
-            style={{ padding: '4px 10px', fontSize: 11 }}
           >
             ✕
           </button>

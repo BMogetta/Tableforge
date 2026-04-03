@@ -509,6 +509,11 @@ input {
   background: rgba(192, 57, 43, 0.1);
 }
 
+.btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+}
+
 .btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;

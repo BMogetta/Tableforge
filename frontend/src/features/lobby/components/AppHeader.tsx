@@ -104,12 +104,12 @@ export function AppHeader({ onLogout }: Props) {
           </Link>
 
           {(player.role === 'manager' || player.role === 'owner') && (
-            <Link to='/admin' className='btn btn-ghost' style={{ padding: '6px 12px' }}>
+            <Link to='/admin' className='btn btn-ghost btn-sm'>
               Admin
             </Link>
           )}
 
-          <button className='btn btn-ghost' onClick={onLogout} style={{ padding: '6px 12px' }}>
+          <button className='btn btn-ghost btn-sm' onClick={onLogout}>
             Logout
           </button>
         </div>
