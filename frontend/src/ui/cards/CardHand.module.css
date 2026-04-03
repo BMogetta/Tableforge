@@ -1,0 +1,15 @@
+/* CardHand — fan layout */
+
+.hand {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  position: relative;
+  min-height: 200px;
+  padding: var(--space-4);
+}
+
+.slot {
+  position: absolute;
+  transform-origin: bottom center;
+}

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { CardPile } from '@/ui/cards'
 import { type CardName } from './CardDisplay'
 import { HandDisplay } from './HandDisplay'
 import { TargetPicker } from './TargetPicker'
@@ -106,6 +107,8 @@ export function LoveLetter({
   const [showRoundSummary, setShowRoundSummary] = useState(false)
   const [lastSeenRound, setLastSeenRound] = useState(state.round)
 
+  const discardZoneRef = useRef<HTMLElement>(null)
+
   // Show round summary when a round completes.
   useEffect(() => {
     if (state.phase === 'round_over' && state.round !== lastSeenRound) {
@@ -193,12 +196,12 @@ export function LoveLetter({
 
   return (
     <div className={styles.root}>
-      {/* Round / game info bar */}
+      {/* Round / game info bar + deck */}
       <div className={styles.infoBar}>
         <span className={styles.roundBadge}>Round {state.round}</span>
-        <span className={styles.deckCount}>
-          {state.deck.length} card{state.deck.length !== 1 ? 's' : ''} remaining
-        </span>
+        <div className={styles.deckArea}>
+          <CardPile count={state.deck.length} faceDown />
+        </div>
         {state.set_aside_visible.length > 0 && (
           <span className={styles.setAside}>Set aside: {state.set_aside_visible.join(', ')}</span>
         )}
@@ -241,6 +244,7 @@ export function LoveLetter({
             disabled={!isMyTurn}
             onSelect={setSelectedCard}
             blockedCards={blockedCards}
+            targetRef={discardZoneRef}
           />
         </div>
       )}

@@ -21,24 +21,18 @@ describe('ChancellorModal', () => {
     const confirmBtn = screen.getByRole('button', { name: /confirm/i })
     expect(confirmBtn).toBeDisabled()
 
-    // Select keep card — click spy (index 0 in Your choices).
-    const allCards = screen.getAllByTestId('card-display')
+    // Select keep card — click spy (first card).
+    const allCards = screen.getAllByTestId('card')
     await user.click(allCards[0])
     expect(confirmBtn).toBeDisabled()
 
-    // Return order section now visible — get its cards.
-    const returnCards = screen.getAllByTestId('card-display')
-    // returnCards[0] = spy (kept, shown in Your choices as selected)
-    // returnCards[1] = guard (in Your choices, not kept)
-    // returnCards[2] = priest (in Your choices, not kept)
-    // returnCards[3] = guard (in Return order section)
-    // returnCards[4] = priest (in Return order section)
-
-    // Select first return card.
+    // Return order section now visible — get all cards again.
+    const returnCards = screen.getAllByTestId('card')
+    // returnCards: [spy, guard, priest] from "Your choices" + [guard, priest] from "Return order"
+    // Return order cards are at indices 3 and 4.
     await user.click(returnCards[3])
     expect(confirmBtn).toBeDisabled()
 
-    // Select second return card.
     await user.click(returnCards[4])
     expect(confirmBtn).not.toBeDisabled()
   })
@@ -49,13 +43,13 @@ describe('ChancellorModal', () => {
     render(<ChancellorModal choices={choices} onConfirm={onConfirm} />)
 
     // Keep spy (index 0).
-    const allCards = screen.getAllByTestId('card-display')
+    const allCards = screen.getAllByTestId('card')
     await user.click(allCards[0])
 
     // Select return order: guard first, priest second.
-    const returnCards = screen.getAllByTestId('card-display')
-    await user.click(returnCards[3]) // guard → position 1
-    await user.click(returnCards[4]) // priest → position 2
+    const returnCards = screen.getAllByTestId('card')
+    await user.click(returnCards[3])
+    await user.click(returnCards[4])
 
     await user.click(screen.getByRole('button', { name: /confirm/i }))
 
@@ -67,7 +61,7 @@ describe('ChancellorModal', () => {
     const user = userEvent.setup()
     render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
 
-    const cards = screen.getAllByTestId('card-display')
+    const cards = screen.getAllByTestId('card')
     await user.click(cards[0])
 
     expect(screen.getByText('Keep')).toBeInTheDocument()
@@ -77,14 +71,14 @@ describe('ChancellorModal', () => {
     const user = userEvent.setup()
     render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
 
-    const allCards = screen.getAllByTestId('card-display')
+    const allCards = screen.getAllByTestId('card')
     await user.click(allCards[0]) // keep spy
 
-    const returnCards = screen.getAllByTestId('card-display')
+    const returnCards = screen.getAllByTestId('card')
     await user.click(returnCards[3]) // guard → 1
     await user.click(returnCards[4]) // priest → 2
 
-    expect(screen.getAllByTestId('return-order-1')).toHaveLength(2) // shown in both sections
+    expect(screen.getAllByTestId('return-order-1')).toHaveLength(2)
     expect(screen.getAllByTestId('return-order-2')).toHaveLength(2)
   })
 
@@ -92,10 +86,10 @@ describe('ChancellorModal', () => {
     const user = userEvent.setup()
     render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
 
-    const allCards = screen.getAllByTestId('card-display')
+    const allCards = screen.getAllByTestId('card')
     await user.click(allCards[0]) // keep spy
 
-    const returnCards = screen.getAllByTestId('card-display')
+    const returnCards = screen.getAllByTestId('card')
     await user.click(returnCards[3]) // select guard as return 1
     expect(screen.getAllByTestId('return-order-1')).toHaveLength(2)
 

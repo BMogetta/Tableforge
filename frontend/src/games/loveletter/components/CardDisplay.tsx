@@ -1,5 +1,7 @@
-import styles from './CardDisplay.module.css'
 import { testId } from '@/utils/testId'
+import { Card } from '@/ui/cards'
+import { CardFace } from './CardFace'
+import styles from './CardDisplay.module.css'
 
 export type CardName =
   | 'spy'
@@ -58,15 +60,10 @@ const CARD_META: Record<CardName, CardMeta> = {
 
 interface Props {
   card: CardName
-  /** Card is selected/active in hand. */
   selected?: boolean
-  /** Card is not playable (disabled interaction). */
   disabled?: boolean
-  /** Show card back instead of face (opponent's card). */
   faceDown?: boolean
-  /** Click handler — only fires when not disabled and not faceDown. */
   onClick?: () => void
-  /** Extra CSS class for layout overrides. */
   className?: string
 }
 
@@ -78,48 +75,26 @@ export function CardDisplay({
   onClick,
   className = '',
 }: Props) {
-  const meta = CARD_META[card]
-  const interactive = !disabled && !faceDown && !!onClick
-
   return (
     <div
       {...testId('card-display')}
       data-selected={selected}
       data-disabled={disabled}
       data-facedown={faceDown}
-      className={[
-        styles.card,
-        selected ? styles.selected : '',
-        disabled ? styles.disabled : '',
-        faceDown ? styles.faceDown : '',
-        interactive ? styles.interactive : '',
-        className,
-      ]
+      className={[styles.wrapper, selected ? styles.selected : '', className]
         .filter(Boolean)
         .join(' ')}
-      onClick={interactive ? onClick : undefined}
-      role={interactive ? 'button' : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onKeyDown={interactive ? e => e.key === 'Enter' && onClick?.() : undefined}
-      aria-pressed={selected}
-      aria-disabled={disabled}
     >
-      {faceDown ? (
-        <div className={styles.back}>
-          <span className={styles.backPattern}>✦</span>
-        </div>
-      ) : (
-        <>
-          <div className={styles.header}>
-            <span className={styles.value}>{meta.value}</span>
-            <span className={styles.name}>{meta.label}</span>
+      <Card
+        front={
+          <div className={styles.face}>
+            <CardFace card={card} />
           </div>
-          <div className={styles.effect}>{meta.effect}</div>
-          <div className={styles.footer}>
-            <span className={styles.valueLarge}>{meta.value}</span>
-          </div>
-        </>
-      )}
+        }
+        faceDown={faceDown}
+        disabled={disabled}
+        onClick={onClick}
+      />
     </div>
   )
 }

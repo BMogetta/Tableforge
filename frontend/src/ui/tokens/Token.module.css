@@ -1,0 +1,33 @@
+/* Token — generic game piece / chip */
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-border);
+  cursor: default;
+  user-select: none;
+}
+
+.token[data-disabled='true'] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.claimed {
+  border-color: var(--color-interactive);
+  box-shadow: 0 0 10px var(--color-interactive-glow);
+}
+
+.token:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}

@@ -1,60 +1,26 @@
 /* =============================================================================
-   CardDisplay.module.css
+   CardDisplay.module.css — Love Letter card face content styles.
+   The card shell (flip, hover lift, sizing) is handled by the ui/cards kit.
    ============================================================================= */
 
-.card {
+.wrapper {
+  display: inline-block;
   position: relative;
-  width: 100px;
-  height: 148px;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+}
+
+.selected {
+  filter: drop-shadow(0 0 12px var(--color-interactive-glow));
+}
+
+/* Inner face content — fills the Card kit's front slot */
+.face {
+  width: 100%;
+  height: 100%;
   padding: var(--space-2);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition:
-    transform var(--transition),
-    border-color var(--transition),
-    box-shadow var(--transition);
   user-select: none;
-}
-
-.interactive {
-  cursor: pointer;
-}
-
-.interactive:hover {
-  border-color: var(--color-border-bright);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.selected {
-  border-color: var(--color-interactive);
-  transform: translateY(-8px);
-  box-shadow:
-    0 0 20px var(--color-interactive-glow),
-    0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.selected.interactive:hover {
-  transform: translateY(-10px);
-}
-
-.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.disabled.interactive {
-  cursor: not-allowed;
-}
-
-/* Face-down card — no art, just back pattern */
-.faceDown {
-  background: var(--color-bg-surface);
-  cursor: default;
 }
 
 /* Face-up layout */
@@ -101,22 +67,4 @@
   line-height: 1;
   transform: rotate(180deg);
   display: block;
-}
-
-/* Face-down back */
-
-.back {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-}
-
-.backPattern {
-  font-size: 24px;
-  color: var(--color-interactive-dim);
-  opacity: 0.5;
 }

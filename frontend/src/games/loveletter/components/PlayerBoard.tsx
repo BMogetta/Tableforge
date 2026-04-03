@@ -1,4 +1,6 @@
-import { CardDisplay, type CardName } from './CardDisplay'
+import { CardZone, type CardZoneEntry } from '@/ui/cards'
+import { CardFace } from './CardFace'
+import type { CardName } from './CardDisplay'
 import styles from './PlayerBoard.module.css'
 
 interface Props {
@@ -10,9 +12,7 @@ interface Props {
   isEliminated: boolean
   isProtected: boolean
   hasPlayedSpy: boolean
-  /** Whether this player is the local user. */
   isLocal: boolean
-  /** Whether this player is the current turn player. */
   isCurrentTurn: boolean
 }
 
@@ -27,6 +27,11 @@ export function PlayerBoard({
   isLocal,
   isCurrentTurn,
 }: Props) {
+  const zoneCards: CardZoneEntry<CardName>[] = discardPile.map((card, i) => ({
+    key: `${card}-${i}`,
+    data: card,
+  }))
+
   return (
     <div
       className={[
@@ -75,15 +80,19 @@ export function PlayerBoard({
 
       <div className={styles.discardSection}>
         <span className={styles.discardLabel}>Discards</span>
-        <div className={styles.discardPile}>
-          {discardPile.length === 0 ? (
-            <span className={styles.empty}>—</span>
-          ) : (
-            discardPile.map((card, i) => (
-              <CardDisplay key={`${card}-${i}`} card={card} className={styles.discardCard} />
-            ))
-          )}
-        </div>
+        {discardPile.length === 0 ? (
+          <span className={styles.empty}>—</span>
+        ) : (
+          <CardZone<CardName>
+            cards={zoneCards}
+            renderCard={(card) => (
+              <div className={styles.discardFace}>
+                <CardFace card={card} />
+              </div>
+            )}
+            layout="spread"
+          />
+        )}
       </div>
     </div>
   )

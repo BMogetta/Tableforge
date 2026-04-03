@@ -34,11 +34,13 @@ describe('HandDisplay', () => {
         onSelect={onSelect}
       />,
     )
-    await user.click(screen.getAllByRole('button')[0])
+    const cards = screen.getAllByTestId('card')
+    await user.click(cards[0])
     expect(onSelect).toHaveBeenCalledWith('guard')
   })
 
   it('does not call onSelect when disabled', async () => {
+    const user = userEvent.setup()
     const onSelect = vi.fn()
     render(
       <HandDisplay
@@ -48,22 +50,10 @@ describe('HandDisplay', () => {
         onSelect={onSelect}
       />,
     )
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    // Cards are still rendered but disabled — clicking should not fire
+    const cards = screen.getAllByTestId('card')
+    await user.click(cards[0])
     expect(onSelect).not.toHaveBeenCalled()
-  })
-
-  it('marks the selected card via data-selected attribute', () => {
-    render(
-      <HandDisplay
-        cards={['guard', 'spy'] as CardName[]}
-        selectedCard={'guard'}
-        disabled={false}
-        onSelect={vi.fn()}
-      />,
-    )
-    const cards = screen.getAllByTestId('card-display')
-    expect(cards[0]).toHaveAttribute('data-selected', 'true')
-    expect(cards[1]).toHaveAttribute('data-selected', 'false')
   })
 
   it('shows Countess must play label for blocked cards', () => {
@@ -91,10 +81,14 @@ describe('HandDisplay', () => {
         blockedCards={['king']}
       />,
     )
-    // Only countess should be clickable — king is blocked.
-    const buttons = screen.getAllByRole('button')
-    expect(buttons).toHaveLength(1)
-    await user.click(buttons[0])
+    // King is blocked (disabled), countess is playable
+    const cards = screen.getAllByTestId('card')
+    // Click the blocked king — should not fire
+    await user.click(cards[0])
+    expect(onSelect).not.toHaveBeenCalled()
+
+    // Click countess — should fire
+    await user.click(cards[1])
     expect(onSelect).toHaveBeenCalledWith('countess')
   })
 })

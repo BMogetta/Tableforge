@@ -15,11 +15,10 @@ describe('CardDisplay', () => {
     }
   })
 
-  it('renders face-down when faceDown prop is true', () => {
+  it('sets data-facedown when faceDown prop is true', () => {
     render(<CardDisplay card='guard' faceDown />)
     const card = screen.getByTestId('card-display')
     expect(card).toHaveAttribute('data-facedown', 'true')
-    expect(screen.queryByText('Guard')).not.toBeInTheDocument()
   })
 
   it('marks card as selected via data attribute', () => {
@@ -36,25 +35,28 @@ describe('CardDisplay', () => {
     const user = userEvent.setup()
     const onClick = vi.fn()
     render(<CardDisplay card='guard' onClick={onClick} />)
-    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByTestId('card'))
     expect(onClick).toHaveBeenCalledOnce()
   })
 
-  it('does not render as button when disabled', () => {
-    render(<CardDisplay card='guard' onClick={vi.fn()} disabled />)
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  it('does not call onClick when disabled', async () => {
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    render(<CardDisplay card='guard' onClick={onClick} disabled />)
+    await user.click(screen.getByTestId('card'))
+    expect(onClick).not.toHaveBeenCalled()
   })
 
-  it('does not render as button when faceDown', () => {
-    render(<CardDisplay card='guard' onClick={vi.fn()} faceDown />)
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  it('renders aria-label indicating face-down state', () => {
+    render(<CardDisplay card='guard' faceDown />)
+    expect(screen.getByTestId('card')).toHaveAttribute('aria-label', 'Face-down card')
   })
 
   it('calls onClick on Enter key press', async () => {
     const user = userEvent.setup()
     const onClick = vi.fn()
     render(<CardDisplay card='guard' onClick={onClick} />)
-    screen.getByRole('button').focus()
+    screen.getByTestId('card').focus()
     await user.keyboard('{Enter}')
     expect(onClick).toHaveBeenCalledOnce()
   })

@@ -1,33 +1,110 @@
-.hand {
-  display: flex;
-  gap: var(--space-4);
-  align-items: flex-end;
-  justify-content: center;
-  padding: var(--space-2) 0 var(--space-4);
-}
+/* =============================================================================
+   LoveLetter.module.css — Main game layout
+   ============================================================================= */
 
-.cardSlot {
+.root {
   display: flex;
   flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-4);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* Info bar — round, deck count, set-aside */
+
+.infoBar {
+  display: flex;
   align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.roundBadge {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-interactive);
+  border: 1px solid color-mix(in srgb, var(--color-interactive) 30%, transparent);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+}
+
+.deckCount {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.setAside {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Player boards grid */
+
+.boards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Priest reveal notification */
+
+.priestReveal {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-interactive-glow);
+  border: 1px solid color-mix(in srgb, var(--color-interactive) 20%, transparent);
+  border-radius: var(--radius);
+}
+
+.priestLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.priestCard {
+  font-size: var(--text-sm);
+  color: var(--color-interactive);
+  font-weight: var(--font-weight-medium);
+  text-transform: capitalize;
+}
+
+/* Hand section */
+
+.handSection {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
 }
 
-/* Shown when a card in hand cannot be played (e.g. Countess rule) */
-.blockedLabel {
-  font-size: 9px;
-  letter-spacing: 0.06em;
+.sectionLabel {
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-danger);
-  opacity: 0.8;
+  color: var(--color-text-muted);
 }
 
-.empty {
+/* Picker section — target + guess */
+
+.pickerSection {
+  padding: var(--space-3) 0;
+}
+
+/* Actions — play/cancel buttons */
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+/* Deck area */
+
+.deckArea {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 80px;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  gap: var(--space-4);
 }

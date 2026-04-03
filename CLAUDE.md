@@ -141,6 +141,8 @@ React 19 + TypeScript app served via Nginx in Docker.
 Feature modules in `src/features/`: `auth`, `game`, `lobby`, `room`, `admin`, `devtools`.
 Game renderers (pluggable) in `src/games/`: `tictactoe`, `loveletter`.
 
+Card UI kit in `src/ui/cards/` — game-agnostic animated card components (Card, CardHand, CardPile, CardZone) powered by Framer Motion (`motion` package). Each game provides its own face content via render props (e.g., `CardFace` in loveletter). The kit handles flip, hover lift, fan layout, fly animations, and AnimatePresence transitions.
+
 #### Styling Guidelines
 
 ##### Typography & Units
