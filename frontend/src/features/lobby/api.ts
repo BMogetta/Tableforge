@@ -1,5 +1,7 @@
-import { request } from '@/lib/api'
-import type { Rating, GameInfo, QueuePosition } from '@/lib/api'
+import { request, validatedRequest } from '@/lib/api'
+import type { Rating, QueuePosition } from '@/lib/api'
+import { gameInfoSchema } from '@/lib/schema-generated.zod'
+import { z } from 'zod'
 
 // --- Leaderboard -------------------------------------------------------------
 
@@ -14,7 +16,7 @@ export const leaderboard = {
 // --- Game registry -----------------------------------------------------------
 
 export const gameRegistry = {
-  list: () => request<GameInfo[]>('/games'),
+  list: () => validatedRequest(z.array(gameInfoSchema), '/games'),
 }
 
 // --- Queue -------------------------------------------------------------------
@@ -41,4 +43,3 @@ export const queue = {
       body: JSON.stringify({ player_id: playerId, match_id: matchId }),
     }),
 }
-

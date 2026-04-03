@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "add_bot.response.json",
+  "title": "AddBotResponse",
+  "$ref": "defs/player.json"
+}

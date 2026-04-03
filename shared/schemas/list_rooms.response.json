@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "list_rooms.response.json",
+  "title": "ListRoomsResponse",
+  "type": "array",
+  "items": { "$ref": "defs/room.json" }
+}

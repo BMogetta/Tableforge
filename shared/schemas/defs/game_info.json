@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/game_info.json",
+  "title": "GameInfo",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "min_players": { "type": "integer" },
+    "max_players": { "type": "integer" },
+    "settings": {
+      "type": "array",
+      "items": { "$ref": "defs/lobby_setting.json" }
+    }
+  },
+  "required": ["id", "name", "min_players", "max_players", "settings"]
+}

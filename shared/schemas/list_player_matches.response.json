@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "list_player_matches.response.json",
+  "title": "ListPlayerMatchesResponse",
+  "type": "object",
+  "properties": {
+    "matches": {
+      "type": "array",
+      "items": { "$ref": "defs/match_history_entry.json" }
+    },
+    "total": { "type": "integer" }
+  },
+  "required": ["matches", "total"]
+}

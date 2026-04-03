@@ -1,12 +1,5 @@
 import { request, validatedRequest } from '@/lib/api'
-import type {
-  RoomView,
-  RoomMessage,
-  PlayerMute,
-  DirectMessage,
-  BotProfile,
-  Player,
-} from '@/lib/api'
+import type { RoomMessage, PlayerMute, DirectMessage } from '@/lib/api'
 import type {
   CreateRoomRequest,
   JoinRoomRequest,
@@ -19,14 +12,18 @@ import type {
 import {
   createRoomResponseSchema,
   joinRoomResponseSchema,
+  getRoomResponseSchema,
   gameSessionSchema,
+  botProfileSchema,
+  addBotResponseSchema,
 } from '@/lib/schema-generated.zod'
+import { z } from 'zod'
 
 // --- Rooms -------------------------------------------------------------------
 
 export const rooms = {
-  list: () => request<RoomView[]>('/rooms'),
-  get: (id: string) => request<RoomView>(`/rooms/${id}`),
+  list: () => validatedRequest(z.array(getRoomResponseSchema), '/rooms'),
+  get: (id: string) => validatedRequest(getRoomResponseSchema, `/rooms/${id}`),
   create: (gameId: string, playerId: string, turnTimeoutSecs?: number) => {
     const body: CreateRoomRequest = {
       game_id: gameId,
@@ -77,10 +74,10 @@ export const rooms = {
 // --- Bots --------------------------------------------------------------------
 
 export const bots = {
-  profiles: () => request<BotProfile[]>('/bots/profiles'),
+  profiles: () => validatedRequest(z.array(botProfileSchema), '/bots/profiles'),
   add: (roomId: string, playerId: string, profile: string) => {
     const body: AddBotRequest = { player_id: playerId, profile: profile as AddBotRequest['profile'] }
-    return request<Player>(`/rooms/${roomId}/bots`, {
+    return validatedRequest(addBotResponseSchema, `/rooms/${roomId}/bots`, {
       method: 'POST',
       body: JSON.stringify(body),
     })

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/bot_profile.json",
+  "title": "BotProfile",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "iterations": { "type": "integer" },
+    "determinizations": { "type": "integer" },
+    "exploration_c": { "type": "number" },
+    "aggressiveness": { "type": "number" },
+    "risk_aversion": { "type": "number" }
+  },
+  "required": ["name", "iterations", "determinizations", "exploration_c", "aggressiveness", "risk_aversion"]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/match_history_entry.json",
+  "title": "MatchHistoryEntry",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "game_id": { "type": "string" },
+    "outcome": {
+      "type": "string",
+      "enum": ["win", "loss", "draw", "forfeit"]
+    },
+    "ended_by": {
+      "type": "string",
+      "enum": ["win", "draw", "forfeit", "timeout", "ready_timeout", "suspended"]
+    },
+    "duration_secs": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "session_id", "game_id", "outcome", "ended_by", "created_at"]
+}

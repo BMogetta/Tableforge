@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_stats.json",
+  "title": "PlayerStats",
+  "type": "object",
+  "properties": {
+    "player_id": { "type": "string" },
+    "total_games": { "type": "integer" },
+    "wins": { "type": "integer" },
+    "losses": { "type": "integer" },
+    "draws": { "type": "integer" },
+    "forfeits": { "type": "integer" }
+  },
+  "required": ["player_id", "total_games", "wins", "losses", "draws", "forfeits"]
+}

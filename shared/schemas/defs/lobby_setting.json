@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/lobby_setting.json",
+  "title": "LobbySetting",
+  "type": "object",
+  "properties": {
+    "key": { "type": "string" },
+    "label": { "type": "string" },
+    "description": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["select", "int"]
+    },
+    "default": { "type": "string" },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "string" },
+          "label": { "type": "string" }
+        },
+        "required": ["value", "label"]
+      }
+    },
+    "min": { "type": "integer" },
+    "max": { "type": "integer" }
+  },
+  "required": ["key", "label", "type", "default"]
+}

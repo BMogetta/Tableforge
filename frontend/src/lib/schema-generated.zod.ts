@@ -10,6 +10,9 @@ import { z } from 'zod'
 
 // ---- Shared types (defs/) -------------------------------------------------
 
+export const botProfileSchema = z.object({ "name": z.string(), "iterations": z.number().int(), "determinizations": z.number().int(), "exploration_c": z.number(), "aggressiveness": z.number(), "risk_aversion": z.number() })
+export type BotProfile = z.infer<typeof botProfileSchema>
+
 export const gameResultSchema = z.object({ "status": z.enum(["win","draw"]), "winner_id": z.string().optional() })
 export type GameResult = z.infer<typeof gameResultSchema>
 
@@ -19,11 +22,23 @@ export type GameResultRecord = z.infer<typeof gameResultRecordSchema>
 export const gameSessionSchema = z.object({ "id": z.string(), "room_id": z.string(), "game_id": z.string(), "name": z.string().optional(), "mode": z.string(), "move_count": z.number().int(), "suspend_count": z.number().int(), "suspended_at": z.string().datetime({ offset: true }).optional(), "suspended_reason": z.string().optional(), "ready_players": z.array(z.string()), "turn_timeout_secs": z.number().int().optional(), "last_move_at": z.string().datetime({ offset: true }), "started_at": z.string().datetime({ offset: true }), "finished_at": z.string().datetime({ offset: true }).optional() })
 export type GameSession = z.infer<typeof gameSessionSchema>
 
+export const lobbySettingSchema = z.object({ "key": z.string(), "label": z.string(), "description": z.string().optional(), "type": z.enum(["select","int"]), "default": z.string(), "options": z.array(z.object({ "value": z.string(), "label": z.string() })).optional(), "min": z.number().int().optional(), "max": z.number().int().optional() })
+export type LobbySetting = z.infer<typeof lobbySettingSchema>
+
+export const matchHistoryEntrySchema = z.object({ "id": z.string(), "session_id": z.string(), "game_id": z.string(), "outcome": z.enum(["win","loss","draw","forfeit"]), "ended_by": z.enum(["win","draw","forfeit","timeout","ready_timeout","suspended"]), "duration_secs": z.number().int().optional(), "created_at": z.string().datetime({ offset: true }) })
+export type MatchHistoryEntry = z.infer<typeof matchHistoryEntrySchema>
+
 export const moveSchema = z.object({ "id": z.string(), "session_id": z.string(), "player_id": z.string(), "payload": z.any(), "state_after": z.string().optional(), "move_number": z.number().int(), "applied_at": z.string().datetime({ offset: true }) })
 export type Move = z.infer<typeof moveSchema>
 
 export const pauseVoteResultSchema = z.object({ "all_voted": z.boolean(), "votes": z.number().int(), "required": z.number().int() })
 export type PauseVoteResult = z.infer<typeof pauseVoteResultSchema>
+
+export const playerSchema = z.object({ "id": z.string(), "username": z.string(), "role": z.enum(["player","manager","owner"]), "avatar_url": z.string().optional(), "is_bot": z.boolean(), "created_at": z.string().datetime({ offset: true }), "deleted_at": z.string().datetime({ offset: true }).optional() })
+export type Player = z.infer<typeof playerSchema>
+
+export const playerStatsSchema = z.object({ "player_id": z.string(), "total_games": z.number().int(), "wins": z.number().int(), "losses": z.number().int(), "draws": z.number().int(), "forfeits": z.number().int() })
+export type PlayerStats = z.infer<typeof playerStatsSchema>
 
 export const readyVoteResultSchema = z.object({ "all_ready": z.boolean(), "ready_players": z.array(z.string()), "required": z.number().int() })
 export type ReadyVoteResult = z.infer<typeof readyVoteResultSchema>
@@ -37,10 +52,22 @@ export type RoomPlayer = z.infer<typeof roomPlayerSchema>
 export const sessionEventSchema = z.object({ "id": z.string(), "session_id": z.string(), "event_type": z.string(), "player_id": z.string().optional(), "payload": z.any().optional(), "occurred_at": z.string().datetime({ offset: true }) })
 export type SessionEvent = z.infer<typeof sessionEventSchema>
 
+export const gameInfoSchema = z.object({
+  "id": z.string(),
+  "name": z.string(),
+  "min_players": z.number().int(),
+  "max_players": z.number().int(),
+  "settings": z.array(lobbySettingSchema)
+})
+export type GameInfo = z.infer<typeof gameInfoSchema>
+
 // ---- Endpoint schemas ----------------------------------------------------
 
 export const addBotRequestSchema = z.object({ "player_id": z.string().min(1), "profile": z.enum(["easy","medium","hard","aggressive"]).optional() })
 export type AddBotRequest = z.infer<typeof addBotRequestSchema>
+
+export const addBotResponseSchema = playerSchema
+export type AddBotResponse = z.infer<typeof addBotResponseSchema>
 
 export const applyMoveRequestSchema = z.object({ "player_id": z.string().min(1), "payload": z.record(z.string(), z.any()) })
 export type ApplyMoveRequest = z.infer<typeof applyMoveRequestSchema>
@@ -63,6 +90,16 @@ export const createRoomResponseSchema = z.object({
 })
 export type CreateRoomResponse = z.infer<typeof createRoomResponseSchema>
 
+export const getPlayerStatsResponseSchema = playerStatsSchema
+export type GetPlayerStatsResponse = z.infer<typeof getPlayerStatsResponseSchema>
+
+export const getRoomResponseSchema = z.object({
+  "room": roomSchema,
+  "players": z.array(roomPlayerSchema),
+  "settings": z.record(z.string(), z.string())
+})
+export type GetRoomResponse = z.infer<typeof getRoomResponseSchema>
+
 export const getSessionResponseSchema = z.object({
   "session": gameSessionSchema,
   "state": z.unknown(),
@@ -82,6 +119,15 @@ export type JoinRoomResponse = z.infer<typeof joinRoomResponseSchema>
 
 export const leaveRoomRequestSchema = z.object({ "player_id": z.string().min(1) })
 export type LeaveRoomRequest = z.infer<typeof leaveRoomRequestSchema>
+
+export const listPlayerMatchesResponseSchema = z.object({
+  "matches": z.array(matchHistoryEntrySchema),
+  "total": z.number().int()
+})
+export type ListPlayerMatchesResponse = z.infer<typeof listPlayerMatchesResponseSchema>
+
+export const listRoomsResponseSchema = z.array(roomSchema)
+export type ListRoomsResponse = z.infer<typeof listRoomsResponseSchema>
 
 export const removeBotRequestSchema = z.object({ "player_id": z.string().min(1) })
 export type RemoveBotRequest = z.infer<typeof removeBotRequestSchema>

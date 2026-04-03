@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_player_stats.response.json",
+  "title": "GetPlayerStatsResponse",
+  "$ref": "defs/player_stats.json"
+}

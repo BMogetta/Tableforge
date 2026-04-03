@@ -120,20 +120,41 @@ const lines = [
   '',
 ]
 
-// 1. Generate defs as standalone exported schemas
+// 1. Generate defs as standalone exported schemas.
+// Two passes: first register all names (so $ref between defs works),
+// then generate code (defs without $ref first, then defs with $ref).
 const defFiles = readdirSync(DEFS_DIR).filter(f => f.endsWith('.json')).sort()
+const defSchemas = []
 for (const file of defFiles) {
   const schema = readSchema(join(DEFS_DIR, file))
-  delete schema['$schema']
-  delete schema['$id']
   const name = toSchemaName(file)
   const typeName = toTypeName(file)
-
-  // Register $ref mapping: "defs/game_session.json" → "gameSessionSchema"
   refToSchemaName[`defs/${file}`] = name
+  defSchemas.push({ file, schema, name, typeName })
+}
 
-  const code = generateZod(schema, name)
-  lines.push(`export ${code}`)
+// Sort: defs without $ref first so they're declared before being referenced.
+defSchemas.sort((a, b) => {
+  const aHasRef = JSON.stringify(a.schema).includes('$ref')
+  const bHasRef = JSON.stringify(b.schema).includes('$ref')
+  return Number(aHasRef) - Number(bHasRef)
+})
+
+for (const { schema, name, typeName } of defSchemas) {
+  delete schema['$schema']
+  delete schema['$id']
+
+  const hasRef = Object.values(schema.properties ?? {}).some(
+    p => p['$ref'] || (p.type === 'array' && p.items?.['$ref'])
+  )
+
+  let code
+  if (hasRef) {
+    code = `export ${buildEndpointZod(schema, name)}`
+  } else {
+    code = `export ${generateZod(schema, name)}`
+  }
+  lines.push(code)
   lines.push(`export type ${typeName} = z.infer<typeof ${name}>`, '')
 }
 
@@ -146,14 +167,29 @@ for (const file of endpointFiles) {
   const name = toSchemaName(file)
   const typeName = toTypeName(file)
 
-  // If it has properties with $ref, use our builder; otherwise use json-schema-to-zod
-  const hasRef = Object.values(schema.properties ?? {}).some(
-    p => p['$ref'] || (p.type === 'array' && p.items?.['$ref'])
-  )
-
   let code
-  if (hasRef) {
+
+  // Top-level $ref → alias to the def schema
+  if (schema['$ref']) {
+    const varName = refToSchemaName[schema['$ref']]
+    code = varName
+      ? `export const ${name} = ${varName}`
+      : `export const ${name} = z.unknown()`
+
+  // Top-level array with $ref items
+  } else if (schema.type === 'array' && schema.items?.['$ref']) {
+    const varName = refToSchemaName[schema.items['$ref']]
+    code = varName
+      ? `export const ${name} = z.array(${varName})`
+      : `export const ${name} = z.array(z.unknown())`
+
+  // Object with $ref in properties → use our builder
+  } else if (Object.values(schema.properties ?? {}).some(
+    p => p['$ref'] || (p.type === 'array' && p.items?.['$ref'])
+  )) {
     code = `export ${buildEndpointZod(schema, name)}`
+
+  // Plain schema → use json-schema-to-zod
   } else {
     delete schema['$schema']
     delete schema['$id']
