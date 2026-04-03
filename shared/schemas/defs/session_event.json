@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/session_event.json",
+  "title": "SessionEvent",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "event_type": { "type": "string" },
+    "player_id": { "type": "string" },
+    "payload": {},
+    "occurred_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "session_id", "event_type", "occurred_at"]
+}

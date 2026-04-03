@@ -1,4 +1,4 @@
-import type { GameSessionDTO } from './api-generated'
+import type { GameSession } from './schema-generated'
 import type { RoomView, Notification } from './api'
 import { emitErrorLog } from './telemetry'
 import { getDeviceContextAttrs } from './device'
@@ -49,7 +49,7 @@ export type WsEventType =
 
 /** Mirrors the MoveResult shape returned by the runtime on move/surrender/game_over. */
 export interface WsPayloadMoveResult {
-  session: GameSessionDTO
+  session: GameSession
   state: { current_player_id: string; data: unknown }
   is_over: boolean
   result?: {

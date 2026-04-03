@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_session.response.json",
+  "title": "GetSessionResponse",
+  "type": "object",
+  "properties": {
+    "session": { "$ref": "defs/game_session.json" },
+    "state": {},
+    "result": { "$ref": "defs/game_result_record.json" }
+  },
+  "required": ["session", "state"]
+}

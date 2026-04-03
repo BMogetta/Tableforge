@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "create_room.request.json",
+  "title": "CreateRoomRequest",
+  "type": "object",
+  "properties": {
+    "game_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "player_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "turn_timeout_secs": {
+      "type": "integer",
+      "minimum": 5
+    }
+  },
+  "required": ["game_id", "player_id"]
+}

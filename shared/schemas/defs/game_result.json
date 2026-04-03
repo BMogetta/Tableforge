@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/game_result.json",
+  "title": "GameResult",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["win", "draw"]
+    },
+    "winner_id": { "type": "string" }
+  },
+  "required": ["status"]
+}

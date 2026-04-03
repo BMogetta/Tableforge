@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/pause_vote_result.json",
+  "title": "PauseVoteResult",
+  "type": "object",
+  "properties": {
+    "all_voted": { "type": "boolean" },
+    "votes": { "type": "integer" },
+    "required": { "type": "integer" }
+  },
+  "required": ["all_voted", "votes", "required"]
+}

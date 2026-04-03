@@ -1,4 +1,4 @@
-import { GameSessionDTO } from '@/lib/api-generated'
+import { GameSession } from '@/lib/schema-generated'
 
 /**
  * Unified cache shape for session queries written to the React Query cache
@@ -10,7 +10,7 @@ import { GameSessionDTO } from '@/lib/api-generated'
  * refetchInterval / useEffect reads in useGameSession.
  */
 export interface SessionCache {
-  session: GameSessionDTO
+  session: GameSession
   state: unknown
   result?: {
     winner_id?: string | null

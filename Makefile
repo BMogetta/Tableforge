@@ -118,22 +118,11 @@ clean:
 
 # ── API Types ─────────────────────────────────────────────────────────────────
 
-# Generate TypeScript types from the Go API.
-# Requires: swag installed (go install github.com/swaggo/swag/cmd/swag@latest)
-# Run this after adding or modifying API handlers.
+# Generate TypeScript types from JSON Schema definitions.
+# Source of truth for request/response DTOs shared between Go and TS.
+# Run this after adding or modifying shared/schemas/*.json.
 gen-types:
-	cd services/game-server && swag init -g cmd/server/main.go -o docs \
-		--parseDependency --parseInternal --useStructName
-
-	cd services/game-server/docs && jq -s -f patch-swagger.jq swagger.json swagger.required-patch.json > swagger.patched.json
-
-	cd services/game-server/docs && npx swagger-typescript-api generate \
-		--path swagger.patched.json \
-		--output ../../frontend/src/lib \
-		--name api-generated.ts \
-		--no-client
-
-	@echo "✓ TypeScript types generated at frontend/src/lib/api-generated.ts"
+	@bash scripts/gen-schema-types.sh
 
 # Regenerate all protobuf Go stubs from .proto definitions.
 # Requires: protoc, protoc-gen-go, protoc-gen-go-grpc

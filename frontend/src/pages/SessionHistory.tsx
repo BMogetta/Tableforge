@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
-import { SessionEventDTO } from '@/lib/api-generated'
+import { SessionEvent } from '@/lib/schema-generated'
 import { keys } from '@/lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
 import { sessions } from '@/lib/api/sessions'
-import { MoveDTO } from '@/lib/api-generated'
+import { Move } from '@/lib/schema-generated'
 import { testId } from '@/utils/testId'
 
 // --- Helpers -----------------------------------------------------------------
@@ -54,11 +54,14 @@ function formatRelative(iso: string, baseIso: string): string {
 
 // --- Components --------------------------------------------------------------
 
-function EventRow({ event, base, index }: { event: SessionEventDTO; base: string; index: number }) {
+function EventRow({ event, base, index }: { event: SessionEvent; base: string; index: number }) {
   const [open, setOpen] = useState(false)
   const label = EVENT_LABELS[event.event_type] ?? event.event_type
   const accent = EVENT_ACCENT[event.event_type] ?? 'var(--text-muted)'
-  const hasPayload = event.payload && Object.keys(event.payload).length > 0
+  const hasPayload =
+    event.payload != null &&
+    typeof event.payload === 'object' &&
+    Object.keys(event.payload).length > 0
 
   return (
     <div
@@ -95,7 +98,7 @@ function EventRow({ event, base, index }: { event: SessionEventDTO; base: string
 
 // --- Replay ------------------------------------------------------------------
 
-function ReplayView({ moves, gameId }: { moves: MoveDTO[]; gameId: string }) {
+function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
   const [step, setStep] = useState(0)
 
   if (moves.length === 0) {

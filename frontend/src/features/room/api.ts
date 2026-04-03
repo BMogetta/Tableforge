@@ -7,42 +7,61 @@ import type {
   BotProfile,
   Player,
 } from '@/lib/api'
-import type { GameSessionDTO } from '@/lib/api-generated'
+import type {
+  GameSession,
+  CreateRoomRequest,
+  JoinRoomRequest,
+  LeaveRoomRequest,
+  StartGameRequest,
+  UpdateRoomSettingRequest,
+  AddBotRequest,
+  RemoveBotRequest,
+} from '@/lib/schema-generated'
 
 // --- Rooms -------------------------------------------------------------------
 
 export const rooms = {
   list: () => request<RoomView[]>('/rooms'),
   get: (id: string) => request<RoomView>(`/rooms/${id}`),
-  create: (gameId: string, playerId: string, turnTimeoutSecs?: number) =>
-    request<RoomView>('/rooms', {
+  create: (gameId: string, playerId: string, turnTimeoutSecs?: number) => {
+    const body: CreateRoomRequest = {
+      game_id: gameId,
+      player_id: playerId,
+      ...(turnTimeoutSecs != null && { turn_timeout_secs: turnTimeoutSecs }),
+    }
+    return request<RoomView>('/rooms', {
       method: 'POST',
-      body: JSON.stringify({
-        game_id: gameId,
-        player_id: playerId,
-        turn_timeout_secs: turnTimeoutSecs,
-      }),
-    }),
-  join: (code: string, playerId: string) =>
-    request<RoomView>('/rooms/join', {
+      body: JSON.stringify(body),
+    })
+  },
+  join: (code: string, playerId: string) => {
+    const body: JoinRoomRequest = { code, player_id: playerId }
+    return request<RoomView>('/rooms/join', {
       method: 'POST',
-      body: JSON.stringify({ code, player_id: playerId }),
-    }),
-  leave: (roomId: string, playerId: string) =>
-    request<void>(`/rooms/${roomId}/leave`, {
+      body: JSON.stringify(body),
+    })
+  },
+  leave: (roomId: string, playerId: string) => {
+    const body: LeaveRoomRequest = { player_id: playerId }
+    return request<void>(`/rooms/${roomId}/leave`, {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId }),
-    }),
-  start: (roomId: string, playerId: string) =>
-    request<GameSessionDTO>(`/rooms/${roomId}/start`, {
+      body: JSON.stringify(body),
+    })
+  },
+  start: (roomId: string, playerId: string) => {
+    const body: StartGameRequest = { player_id: playerId }
+    return request<GameSession>(`/rooms/${roomId}/start`, {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId }),
-    }),
-  updateSetting: (roomId: string, playerId: string, key: string, value: string) =>
-    request<void>(`/rooms/${roomId}/settings/${encodeURIComponent(key)}`, {
+      body: JSON.stringify(body),
+    })
+  },
+  updateSetting: (roomId: string, playerId: string, key: string, value: string) => {
+    const body: UpdateRoomSettingRequest = { player_id: playerId, value }
+    return request<void>(`/rooms/${roomId}/settings/${encodeURIComponent(key)}`, {
       method: 'PUT',
-      body: JSON.stringify({ player_id: playerId, value }),
-    }),
+      body: JSON.stringify(body),
+    })
+  },
   messages: (roomId: string) => request<RoomMessage[]>(`/rooms/${roomId}/messages`),
   sendMessage: (roomId: string, playerId: string, content: string) =>
     request<RoomMessage>(`/rooms/${roomId}/messages`, {
@@ -55,16 +74,20 @@ export const rooms = {
 
 export const bots = {
   profiles: () => request<BotProfile[]>('/bots/profiles'),
-  add: (roomId: string, playerId: string, profile: string) =>
-    request<Player>(`/rooms/${roomId}/bots`, {
+  add: (roomId: string, playerId: string, profile: string) => {
+    const body: AddBotRequest = { player_id: playerId, profile: profile as AddBotRequest['profile'] }
+    return request<Player>(`/rooms/${roomId}/bots`, {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId, profile }),
-    }),
-  remove: (roomId: string, playerId: string, botId: string) =>
-    request<void>(`/rooms/${roomId}/bots/${botId}`, {
+      body: JSON.stringify(body),
+    })
+  },
+  remove: (roomId: string, playerId: string, botId: string) => {
+    const body: RemoveBotRequest = { player_id: playerId }
+    return request<void>(`/rooms/${roomId}/bots/${botId}`, {
       method: 'DELETE',
-      body: JSON.stringify({ player_id: playerId }),
-    }),
+      body: JSON.stringify(body),
+    })
+  },
 }
 
 // --- Mutes -------------------------------------------------------------------

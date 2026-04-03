@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "apply_move.request.json",
+  "title": "ApplyMoveRequest",
+  "type": "object",
+  "properties": {
+    "player_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "required": ["player_id", "payload"]
+}

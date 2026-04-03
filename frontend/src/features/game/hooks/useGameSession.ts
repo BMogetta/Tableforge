@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
 import { GameData } from '@/games/registry'
-import { GameSessionDTO } from '@/lib/api-generated'
+import { GameSession } from '@/lib/schema-generated'
 import { sessions } from '@/lib/api/sessions'
 
 interface UseGameSessionOptions {
@@ -12,7 +12,7 @@ interface UseGameSessionOptions {
 }
 
 interface UseGameSessionReturn {
-  session: GameSessionDTO | null
+  session: GameSession | null
   gameData: GameData | null
   roomPlayers: { id: string; username: string }[]
   loadError: Error | null
@@ -51,7 +51,7 @@ export function useGameSession({
   })
 
   const session = data?.session ?? null
-  const gameData = data?.state ?? null
+  const gameData = (data?.state as GameData) ?? null
 
   useEffect(() => {
     if (!data?.session?.finished_at) return

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/game_result_record.json",
+  "title": "GameResultRecord",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "game_id": { "type": "string" },
+    "winner_id": { "type": "string" },
+    "is_draw": { "type": "boolean" },
+    "ended_by": {
+      "type": "string",
+      "enum": ["win", "draw", "forfeit", "timeout", "ready_timeout", "suspended"]
+    },
+    "duration_secs": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "session_id", "game_id", "is_draw", "ended_by", "created_at"]
+}

@@ -25,6 +25,7 @@ import (
 // NewRouter builds and returns the main HTTP router.
 // jwtSecret may be nil — auth middleware is skipped (tests only).
 // limiter may be nil — rate limiting is skipped (tests only).
+// schemas may be nil — request validation is skipped (tests only).
 func NewRouter(
 	lobbyService *lobby.Service,
 	rt *runtime.Service,
@@ -34,6 +35,7 @@ func NewRouter(
 	limiter *ratelimit.Limiter,
 	eventStore *events.Store,
 	userClient *userclient.Client,
+	schemas *sharedmw.SchemaRegistry,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -69,6 +71,14 @@ func NewRouter(
 		authMW = func(next http.Handler) http.Handler { return next }
 	}
 
+	// validate wraps schema validation; no-op when schemas is nil (tests).
+	validate := func(name string) func(http.Handler) http.Handler {
+		if schemas == nil {
+			return func(next http.Handler) http.Handler { return next }
+		}
+		return schemas.ValidateBody(name)
+	}
+
 	// API routes — protected in production, open when jwtSecret is nil (tests).
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMW)
@@ -79,26 +89,26 @@ func NewRouter(
 		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
 		r.Get("/players/{playerID}/stats", handleGetPlayerStats(st))
 		r.Get("/players/{playerID}/matches", handleListPlayerMatches(st))
-		r.Post("/rooms", handleCreateRoom(lobbyService))
+		r.With(validate("create_room.request")).Post("/rooms", handleCreateRoom(lobbyService))
 		r.Get("/rooms", handleListRooms(lobbyService))
 		r.Get("/rooms/{roomID}", handleGetRoom(lobbyService))
-		r.Post("/rooms/join", handleJoinRoom(lobbyService, hub))
-		r.Post("/rooms/{roomID}/leave", handleLeaveRoom(lobbyService, hub))
-		r.Post("/rooms/{roomID}/start", handleStartGame(lobbyService, rt, hub))
-		r.Put("/rooms/{roomID}/settings/{key}", handleUpdateRoomSetting(lobbyService, hub))
-		r.Post("/rooms/{roomID}/bots", handleAddBot(rt, hub, st))
-		r.Delete("/rooms/{roomID}/bots/{botID}", handleRemoveBot(rt, hub, st))
+		r.With(validate("join_room.request")).Post("/rooms/join", handleJoinRoom(lobbyService, hub))
+		r.With(validate("leave_room.request")).Post("/rooms/{roomID}/leave", handleLeaveRoom(lobbyService, hub))
+		r.With(validate("start_game.request")).Post("/rooms/{roomID}/start", handleStartGame(lobbyService, rt, hub))
+		r.With(validate("update_room_setting.request")).Put("/rooms/{roomID}/settings/{key}", handleUpdateRoomSetting(lobbyService, hub))
+		r.With(validate("add_bot.request")).Post("/rooms/{roomID}/bots", handleAddBot(rt, hub, st))
+		r.With(validate("remove_bot.request")).Delete("/rooms/{roomID}/bots/{botID}", handleRemoveBot(rt, hub, st))
 
 		r.Get("/sessions/{sessionID}", handleGetSession(rt))
 		r.Post("/sessions/{sessionID}/ready", handlePlayerReady(rt, hub, st))
 		r.Get("/sessions/{sessionID}/events", handleGetSessionEvents(eventStore))
-		r.Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub, st))
-		r.Post("/sessions/{sessionID}/rematch", handleRematch(lobbyService, rt, hub))
-		r.Post("/sessions/{sessionID}/pause", handleVotePause(rt, hub))
-		r.Post("/sessions/{sessionID}/resume", handleVoteResume(rt, hub))
+		r.With(validate("surrender.request")).Post("/sessions/{sessionID}/surrender", handleSurrender(rt, hub, st))
+		r.With(validate("vote_rematch.request")).Post("/sessions/{sessionID}/rematch", handleRematch(lobbyService, rt, hub))
+		r.With(validate("vote_pause.request")).Post("/sessions/{sessionID}/pause", handleVotePause(rt, hub))
+		r.With(validate("vote_resume.request")).Post("/sessions/{sessionID}/resume", handleVoteResume(rt, hub))
 		r.With(requireRole(sharedmw.RoleManager)).Delete("/sessions/{sessionID}", handleForceCloseSession(st, hub))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
-		r.With(moveLimiter).Post("/sessions/{sessionID}/move", handleMove(rt, hub, st))
+		r.With(moveLimiter, validate("apply_move.request")).Post("/sessions/{sessionID}/move", handleMove(rt, hub, st))
 
 	})
 

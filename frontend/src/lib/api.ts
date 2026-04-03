@@ -1,6 +1,6 @@
 // All types mirror the Go store models.
 
-import { GameSessionDTO } from './api-generated'
+import { GameSession } from './schema-generated'
 import { FontSize, SkinId } from './skins'
 import { tracer } from './telemetry'
 import { SpanKind, SpanStatusCode, context, propagation } from '@opentelemetry/api'
@@ -452,7 +452,7 @@ export interface PlayerProfile {
 
 export const players = {
   stats: (id: string) => request<PlayerStats>(`/players/${id}/stats`),
-  sessions: (id: string) => request<GameSessionDTO[]>(`/players/${id}/sessions`),
+  sessions: (id: string) => request<GameSession[]>(`/players/${id}/sessions`),
   matches: (id: string, limit = 20, offset = 0) =>
     request<MatchHistoryResponse>(`/players/${id}/matches?limit=${limit}&offset=${offset}`),
   profile: (id: string) => request<PlayerProfile>(`/players/${id}/profile`),

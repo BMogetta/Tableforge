@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "update_room_setting.request.json",
+  "title": "UpdateRoomSettingRequest",
+  "type": "object",
+  "properties": {
+    "player_id": { "type": "string", "minLength": 1 },
+    "value": { "type": "string" }
+  },
+  "required": ["player_id", "value"]
+}

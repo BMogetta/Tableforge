@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vote_rematch.response.json",
+  "title": "VoteRematchResponse",
+  "type": "object",
+  "properties": {
+    "votes": { "type": "integer" },
+    "total_players": { "type": "integer" }
+  },
+  "required": ["votes", "total_players"]
+}

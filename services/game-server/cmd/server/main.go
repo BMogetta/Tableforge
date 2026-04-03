@@ -1,7 +1,3 @@
-// @title           Recess API
-// @version         1.0
-// @host            localhost
-// @BasePath        /api/v1
 package main
 
 import (
@@ -29,6 +25,7 @@ import (
 	"github.com/recess/game-server/internal/platform/userclient"
 	"github.com/recess/game-server/internal/platform/ws"
 	"github.com/recess/shared/config"
+	sharedmw "github.com/recess/shared/middleware"
 	gamev1 "github.com/recess/shared/proto/game/v1"
 	lobbyv1 "github.com/recess/shared/proto/lobby/v1"
 	sharedredis "github.com/recess/shared/redis"
@@ -149,6 +146,16 @@ func main() {
 		jwtSecret = []byte(config.MustEnv("JWT_SECRET"))
 	}
 
+	var schemaReg *sharedmw.SchemaRegistry
+	if !testMode {
+		var err error
+		schemaReg, err = sharedmw.NewSchemaRegistry()
+		if err != nil {
+			slog.Error("failed to compile JSON schemas", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	router := api.NewRouter(
 		lobbyService,
 		runtimeService,
@@ -158,6 +165,7 @@ func main() {
 		limiter,
 		eventStore,
 		userClient,
+		schemaReg,
 	)
 
 	var handler http.Handler = router

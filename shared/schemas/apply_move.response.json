@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "apply_move.response.json",
+  "title": "ApplyMoveResponse",
+  "type": "object",
+  "properties": {
+    "session": { "$ref": "defs/game_session.json" },
+    "state": {},
+    "is_over": { "type": "boolean" },
+    "result": { "$ref": "defs/game_result.json" }
+  },
+  "required": ["session", "state", "is_over"]
+}

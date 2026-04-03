@@ -3,17 +3,17 @@ import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
 
 interface TurnTimerProps {
-  turnTimeoutSecs: number
+  turnTimeoutSecs?: number
   lastMoveAt: string
   isOver: boolean
   isSuspended: boolean
 }
 
 export function TurnTimer({ turnTimeoutSecs, lastMoveAt, isOver, isSuspended }: TurnTimerProps) {
-  const [remaining, setRemaining] = useState(() => calcRemaining(turnTimeoutSecs, lastMoveAt))
+  const [remaining, setRemaining] = useState(() => calcRemaining(turnTimeoutSecs ?? 0, lastMoveAt))
 
   useEffect(() => {
-    if (isOver || turnTimeoutSecs <= 0) {
+    if (isOver || !turnTimeoutSecs || turnTimeoutSecs <= 0) {
       return
     }
 
@@ -32,7 +32,7 @@ export function TurnTimer({ turnTimeoutSecs, lastMoveAt, isOver, isSuspended }: 
     return () => clearInterval(interval)
   }, [turnTimeoutSecs, lastMoveAt, isOver, isSuspended])
 
-  if (isOver || turnTimeoutSecs <= 0) {
+  if (isOver || !turnTimeoutSecs || turnTimeoutSecs <= 0) {
     return null
   }
 

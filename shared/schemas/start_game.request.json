@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "start_game.request.json",
+  "title": "StartGameRequest",
+  "type": "object",
+  "properties": {
+    "player_id": { "type": "string", "minLength": 1 }
+  },
+  "required": ["player_id"]
+}

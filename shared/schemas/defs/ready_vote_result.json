@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/ready_vote_result.json",
+  "title": "ReadyVoteResult",
+  "type": "object",
+  "properties": {
+    "all_ready": { "type": "boolean" },
+    "ready_players": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "required": { "type": "integer" }
+  },
+  "required": ["all_ready", "ready_players", "required"]
+}

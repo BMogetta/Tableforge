@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/room_player.json",
+  "title": "RoomPlayer",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "username": { "type": "string" },
+    "role": {
+      "type": "string",
+      "enum": ["player", "manager", "owner"]
+    },
+    "avatar_url": { "type": "string" },
+    "is_bot": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "deleted_at": { "type": "string", "format": "date-time" },
+    "seat": { "type": "integer" },
+    "joined_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "username", "role", "is_bot", "created_at", "seat", "joined_at"]
+}

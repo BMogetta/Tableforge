@@ -5,7 +5,7 @@ import { testId } from '@/utils/testId'
 interface Props {
   gameId: string
   moveCount: number
-  turnTimeoutSecs: number
+  turnTimeoutSecs?: number
   lastMoveAt: string
   isSuspended: boolean
   canPause: boolean

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/move.json",
+  "title": "Move",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "player_id": { "type": "string" },
+    "payload": {},
+    "state_after": { "type": "string" },
+    "move_number": { "type": "integer" },
+    "applied_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "session_id", "player_id", "payload", "move_number", "applied_at"]
+}

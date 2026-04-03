@@ -20,7 +20,7 @@ import { useGameSocket } from './hooks/useGameSocket'
 import { usePauseResume } from './hooks/usePauseResume'
 import { useRematch } from './hooks/useRematch'
 import { SessionCache } from './api/session-cache'
-import { ResultStatus } from '@/lib/api-generated'
+import { ResultStatus } from '@/lib/api'
 
 export function Game({ sessionId }: { sessionId: string }) {
   const player = useAppStore(s => s.player)!
@@ -131,7 +131,7 @@ export function Game({ sessionId }: { sessionId: string }) {
         result: res.result
           ? {
               winner_id: res.result.winner_id ?? null,
-              is_draw: res.result.status === ResultStatus.ResultDraw,
+              is_draw: res.result.status === ResultStatus.Draw,
             }
           : null,
       } satisfies SessionCache)
@@ -139,7 +139,7 @@ export function Game({ sessionId }: { sessionId: string }) {
         setGameOver({
           isOver: true,
           winnerId: res.result?.winner_id ?? null,
-          isDraw: res.result?.status === ResultStatus.ResultDraw,
+          isDraw: res.result?.status === ResultStatus.Draw,
         })
       }
     },

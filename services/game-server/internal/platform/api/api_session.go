@@ -101,17 +101,7 @@ type moveRequest struct {
 	Payload  map[string]any `json:"payload"`
 }
 
-// @Summary  Apply a move
-// @Tags     sessions
-// @Accept   json
-// @Produce  json
-// @Param    sessionID path     string      true "Session UUID"
-// @Param    body      body     moveRequest true "Move payload"
-// @Success  200       {object} MoveResponse
-// @Failure  400       {object} map[string]string
-// @Failure  404       {object} map[string]string
-// @Failure  409       {object} map[string]string
-// @Router   /sessions/{sessionID}/move [post]
+// POST /api/v1/sessions/{sessionID}/move
 func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -163,13 +153,7 @@ func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFu
 	}
 }
 
-// @Summary  Get game session
-// @Tags     sessions
-// @Produce  json
-// @Param    sessionID path     string true "Session UUID"
-// @Success  200       {object} SessionResponse
-// @Failure  404       {object} map[string]string
-// @Router   /sessions/{sessionID} [get]
+// GET /api/v1/sessions/{sessionID}
 func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -190,13 +174,7 @@ func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 	}
 }
 
-// @Summary  Get session events
-// @Tags     sessions
-// @Produce  json
-// @Param    sessionID path     string true "Session UUID"
-// @Success  200       {array}  SessionEventDTO
-// @Failure  404       {object} map[string]string
-// @Router   /sessions/{sessionID}/events [get]
+// GET /api/v1/sessions/{sessionID}/events
 func handleGetSessionEvents(ev *events.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -217,13 +195,7 @@ func handleGetSessionEvents(ev *events.Store) http.HandlerFunc {
 	}
 }
 
-// @Summary  Vote ready
-// @Tags     sessions
-// @Produce  json
-// @Param    sessionID path     string true "Session UUID"
-// @Success  200       {object} runtime.ReadyVoteResult
-// @Failure  404       {object} map[string]string
-// @Router   /sessions/{sessionID}/ready [post]
+// POST /api/v1/sessions/{sessionID}/ready
 func handlePlayerReady(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID := mustParseUUID(w, r, "sessionID")
@@ -264,15 +236,7 @@ type surrenderRequest struct {
 	PlayerID string `json:"player_id"`
 }
 
-// @Summary  Surrender a game
-// @Tags     sessions
-// @Accept   json
-// @Produce  json
-// @Param    sessionID path     string          true "Session UUID"
-// @Param    body      body     surrenderRequest true "Player ID"
-// @Success  200       {object} MoveResponse
-// @Failure  404       {object} map[string]string
-// @Router   /sessions/{sessionID}/surrender [post]
+// POST /api/v1/sessions/{sessionID}/surrender
 func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -313,15 +277,7 @@ type rematchRequest struct {
 	PlayerID string `json:"player_id"`
 }
 
-// @Summary  Vote for rematch
-// @Tags     sessions
-// @Accept   json
-// @Produce  json
-// @Param    sessionID path     string         true "Session UUID"
-// @Param    body      body     rematchRequest true "Player ID"
-// @Success  200       {object} RematchResponse
-// @Failure  404       {object} map[string]string
-// @Router   /sessions/{sessionID}/rematch [post]
+// POST /api/v1/sessions/{sessionID}/rematch
 func handleRematch(lobbySvc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -392,13 +348,7 @@ func handleRematch(lobbySvc *lobby.Service, rt *runtime.Service, hub *ws.Hub) ht
 	}
 }
 
-// @Summary  Get session history
-// @Tags     sessions
-// @Produce  json
-// @Param    sessionID path     string true "Session UUID"
-// @Success  200       {array}  MoveDTO
-// @Failure  404       {object} map[string]string
-// @Router   /sessions/{sessionID}/history [get]
+// GET /api/v1/sessions/{sessionID}/history
 func handleGetSessionHistory(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -421,14 +371,7 @@ func handleGetSessionHistory(st store.Store) http.HandlerFunc {
 
 // --- Pause / Resume ----------------------------------------------------------
 
-// @Summary  Vote to pause
-// @Tags     sessions
-// @Produce  json
-// @Param    sessionID path     string true "Session UUID"
-// @Success  200       {object} runtime.PauseVoteResult
-// @Failure  404       {object} map[string]string
-// @Failure  409       {object} map[string]string
-// @Router   /sessions/{sessionID}/pause [post]
+// POST /api/v1/sessions/{sessionID}/pause
 func handleVotePause(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
@@ -493,14 +436,7 @@ func handleVotePause(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 	}
 }
 
-// @Summary  Vote to resume
-// @Tags     sessions
-// @Produce  json
-// @Param    sessionID path     string true "Session UUID"
-// @Success  200       {object} runtime.PauseVoteResult
-// @Failure  404       {object} map[string]string
-// @Failure  409       {object} map[string]string
-// @Router   /sessions/{sessionID}/resume [post]
+// POST /api/v1/sessions/{sessionID}/resume
 func handleVoteResume(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))

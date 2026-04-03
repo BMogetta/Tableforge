@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/game_session.json",
+  "title": "GameSession",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "room_id": { "type": "string" },
+    "game_id": { "type": "string" },
+    "name": { "type": "string" },
+    "mode": { "type": "string" },
+    "move_count": { "type": "integer" },
+    "suspend_count": { "type": "integer" },
+    "suspended_at": { "type": "string", "format": "date-time" },
+    "suspended_reason": { "type": "string" },
+    "ready_players": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "turn_timeout_secs": { "type": "integer" },
+    "last_move_at": { "type": "string", "format": "date-time" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "room_id", "game_id", "mode", "move_count", "suspend_count", "ready_players", "last_move_at", "started_at"]
+}

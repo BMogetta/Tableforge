@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/room.json",
+  "title": "Room",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "code": { "type": "string" },
+    "game_id": { "type": "string" },
+    "owner_id": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["waiting", "in_progress", "finished"]
+    },
+    "max_players": { "type": "integer" },
+    "turn_timeout_secs": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "deleted_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "code", "game_id", "owner_id", "status", "max_players", "created_at", "updated_at"]
+}
