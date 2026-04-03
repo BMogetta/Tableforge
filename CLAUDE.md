@@ -78,6 +78,11 @@ When adding a new external tool or dependency that is required to build or run
 the project, also add it to `make setup` in the Makefile so it is checked
 during environment verification.
 
+### Changing Traefik routes
+
+When adding, removing, or modifying Traefik routing rules in `docker-compose*.yml`,
+also update `scripts/test-routing.sh` to match. Run `make test-routing` to verify.
+
 ## Architecture
 
 Recess is a **microservices monorepo**. All services live under `services/` and share code via `shared/` through a Go workspace.

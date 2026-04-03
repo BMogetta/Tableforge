@@ -46,16 +46,37 @@ make up-app                # + traefik + frontend
 make up-all                # + full observability stack
 ```
 
-Everything goes through Traefik on port 80:
-
-| Route          | Service          |
-|----------------|------------------|
-| `/`            | Frontend         |
-| `/api/*`       | Game Server      |
-| `grafana.localhost` | Grafana     |
-| `:9090`        | Traefik dashboard|
+Everything goes through Traefik on port 80. Run `make test-routing` to verify.
 
 See `CLAUDE.md` for the full architecture, service map, and all available commands.
+
+<!-- routing:start -->
+## Routing
+
+| Route | Service | Status |
+|-------|---------|--------|
+| `GET /api/v1/games` | game-server | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/bots/profiles` | game-server | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/sessions/{id}` | game-server | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /auth/github` | auth-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /auth/me` | auth-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/profile` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/friends` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/settings` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/admin/players` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/admin/allowed-emails` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/dm` | chat-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/ratings/{game}/leaderboard` | rating-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/notifications` | notification-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `POST /api/v1/queue` | match-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /ws/rooms/{id}` | ws-gateway | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /ws/players/{id}` | ws-gateway | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET grafana.localhost` | grafana | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /` | frontend | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+
+_Last updated: 2026-04-03_
+
+<!-- routing:end -->
 
 ## Adding a Game
 
