@@ -1,4 +1,4 @@
-import type { BotProfile } from '@/lib/api'
+import type { BotProfile } from '@/lib/schema-generated.zod'
 import type { AppError } from '@/utils/errors'
 import { ErrorMessage } from '@/ui/ErrorMessage'
 import styles from '../Room.module.css'

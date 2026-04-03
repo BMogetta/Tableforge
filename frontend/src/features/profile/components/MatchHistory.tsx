@@ -1,4 +1,4 @@
-import type { MatchHistoryEntry } from '@/lib/api'
+import type { MatchHistoryEntry } from '@/lib/schema-generated.zod'
 import styles from '../Profile.module.css'
 
 interface MatchHistoryProps {

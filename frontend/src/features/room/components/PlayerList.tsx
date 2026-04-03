@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { RoomViewPlayer } from '@/lib/api'
+import type { RoomPlayer } from '@/lib/schema-generated.zod'
 import { mutes } from '@/features/room/api'
 import { friends } from '@/features/friends/api'
 import { ok, error, catchToAppError } from '@/utils/errors'
@@ -10,7 +10,7 @@ import styles from '../Room.module.css'
 import { testId } from '@/utils/testId'
 
 interface PlayerListProps {
-  players: RoomViewPlayer[]
+  players: RoomPlayer[]
   maxPlayers: number
   ownerId: string | null
   currentPlayerId: string

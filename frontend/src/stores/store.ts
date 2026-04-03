@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { Player, PlayerSettingMap, PlayerSettings } from '@/lib/api'
+import type { PlayerSettingMap, PlayerSettings } from '@/lib/api'
+import type { Player } from '@/lib/schema-generated.zod'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import { PlayerSocket, RoomSocket } from '@/lib/ws'
 import { applyFontSize, applySkin, FontSize, type SkinId } from '@/lib/skins'

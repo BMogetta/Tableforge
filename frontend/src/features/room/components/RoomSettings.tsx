@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { rooms } from '@/features/room/api'
-import type { LobbySetting } from '@/lib/api'
+import type { LobbySetting } from '@/lib/schema-generated.zod'
 import styles from './RoomSettings.module.css'
 import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'

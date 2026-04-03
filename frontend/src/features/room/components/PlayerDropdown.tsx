@@ -1,8 +1,8 @@
-import type { RoomViewPlayer } from '@/lib/api'
+import type { RoomPlayer } from '@/lib/schema-generated.zod'
 import styles from '../Room.module.css'
 
 interface PlayerDropdownProps {
-  target: RoomViewPlayer
+  target: RoomPlayer
   isMuted: boolean
   onMute: () => void
   onUnmute: () => void

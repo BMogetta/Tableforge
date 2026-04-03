@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms, mutes } from '@/features/room/api'
-import type { RoomMessage, RoomViewPlayer } from '@/lib/api'
+import type { RoomMessage } from '@/lib/api'
+import type { RoomPlayer } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
@@ -17,7 +18,7 @@ interface Props {
   onUnmute: (playerId: string) => void
   onMuteAll: () => void
   onUnmuteAll: () => void
-  roomPlayers: RoomViewPlayer[]
+  roomPlayers: RoomPlayer[]
 }
 
 interface SystemMessage {
@@ -128,7 +129,7 @@ export function ChatPopover({
     setSystemMessages(prev => [...prev, { id: nextSysId(), text }])
   }
 
-  function resolvePlayer(username: string): RoomViewPlayer | undefined {
+  function resolvePlayer(username: string): RoomPlayer | undefined {
     return roomPlayers.find(p => p.username.toLowerCase() === username.toLowerCase())
   }
 

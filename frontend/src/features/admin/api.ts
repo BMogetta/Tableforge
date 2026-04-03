@@ -1,5 +1,6 @@
 import { request } from '@/lib/api'
-import type { AllowedEmail, Player, PlayerRole } from '@/lib/api'
+import type { AllowedEmail, PlayerRole } from '@/lib/api'
+import type { Player } from '@/lib/schema-generated.zod'
 
 export const admin = {
   listEmails: () => request<AllowedEmail[]>('/admin/allowed-emails'),

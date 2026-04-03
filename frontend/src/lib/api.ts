@@ -6,6 +6,7 @@ import {
   getPlayerStatsResponseSchema,
   listPlayerMatchesResponseSchema,
 } from './schema-generated.zod'
+import type { Player, RoomPlayer } from './schema-generated.zod'
 import { FontSize, SkinId } from './skins'
 import { tracer } from './telemetry'
 import { SpanKind, SpanStatusCode, context, propagation } from '@opentelemetry/api'
@@ -80,19 +81,7 @@ export type Language = (typeof Language)[keyof typeof Language]
 // TYPES
 // =============================================================================
 
-export interface Player {
-  id: string
-  username: string
-  role: PlayerRole
-  is_bot: boolean
-  avatar_url?: string
-  created_at: string
-}
-
-export interface RoomViewPlayer extends Player {
-  seat: number
-  joined_at: string
-}
+export type { Player, RoomPlayer } from './schema-generated.zod'
 
 export interface AllowedEmail {
   email: string
@@ -191,43 +180,13 @@ export interface RoomMessage {
 
 export interface RoomView {
   room: Room
-  players: RoomViewPlayer[]
+  players: RoomPlayer[]
   // Key/value map of all settings for this room.
   // Always present — defaults are inserted when the room is created.
   settings: Record<string, string>
   // Live spectator count. Kept in sync by spectator_joined / spectator_left
   // WS events in Room.tsx; may be absent on initial HTTP fetch.
   spectator_count?: number
-}
-
-/** Inline result returned by move/surrender endpoints — based on engine.Result. */
-export interface MoveResult {
-  status: ResultStatus
-  winner_id?: string
-}
-
-export interface PlayerStats {
-  player_id: string
-  total_games: number
-  wins: number
-  losses: number
-  draws: number
-  forfeits: number
-}
-
-// Rating mirrors store.Rating on the Go side.
-// NOTE: mmr is intentionally absent — it must not reach the frontend.
-// If the backend serializes mmr in /leaderboard responses, that is a backend
-// bug and should be fixed by excluding it from the JSON response struct.
-export interface Rating {
-  player_id: string
-  username: string
-  avatar_url?: string
-  display_rating: number
-  games_played: number
-  win_streak: number
-  loss_streak: number
-  updated_at: string
 }
 
 // Mutes are cross-session and server-side — they survive reconnects.
@@ -252,24 +211,6 @@ export interface DirectMessage {
 export interface QueuePosition {
   position: number
   estimated_wait_secs: number
-}
-
-export interface BotProfile {
-  name: string
-  iterations: number
-  determinizations: number
-  exploration_c: number
-  aggressiveness: number
-  risk_aversion: number
-}
-
-export interface SessionEvent {
-  id: string
-  session_id: string
-  type: string
-  player_id?: string
-  payload?: Record<string, unknown>
-  occurred_at: string
 }
 
 // --- Notification types ------------------------------------------------------
@@ -307,41 +248,7 @@ export interface Notification {
 
 // --- Lobby settings types ----------------------------------------------------
 
-export interface SettingOption {
-  value: string
-  label: string
-}
-
-/**
- * Describes a single configurable room setting declared by a game.
- * Mirrors engine.LobbySetting on the Go side.
- */
-export interface LobbySetting {
-  key: string
-  label: string
-  description?: string
-  type: SettingType
-  default: string
-  // Present when type === 'select'
-  options?: SettingOption[]
-  // Present when type === 'int'
-  min?: number
-  max?: number
-}
-
-/**
- * Public representation of a registered game, including its lobby settings.
- * Mirrors api.gameInfo on the Go side.
- */
-export interface GameInfo {
-  id: string
-  name: string
-  min_players: number
-  max_players: number
-  // Full list of configurable lobby settings for this game,
-  // platform defaults merged with any game-specific overrides.
-  settings: LobbySetting[]
-}
+export type { LobbySetting, GameInfo } from './schema-generated.zod'
 
 // --- HTTP client -------------------------------------------------------------
 
@@ -475,20 +382,7 @@ export const auth = {
 
 // --- Players -----------------------------------------------------------------
 
-export interface MatchHistoryEntry {
-  id: string
-  session_id: string
-  game_id: string
-  outcome: 'win' | 'loss' | 'draw' | 'forfeit'
-  ended_by: string
-  duration_secs?: number
-  created_at: string
-}
-
-export interface MatchHistoryResponse {
-  matches: MatchHistoryEntry[]
-  total: number
-}
+export type { MatchHistoryEntry } from './schema-generated.zod'
 
 export interface PlayerProfile {
   player_id: string

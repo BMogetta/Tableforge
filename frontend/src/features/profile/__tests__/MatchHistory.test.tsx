@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MatchHistory } from '../components/MatchHistory'
-import type { MatchHistoryEntry } from '@/lib/api'
+import type { MatchHistoryEntry } from '@/lib/schema-generated.zod'
 
 function makeMatch(overrides?: Partial<MatchHistoryEntry>): MatchHistoryEntry {
   return {
