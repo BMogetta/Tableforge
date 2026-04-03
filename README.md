@@ -52,7 +52,7 @@ Everything goes through Traefik on port 80:
 |----------------|------------------|
 | `/`            | Frontend         |
 | `/api/*`       | Game Server      |
-| `/grafana/*`   | Grafana          |
+| `grafana.localhost` | Grafana     |
 | `:9090`        | Traefik dashboard|
 
 See `CLAUDE.md` for the full architecture, service map, and all available commands.
@@ -83,15 +83,15 @@ Optional interfaces: `StateFilter` (hidden information), `TurnTimeoutHandler` (c
 | Service | Tests | Coverage |
 |---------|-------|----------|
 | auth-service | 26 passed | ![59.0%](https://img.shields.io/badge/coverage-59.0%25-yellow) |
-| chat-service | 30 passed | ![56.3%](https://img.shields.io/badge/coverage-56.3%25-yellow) |
-| game-server | 218 passed | ![43.8%](https://img.shields.io/badge/coverage-43.8%25-yellow) |
-| match-service | 27 passed | ![42.2%](https://img.shields.io/badge/coverage-42.2%25-yellow) |
+| chat-service | 30 passed | ![56.5%](https://img.shields.io/badge/coverage-56.5%25-yellow) |
+| game-server | 219 passed | ![45.4%](https://img.shields.io/badge/coverage-45.4%25-yellow) |
+| match-service | 27 passed | ![42.6%](https://img.shields.io/badge/coverage-42.6%25-yellow) |
 | notification-service | 27 passed | ![55.3%](https://img.shields.io/badge/coverage-55.3%25-yellow) |
 | rating-service | 37 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
-| user-service | 79 passed | ![64.8%](https://img.shields.io/badge/coverage-64.8%25-green) |
+| user-service | 79 passed | ![64.9%](https://img.shields.io/badge/coverage-64.9%25-green) |
 | ws-gateway | 21 passed | ![28.2%](https://img.shields.io/badge/coverage-28.2%25-red) |
-| frontend (vitest) | 258 passed | ![70.9%](https://img.shields.io/badge/coverage-70.9%25-green) |
+| frontend (vitest) | 283 passed | ![73.4%](https://img.shields.io/badge/coverage-73.4%25-green) |
 
-_Last updated: 2026-04-02_
+_Last updated: 2026-04-03_
 
 <!-- coverage:end -->

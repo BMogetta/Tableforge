@@ -20,7 +20,7 @@ name: recess
 #                      Traefik routes to any service here.
 #                      otel-collector here so game-server reaches it without
 #                      needing monitoring_network.
-#                      grafana here so Traefik can proxy /grafana/.
+#                      grafana here so Traefik can proxy grafana.localhost.
 #
 #   monitoring_network otel-collector, tempo, loki, promtail, prometheus, grafana
 #                      Internal observability wiring.

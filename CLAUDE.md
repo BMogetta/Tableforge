@@ -275,7 +275,7 @@ When running `make up-all`:
 - **Tempo** — distributed traces (gRPC from all Go services + HTTP from frontend)
 - **Loki + Promtail** — container logs
 - **Prometheus** — metrics scraped from `/metrics` endpoints
-- **Grafana** — dashboards at `http://localhost:3001`
+- **Grafana** — dashboards at `http://grafana.localhost`
 
 ### Turn Timers & Match Expiry
 

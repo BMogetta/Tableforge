@@ -8,7 +8,7 @@
 #   monitoring_network — fans out to tempo, loki, prometheus
 #
 # grafana: app_network + monitoring_network
-#   app_network        — Traefik proxies /grafana/ here
+#   app_network        — Traefik proxies grafana.localhost here
 #   monitoring_network — reads from tempo, loki, prometheus
 #
 # traefik: app_network + monitoring_network (declared in docker-compose.yml)
@@ -91,15 +91,13 @@ services:
     container_name: grafana
     profiles: [monitoring]
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_AUTH_ANONYMOUS_ENABLED=false
-      - GF_SERVER_ROOT_URL=http://localhost/grafana/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_AUTH_GITHUB_ALLOW_SIGN_UP=false # disable in prod!
-      - GF_AUTH_DISABLE_LOGIN_FORM=false
-      - GF_AUTH_GITHUB_ENABLED=false
-      - GF_AUTH_GITHUB_CLIENT_ID=${GRAFANA_GITHUB_CLIENT_ID}
-      - GF_AUTH_GITHUB_CLIENT_SECRET=${GRAFANA_GITHUB_CLIENT_SECRET}
+      - GF_SERVER_ROOT_URL=http://grafana.localhost/
+      # No login locally — open access as Admin for convenience.
+      # In production, put Grafana behind Cloudflare Access (or similar)
+      # and override these with stricter values.
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
     volumes:
       - ./infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
@@ -114,7 +112,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
       - "traefik.http.routers.grafana.entrypoints=web"
       # Grafana is excluded from security-headers — it requires 'unsafe-eval'
       # for table panels and transformations, and manages its own CSP.
