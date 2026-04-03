@@ -208,10 +208,7 @@ export interface DirectMessage {
   timestamp: string
 }
 
-export interface QueuePosition {
-  position: number
-  estimated_wait_secs: number
-}
+
 
 // --- Notification types ------------------------------------------------------
 

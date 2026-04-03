@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decline_match.request.json",
+  "title": "DeclineMatchRequest",
+  "type": "object",
+  "properties": {
+    "match_id": { "type": "string", "minLength": 1 }
+  },
+  "required": ["match_id"]
+}

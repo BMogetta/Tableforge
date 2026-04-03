@@ -1,6 +1,10 @@
 import { request, validatedRequest } from '@/lib/api'
-import type { QueuePosition } from '@/lib/api'
-import { gameInfoSchema, getLeaderboardResponseSchema } from '@/lib/schema-generated.zod'
+import type { AcceptMatchRequest, DeclineMatchRequest } from '@/lib/schema-generated.zod'
+import {
+  gameInfoSchema,
+  getLeaderboardResponseSchema,
+  queuePositionSchema,
+} from '@/lib/schema-generated.zod'
 import { z } from 'zod'
 
 // --- Leaderboard -------------------------------------------------------------
@@ -23,7 +27,7 @@ export const gameRegistry = {
 
 export const queue = {
   join: (playerId: string) =>
-    request<QueuePosition>('/queue', {
+    validatedRequest(queuePositionSchema, '/queue', {
       method: 'POST',
       body: JSON.stringify({ player_id: playerId }),
     }),
@@ -32,14 +36,18 @@ export const queue = {
       method: 'DELETE',
       body: JSON.stringify({ player_id: playerId }),
     }),
-  accept: (playerId: string, matchId: string) =>
-    request<void>('/queue/accept', {
+  accept: (_playerId: string, matchId: string) => {
+    const body: AcceptMatchRequest = { match_id: matchId }
+    return request<void>('/queue/accept', {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId, match_id: matchId }),
-    }),
-  decline: (playerId: string, matchId: string) =>
-    request<void>('/queue/decline', {
+      body: JSON.stringify(body),
+    })
+  },
+  decline: (_playerId: string, matchId: string) => {
+    const body: DeclineMatchRequest = { match_id: matchId }
+    return request<void>('/queue/decline', {
       method: 'POST',
-      body: JSON.stringify({ player_id: playerId, match_id: matchId }),
-    }),
+      body: JSON.stringify(body),
+    })
+  },
 }

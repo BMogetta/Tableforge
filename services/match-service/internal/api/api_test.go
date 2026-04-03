@@ -19,7 +19,7 @@ func noopAuthMW(next http.Handler) http.Handler { return next }
 // newTestRouter builds a router with a nil queue.Service.
 // Only handlers that return before calling any Service method are safe to hit.
 func newTestRouter() http.Handler {
-	return NewRouter(nil, noopAuthMW)
+	return NewRouter(nil, noopAuthMW, nil)
 }
 
 // ---------------------------------------------------------------------------

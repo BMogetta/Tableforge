@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/queue_position.json",
+  "title": "QueuePosition",
+  "type": "object",
+  "properties": {
+    "position": { "type": "integer" },
+    "estimated_wait_secs": { "type": "integer" }
+  },
+  "required": ["position", "estimated_wait_secs"]
+}

@@ -46,6 +46,9 @@ export type Player = z.infer<typeof playerSchema>
 export const playerStatsSchema = z.object({ "player_id": z.string(), "total_games": z.number().int(), "wins": z.number().int(), "losses": z.number().int(), "draws": z.number().int(), "forfeits": z.number().int() })
 export type PlayerStats = z.infer<typeof playerStatsSchema>
 
+export const queuePositionSchema = z.object({ "position": z.number().int(), "estimated_wait_secs": z.number().int() })
+export type QueuePosition = z.infer<typeof queuePositionSchema>
+
 export const readyVoteResultSchema = z.object({ "all_ready": z.boolean(), "ready_players": z.array(z.string()), "required": z.number().int() })
 export type ReadyVoteResult = z.infer<typeof readyVoteResultSchema>
 
@@ -68,6 +71,9 @@ export const gameInfoSchema = z.object({
 export type GameInfo = z.infer<typeof gameInfoSchema>
 
 // ---- Endpoint schemas ----------------------------------------------------
+
+export const acceptMatchRequestSchema = z.object({ "match_id": z.string().min(1) })
+export type AcceptMatchRequest = z.infer<typeof acceptMatchRequestSchema>
 
 export const addBotRequestSchema = z.object({ "player_id": z.string().min(1), "profile": z.enum(["easy","medium","hard","aggressive"]).optional() })
 export type AddBotRequest = z.infer<typeof addBotRequestSchema>
@@ -95,6 +101,9 @@ export const createRoomResponseSchema = z.object({
   "settings": z.record(z.string(), z.string())
 })
 export type CreateRoomResponse = z.infer<typeof createRoomResponseSchema>
+
+export const declineMatchRequestSchema = z.object({ "match_id": z.string().min(1) })
+export type DeclineMatchRequest = z.infer<typeof declineMatchRequestSchema>
 
 export const getLeaderboardResponseSchema = z.object({
   "game_id": z.string(),

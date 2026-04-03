@@ -14,21 +14,28 @@ import (
 )
 
 // NewRouter builds the match-service HTTP router.
-func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler) http.Handler {
+// schemas may be nil — request validation is skipped (tests only).
+func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry) http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
 
+	validate := func(name string) func(http.Handler) http.Handler {
+		if schemas == nil {
+			return func(next http.Handler) http.Handler { return next }
+		}
+		return schemas.ValidateBody(name)
+	}
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMW)
 
-		// Ranked matchmaking queue
 		r.Post("/queue", handleJoinQueue(svc))
 		r.Delete("/queue", handleLeaveQueue(svc))
-		r.Post("/queue/accept", handleAcceptMatch(svc))
-		r.Post("/queue/decline", handleDeclineMatch(svc))
+		r.With(validate("accept_match.request")).Post("/queue/accept", handleAcceptMatch(svc))
+		r.With(validate("decline_match.request")).Post("/queue/decline", handleDeclineMatch(svc))
 	})
 
 	return r

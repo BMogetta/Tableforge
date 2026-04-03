@@ -140,7 +140,13 @@ func main() {
 		promhttp.HandlerOpts{},
 	).ServeHTTP)
 
-	r.Mount("/", api.NewRouter(queueSvc, authMW))
+	schemaReg, err := sharedmw.NewSchemaRegistry()
+	if err != nil {
+		slog.Error("failed to compile JSON schemas", "error", err)
+		return
+	}
+
+	r.Mount("/", api.NewRouter(queueSvc, authMW, schemaReg))
 
 	// --- HTTP server ---------------------------------------------------------
 	addr := config.Env("HTTP_ADDR", ":8087")
