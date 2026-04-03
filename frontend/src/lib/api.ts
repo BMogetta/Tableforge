@@ -5,8 +5,10 @@ import {
   gameSessionSchema,
   getPlayerStatsResponseSchema,
   listPlayerMatchesResponseSchema,
+  playerProfileSchema,
+  playerSettingsSchema,
 } from './schema-generated.zod'
-import type { Player, RoomPlayer } from './schema-generated.zod'
+import type { Player, RoomPlayer, PlayerSettingMap, Room } from './schema-generated.zod'
 import { FontSize, SkinId } from './skins'
 import { tracer } from './telemetry'
 import { SpanKind, SpanStatusCode, context, propagation } from '@opentelemetry/api'
@@ -78,55 +80,48 @@ export const Language = {
 export type Language = (typeof Language)[keyof typeof Language]
 
 // =============================================================================
-// TYPES
+// TYPES — re-exports from generated schemas
 // =============================================================================
 
-export type { Player, RoomPlayer } from './schema-generated.zod'
+export type {
+  Player,
+  RoomPlayer,
+  PlayerSettingMap,
+  PlayerSettings,
+  PlayerProfile,
+  AllowedEmail,
+  Notification,
+  Room,
+} from './schema-generated.zod'
 
-export interface AllowedEmail {
-  email: string
-  role: PlayerRole
-  note?: string
-  invited_by?: string
+export interface RoomView {
+  room: Room
+  players: RoomPlayer[]
+  // Key/value map of all settings for this room.
+  // Always present — defaults are inserted when the room is created.
+  settings: Record<string, string>
+  // Live spectator count. Kept in sync by spectator_joined / spectator_left
+  // WS events in Room.tsx; may be absent on initial HTTP fetch.
+  spectator_count?: number
+}
+
+// --- Notification payload subtypes (frontend-only cast targets) --------------
+
+export interface NotificationPayloadFriendRequest {
+  from_player_id: string
+  from_username: string
+}
+
+export interface NotificationPayloadRoomInvitation {
+  room_id: string
+  room_code: string
+  from_player_id: string
+  from_username: string
+}
+
+export interface NotificationPayloadBanIssued {
+  reason: BanReason
   expires_at?: string
-  created_at: string
-}
-
-export interface PlayerSettingMap {
-  // Appearance
-  theme?: SkinId
-  language?: Language
-  reduce_motion?: boolean
-  font_size?: FontSize
-
-  // Notifications
-  notify_dm?: boolean
-  notify_game_invite?: boolean
-  notify_friend_request?: boolean
-  notify_sound?: boolean
-
-  // Audio (stubs — no audio system yet)
-  mute_all?: boolean
-  volume_master?: number // 0.0–1.0
-  volume_sfx?: number
-  volume_ui?: number
-  volume_notifications?: number
-  volume_music?: number
-
-  // Gameplay
-  show_move_hints?: boolean
-  confirm_move?: boolean
-  show_timer_warning?: boolean
-
-  // Privacy
-  show_online_status?: boolean
-  allow_dms?: AllowDMs
-}
-
-export interface PlayerSettings {
-  player_id: string
-  settings: PlayerSettingMap
-  updated_at: string
 }
 
 /** Canonical application defaults — mirrors store.DefaultPlayerSettings(). */
@@ -150,66 +145,6 @@ export const DEFAULT_SETTINGS: Required<PlayerSettingMap> = {
   show_timer_warning: true,
   show_online_status: true,
   allow_dms: AllowDMs.Anyone,
-}
-
-export interface Room {
-  id: string
-  /**
-   * The room join code. Empty string ("") for private rooms when returned
-   * from GET /rooms (list) — the backend redacts it to prevent discovery.
-   * Always populated when returned from GET /rooms/:id (direct fetch by a
-   * participant who already knows the room).
-   */
-  code: string
-  game_id: string
-  owner_id: string
-  status: RoomStatus
-  max_players: number
-  created_at: string
-}
-
-export interface RoomView {
-  room: Room
-  players: RoomPlayer[]
-  // Key/value map of all settings for this room.
-  // Always present — defaults are inserted when the room is created.
-  settings: Record<string, string>
-  // Live spectator count. Kept in sync by spectator_joined / spectator_left
-  // WS events in Room.tsx; may be absent on initial HTTP fetch.
-  spectator_count?: number
-}
-
-// --- Notification types ------------------------------------------------------
-
-export interface NotificationPayloadFriendRequest {
-  from_player_id: string
-  from_username: string
-}
-
-export interface NotificationPayloadRoomInvitation {
-  room_id: string
-  room_code: string
-  from_player_id: string
-  from_username: string
-}
-
-export interface NotificationPayloadBanIssued {
-  reason: BanReason
-  expires_at?: string
-}
-
-export interface Notification {
-  id: string
-  player_id: string
-  type: NotificationType
-  payload:
-    | NotificationPayloadFriendRequest
-    | NotificationPayloadRoomInvitation
-    | NotificationPayloadBanIssued
-  action_taken?: string
-  action_expires_at?: string
-  read_at?: string
-  created_at: string
 }
 
 // --- Lobby settings types ----------------------------------------------------
@@ -350,27 +285,20 @@ export const auth = {
 
 export type { MatchHistoryEntry } from './schema-generated.zod'
 
-export interface PlayerProfile {
-  player_id: string
-  bio?: string
-  country?: string
-  updated_at: string
-}
-
 export const players = {
   stats: (id: string) => validatedRequest(getPlayerStatsResponseSchema, `/players/${id}/stats`),
   sessions: (id: string) => validatedRequest(z.array(gameSessionSchema), `/players/${id}/sessions`),
   matches: (id: string, limit = 20, offset = 0) =>
     validatedRequest(listPlayerMatchesResponseSchema, `/players/${id}/matches?limit=${limit}&offset=${offset}`),
-  profile: (id: string) => request<PlayerProfile>(`/players/${id}/profile`),
+  profile: (id: string) => validatedRequest(playerProfileSchema, `/players/${id}/profile`),
 }
 
 // --- Player settings ---------------------------------------------------------
 
 export const playerSettings = {
-  get: (playerId: string) => request<PlayerSettings>(`/players/${playerId}/settings`),
+  get: (playerId: string) => validatedRequest(playerSettingsSchema, `/players/${playerId}/settings`),
   update: (playerId: string, settings: PlayerSettingMap) =>
-    request<PlayerSettings>(`/players/${playerId}/settings`, {
+    validatedRequest(playerSettingsSchema, `/players/${playerId}/settings`, {
       method: 'PUT',
       body: JSON.stringify(settings),
     }),

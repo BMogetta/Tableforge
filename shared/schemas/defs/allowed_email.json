@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/allowed_email.json",
+  "title": "AllowedEmail",
+  "type": "object",
+  "properties": {
+    "email": { "type": "string" },
+    "role": { "type": "string", "enum": ["player", "manager", "owner"] },
+    "note": { "type": "string" },
+    "invited_by": { "type": "string" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["email", "role", "created_at"]
+}

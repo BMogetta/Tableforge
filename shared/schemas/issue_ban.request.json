@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "issue_ban.request.json",
+  "title": "IssueBanRequest",
+  "type": "object",
+  "properties": {
+    "reason": { "type": "string" },
+    "expires_at": { "type": "string" }
+  }
+}

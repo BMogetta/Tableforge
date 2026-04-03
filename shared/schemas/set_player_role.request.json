@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "set_player_role.request.json",
+  "title": "SetPlayerRoleRequest",
+  "type": "object",
+  "properties": {
+    "role": { "type": "string", "enum": ["player", "manager", "owner"] }
+  },
+  "required": ["role"]
+}

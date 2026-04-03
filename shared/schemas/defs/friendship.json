@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/friendship.json",
+  "title": "Friendship",
+  "type": "object",
+  "properties": {
+    "requester_id": { "type": "string" },
+    "addressee_id": { "type": "string" },
+    "status": { "type": "string", "enum": ["pending", "accepted", "blocked"] },
+    "note": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["requester_id", "addressee_id", "status", "created_at", "updated_at"]
+}

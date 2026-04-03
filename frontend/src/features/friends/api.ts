@@ -1,31 +1,16 @@
 import { request } from '@/lib/api'
+import type {
+  FriendshipView,
+  DmConversation,
+  PlayerSearchResult,
+} from '@/lib/schema-generated.zod'
 
-// --- Types -------------------------------------------------------------------
-
-export interface FriendshipView {
-  friend_id: string
-  friend_username: string
-  friend_avatar_url?: string
-  status: 'pending' | 'accepted' | 'blocked'
-  created_at: string
-}
-
-export interface DMConversation {
-  other_player_id: string
-  other_username: string
-  other_avatar_url?: string
-  last_message: string
-  last_message_at: string
-  unread_count: number
-}
+// Re-export for convenience so consumers don't need to know the source.
+export type { FriendshipView, PlayerSearchResult } from '@/lib/schema-generated.zod'
+// Preserve existing name casing used by consumers.
+export type { DmConversation as DMConversation } from '@/lib/schema-generated.zod'
 
 // --- Player search -----------------------------------------------------------
-
-export interface PlayerSearchResult {
-  id: string
-  username: string
-  avatar_url?: string
-}
 
 export const players = {
   search: (username: string) =>
@@ -58,7 +43,7 @@ export const friends = {
 
 export const dmConversations = {
   list: (playerId: string) =>
-    request<DMConversation[]>(`/players/${playerId}/dm/conversations`),
+    request<DmConversation[]>(`/players/${playerId}/dm/conversations`),
 }
 
 // Re-export dm from room/api for convenience — DM send/history/markRead stay there.

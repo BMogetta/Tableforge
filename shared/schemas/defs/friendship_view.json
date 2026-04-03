@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/friendship_view.json",
+  "title": "FriendshipView",
+  "type": "object",
+  "properties": {
+    "friend_id": { "type": "string" },
+    "friend_username": { "type": "string" },
+    "friend_avatar_url": { "type": "string" },
+    "status": { "type": "string", "enum": ["pending", "accepted", "blocked"] },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["friend_id", "friend_username", "status", "created_at"]
+}

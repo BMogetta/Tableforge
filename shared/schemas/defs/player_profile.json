@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_profile.json",
+  "title": "PlayerProfile",
+  "type": "object",
+  "properties": {
+    "player_id": { "type": "string" },
+    "bio": { "type": "string" },
+    "country": { "type": "string" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["player_id", "updated_at"]
+}

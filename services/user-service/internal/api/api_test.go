@@ -16,7 +16,7 @@ import (
 // caller identity from the request context (set via the helper functions).
 func newTestRouter(st *mockStore) http.Handler {
 	noopAuth := func(next http.Handler) http.Handler { return next }
-	return NewRouter(st, stubPublisher(), noopAuth)
+	return NewRouter(st, stubPublisher(), noopAuth, nil)
 }
 
 // withAuth returns a new request whose context carries the given player

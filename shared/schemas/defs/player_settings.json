@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_settings.json",
+  "title": "PlayerSettings",
+  "type": "object",
+  "properties": {
+    "player_id": { "type": "string" },
+    "settings": { "$ref": "defs/player_setting_map.json" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["player_id", "settings", "updated_at"]
+}

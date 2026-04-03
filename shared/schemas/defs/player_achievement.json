@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_achievement.json",
+  "title": "PlayerAchievement",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "player_id": { "type": "string" },
+    "achievement_key": { "type": "string" },
+    "unlocked_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "player_id", "achievement_key", "unlocked_at"]
+}

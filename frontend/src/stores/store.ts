@@ -239,7 +239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const merged: ResolvedSettings = { ...DEFAULT_SETTINGS, ...raw.settings }
     set({ settings: merged })
     if (merged.theme) applySkin(merged.theme as SkinId)
-    if (merged.font_size) applyFontSize(merged.font_size)
+    if (merged.font_size) applyFontSize(merged.font_size as FontSize)
   },
 
   updateSetting: (key, value) => {

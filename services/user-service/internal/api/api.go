@@ -10,7 +10,7 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 )
 
-func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler) http.Handler {
+func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 
@@ -18,12 +18,20 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		w.Write([]byte("ok"))
 	})
 
+	// validate wraps schema validation; no-op when schemas is nil (tests).
+	validate := func(name string) func(http.Handler) http.Handler {
+		if schemas == nil {
+			return func(next http.Handler) http.Handler { return next }
+		}
+		return schemas.ValidateBody(name)
+	}
+
 	r.Group(func(r chi.Router) {
 		r.Use(authMW)
 
 	// --- Profiles ------------------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/profile", handleGetProfile(st))
-	r.Put("/api/v1/players/{playerID}/profile", handleUpsertProfile(st))
+	r.With(validate("upsert_profile.request")).Put("/api/v1/players/{playerID}/profile", handleUpsertProfile(st))
 
 	// --- Player search -------------------------------------------------------
 	r.Get("/api/v1/players/search", handleSearchPlayer(st))
@@ -41,7 +49,7 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	r.Delete("/api/v1/players/{playerID}/block/{targetID}", handleUnblockPlayer(st))
 
 	// --- Mutes ---------------------------------------------------------------
-	r.Post("/api/v1/players/{playerID}/mute", handleMutePlayer(st))
+	r.With(validate("mute_player.request")).Post("/api/v1/players/{playerID}/mute", handleMutePlayer(st))
 	r.Delete("/api/v1/players/{playerID}/mute/{mutedID}", handleUnmutePlayer(st))
 	r.Get("/api/v1/players/{playerID}/mutes", handleGetMutes(st))
 
@@ -50,12 +58,12 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 
 	// --- Player settings -----------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/settings", handleGetPlayerSettings(st))
-	r.Put("/api/v1/players/{playerID}/settings", handleUpsertPlayerSettings(st))
+	r.With(validate("upsert_player_settings.request")).Put("/api/v1/players/{playerID}/settings", handleUpsertPlayerSettings(st))
 
 	// --- Admin: bans ---------------------------------------------------------
 	r.Group(func(r chi.Router) {
 		r.Use(requireRole(sharedmw.RoleManager))
-		r.Post("/api/v1/admin/players/{playerID}/ban", handleIssueBan(st, pub))
+		r.With(validate("issue_ban.request")).Post("/api/v1/admin/players/{playerID}/ban", handleIssueBan(st, pub))
 		r.Delete("/api/v1/admin/bans/{banID}", handleLiftBan(st, pub))
 		r.Get("/api/v1/admin/players/{playerID}/bans", handleListBans(st))
 	})
@@ -65,21 +73,21 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		r.Use(requireRole(sharedmw.RoleManager))
 		r.Get("/api/v1/admin/reports", handleListPendingReports(st))
 		r.Get("/api/v1/admin/players/{playerID}/reports", handleListReportsByPlayer(st))
-		r.Put("/api/v1/admin/reports/{reportID}/review", handleReviewReport(st))
+		r.With(validate("review_report.request")).Put("/api/v1/admin/reports/{reportID}/review", handleReviewReport(st))
 	})
 
 	// --- Admin: players & allowed emails -------------------------------------
 	r.Group(func(r chi.Router) {
 		r.Use(requireRole(sharedmw.RoleManager))
 		r.Get("/api/v1/admin/allowed-emails", handleListAllowedEmails(st))
-		r.Post("/api/v1/admin/allowed-emails", handleAddAllowedEmail(st))
+		r.With(validate("add_allowed_email.request")).Post("/api/v1/admin/allowed-emails", handleAddAllowedEmail(st))
 		r.Delete("/api/v1/admin/allowed-emails/{email}", handleRemoveAllowedEmail(st))
 		r.Get("/api/v1/admin/players", handleListPlayers(st))
-		r.With(requireRole(sharedmw.RoleOwner)).Put("/api/v1/admin/players/{playerID}/role", handleSetPlayerRole(st))
+		r.With(requireRole(sharedmw.RoleOwner), validate("set_player_role.request")).Put("/api/v1/admin/players/{playerID}/role", handleSetPlayerRole(st))
 	})
 
 	// --- Player: reports -----------------------------------------------------
-	r.Post("/api/v1/players/{playerID}/report", handleCreateReport(st))
+	r.With(validate("create_report.request")).Post("/api/v1/players/{playerID}/report", handleCreateReport(st))
 	}) // end auth group
 
 	return r

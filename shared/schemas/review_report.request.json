@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review_report.request.json",
+  "title": "ReviewReportRequest",
+  "type": "object",
+  "properties": {
+    "resolution": { "type": "string" },
+    "ban_id": { "type": "string" }
+  }
+}

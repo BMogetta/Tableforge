@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "create_report.request.json",
+  "title": "CreateReportRequest",
+  "type": "object",
+  "properties": {
+    "reported_id": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string", "minLength": 1 },
+    "context": {}
+  },
+  "required": ["reported_id", "reason"]
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_report.json",
+  "title": "PlayerReport",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "reporter_id": { "type": "string" },
+    "reported_id": { "type": "string" },
+    "reason": { "type": "string" },
+    "context": {},
+    "status": { "type": "string", "enum": ["pending", "reviewed"] },
+    "reviewed_by": { "type": "string" },
+    "reviewed_at": { "type": "string", "format": "date-time" },
+    "resolution": { "type": "string" },
+    "ban_id": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "reporter_id", "reported_id", "reason", "context", "status", "created_at"]
+}

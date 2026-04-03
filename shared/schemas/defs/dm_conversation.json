@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/dm_conversation.json",
+  "title": "DMConversation",
+  "type": "object",
+  "properties": {
+    "other_player_id": { "type": "string" },
+    "other_username": { "type": "string" },
+    "other_avatar_url": { "type": "string" },
+    "last_message": { "type": "string" },
+    "last_message_at": { "type": "string", "format": "date-time" },
+    "unread_count": { "type": "integer" }
+  },
+  "required": ["other_player_id", "other_username", "last_message", "last_message_at", "unread_count"]
+}

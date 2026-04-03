@@ -56,6 +56,13 @@ func main() {
 
 	pub := api.NewPublisher(rdb)
 
+	// --- JSON Schema validation ----------------------------------------------
+	schemaReg, err := sharedmw.NewSchemaRegistry()
+	if err != nil {
+		slog.Error("failed to compile JSON schemas", "error", err)
+		panic(err)
+	}
+
 	// --- gRPC server ---------------------------------------------------------
 	grpcAddr := config.Env("GRPC_ADDR", ":9082")
 	grpcServer := grpc.NewServer(
@@ -79,7 +86,7 @@ func main() {
 
 	// --- HTTP server ---------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
-	router := api.NewRouter(st, pub, authMW)
+	router := api.NewRouter(st, pub, authMW, schemaReg)
 
 	httpAddr := config.Env("HTTP_ADDR", ":8082")
 	srv := &http.Server{

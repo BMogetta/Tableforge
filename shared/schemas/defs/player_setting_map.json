@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_setting_map.json",
+  "title": "PlayerSettingMap",
+  "type": "object",
+  "properties": {
+    "theme": { "type": "string" },
+    "language": { "type": "string" },
+    "reduce_motion": { "type": "boolean" },
+    "font_size": { "type": "string" },
+    "notify_dm": { "type": "boolean" },
+    "notify_game_invite": { "type": "boolean" },
+    "notify_friend_request": { "type": "boolean" },
+    "notify_sound": { "type": "boolean" },
+    "mute_all": { "type": "boolean" },
+    "volume_master": { "type": "number" },
+    "volume_sfx": { "type": "number" },
+    "volume_ui": { "type": "number" },
+    "volume_notifications": { "type": "number" },
+    "volume_music": { "type": "number" },
+    "show_move_hints": { "type": "boolean" },
+    "confirm_move": { "type": "boolean" },
+    "show_timer_warning": { "type": "boolean" },
+    "show_online_status": { "type": "boolean" },
+    "allow_dms": { "type": "string" }
+  },
+  "required": []
+}

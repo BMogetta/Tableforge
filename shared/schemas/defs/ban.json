@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/ban.json",
+  "title": "Ban",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "player_id": { "type": "string" },
+    "banned_by": { "type": "string" },
+    "reason": { "type": "string" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "lifted_at": { "type": "string", "format": "date-time" },
+    "lifted_by": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "player_id", "banned_by", "created_at"]
+}

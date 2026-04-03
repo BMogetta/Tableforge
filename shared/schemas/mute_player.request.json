@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mute_player.request.json",
+  "title": "MutePlayerRequest",
+  "type": "object",
+  "properties": {
+    "muted_id": { "type": "string", "minLength": 1 }
+  },
+  "required": ["muted_id"]
+}

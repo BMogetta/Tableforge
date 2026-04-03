@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/player_search_result.json",
+  "title": "PlayerSearchResult",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "username": { "type": "string" },
+    "avatar_url": { "type": "string" }
+  },
+  "required": ["id", "username"]
+}
