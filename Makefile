@@ -52,7 +52,7 @@ seed-test:
 	@mkdir -p frontend/tests/e2e
 	docker build -t recess-seed-test tools/seed-test
 	docker run --rm \
-		--network recess_data_network \
+		--network data_network \
 		-e DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable \
 		recess-seed-test \
 	> frontend/tests/e2e/.players.json
@@ -77,11 +77,7 @@ test:
 	@if [ ! -f frontend/tests/e2e/.players.json ]; then \
 		echo "Error: run 'make seed-test' first"; exit 1; \
 	fi
-	cd frontend && \
-		TEST_PLAYER1_ID=$$(cat tests/e2e/.players.json | jq -r .player1_id) \
-		TEST_PLAYER2_ID=$$(cat tests/e2e/.players.json | jq -r .player2_id) \
-		TEST_PLAYER3_ID=$$(cat tests/e2e/.players.json | jq -r .player3_id) \
-		npx playwright test
+	cd frontend && npx playwright test
 
 # Run a single Playwright test by name (partial match).
 # Usage: make test-one NAME="turn timeout ends the game"
@@ -89,22 +85,14 @@ test-one:
 	@if [ ! -f frontend/tests/e2e/.players.json ]; then \
 		echo "Error: run 'make seed-test' first"; exit 1; \
 	fi
-	cd frontend && \
-		TEST_PLAYER1_ID=$$(cat tests/e2e/.players.json | jq -r .player1_id) \
-		TEST_PLAYER2_ID=$$(cat tests/e2e/.players.json | jq -r .player2_id) \
-		TEST_PLAYER3_ID=$$(cat tests/e2e/.players.json | jq -r .player3_id) \
-		npx playwright test --grep "$(NAME)"
+	cd frontend && npx playwright test --grep "$(NAME)"
 
 # Open Playwright UI mode for interactive test development.
 test-ui:
 	@if [ ! -f frontend/tests/e2e/.players.json ]; then \
 		echo "Error: run 'make seed-test' first"; exit 1; \
 	fi
-	cd frontend && \
-		TEST_PLAYER1_ID=$$(cat tests/e2e/.players.json | jq -r .player1_id) \
-		TEST_PLAYER2_ID=$$(cat tests/e2e/.players.json | jq -r .player2_id) \
-		TEST_PLAYER3_ID=$$(cat tests/e2e/.players.json | jq -r .player3_id) \
-		npx playwright test --ui
+	cd frontend && npx playwright test --ui
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 

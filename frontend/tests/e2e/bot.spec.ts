@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { PLAYER1_STATE } from './helpers'
+import { getPair, type PlayerPair } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Bot helpers
@@ -7,9 +7,7 @@ import { PLAYER1_STATE } from './helpers'
 
 // Creates a room with P1 only, adds a bot via the UI, and starts the game.
 // Returns the room ID so callers can make API calls if needed.
-async function setupAndStartGameWithBot(p1: Page): Promise<string> {
-  const player1Id = process.env.TEST_PLAYER1_ID!
-
+async function setupAndStartGameWithBot(p1: Page, p1Id: string): Promise<string> {
   await p1.getByTestId('game-option-tictactoe').click()
   await p1.getByTestId('create-room-btn').click()
   await expect(p1).toHaveURL(/\/rooms\//)
@@ -18,7 +16,7 @@ async function setupAndStartGameWithBot(p1: Page): Promise<string> {
 
   // Force P1 (seat 0) to always go first so turn order is deterministic.
   await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-    data: { player_id: player1Id, value: 'fixed' },
+    data: { player_id: p1Id, value: 'fixed' },
   })
 
   // Add a bot via the UI.
@@ -42,14 +40,15 @@ async function setupAndStartGameWithBot(p1: Page): Promise<string> {
 // ---------------------------------------------------------------------------
 
 test.describe('Bot gameplay', () => {
-  test('bot plays a full game against a human', async ({ browser }) => {
-    const p1Ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+  test('bot plays a full game against a human', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const p1Ctx = await browser.newContext({ storageState: pair.p1State })
     const p1 = await p1Ctx.newPage()
     p1.on('console', msg => console.log('P1:', msg.text()))
     p1.on('pageerror', err => console.log('P1 ERROR:', err.message))
     await p1.goto('/')
 
-    await setupAndStartGameWithBot(p1)
+    await setupAndStartGameWithBot(p1, pair.p1Id)
 
     // P1 goes first (seat 0, fixed policy). Wait for "Your turn".
     await expect(p1.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
@@ -58,8 +57,6 @@ test.describe('Bot gameplay', () => {
     await p1.locator('[data-cell="0"]').click()
 
     // Bot responds — status switches to "Your turn" again after the bot moves.
-    // We wait for move_count to advance by 2 (P1 move + bot move) which is
-    // reflected in the "Move N" counter in the header.
     await expect(p1.locator('[data-testid="game-status"]')).toContainText('Your turn', {
       timeout: 10_000,
     })
@@ -76,7 +73,6 @@ test.describe('Bot gameplay', () => {
       const isOverNow = await status.filter({ hasText: /You won|You lost|Draw/ }).count()
       if (isOverNow) break
 
-      const moveCounter = p1.locator('[data-testid="move-counter"], [data-move]').first()
       const moveBefore = await p1.locator('text=/Move \\d+/').textContent()
 
       const cells = p1.locator('[data-cell]')
@@ -119,8 +115,9 @@ test.describe('Bot gameplay', () => {
     await p1Ctx.close()
   })
 
-  test('bot can be removed and replaced before starting the game', async ({ browser }) => {
-    const p1Ctx = await browser.newContext({ storageState: PLAYER1_STATE })
+  test('bot can be removed and replaced before starting the game', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const p1Ctx = await browser.newContext({ storageState: pair.p1State })
     const p1 = await p1Ctx.newPage()
     p1.on('console', msg => console.log('P1:', msg.text()))
     p1.on('pageerror', err => console.log('P1 ERROR:', err.message))
@@ -131,10 +128,9 @@ test.describe('Bot gameplay', () => {
     await expect(p1).toHaveURL(/\/rooms\//)
 
     const roomId = p1.url().split('/rooms/')[1]
-    const player1Id = process.env.TEST_PLAYER1_ID!
 
     await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-      data: { player_id: player1Id, value: 'fixed' },
+      data: { player_id: pair.p1Id, value: 'fixed' },
     })
 
     // Add a bot.

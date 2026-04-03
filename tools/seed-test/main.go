@@ -4,12 +4,16 @@
 //
 //	DATABASE_URL=... go run .
 //
-// Output: JSON with player1_id, player2_id, player3_id.
+// Output: JSON with player IDs for all test players.
 //
-// Players:
-//   - player1: room owner / host in most tests
-//   - player2: second participant
-//   - player3: used for spectator tests
+// Players are created in pairs — each Playwright project gets its own pair
+// so tests can run in parallel without sharing game state.
+//
+//	Pair 1 (players 1–2):  game-tests, session-history-tests, auth
+//	Pair 2 (players 3–4):  chat-tests
+//	Pair 3 (players 5–6):  settings-tests
+//	Pair 4 (players 7–8):  spectator-tests (+ player 9 as spectator)
+//	Pair 5 (players 10–11): presence-tests
 package main
 
 import (
@@ -21,6 +25,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 )
+
+const playerCount = 11
 
 func main() {
 	ctx := context.Background()
@@ -36,16 +42,18 @@ func main() {
 	}
 	defer conn.Close(ctx)
 
-	p1 := createPlayer(ctx, conn, "test_player_1")
-	p2 := createPlayer(ctx, conn, "test_player_2")
-	p3 := createPlayer(ctx, conn, "test_player_3")
+	ids := make([]string, playerCount)
+	for i := range playerCount {
+		ids[i] = createPlayer(ctx, conn, fmt.Sprintf("test_player_%d", i+1))
+	}
 
-	// Seed ranked ratings for leaderboard tests.
-	seedRating(ctx, conn, p1, 1536.0, 1, 1, 0)
-	seedRating(ctx, conn, p2, 1464.0, 1, 0, 1)
+	// Seed ranked ratings for pair 1 (used by game-tests).
+	seedRating(ctx, conn, ids[0], 1536.0, 1, 1, 0)
+	seedRating(ctx, conn, ids[1], 1464.0, 1, 0, 1)
 
 	// Add emails to allowed_emails for test-login.
-	for _, email := range []string{"test1@recess.test", "test2@recess.test", "test3@recess.test"} {
+	for i := range playerCount {
+		email := fmt.Sprintf("test%d@recess.test", i+1)
 		_, err := conn.Exec(ctx,
 			`INSERT INTO allowed_emails (email, role) VALUES ($1, 'player') ON CONFLICT (email) DO NOTHING`,
 			email,
@@ -55,12 +63,13 @@ func main() {
 		}
 	}
 
-	out, _ := json.MarshalIndent(map[string]string{
-		"player1_id": p1,
-		"player2_id": p2,
-		"player3_id": p3,
-	}, "", "  ")
-	fmt.Println(string(out))
+	out := make(map[string]string, playerCount)
+	for i, id := range ids {
+		out[fmt.Sprintf("player%d_id", i+1)] = id
+	}
+
+	b, _ := json.MarshalIndent(out, "", "  ")
+	fmt.Println(string(b))
 }
 
 func createPlayer(ctx context.Context, conn *pgx.Conn, username string) string {

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import {
+  getPair,
   createPlayerContexts,
   playFullGame,
   setupAndStartGame,
@@ -9,9 +10,10 @@ import {
 // --- Tests -------------------------------------------------------------------
 
 test.describe('TicTacToe game', () => {
-  test('two players can play a full game', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-    await setupAndStartGame(p1, p2)
+  test('two players can play a full game', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    await setupAndStartGame(p1, p2, pair.p1Id)
     await playFullGame(p1, p2)
 
     // Assert final game-over state is correctly shown to both players.
@@ -22,9 +24,10 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('turn timeout ends the game', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-    await setupAndStartGame(p1, p2)
+  test('turn timeout ends the game', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    await setupAndStartGame(p1, p2, pair.p1Id)
 
     // Neither player moves. The server's turn timer fires after default_timeout_secs (30s)
     // and broadcasts game_over with the idle player as the loser.
@@ -36,9 +39,10 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('player can forfeit a game', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-    await setupAndStartGame(p1, p2)
+  test('player can forfeit a game', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    await setupAndStartGame(p1, p2, pair.p1Id)
 
     // Clicking ← Lobby mid-game should open a confirmation modal instead of
     // navigating immediately, to prevent accidental forfeits.
@@ -64,9 +68,10 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('both players can rematch after a game ends', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-    await setupAndStartGame(p1, p2)
+  test('both players can rematch after a game ends', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    await setupAndStartGame(p1, p2, pair.p1Id)
     await playFullGame(p1, p2)
 
     // Wait for game-over state to settle on both sides before interacting
@@ -104,8 +109,9 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('rematch full flow: vote, return to lobby, start second game', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+  test('rematch full flow: vote, return to lobby, start second game', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
     // Use fixed policy so p1 always goes first — deterministic assertions.
     await p1.goto('/')
@@ -116,13 +122,12 @@ test.describe('TicTacToe game', () => {
 
     const roomId = p1.url().split('/rooms/')[1]
     const code = await p1.getByTestId('room-code').textContent()
-    const player1Id = process.env.TEST_PLAYER1_ID!
 
     await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-      data: { player_id: player1Id, value: 'fixed' },
+      data: { player_id: pair.p1Id, value: 'fixed' },
     })
     await p1.request.put(`/api/v1/rooms/${roomId}/settings/rematch_first_mover_policy`, {
-      data: { player_id: player1Id, value: 'fixed' },
+      data: { player_id: pair.p1Id, value: 'fixed' },
     })
 
     await p2.getByTestId('join-code-input').fill(code!)
@@ -165,9 +170,10 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('back to lobby button after game ends closes socket and redirects', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-    await setupAndStartGame(p1, p2)
+  test('back to lobby button after game ends closes socket and redirects', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    await setupAndStartGame(p1, p2, pair.p1Id)
     await playFullGame(p1, p2)
 
     // Wait for game-over state before interacting with navigation.
@@ -184,9 +190,10 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('occupied cell is disabled and cannot be clicked', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
-    await setupAndStartGame(p1, p2)
+  test('occupied cell is disabled and cannot be clicked', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    await setupAndStartGame(p1, p2, pair.p1Id)
 
     // P1 plays cell 0.
     await expect(p1.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })

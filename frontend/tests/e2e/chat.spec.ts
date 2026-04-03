@@ -1,9 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
-import { createPlayerContexts, setupRoom } from './helpers'
+import { getPair, createPlayerContexts, setupRoom } from './helpers'
 
 // Scoped locator for message bubbles inside the chat sidebar.
-// Avoids strict mode violations from text matches elsewhere in the page
-// (e.g. "first" matching "First move" in lobby settings labels).
 function chatMessage(page: Page, text: string) {
   return page.locator('[class*="messages"]').locator(`text=${text}`)
 }
@@ -11,8 +9,9 @@ function chatMessage(page: Page, text: string) {
 // --- Tests -------------------------------------------------------------------
 
 test.describe('Room chat', () => {
-  test('message sent by P1 appears in P2 sidebar via WS', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+  test('message sent by P1 appears in P2 sidebar via WS', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
     await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
@@ -32,8 +31,9 @@ test.describe('Room chat', () => {
     await p2Ctx.close()
   })
 
-  test('multiple messages from both players appear in correct order', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+  test('multiple messages from both players appear in correct order', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
     await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
@@ -63,8 +63,9 @@ test.describe('Room chat', () => {
     await p2Ctx.close()
   })
 
-  test('sidebar can be collapsed and reopened', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+  test('sidebar can be collapsed and reopened', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
     await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
@@ -83,8 +84,9 @@ test.describe('Room chat', () => {
     await p2Ctx.close()
   })
 
-  test('empty message cannot be sent', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+  test('empty message cannot be sent', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
     await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
@@ -103,8 +105,9 @@ test.describe('Room chat', () => {
     await p2Ctx.close()
   })
 
-  test('messages persist after HTTP resync', async ({ browser }) => {
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser)
+  test('messages persist after HTTP resync', async ({ browser }, testInfo) => {
+    const pair = getPair(testInfo.project.name)
+    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
     await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
@@ -118,7 +121,7 @@ test.describe('Room chat', () => {
     // P2 leaves the room properly before navigating away.
     const roomId = p2.url().split('/rooms/')[1]
     await p2.request.post(`/api/v1/rooms/${roomId}/leave`, {
-      data: { player_id: process.env.TEST_PLAYER2_ID! },
+      data: { player_id: pair.p2Id },
     })
     await p2.goto('/')
 

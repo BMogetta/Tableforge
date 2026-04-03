@@ -31,7 +31,6 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
       testMatch: /\/chat\.spec\.ts/,
-      fullyParallel: true,
     },
     {
       name: 'settings-tests',
@@ -57,7 +56,6 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
       testMatch: /\/presence\.spec\.ts/,
-      fullyParallel: true,
     },
     {
       name: 'chromium-parallel',
