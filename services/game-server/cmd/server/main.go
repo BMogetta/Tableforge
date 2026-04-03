@@ -142,8 +142,11 @@ func main() {
 	}
 
 	var jwtSecret []byte
-	if !testMode {
-		jwtSecret = []byte(config.MustEnv("JWT_SECRET"))
+	if secret := config.Env("JWT_SECRET", ""); secret != "" {
+		jwtSecret = []byte(secret)
+	} else if !testMode {
+		slog.Error("JWT_SECRET is required in production")
+		os.Exit(1)
 	}
 
 	var schemaReg *sharedmw.SchemaRegistry
