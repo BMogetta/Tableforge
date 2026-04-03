@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_player_rating.response.json",
+  "title": "GetPlayerRatingResponse",
+  "type": "object",
+  "properties": {
+    "player_id": { "type": "string" },
+    "game_id": { "type": "string" },
+    "display_rating": { "type": "number" },
+    "games_played": { "type": "integer" },
+    "win_streak": { "type": "integer" },
+    "loss_streak": { "type": "integer" }
+  },
+  "required": ["player_id", "game_id", "display_rating", "games_played", "win_streak", "loss_streak"]
+}

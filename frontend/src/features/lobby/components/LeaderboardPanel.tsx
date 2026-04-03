@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { leaderboard } from '@/features/lobby/api'
-import type { Rating } from '@/lib/api'
+import type { LeaderboardEntry } from '@/lib/schema-generated.zod'
 import { keys } from '@/lib/queryClient'
 import { LeaderboardSkeleton } from './LeaderboardSkeleton'
 import styles from './LeaderboardPanel.module.css'
@@ -39,18 +39,17 @@ export function LeaderboardPanel({ gameId }: Props) {
             </tr>
           </thead>
           <tbody>
-            {entries.map((e: Rating, i: number) => (
+            {entries.map((e: LeaderboardEntry) => (
               <tr key={e.player_id} {...testId('leaderboard-row')}>
-                <td className={styles.rank}>{i + 1}</td>
+                <td className={styles.rank}>{e.rank}</td>
                 <td>
                   <Link to='/profile/$playerId' params={{ playerId: e.player_id }} className={styles.player}>
-                    {e.avatar_url && <img src={e.avatar_url} alt='' className={styles.avatar} />}
-                    <span>{e.username}</span>
+                    <span>{e.player_id}</span>
                   </Link>
                 </td>
                 <td className={styles.rating}>{Math.round(e.display_rating)}</td>
-                <td className={styles.win}>{e.win_streak}</td>
-                <td className={styles.loss}>{e.loss_streak}</td>
+                <td className={styles.win}>{e.games_played}</td>
+                <td className={styles.loss}>—</td>
               </tr>
             ))}
           </tbody>

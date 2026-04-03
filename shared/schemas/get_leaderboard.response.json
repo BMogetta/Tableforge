@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_leaderboard.response.json",
+  "title": "GetLeaderboardResponse",
+  "type": "object",
+  "properties": {
+    "game_id": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "defs/leaderboard_entry.json" }
+    },
+    "total": { "type": "integer" }
+  },
+  "required": ["game_id", "entries", "total"]
+}

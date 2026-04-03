@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/leaderboard_entry.json",
+  "title": "LeaderboardEntry",
+  "type": "object",
+  "properties": {
+    "rank": { "type": "integer" },
+    "player_id": { "type": "string" },
+    "display_rating": { "type": "number" },
+    "games_played": { "type": "integer" }
+  },
+  "required": ["rank", "player_id", "display_rating", "games_played"]
+}

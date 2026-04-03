@@ -1,6 +1,6 @@
 import { request, validatedRequest } from '@/lib/api'
-import type { Rating, QueuePosition } from '@/lib/api'
-import { gameInfoSchema } from '@/lib/schema-generated.zod'
+import type { QueuePosition } from '@/lib/api'
+import { gameInfoSchema, getLeaderboardResponseSchema } from '@/lib/schema-generated.zod'
 import { z } from 'zod'
 
 // --- Leaderboard -------------------------------------------------------------
@@ -8,7 +8,7 @@ import { z } from 'zod'
 export const leaderboard = {
   get: async (gameId: string, limit = 20) => {
     const params = new URLSearchParams({ limit: String(limit) })
-    const res = await request<{ entries: Rating[]; total: number }>(`/ratings/${gameId}/leaderboard?${params}`)
+    const res = await validatedRequest(getLeaderboardResponseSchema, `/ratings/${gameId}/leaderboard?${params}`)
     return res.entries
   },
 }
