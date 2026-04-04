@@ -9,7 +9,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -27,33 +26,53 @@ import (
 	sharedws "github.com/recess/shared/ws"
 )
 
+// allowedOrigins is parsed once from the ALLOWED_ORIGINS env var (comma-separated).
+// When empty, all origins are accepted (dev mode).
+var allowedOrigins = parseAllowedOrigins()
+
+func parseAllowedOrigins() map[string]struct{} {
+	raw := os.Getenv("ALLOWED_ORIGINS")
+	if raw == "" {
+		return nil
+	}
+	m := make(map[string]struct{})
+	for _, o := range strings.Split(raw, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			m[o] = struct{}{}
+		}
+	}
+	return m
+}
+
+func checkOrigin(r *http.Request) bool {
+	if len(allowedOrigins) == 0 {
+		return true // dev mode — no restrictions
+	}
+	origin := r.Header.Get("Origin")
+	_, ok := allowedOrigins[origin]
+	return ok
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
+	CheckOrigin:     checkOrigin,
 }
 
 // RoomHandler upgrades a WebSocket connection for a room.
 // Determines participant vs spectator status via game.v1.IsParticipant gRPC.
 func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc gamev1.GameServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Debug: check if cookie is present
-		if _, err := r.Cookie("tf_session"); err != nil {
-			fmt.Fprintf(os.Stderr, "WS-DEBUG: no cookie in room request url=%s err=%v\n", r.URL.String(), err)
-		} else {
-			fmt.Fprintf(os.Stderr, "WS-DEBUG: cookie present in room request url=%s\n", r.URL.String())
-		}
-
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
 		if err != nil {
 			http.Error(w, "invalid room id", http.StatusBadRequest)
 			return
 		}
 
-		playerIDStr := r.URL.Query().Get("player_id")
-		playerID, err := uuid.Parse(playerIDStr)
-		if err != nil {
-			http.Error(w, "player_id query param required", http.StatusBadRequest)
+		playerID, ok := middleware.PlayerIDFromContext(r.Context())
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
@@ -79,18 +98,15 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 		// Participant + spectator check via game-server gRPC.
 		isParticipant, spectatorsAllowed, err := checkParticipant(ctx, gc, roomID, playerID)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "WS-DEBUG: checkParticipant FAILED room=%s player=%s err=%v\n", roomID, playerID, err)
 			http.Error(w, "room not found", http.StatusNotFound)
 			return
 		}
 
 		if !isParticipant && !spectatorsAllowed {
-			fmt.Fprintf(os.Stderr, "WS-DEBUG: spectator REJECTED room=%s player=%s\n", roomID, playerID)
 			http.Error(w, "spectators not allowed in this room", http.StatusForbidden)
 			return
 		}
 
-		fmt.Fprintf(os.Stderr, "WS-DEBUG: UPGRADING room=%s player=%s participant=%v\n", roomID, playerID, isParticipant)
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return

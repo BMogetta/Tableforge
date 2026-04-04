@@ -3,8 +3,6 @@
   "$id": "vote_pause.request.json",
   "title": "VotePauseRequest",
   "type": "object",
-  "properties": {
-    "player_id": { "type": "string", "minLength": 1 }
-  },
-  "required": ["player_id"]
+  "properties": {},
+  "required": []
 }

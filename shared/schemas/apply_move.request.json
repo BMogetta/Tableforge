@@ -4,13 +4,9 @@
   "title": "ApplyMoveRequest",
   "type": "object",
   "properties": {
-    "player_id": {
-      "type": "string",
-      "minLength": 1
-    },
     "payload": {
       "type": "object"
     }
   },
-  "required": ["player_id", "payload"]
+  "required": ["payload"]
 }

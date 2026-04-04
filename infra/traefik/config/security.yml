@@ -22,6 +22,7 @@ http:
         # -- Custom response headers --
         customResponseHeaders:
           X-Robots-Tag: "noindex, nofollow"
+          Strict-Transport-Security: "max-age=63072000; includeSubDomains; preload"
 
         # -- Content Security Policy --
         contentSecurityPolicy: >-
@@ -30,6 +31,6 @@ http:
           style-src 'self' 'unsafe-inline';
           font-src 'self';
           img-src 'self' data: https://avatars.githubusercontent.com;
-          connect-src 'self' ws://localhost wss://localhost;
+          connect-src 'self' ws: wss:;
           media-src 'self' blob:;
           frame-ancestors 'none'

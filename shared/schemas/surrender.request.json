@@ -3,8 +3,6 @@
   "$id": "surrender.request.json",
   "title": "SurrenderRequest",
   "type": "object",
-  "properties": {
-    "player_id": { "type": "string", "minLength": 1 }
-  },
-  "required": ["player_id"]
+  "properties": {},
+  "required": []
 }

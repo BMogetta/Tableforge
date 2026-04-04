@@ -36,7 +36,7 @@ export function Lobby() {
   const activeSession = activeSessions[0] ?? null
 
   const forfeit = useMutation({
-    mutationFn: () => sessions.surrender(activeSession!.id, player.id),
+    mutationFn: () => sessions.surrender(activeSession!.id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['active-sessions', player.id] })
     },

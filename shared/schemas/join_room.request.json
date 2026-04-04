@@ -7,11 +7,7 @@
     "code": {
       "type": "string",
       "minLength": 1
-    },
-    "player_id": {
-      "type": "string",
-      "minLength": 1
     }
   },
-  "required": ["code", "player_id"]
+  "required": ["code"]
 }

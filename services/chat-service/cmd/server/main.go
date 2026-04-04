@@ -64,8 +64,11 @@ func main() {
 
 	addr := config.Env("HTTP_ADDR", ":8083")
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: router,
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
 	}
 
 	go func() {

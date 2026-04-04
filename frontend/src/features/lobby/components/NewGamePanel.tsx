@@ -103,7 +103,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
   })
 
   const joinRoom = useMutation({
-    mutationFn: () => rooms.join(joinCode.trim().toUpperCase(), player.id),
+    mutationFn: () => rooms.join(joinCode.trim().toUpperCase()),
     onSuccess: view =>
       navigate({
         to: '/rooms/$roomId',

@@ -56,7 +56,7 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
         sentReady.current = true
 
         sessions
-          .ready(sessionId, player.id)
+          .ready(sessionId)
           .then(res => {
             if (res.all_ready) {
               setPhase('done')

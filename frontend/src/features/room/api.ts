@@ -2,8 +2,6 @@ import { request, validatedRequest } from '@/lib/api'
 import type {
   CreateRoomRequest,
   JoinRoomRequest,
-  LeaveRoomRequest,
-  StartGameRequest,
   UpdateRoomSettingRequest,
   AddBotRequest,
   RemoveBotRequest,
@@ -43,29 +41,25 @@ export const rooms = {
       body: JSON.stringify(body),
     })
   },
-  join: (code: string, playerId: string) => {
-    const body: JoinRoomRequest = { code, player_id: playerId }
+  join: (code: string) => {
+    const body: JoinRoomRequest = { code }
     return validatedRequest(joinRoomResponseSchema, '/rooms/join', {
       method: 'POST',
       body: JSON.stringify(body),
     })
   },
-  leave: (roomId: string, playerId: string) => {
-    const body: LeaveRoomRequest = { player_id: playerId }
+  leave: (roomId: string) => {
     return request<void>(`/rooms/${roomId}/leave`, {
       method: 'POST',
-      body: JSON.stringify(body),
     })
   },
-  start: (roomId: string, playerId: string) => {
-    const body: StartGameRequest = { player_id: playerId }
+  start: (roomId: string) => {
     return validatedRequest(gameSessionSchema, `/rooms/${roomId}/start`, {
       method: 'POST',
-      body: JSON.stringify(body),
     })
   },
-  updateSetting: (roomId: string, playerId: string, key: string, value: string) => {
-    const body: UpdateRoomSettingRequest = { player_id: playerId, value }
+  updateSetting: (roomId: string, key: string, value: string) => {
+    const body: UpdateRoomSettingRequest = { value }
     return request<void>(`/rooms/${roomId}/settings/${encodeURIComponent(key)}`, {
       method: 'PUT',
       body: JSON.stringify(body),

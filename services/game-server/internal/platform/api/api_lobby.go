@@ -120,8 +120,7 @@ func handleGetRoom(svc *lobby.Service) http.HandlerFunc {
 }
 
 type joinRoomRequest struct {
-	Code     string `json:"code"`
-	PlayerID string `json:"player_id"`
+	Code string `json:"code"`
 }
 
 // POST /api/v1/rooms/join
@@ -152,9 +151,7 @@ func handleJoinRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 	}
 }
 
-type leaveRoomRequest struct {
-	PlayerID string `json:"player_id"`
-}
+type leaveRoomRequest struct{}
 
 // POST /api/v1/rooms/{roomID}/leave
 func handleLeaveRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
@@ -198,9 +195,7 @@ func handleLeaveRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 	}
 }
 
-type startGameRequest struct {
-	PlayerID string `json:"player_id"`
-}
+type startGameRequest struct{}
 
 // POST /api/v1/rooms/{roomID}/start
 func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
@@ -251,8 +246,7 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 }
 
 type updateRoomSettingRequest struct {
-	PlayerID string `json:"player_id"`
-	Value    string `json:"value"`
+	Value string `json:"value"`
 }
 
 // PUT /api/v1/rooms/{roomID}/settings/{key}

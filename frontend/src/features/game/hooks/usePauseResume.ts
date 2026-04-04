@@ -7,7 +7,6 @@ import { useToast } from '@/ui/Toast'
 
 interface UsePauseResumeOptions {
   sessionId: string
-  playerId: string
 }
 
 export interface PauseResumeState {
@@ -46,7 +45,7 @@ export interface PauseResumeState {
  * Mock `sessions.pause` and `sessions.resume` from `../../lib/api`.
  * Use renderHook from @testing-library/react to test state transitions.
  */
-export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): PauseResumeState {
+export function usePauseResume({ sessionId }: UsePauseResumeOptions): PauseResumeState {
   const toast = useToast()
   const qc = useQueryClient()
 
@@ -59,7 +58,7 @@ export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): 
   const [votedResume, setVotedResume] = useState(false)
 
   const pauseMutation = useMutation({
-    mutationFn: () => sessions.pause(sessionId, playerId),
+    mutationFn: () => sessions.pause(sessionId),
     onSuccess: res => {
       setVotedPause(true)
       if (res.all_voted) {
@@ -72,7 +71,7 @@ export function usePauseResume({ sessionId, playerId }: UsePauseResumeOptions): 
   })
 
   const resumeMutation = useMutation({
-    mutationFn: () => sessions.resume(sessionId, playerId),
+    mutationFn: () => sessions.resume(sessionId),
     onSuccess: res => {
       setVotedResume(true)
       if (res.all_voted) {

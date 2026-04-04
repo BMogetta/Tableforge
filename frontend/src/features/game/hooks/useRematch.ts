@@ -7,7 +7,6 @@ import { useToast } from '@/ui/Toast'
 
 interface UseRematchOptions {
   sessionId: string
-  playerId: string
 }
 
 export interface RematchState {
@@ -37,7 +36,7 @@ export interface RematchState {
  * Mock `useNavigate` from `@tanstack/react-router`.
  * Use renderHook to test that voteRematch calls the API and updates state.
  */
-export function useRematch({ sessionId, playerId }: UseRematchOptions): RematchState {
+export function useRematch({ sessionId }: UseRematchOptions): RematchState {
   const toast = useToast()
   const navigate = useNavigate()
 
@@ -46,7 +45,7 @@ export function useRematch({ sessionId, playerId }: UseRematchOptions): RematchS
   const [votedRematch, setVotedRematch] = useState(false)
 
   const mutation = useMutation({
-    mutationFn: () => sessions.rematch(sessionId, playerId),
+    mutationFn: () => sessions.rematch(sessionId),
     onSuccess: res => {
       setVotedRematch(true)
       setRematchVotes(res.votes)

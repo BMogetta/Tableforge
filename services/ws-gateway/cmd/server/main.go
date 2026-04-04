@@ -108,7 +108,7 @@ func main() {
 		promhttp.HandlerOpts{},
 	).ServeHTTP)
 
-	r.Get("/api/v1/presence", handler.PresenceHandler(ps))
+	r.With(authMW).Get("/api/v1/presence", handler.PresenceHandler(ps))
 
 	r.With(authMW).Get("/ws/rooms/{roomID}", handler.RoomHandler(h, ps, userClient, gameClient))
 	r.With(authMW).Get("/ws/players/{playerID}", handler.PlayerHandler(h, userClient))
@@ -116,8 +116,11 @@ func main() {
 	// --- HTTP server ---------------------------------------------------------
 	addr := config.Env("HTTP_ADDR", ":8084")
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
 	}
 
 	go func() {

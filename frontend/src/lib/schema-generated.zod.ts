@@ -130,7 +130,7 @@ export type AddBotRequest = z.infer<typeof addBotRequestSchema>
 export const addBotResponseSchema = playerSchema
 export type AddBotResponse = z.infer<typeof addBotResponseSchema>
 
-export const applyMoveRequestSchema = z.object({ "player_id": z.string().min(1), "payload": z.record(z.string(), z.any()) })
+export const applyMoveRequestSchema = z.object({ "payload": z.record(z.string(), z.any()) })
 export type ApplyMoveRequest = z.infer<typeof applyMoveRequestSchema>
 
 export const applyMoveResponseSchema = z.object({
@@ -199,7 +199,7 @@ export type GetSessionResponse = z.infer<typeof getSessionResponseSchema>
 export const issueBanRequestSchema = z.object({ "reason": z.string().optional(), "expires_at": z.string().optional() })
 export type IssueBanRequest = z.infer<typeof issueBanRequestSchema>
 
-export const joinRoomRequestSchema = z.object({ "code": z.string().min(1), "player_id": z.string().min(1) })
+export const joinRoomRequestSchema = z.object({ "code": z.string().min(1) })
 export type JoinRoomRequest = z.infer<typeof joinRoomRequestSchema>
 
 export const joinRoomResponseSchema = z.object({
@@ -209,7 +209,7 @@ export const joinRoomResponseSchema = z.object({
 })
 export type JoinRoomResponse = z.infer<typeof joinRoomResponseSchema>
 
-export const leaveRoomRequestSchema = z.object({ "player_id": z.string().min(1) })
+export const leaveRoomRequestSchema = z.object({})
 export type LeaveRoomRequest = z.infer<typeof leaveRoomRequestSchema>
 
 export const listPlayerMatchesResponseSchema = z.object({
@@ -248,13 +248,13 @@ export type SendRoomMessageResponse = z.infer<typeof sendRoomMessageResponseSche
 export const setPlayerRoleRequestSchema = z.object({ "role": z.enum(["player","manager","owner"]) })
 export type SetPlayerRoleRequest = z.infer<typeof setPlayerRoleRequestSchema>
 
-export const startGameRequestSchema = z.object({ "player_id": z.string().min(1) })
+export const startGameRequestSchema = z.object({})
 export type StartGameRequest = z.infer<typeof startGameRequestSchema>
 
-export const surrenderRequestSchema = z.object({ "player_id": z.string().min(1) })
+export const surrenderRequestSchema = z.object({})
 export type SurrenderRequest = z.infer<typeof surrenderRequestSchema>
 
-export const updateRoomSettingRequestSchema = z.object({ "player_id": z.string().min(1), "value": z.string() })
+export const updateRoomSettingRequestSchema = z.object({ "value": z.string() })
 export type UpdateRoomSettingRequest = z.infer<typeof updateRoomSettingRequestSchema>
 
 export const upsertPlayerSettingsRequestSchema = playerSettingMapSchema
@@ -263,15 +263,15 @@ export type UpsertPlayerSettingsRequest = z.infer<typeof upsertPlayerSettingsReq
 export const upsertProfileRequestSchema = z.object({ "bio": z.string().optional(), "country": z.string().optional() })
 export type UpsertProfileRequest = z.infer<typeof upsertProfileRequestSchema>
 
-export const votePauseRequestSchema = z.object({ "player_id": z.string().min(1) })
+export const votePauseRequestSchema = z.object({})
 export type VotePauseRequest = z.infer<typeof votePauseRequestSchema>
 
-export const voteRematchRequestSchema = z.object({ "player_id": z.string().min(1) })
+export const voteRematchRequestSchema = z.object({})
 export type VoteRematchRequest = z.infer<typeof voteRematchRequestSchema>
 
 export const voteRematchResponseSchema = z.object({ "votes": z.number().int(), "total_players": z.number().int() })
 export type VoteRematchResponse = z.infer<typeof voteRematchResponseSchema>
 
-export const voteResumeRequestSchema = z.object({ "player_id": z.string().min(1) })
+export const voteResumeRequestSchema = z.object({})
 export type VoteResumeRequest = z.infer<typeof voteResumeRequestSchema>
 

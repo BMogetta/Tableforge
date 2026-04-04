@@ -96,8 +96,8 @@ export function Game({ sessionId }: { sessionId: string }) {
     onGameOver: handleGameOver,
   })
 
-  const pauseResume = usePauseResume({ sessionId, playerId: player.id })
-  const rematch = useRematch({ sessionId, playerId: player.id })
+  const pauseResume = usePauseResume({ sessionId })
+  const rematch = useRematch({ sessionId })
 
   // Sync suspended state from initial fetch — covers the "return tomorrow" case.
   useEffect(() => {
@@ -117,7 +117,7 @@ export function Game({ sessionId }: { sessionId: string }) {
   // --- Mutations -------------------------------------------------------------
 
   const move = useMutation({
-    mutationFn: (payload: Record<string, unknown>) => sessions.move(sessionId, player.id, payload),
+    mutationFn: (payload: Record<string, unknown>) => sessions.move(sessionId, payload),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: keys.session(sessionId) })
     },
@@ -157,7 +157,7 @@ export function Game({ sessionId }: { sessionId: string }) {
   })
 
   const surrender = useMutation({
-    mutationFn: () => sessions.surrender(sessionId, player.id),
+    mutationFn: () => sessions.surrender(sessionId),
     onSuccess: () => {
       setShowSurrenderModal(false)
       leaveRoom()

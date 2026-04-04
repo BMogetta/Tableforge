@@ -7,7 +7,6 @@ import { testId } from '@/utils/testId'
 
 interface Props {
   roomId: string
-  playerId: string
   isOwner: boolean
   /** Descriptor list from GET /games — defines types, labels, options. */
   descriptors: LobbySetting[]
@@ -19,7 +18,6 @@ interface Props {
 
 export function RoomSettings({
   roomId,
-  playerId,
   isOwner,
   descriptors,
   values,
@@ -32,7 +30,7 @@ export function RoomSettings({
     setPending(key)
     setErrors(e => ({ ...e, [key]: '' }))
     try {
-      await rooms.updateSetting(roomId, playerId, key, value)
+      await rooms.updateSetting(roomId, key, value)
       onSettingChange(key, value)
     } catch (err) {
       setErrors(e => ({

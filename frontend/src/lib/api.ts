@@ -307,13 +307,13 @@ export const playerSettings = {
 // --- Utilities ---------------------------------------------------------------
 
 /**
- * Returns the WebSocket URL for a room, including the player_id query param.
- * The server uses player_id to determine whether the connecting client is a
- * participant (in room_players) or a spectator.
+ * Returns the WebSocket URL for a room.
+ * Identity comes from the JWT cookie — no query params needed.
+ * @param _playerId kept for caller compatibility; identity comes from JWT cookie.
  */
-export function wsRoomUrl(roomId: string, playerId: string): string {
+export function wsRoomUrl(roomId: string, _playerId?: string): string {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  return `${proto}://${window.location.host}/ws/rooms/${roomId}?player_id=${encodeURIComponent(playerId)}`
+  return `${proto}://${window.location.host}/ws/rooms/${roomId}`
 }
 
 /**

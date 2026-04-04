@@ -4,8 +4,7 @@
   "title": "UpdateRoomSettingRequest",
   "type": "object",
   "properties": {
-    "player_id": { "type": "string", "minLength": 1 },
     "value": { "type": "string" }
   },
-  "required": ["player_id", "value"]
+  "required": ["value"]
 }

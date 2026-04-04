@@ -9,7 +9,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=auth-service
@@ -36,7 +36,9 @@ services:
       - "traefik.http.routers.auth-service.rule=PathPrefix(`/auth`)"
       - "traefik.http.routers.auth-service.entrypoints=web"
       - "traefik.http.routers.auth-service.priority=100"
-      - "traefik.http.routers.auth-service.middlewares=security-headers@file"
+      - "traefik.http.routers.auth-service.middlewares=security-headers@file,auth-ratelimit"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.average=20"
+      - "traefik.http.middlewares.auth-ratelimit.ratelimit.burst=10"
       - "traefik.http.routers.auth-service.service=auth-service-svc"
       - "traefik.http.services.auth-service-svc.loadbalancer.server.port=8081"
 
@@ -49,7 +51,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=user-service
@@ -100,7 +102,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=chat-service
@@ -145,6 +147,7 @@ services:
       - USER_SERVICE_ADDR=user-service:9082
       - GAME_SERVER_ADDR=game-server:9080
       - HTTP_ADDR=:8084
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost}
     depends_on:
       redis:
         condition: service_healthy
@@ -187,7 +190,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=rating-service
@@ -270,7 +273,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=notification-service

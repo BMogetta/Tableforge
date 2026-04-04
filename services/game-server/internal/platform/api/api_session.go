@@ -97,8 +97,7 @@ func handleListPlayerMatches(st store.Store) http.HandlerFunc {
 // --- Sessions ----------------------------------------------------------------
 
 type moveRequest struct {
-	PlayerID string         `json:"player_id"`
-	Payload  map[string]any `json:"payload"`
+	Payload map[string]any `json:"payload"`
 }
 
 // POST /api/v1/sessions/{sessionID}/move
@@ -232,9 +231,7 @@ func handlePlayerReady(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Ha
 	}
 }
 
-type surrenderRequest struct {
-	PlayerID string `json:"player_id"`
-}
+type surrenderRequest struct{}
 
 // POST /api/v1/sessions/{sessionID}/surrender
 func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
@@ -273,9 +270,7 @@ func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Hand
 	}
 }
 
-type rematchRequest struct {
-	PlayerID string `json:"player_id"`
-}
+type rematchRequest struct{}
 
 // POST /api/v1/sessions/{sessionID}/rematch
 func handleRematch(lobbySvc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
@@ -380,14 +375,6 @@ func handleVotePause(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 			return
 		}
 
-		var req struct {
-			PlayerID string `json:"player_id"`
-		}
-		if err := decodeJSON(r, &req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-
 		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
 			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
@@ -442,14 +429,6 @@ func handleVoteResume(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid session id")
-			return
-		}
-
-		var req struct {
-			PlayerID string `json:"player_id"`
-		}
-		if err := decodeJSON(r, &req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
 

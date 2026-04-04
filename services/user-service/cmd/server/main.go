@@ -90,8 +90,11 @@ func main() {
 
 	httpAddr := config.Env("HTTP_ADDR", ":8082")
 	srv := &http.Server{
-		Addr:    httpAddr,
-		Handler: router,
+		Addr:              httpAddr,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
 	}
 
 	go func() {

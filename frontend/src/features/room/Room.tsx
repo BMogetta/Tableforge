@@ -172,7 +172,7 @@ export function Room({ roomId }: { roomId: string }) {
     setStartError(null)
 
     const [err, session] = await rooms
-      .start(roomId, player.id)
+      .start(roomId)
       .then(s => ok(s))
       .catch(e => error(catchToAppError(e)))
 
@@ -186,7 +186,7 @@ export function Room({ roomId }: { roomId: string }) {
   }
 
   async function handleLeave() {
-    await rooms.leave(roomId, player.id).catch(() => {})
+    await rooms.leave(roomId).catch(() => {})
     leaveRoom()
     navigate({ to: '/' })
   }
@@ -275,7 +275,6 @@ export function Room({ roomId }: { roomId: string }) {
         return (
           <RoomSettings
             roomId={roomId}
-            playerId={player.id}
             isOwner={isOwner}
             descriptors={visibleDescriptors}
             values={settings}

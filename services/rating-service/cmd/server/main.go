@@ -103,8 +103,11 @@ func main() {
 
 	addr := config.Env("HTTP_ADDR", ":8085")
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
 	}
 
 	go func() {

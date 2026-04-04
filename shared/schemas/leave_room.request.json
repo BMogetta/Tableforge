@@ -3,8 +3,6 @@
   "$id": "leave_room.request.json",
   "title": "LeaveRoomRequest",
   "type": "object",
-  "properties": {
-    "player_id": { "type": "string", "minLength": 1 }
-  },
-  "required": ["player_id"]
+  "properties": {},
+  "required": []
 }

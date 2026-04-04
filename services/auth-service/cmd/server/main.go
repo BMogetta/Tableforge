@@ -43,7 +43,7 @@ func main() {
 	jwtSecret := config.MustEnv("JWT_SECRET")
 	clientID := config.MustEnv("GITHUB_CLIENT_ID")
 	clientSecret := config.MustEnv("GITHUB_CLIENT_SECRET")
-	secure := config.Env("ENV", "development") == "production"
+	secure := config.Env("ENV", "production") != "development"
 
 	st, err := store.New(ctx, config.MustEnv("DATABASE_URL"))
 	if err != nil {
@@ -76,7 +76,7 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Get("/github", h.HandleGitHubLogin)
 		r.Get("/github/callback", h.HandleGitHubCallback)
-		r.Post("/logout", h.HandleLogout)
+		r.With(authMW).Post("/logout", h.HandleLogout)
 		r.With(authMW).Get("/me", h.HandleMe)
 
 		if handler.TestModeEnabled() {
@@ -86,8 +86,11 @@ func main() {
 
 	addr := config.Env("ADDR", ":8081")
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
 	}
 
 	go func() {

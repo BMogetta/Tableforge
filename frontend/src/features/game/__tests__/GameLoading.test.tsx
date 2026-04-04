@@ -133,7 +133,7 @@ describe('GameLoading', () => {
   it('sends POST /ready after assets load', async () => {
     renderComponent({ sessionId: 'sess-1' })
     await advancePastLoading()
-    expect(mockReady).toHaveBeenCalledWith('sess-1', 'player-123')
+    expect(mockReady).toHaveBeenCalledWith('sess-1')
   })
 
   it('sends POST /ready only once even if re-rendered', async () => {
