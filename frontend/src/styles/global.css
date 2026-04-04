@@ -657,8 +657,16 @@ input {
      xl:  1280px — standard desktop (primary target)
    ----------------------------------------------------------------------------- */
 
+@media (max-width: 768px) {
+  :root {
+    --font-scale: 0.9;
+    --layout-sidebar-width: 200px;
+  }
+}
+
 @media (max-width: 640px) {
   :root {
-    --font-scale: 0.95;
+    --font-scale: 0.85;
+    --layout-sidebar-width: 0px;
   }
 }

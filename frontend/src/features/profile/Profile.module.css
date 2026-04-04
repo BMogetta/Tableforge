@@ -255,9 +255,34 @@
 
 /* --- Responsive ------------------------------------------------------------ */
 
+@media (max-width: 768px) {
+  .root {
+    padding: var(--space-4) var(--space-3) var(--space-8);
+  }
+
+  .container {
+    max-width: 100%;
+  }
+
+  .matchMeta {
+    gap: var(--space-2);
+  }
+}
+
 @media (max-width: 640px) {
+  .root {
+    padding: var(--space-3) var(--space-2) var(--space-6);
+  }
+
   .header {
     flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .avatar,
+  .avatarPlaceholder {
+    width: 44px;
+    height: 44px;
   }
 
   .statsBar {
@@ -270,5 +295,20 @@
 
   .statDivider {
     margin: 0 var(--space-2);
+  }
+
+  .matchRow {
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+
+  .matchMeta {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-1);
+  }
+
+  .pagination {
+    gap: var(--space-2);
   }
 }

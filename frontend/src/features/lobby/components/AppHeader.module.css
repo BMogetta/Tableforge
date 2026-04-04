@@ -151,3 +151,43 @@
     transform: translateY(0);
   }
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .modalOverlay {
+    padding: 52px var(--space-3) var(--space-3);
+  }
+
+  .modalPanel {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .logoText {
+    font-size: var(--text-base);
+    letter-spacing: 0.15em;
+  }
+
+  .username {
+    display: none;
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .modalOverlay {
+    padding: 48px var(--space-2) var(--space-2);
+    justify-content: center;
+  }
+}

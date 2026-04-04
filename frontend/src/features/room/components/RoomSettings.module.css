@@ -205,3 +205,33 @@
   white-space: pre;
   line-height: var(--line-height-loose);
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .open {
+    width: 240px;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: var(--z-modal);
+    height: 100vh;
+  }
+
+  .open {
+    width: 100%;
+    min-width: 0;
+    max-width: 320px;
+  }
+
+  .closed {
+    width: 0;
+    min-width: 0;
+  }
+}

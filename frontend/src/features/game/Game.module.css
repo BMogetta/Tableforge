@@ -337,3 +337,70 @@
   max-width: 280px;
   line-height: var(--line-height-base);
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .root {
+    padding: var(--space-4);
+  }
+
+  .panel {
+    max-width: 420px;
+    gap: var(--space-4);
+  }
+
+  .board {
+    width: 260px;
+    height: 260px;
+  }
+
+  .symbol {
+    font-size: 44px;
+  }
+
+  .hoverSymbol {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 640px) {
+  .root {
+    padding: var(--space-3);
+  }
+
+  .panel {
+    max-width: 100%;
+    gap: var(--space-3);
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .board {
+    width: min(280px, calc(100vw - var(--space-6) * 2));
+    height: min(280px, calc(100vw - var(--space-6) * 2));
+  }
+
+  .symbol {
+    font-size: 40px;
+  }
+
+  .status {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .gameOver {
+    gap: var(--space-1);
+  }
+
+  .suspendedScreen {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .voteOverlay {
+    padding: var(--space-3);
+  }
+}

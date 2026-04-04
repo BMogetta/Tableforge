@@ -88,3 +88,35 @@
   height: 1px;
   background: var(--color-border-bright);
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .board {
+    width: 260px;
+    height: 260px;
+  }
+
+  .symbol {
+    font-size: 44px;
+  }
+
+  .hoverSymbol {
+    font-size: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .board {
+    width: min(280px, calc(100vw - var(--space-8) * 2));
+    height: min(280px, calc(100vw - var(--space-8) * 2));
+  }
+
+  .symbol {
+    font-size: 40px;
+  }
+
+  .hoverSymbol {
+    font-size: 40px;
+  }
+}
