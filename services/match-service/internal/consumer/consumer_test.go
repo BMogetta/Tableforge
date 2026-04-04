@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"testing"
 
@@ -82,5 +83,71 @@ func TestHandle_UnknownChannel(t *testing.T) {
 	msg := &redis.Message{Channel: "unknown.channel", Payload: "{}"}
 	if err := c.handle(context.Background(), msg); err == nil {
 		t.Fatal("expected error for unknown channel")
+	}
+}
+
+func TestHandlePlayerBanned_DequeueError(t *testing.T) {
+	mock := &mockDequeuer{err: errors.New("redis down")}
+	c := newTestConsumer(mock)
+
+	playerID := uuid.New()
+	msg := &redis.Message{Channel: channelPlayerBanned, Payload: playerBannedJSON(playerID.String())}
+
+	err := c.handle(context.Background(), msg)
+	if err == nil {
+		t.Fatal("expected error when Dequeue fails")
+	}
+	if mock.calledWith != playerID {
+		t.Errorf("expected Dequeue(%s), got Dequeue(%s)", playerID, mock.calledWith)
+	}
+}
+
+func TestHandlePlayerBanned_EmptyPlayerID(t *testing.T) {
+	c := newTestConsumer(&mockDequeuer{})
+
+	// Empty player_id should fail UUID parsing
+	msg := &redis.Message{Channel: channelPlayerBanned, Payload: `{"player_id":"","reason":"test"}`}
+	if err := c.handle(context.Background(), msg); err == nil {
+		t.Fatal("expected error for empty player_id")
+	}
+}
+
+func TestHandlePlayerBanned_WithEventID(t *testing.T) {
+	mock := &mockDequeuer{removed: true}
+	c := newTestConsumer(mock)
+
+	playerID := uuid.New()
+	payload := `{"event_id":"` + uuid.NewString() + `","player_id":"` + playerID.String() + `","reason":"cheating"}`
+	msg := &redis.Message{Channel: channelPlayerBanned, Payload: payload}
+
+	if err := c.handle(context.Background(), msg); err != nil {
+		t.Fatalf("handle: %v", err)
+	}
+	if mock.calledWith != playerID {
+		t.Errorf("expected Dequeue(%s), got Dequeue(%s)", playerID, mock.calledWith)
+	}
+}
+
+func TestHandle_UnknownChannel_ErrorMessage(t *testing.T) {
+	c := newTestConsumer(&mockDequeuer{})
+
+	msg := &redis.Message{Channel: "player.suspended", Payload: "{}"}
+	err := c.handle(context.Background(), msg)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	want := "unknown channel: player.suspended"
+	if err.Error() != want {
+		t.Errorf("error = %q, want %q", err.Error(), want)
+	}
+}
+
+func TestNew(t *testing.T) {
+	c := New(nil, &mockDequeuer{}, slog.Default())
+	if c == nil {
+		t.Fatal("New returned nil")
+	}
+	if c.queue == nil {
+		t.Error("queue should not be nil")
 	}
 }
