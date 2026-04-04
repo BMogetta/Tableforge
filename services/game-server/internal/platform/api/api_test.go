@@ -150,9 +150,8 @@ func TestCreateRoom(t *testing.T) {
 	router, s := newTestRouter(t)
 	owner, _ := s.CreatePlayer(context.Background(), "alice")
 
-	w := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	w := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 
 	if w.Code != http.StatusCreated {
@@ -170,9 +169,8 @@ func TestCreateRoom_UnknownGame(t *testing.T) {
 	router, s := newTestRouter(t)
 	owner, _ := s.CreatePlayer(context.Background(), "alice")
 
-	w := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "unknown",
-		"player_id": owner.ID.String(),
+	w := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "unknown",
 	})
 
 	if w.Code != http.StatusNotFound {
@@ -184,9 +182,8 @@ func TestListRooms(t *testing.T) {
 	router, s := newTestRouter(t)
 	owner, _ := s.CreatePlayer(context.Background(), "alice")
 
-	postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 
 	w := getJSON(t, router, "/api/v1/rooms")
@@ -348,20 +345,16 @@ func TestGetSessionHistory_Empty(t *testing.T) {
 	owner, _ := s.CreatePlayer(context.Background(), "alice")
 	guest, _ := s.CreatePlayer(context.Background(), "bob")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view lobby.RoomView
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	postJSON(t, router, "/api/v1/rooms/join", map[string]string{
-		"code":      view.Room.Code,
-		"player_id": guest.ID.String(),
+	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
+		"code": view.Room.Code,
 	})
-	startResp := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", map[string]string{
-		"player_id": owner.ID.String(),
-	})
+	startResp := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", owner.ID, "player", map[string]string{})
 
 	var session store.GameSession
 	json.NewDecoder(startResp.Body).Decode(&session)

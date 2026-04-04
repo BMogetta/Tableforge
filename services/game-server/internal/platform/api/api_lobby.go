@@ -64,7 +64,6 @@ func upsertLobbySetting(settings []engine.LobbySetting, s engine.LobbySetting) [
 
 type createRoomRequest struct {
 	GameID          string `json:"game_id"`
-	PlayerID        string `json:"player_id"`
 	TurnTimeoutSecs *int   `json:"turn_timeout_secs,omitempty"`
 }
 
@@ -76,11 +75,13 @@ func handleCreateRoom(svc *lobby.Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		ownerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+
+		ownerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
+
 		view, err := svc.CreateRoom(r.Context(), req.GameID, ownerID, req.TurnTimeoutSecs)
 		if err != nil {
 			writeLobbyError(w, err)

@@ -13,6 +13,8 @@ import (
 	"github.com/recess/game-server/internal/domain/runtime"
 	"github.com/recess/game-server/internal/platform/store"
 	"github.com/recess/game-server/internal/platform/ws"
+	error_message "github.com/recess/shared/errors"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // GET /api/v1/bots/profiles
@@ -61,10 +63,11 @@ func handleListBotProfiles() http.HandlerFunc {
 // with is_bot = TRUE so it can be identified and removed later.
 // It is also registered in the runtime registry so MaybeFireBot triggers
 // its moves automatically after each human move.
+// The caller (room owner) is identified via JWT context.
 //
 // Request body:
 //
-//	{ "player_id": "<owner uuid>", "profile": "easy|medium|hard|aggressive" }
+//	{ "profile": "easy|medium|hard|aggressive" }
 //
 // Response: the created store.Player for the bot.
 func handleAddBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
@@ -76,8 +79,7 @@ func handleAddBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Handler
 		}
 
 		var req struct {
-			PlayerID string `json:"player_id"`
-			Profile  string `json:"profile"`
+			Profile string `json:"profile"`
 		}
 		if err := decodeJSON(r, &req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -101,9 +103,9 @@ func handleAddBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Handler
 		}
 
 		// Verify the caller is the room owner.
-		callerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+		callerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
 		if room.OwnerID != callerID {
@@ -162,12 +164,9 @@ func handleAddBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Handler
 // DELETE /api/v1/rooms/{roomID}/bots/{botID}
 //
 // Removes a fill bot from the room and unregisters it from the runtime.
-// Only the room owner can call this endpoint.
+// Only the room owner (identified via JWT context) can call this endpoint.
 // Returns 404 if botID is not a registered bot in this room.
-//
-// Request body:
-//
-//	{ "player_id": "<owner uuid>" }
+// No request body required.
 func handleRemoveBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roomID, err := uuid.Parse(chi.URLParam(r, "roomID"))
@@ -181,14 +180,6 @@ func handleRemoveBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Hand
 			return
 		}
 
-		var req struct {
-			PlayerID string `json:"player_id"`
-		}
-		if err := decodeJSON(r, &req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
-
 		room, err := st.GetRoom(r.Context(), roomID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, "room not found")
@@ -196,9 +187,9 @@ func handleRemoveBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Hand
 		}
 
 		// Verify the caller is the room owner.
-		callerID, err := uuid.Parse(req.PlayerID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid player_id")
+		callerID, ok := sharedmw.PlayerIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
 			return
 		}
 		if room.OwnerID != callerID {
