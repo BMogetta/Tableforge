@@ -227,7 +227,7 @@ export function Settings({ onClose }: Props) {
             value={settings.allow_dms}
             options={[
               { value: 'anyone', label: 'Anyone' },
-              { value: 'friends_only', label: 'Friends only (coming soon)', disabled: true },
+              { value: 'friends_only', label: 'Friends only' },
               { value: 'nobody', label: 'Nobody' },
             ]}
             onChange={v => change('allow_dms', v as PlayerSettingMap['allow_dms'])}

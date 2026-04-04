@@ -216,6 +216,25 @@ func (s *pgStore) ListDMConversations(ctx context.Context, playerID uuid.UUID) (
 	return convos, rows.Err()
 }
 
+// GetAllowDMs returns the receiver's allow_dms preference.
+// Falls back to "anyone" when no settings row exists.
+func (s *pgStore) GetAllowDMs(ctx context.Context, playerID uuid.UUID) (string, error) {
+	var raw []byte
+	err := s.db.QueryRow(ctx,
+		`SELECT settings->'allow_dms' FROM player_settings WHERE player_id = $1`,
+		playerID,
+	).Scan(&raw)
+	if err != nil {
+		// No row → default is "anyone".
+		return "anyone", nil
+	}
+	// JSONB text comes back as a quoted string, e.g. `"friends_only"`.
+	if len(raw) >= 2 && raw[0] == '"' {
+		return string(raw[1 : len(raw)-1]), nil
+	}
+	return "anyone", nil
+}
+
 func (s *pgStore) ReportDM(ctx context.Context, messageID, playerA, playerB uuid.UUID) error {
 	tag, err := s.db.Exec(ctx,
 		`UPDATE direct_messages SET reported = true

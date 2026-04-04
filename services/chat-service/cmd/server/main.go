@@ -57,10 +57,19 @@ func main() {
 		panic(err)
 	}
 
+	// --- gRPC client to user-service (friendship checks) --------------------
+	userServiceAddr := config.Env("USER_SERVICE_ADDR", "user-service:9082")
+	userChecker, err := api.NewGRPCUserChecker(userServiceAddr)
+	if err != nil {
+		slog.Error("failed to connect to user-service gRPC", "addr", userServiceAddr, "error", err)
+		panic(err)
+	}
+	defer userChecker.Close()
+
 	// --- HTTP server ---------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
 	pub := api.NewPublisher(rdb)
-	router := api.NewRouter(st, pub, authMW, schemaReg, serviceName)
+	router := api.NewRouter(st, pub, authMW, schemaReg, serviceName, userChecker)
 
 	addr := config.Env("HTTP_ADDR", ":8083")
 	srv := &http.Server{

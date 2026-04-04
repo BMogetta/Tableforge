@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -14,7 +15,7 @@ import (
 // POST /api/v1/players/{playerID}/dm
 // Sends a direct message. playerID in path is the receiver.
 // Broadcasts dm_received to the receiver's player channel.
-func handleSendDM(st store.Store, pub *Publisher) http.HandlerFunc {
+func handleSendDM(st store.Store, pub *Publisher, uc UserChecker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		receiverID, err := uuid.Parse(chi.URLParam(r, "playerID"))
 		if err != nil {
@@ -43,6 +44,37 @@ func handleSendDM(st store.Store, pub *Publisher) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "cannot send a DM to yourself")
 			return
 		}
+
+		// --- Privacy gate: respect receiver's allow_dms setting -----------------
+		allowDMs, err := st.GetAllowDMs(r.Context(), receiverID)
+		if err != nil {
+			slog.Error("failed to fetch allow_dms setting", "receiver", receiverID, "error", err)
+			writeError(w, http.StatusInternalServerError, "failed to check recipient settings")
+			return
+		}
+		switch allowDMs {
+		case "nobody":
+			writeError(w, http.StatusForbidden, "player does not accept direct messages")
+			return
+		case "friends_only":
+			if uc == nil {
+				// No user-service client — fail closed.
+				slog.Warn("friends_only DM gate: user checker unavailable, rejecting")
+				writeError(w, http.StatusForbidden, "player only accepts DMs from friends")
+				return
+			}
+			friends, err := uc.AreFriends(r.Context(), senderID.String(), receiverID.String())
+			if err != nil {
+				slog.Error("failed to check friendship", "sender", senderID, "receiver", receiverID, "error", err)
+				writeError(w, http.StatusInternalServerError, "failed to verify friendship")
+				return
+			}
+			if !friends {
+				writeError(w, http.StatusForbidden, "player only accepts DMs from friends")
+				return
+			}
+		}
+		// "anyone" (default) — proceed normally.
 
 		msg, err := st.SaveDM(r.Context(), senderID, receiverID, req.Content)
 		if err != nil {
