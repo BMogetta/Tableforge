@@ -593,6 +593,49 @@ func (f *FakeStore) CountPlayerMatches(_ context.Context, _ uuid.UUID) (int, err
 
 // --- Player settings ---------------------------------------------------------
 
+// --- Admin stats -------------------------------------------------------------
+
+func (f *FakeStore) CountActiveRooms(_ context.Context) (int, error) {
+	count := 0
+	for _, r := range f.Rooms {
+		if r.DeletedAt == nil && (r.Status == store.RoomStatusWaiting || r.Status == store.RoomStatusInProgress) {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (f *FakeStore) CountActiveSessions(_ context.Context) (int, error) {
+	count := 0
+	for _, gs := range f.Sessions {
+		if gs.FinishedAt == nil && gs.DeletedAt == nil {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (f *FakeStore) CountTotalPlayers(_ context.Context) (int, error) {
+	count := 0
+	for _, p := range f.Players {
+		if p.DeletedAt == nil && !p.IsBot {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (f *FakeStore) CountSessionsToday(_ context.Context) (int, error) {
+	count := 0
+	today := time.Now().Truncate(24 * time.Hour)
+	for _, gs := range f.Sessions {
+		if gs.DeletedAt == nil && !gs.StartedAt.Before(today) {
+			count++
+		}
+	}
+	return count, nil
+}
+
 // --- Cleanup -----------------------------------------------------------------
 
 func (f *FakeStore) CleanupOrphanRooms(_ context.Context, waitingMaxAge, finishedMaxAge time.Duration) (int, error) {

@@ -761,6 +761,55 @@ func (s *PGStore) DeleteRematchVotes(ctx context.Context, sessionID uuid.UUID) e
 	return nil
 }
 
+// --- Admin stats -------------------------------------------------------------
+
+func (s *PGStore) CountActiveRooms(ctx context.Context) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM rooms
+		 WHERE status IN ('waiting', 'in_progress') AND deleted_at IS NULL`,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("CountActiveRooms: %w", err)
+	}
+	return count, nil
+}
+
+func (s *PGStore) CountActiveSessions(ctx context.Context) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM game_sessions
+		 WHERE finished_at IS NULL AND deleted_at IS NULL`,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("CountActiveSessions: %w", err)
+	}
+	return count, nil
+}
+
+func (s *PGStore) CountTotalPlayers(ctx context.Context) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM players WHERE deleted_at IS NULL AND is_bot = FALSE`,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("CountTotalPlayers: %w", err)
+	}
+	return count, nil
+}
+
+func (s *PGStore) CountSessionsToday(ctx context.Context) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM game_sessions
+		 WHERE started_at >= CURRENT_DATE AND deleted_at IS NULL`,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("CountSessionsToday: %w", err)
+	}
+	return count, nil
+}
+
 // --- Cleanup -----------------------------------------------------------------
 
 // CleanupOrphanRooms hard-deletes waiting rooms with 0 players that haven't

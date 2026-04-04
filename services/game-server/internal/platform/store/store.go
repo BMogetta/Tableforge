@@ -267,6 +267,12 @@ type Store interface {
 	VoteReady(ctx context.Context, sessionID uuid.UUID, playerID uuid.UUID) (allVoted bool, err error)
 	ClearReadyVotes(ctx context.Context, sessionID uuid.UUID) error
 
+	// Admin stats
+	CountActiveRooms(ctx context.Context) (int, error)
+	CountActiveSessions(ctx context.Context) (int, error)
+	CountTotalPlayers(ctx context.Context) (int, error)
+	CountSessionsToday(ctx context.Context) (int, error)
+
 	// Cleanup
 	// CleanupOrphanRooms deletes waiting rooms with 0 players older than
 	// waitingMaxAge and finished rooms older than finishedMaxAge.
