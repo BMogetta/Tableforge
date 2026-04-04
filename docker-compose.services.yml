@@ -9,7 +9,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=auth-service
@@ -61,7 +61,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=user-service
@@ -122,7 +122,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=chat-service
@@ -230,7 +230,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=rating-service
@@ -334,7 +334,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=notification-service
@@ -372,6 +372,56 @@ services:
         limits:
           memory: 256M
           cpus: '0.5'
+
+  # ── Production profile ───────────────────────────────────────────────────────
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    profiles: ["production"]
+    environment:
+      DATABASE_URL: postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data_network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  pg-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    profiles: ["production"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: recess
+      POSTGRES_USER: recess
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 14
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+    volumes:
+      - pg_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
     logging:
       driver: json-file
       options:
