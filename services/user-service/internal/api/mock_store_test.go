@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ type mockStore struct {
 	players       []store.Player
 	allowedEmails map[string]store.AllowedEmail
 	settings      map[uuid.UUID]store.PlayerSettings
+	auditLogs     []store.AuditLog
 }
 
 func newMockStore() *mockStore {
@@ -506,4 +508,66 @@ func (m *mockStore) UpsertPlayerSettings(_ context.Context, playerID uuid.UUID, 
 	}
 	m.settings[playerID] = s
 	return s, nil
+}
+
+// --- Audit logs --------------------------------------------------------------
+
+func (m *mockStore) LogAction(_ context.Context, actorID uuid.UUID, action, targetType, targetID string, details map[string]any) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var detailsJSON []byte
+	if details != nil {
+		detailsJSON, _ = json.Marshal(details)
+	}
+	m.auditLogs = append(m.auditLogs, store.AuditLog{
+		ID:        uuid.New(),
+		ActorID:   actorID,
+		Action:    action,
+		TargetType: targetType,
+		TargetID:  targetID,
+		Details:   detailsJSON,
+		CreatedAt: time.Now(),
+	})
+	return nil
+}
+
+func (m *mockStore) ListAuditLogs(_ context.Context, filter store.AuditFilter) ([]store.AuditLog, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []store.AuditLog
+	for _, l := range m.auditLogs {
+		if filter.ActorID != nil && l.ActorID != *filter.ActorID {
+			continue
+		}
+		if filter.Action != nil && l.Action != *filter.Action {
+			continue
+		}
+		if filter.TargetType != nil && l.TargetType != *filter.TargetType {
+			continue
+		}
+		if filter.From != nil && l.CreatedAt.Before(*filter.From) {
+			continue
+		}
+		if filter.To != nil && l.CreatedAt.After(*filter.To) {
+			continue
+		}
+		out = append(out, l)
+	}
+	if out == nil {
+		out = []store.AuditLog{}
+	}
+	// Apply limit/offset
+	if filter.Offset > 0 && filter.Offset < len(out) {
+		out = out[filter.Offset:]
+	} else if filter.Offset >= len(out) {
+		return []store.AuditLog{}, nil
+	}
+	limit := filter.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	if limit < len(out) {
+		out = out[:limit]
+	}
+	return out, nil
 }

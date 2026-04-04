@@ -58,6 +58,9 @@ func handleAddAllowedEmail(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to add email")
 			return
 		}
+		_ = st.LogAction(r.Context(), callerID, "email_added", "allowed_email", req.Email, map[string]any{
+			"role": string(req.Role),
+		})
 		writeJSON(w, http.StatusCreated, entry)
 	}
 }
@@ -74,6 +77,8 @@ func handleRemoveAllowedEmail(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusNotFound, "email not found")
 			return
 		}
+		callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
+		_ = st.LogAction(r.Context(), callerID, "email_removed", "allowed_email", email, nil)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -125,6 +130,9 @@ func handleSetPlayerRole(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		_ = st.LogAction(r.Context(), callerID, "role_changed", "player", playerID.String(), map[string]any{
+			"new_role": string(req.Role),
+		})
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

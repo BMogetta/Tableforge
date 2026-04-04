@@ -49,6 +49,10 @@ func handleIssueBan(st store.Store, pub *Publisher) http.HandlerFunc {
 			return
 		}
 		pub.PublishPlayerBanned(r.Context(), ban)
+		_ = st.LogAction(r.Context(), callerID, "ban_issued", "player", playerID.String(), map[string]any{
+			"ban_id": ban.ID.String(),
+			"reason": req.Reason,
+		})
 		writeJSON(w, http.StatusCreated, ban)
 	}
 }
@@ -77,6 +81,9 @@ func handleLiftBan(st store.Store, pub *Publisher) http.HandlerFunc {
 			return
 		}
 		pub.PublishPlayerUnbanned(r.Context(), banID, ban.PlayerID, callerID)
+		_ = st.LogAction(r.Context(), callerID, "ban_lifted", "ban", banID.String(), map[string]any{
+			"player_id": ban.PlayerID.String(),
+		})
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

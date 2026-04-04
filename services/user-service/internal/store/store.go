@@ -169,6 +169,10 @@ type Store interface {
 	AddAllowedEmail(ctx context.Context, params AddAllowedEmailParams) (AllowedEmail, error)
 	RemoveAllowedEmail(ctx context.Context, email string) error
 
+	// Admin — audit logs
+	LogAction(ctx context.Context, actorID uuid.UUID, action, targetType, targetID string, details map[string]any) error
+	ListAuditLogs(ctx context.Context, filter AuditFilter) ([]AuditLog, error)
+
 	// Player settings
 	GetPlayerSettings(ctx context.Context, playerID uuid.UUID) (PlayerSettings, error)
 	UpsertPlayerSettings(ctx context.Context, playerID uuid.UUID, settings PlayerSettingMap) (PlayerSettings, error)

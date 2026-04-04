@@ -134,6 +134,9 @@ func handleReviewReport(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to review report")
 			return
 		}
+		_ = st.LogAction(r.Context(), callerID, "report_reviewed", "report", reportID.String(), map[string]any{
+			"resolution": req.Resolution,
+		})
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

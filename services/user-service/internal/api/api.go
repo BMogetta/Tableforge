@@ -84,6 +84,7 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		r.Delete("/api/v1/admin/allowed-emails/{email}", handleRemoveAllowedEmail(st))
 		r.Get("/api/v1/admin/players", handleListPlayers(st))
 		r.With(requireRole(sharedmw.RoleOwner), validate("set_player_role.request")).Put("/api/v1/admin/players/{playerID}/role", handleSetPlayerRole(st))
+		r.Get("/api/v1/admin/audit-logs", handleListAuditLogs(st))
 	})
 
 	// --- Player: reports -----------------------------------------------------
