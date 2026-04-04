@@ -22,6 +22,7 @@ import (
 	"github.com/recess/rating-service/internal/store"
 	"github.com/recess/shared/config"
 	"github.com/recess/shared/domain/rating"
+	sharedmw "github.com/recess/shared/middleware"
 	sharedredis "github.com/recess/shared/redis"
 	ratingv1 "github.com/recess/shared/proto/rating/v1"
 	"github.com/recess/shared/telemetry"
@@ -99,7 +100,11 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	httphandler.New(st, slog.Default()).RegisterRoutes(r)
+	authMW := sharedmw.Require([]byte(config.MustEnv("JWT_SECRET")))
+	r.Group(func(r chi.Router) {
+		r.Use(authMW)
+		httphandler.New(st, slog.Default()).RegisterRoutes(r)
+	})
 
 	addr := config.Env("HTTP_ADDR", ":8085")
 	srv := &http.Server{
