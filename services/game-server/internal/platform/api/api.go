@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"github.com/riandyrn/otelchi"
 	"github.com/recess/game-server/internal/domain/lobby"
 	"github.com/recess/game-server/internal/domain/runtime"
@@ -36,6 +37,7 @@ func NewRouter(
 	eventStore *events.Store,
 	userClient *userclient.Client,
 	schemas *sharedmw.SchemaRegistry,
+	rdb *redis.Client,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -107,6 +109,7 @@ func NewRouter(
 		r.With(validate("vote_rematch.request")).Post("/sessions/{sessionID}/rematch", handleRematch(lobbyService, rt, hub))
 		r.With(validate("vote_pause.request")).Post("/sessions/{sessionID}/pause", handleVotePause(rt, hub))
 		r.With(validate("vote_resume.request")).Post("/sessions/{sessionID}/resume", handleVoteResume(rt, hub))
+		r.With(requireRole(sharedmw.RoleManager)).Get("/admin/stats", handleGetSystemStats(st, rdb))
 		r.With(requireRole(sharedmw.RoleManager)).Delete("/sessions/{sessionID}", handleForceCloseSession(st, hub))
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
 		r.With(moveLimiter, validate("apply_move.request")).Post("/sessions/{sessionID}/move", handleMove(rt, hub, st))

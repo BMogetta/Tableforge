@@ -173,6 +173,7 @@ func main() {
 		eventStore,
 		userClient,
 		schemaReg,
+		rdb,
 	)
 
 	var handler http.Handler = router
