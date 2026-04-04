@@ -22,14 +22,20 @@ const (
 	channelSessionRevoked = "player.session.revoked"
 )
 
-// Consumer subscribes to event channels and reacts to auth-relevant events.
-type Consumer struct {
-	rdb *redis.Client
-	log *slog.Logger
+// SessionRevoker can revoke all sessions for a player.
+type SessionRevoker interface {
+	RevokeAllSessions(ctx context.Context, playerID uuid.UUID) error
 }
 
-func New(rdb *redis.Client, log *slog.Logger) *Consumer {
-	return &Consumer{rdb: rdb, log: log}
+// Consumer subscribes to event channels and reacts to auth-relevant events.
+type Consumer struct {
+	rdb     *redis.Client
+	log     *slog.Logger
+	revoker SessionRevoker
+}
+
+func New(rdb *redis.Client, log *slog.Logger, revoker SessionRevoker) *Consumer {
+	return &Consumer{rdb: rdb, log: log, revoker: revoker}
 }
 
 // Run blocks until ctx is cancelled.
@@ -75,9 +81,15 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error
 		return fmt.Errorf("invalid player_id: %w", err)
 	}
 
+	// Revoke all refresh sessions in the DB so the player cannot obtain new tokens.
+	if c.revoker != nil {
+		if err := c.revoker.RevokeAllSessions(ctx, playerID); err != nil {
+			c.log.Error("failed to revoke sessions for banned player", "player_id", playerID, "error", err)
+		}
+	}
+
 	// Publish player.session.revoked so ws-gateway closes the connection.
-	// We don't track active session IDs in auth-service, so session_id is empty —
-	// ws-gateway matches on player_id and closes all connections for that player.
+	// session_id is empty — ws-gateway matches on player_id and closes all connections.
 	revoked := sharedevents.PlayerSessionRevoked{
 		Meta:      sharedevents.Meta{EventID: uuid.New().String(), Version: 1},
 		PlayerID:  playerID.String(),

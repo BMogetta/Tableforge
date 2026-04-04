@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	authjwt "github.com/recess/auth-service/internal/jwt"
+	"github.com/recess/shared/middleware"
 )
 
 // TestModeEnabled returns true when TEST_MODE=true.
@@ -45,6 +48,20 @@ func (h *Handler) HandleTestLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sessionID, err := h.store.CreateSession(r.Context(), CreateSessionParams{
+		PlayerID:       player.ID,
+		UserAgent:      r.UserAgent(),
+		AcceptLanguage: r.Header.Get("Accept-Language"),
+		IPAddress:      clientIP(r),
+		ExpiresAt:      time.Now().Add(middleware.RefreshTTL),
+	})
+	if err != nil {
+		slog.Error("auth: create test session", "player_id", player.ID, "error", err)
+	}
+
 	authjwt.SetSessionCookie(w, token, h.secure)
+	if sessionID != uuid.Nil {
+		authjwt.SetRefreshCookie(w, sessionID.String(), h.secure)
+	}
 	w.WriteHeader(http.StatusNoContent)
 }

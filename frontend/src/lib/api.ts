@@ -155,6 +155,29 @@ export type { LobbySetting, GameInfo } from './schema-generated.zod'
 
 const BASE = '/api/v1'
 
+/**
+ * Attempts to refresh the access token using the refresh cookie.
+ * Returns true if successful, false otherwise.
+ */
+let refreshPromise: Promise<boolean> | null = null
+
+async function tryRefresh(): Promise<boolean> {
+  // Deduplicate concurrent refresh attempts (multiple 401s at once).
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = fetch('/auth/refresh', {
+    method: 'POST',
+    credentials: 'include',
+  })
+    .then(res => res.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase()
   const url = BASE + path
@@ -166,18 +189,38 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     propagation.inject(context.active(), headers)
 
-    try {
-      const res = await fetch(url, {
+    const doFetch = () =>
+      fetch(url, {
         ...init,
         headers,
         credentials: 'include',
       })
+
+    try {
+      let res = await doFetch()
 
       span.setAttributes({
         'http.method': method,
         'http.url': url,
         'http.status_code': res.status,
       })
+
+      // On 401 with token_expired, attempt a silent refresh then retry.
+      if (res.status === 401) {
+        const body = await res.clone().json().catch(() => null)
+        if (body?.error === 'token_expired') {
+          const refreshed = await tryRefresh()
+          if (refreshed) {
+            res = await doFetch()
+            span.setAttribute('http.status_code', res.status)
+          } else {
+            window.location.href = '/login'
+            span.setStatus({ code: SpanStatusCode.ERROR, message: 'session expired' })
+            span.end()
+            throw new ApiError(401, 'Session expired')
+          }
+        }
+      }
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -269,14 +312,26 @@ export class ApiError extends Error {
 // The GitHub login is a browser redirect and cannot be traced.
 
 export const auth = {
-  me: () =>
-    fetch('/auth/me', { credentials: 'include' }).then(async res => {
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new ApiError(res.status, body.error ?? res.statusText)
+  me: async (): Promise<Player> => {
+    let res = await fetch('/auth/me', { credentials: 'include' })
+
+    // If access token expired, try refresh then retry.
+    if (res.status === 401) {
+      const body = await res.clone().json().catch(() => null)
+      if (body?.error === 'token_expired') {
+        const refreshed = await tryRefresh()
+        if (refreshed) {
+          res = await fetch('/auth/me', { credentials: 'include' })
+        }
       }
-      return res.json() as Promise<Player>
-    }),
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new ApiError(res.status, body.error ?? res.statusText)
+    }
+    return res.json() as Promise<Player>
+  },
   logout: () => fetch('/auth/logout', { method: 'POST', credentials: 'include' }),
   loginUrl: '/auth/github',
 }

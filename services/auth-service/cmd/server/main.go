@@ -55,7 +55,7 @@ func main() {
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer rdb.Close()
 
-	cons := consumer.New(rdb, slog.Default())
+	cons := consumer.New(rdb, slog.Default(), st)
 	consErr := make(chan error, 1)
 	go func() {
 		consErr <- cons.Run(ctx)
@@ -76,6 +76,7 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Get("/github", h.HandleGitHubLogin)
 		r.Get("/github/callback", h.HandleGitHubCallback)
+		r.Post("/refresh", h.HandleRefresh) // No auth middleware — access token may be expired
 		r.With(authMW).Post("/logout", h.HandleLogout)
 		r.With(authMW).Get("/me", h.HandleMe)
 

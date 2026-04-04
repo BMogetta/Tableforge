@@ -3,6 +3,19 @@ import type { RoomView, Notification } from './api'
 import { emitErrorLog } from './telemetry'
 import { getDeviceContextAttrs } from './device'
 
+/**
+ * Attempts to refresh the access token. Used by WebSocket classes
+ * when the server closes the connection due to auth failure.
+ */
+async function tryWsRefresh(): Promise<boolean> {
+  try {
+    const res = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 export type WsEventType =
   // Game flow
   | 'game_started'
@@ -251,9 +264,14 @@ export class RoomSocket {
       }
     }
 
-    this.ws.onclose = () => {
+    this.ws.onclose = e => {
       this.ws = null
       if (!this.closed) {
+        // 4001 = auth failure from ws-gateway; try refresh before reconnecting.
+        if (e.code === 4001 || e.code === 1008) {
+          this.handleAuthClose()
+          return
+        }
         this.attemptCount++
         if (this.attemptCount >= RoomSocket.MAX_ATTEMPTS) {
           emitErrorLog('WebSocket connection lost after max retries', {
@@ -270,6 +288,17 @@ export class RoomSocket {
         const delay = Math.min(500 * 2 ** (this.attemptCount - 1), RoomSocket.MAX_BACKOFF_MS)
         this.reconnectTimer = setTimeout(() => this.connect(), delay)
       }
+    }
+  }
+
+  private async handleAuthClose() {
+    const refreshed = await tryWsRefresh()
+    if (refreshed) {
+      this.emit('ws_reconnecting')
+      this.connect()
+    } else {
+      this.emit('ws_disconnected')
+      window.location.href = '/login'
     }
   }
 
@@ -335,9 +364,14 @@ export class PlayerSocket {
       }
     }
 
-    this.ws.onclose = () => {
+    this.ws.onclose = e => {
       this.ws = null
       if (!this.closed) {
+        // 4001 = auth failure from ws-gateway; try refresh before reconnecting.
+        if (e.code === 4001 || e.code === 1008) {
+          this.handleAuthClose()
+          return
+        }
         this.attemptCount++
         if (this.attemptCount >= PlayerSocket.MAX_ATTEMPTS) {
           emitErrorLog('WebSocket connection lost after max retries', {
@@ -354,6 +388,17 @@ export class PlayerSocket {
         const delay = Math.min(500 * 2 ** (this.attemptCount - 1), PlayerSocket.MAX_BACKOFF_MS)
         this.reconnectTimer = setTimeout(() => this.connect(), delay)
       }
+    }
+  }
+
+  private async handleAuthClose() {
+    const refreshed = await tryWsRefresh()
+    if (refreshed) {
+      this.emit('ws_reconnecting')
+      this.connect()
+    } else {
+      this.emit('ws_disconnected')
+      window.location.href = '/login'
     }
   }
 
