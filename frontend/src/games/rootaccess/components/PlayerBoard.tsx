@@ -19,6 +19,7 @@ interface Props {
   dimProtected?: boolean
 }
 
+/** @package */
 export function PlayerBoard({
   username,
   tokens,

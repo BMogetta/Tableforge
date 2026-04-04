@@ -1,16 +1,17 @@
-import { useState } from 'react'
-import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { friends, players, presence } from '@/features/friends/api'
-import { useAppStore } from '@/stores/store'
-import { keys } from '@/lib/queryClient'
-import { catchToAppError } from '@/utils/errors'
-import { useToast } from '@/ui/Toast'
 import { useBlockPlayer } from '@/hooks/useBlockPlayer'
-import { FriendItem } from './FriendItem'
-import { PendingRequestItem } from './PendingRequestItem'
-import styles from './FriendsPanel.module.css'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { keys } from '@/lib/queryClient'
+import { useAppStore } from '@/stores/store'
+import { ModalOverlay } from '@/ui/ModalOverlay'
+import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
+import { FriendItem } from './FriendItem'
+import styles from './FriendsPanel.module.css'
+import { PendingRequestItem } from './PendingRequestItem'
 
 type Tab = 'friends' | 'pending'
 
@@ -60,19 +61,28 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
   const acceptMut = useMutation({
     mutationFn: (requesterId: string) => friends.acceptRequest(player.id, requesterId),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => { invalidate(); setPendingId(null) },
+    onSettled: () => {
+      invalidate()
+      setPendingId(null)
+    },
   })
 
   const declineMut = useMutation({
     mutationFn: (requesterId: string) => friends.declineRequest(player.id, requesterId),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => { invalidate(); setPendingId(null) },
+    onSettled: () => {
+      invalidate()
+      setPendingId(null)
+    },
   })
 
   const removeMut = useMutation({
     mutationFn: (friendId: string) => friends.remove(player.id, friendId),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => { invalidate(); setPendingId(null) },
+    onSettled: () => {
+      invalidate()
+      setPendingId(null)
+    },
   })
 
   const { block, blockPending } = useBlockPlayer()
@@ -107,11 +117,22 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
   }
 
   return (
-    <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div ref={trapRef} className={styles.panel} {...testId('friends-panel')} role='dialog' aria-modal='true' aria-labelledby='friends-title'>
+    <ModalOverlay onClose={onClose} className={styles.overlay}>
+      <div
+        ref={trapRef}
+        className={styles.panel}
+        {...testId('friends-panel')}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='friends-title'
+      >
         <div className={styles.header}>
-          <h2 className={styles.title} id='friends-title'>Friends</h2>
-          <button className={styles.closeBtn} onClick={onClose}>x</button>
+          <h2 className={styles.title} id='friends-title'>
+            Friends
+          </h2>
+          <button className={styles.closeBtn} onClick={onClose}>
+            x
+          </button>
         </div>
 
         <form className={styles.addFriendRow} onSubmit={handleAddFriend}>
@@ -149,8 +170,8 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
         </div>
 
         <div className={styles.list}>
-          {tab === 'friends' && (
-            safeFriends.length === 0 ? (
+          {tab === 'friends' &&
+            (safeFriends.length === 0 ? (
               <p className={styles.empty}>No friends yet.</p>
             ) : (
               safeFriends.map(f => (
@@ -161,17 +182,21 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
                   avatarUrl={f.friend_avatar_url}
                   online={onlineMap[f.friend_id] ?? false}
                   onDM={onOpenDM}
-                  onRemove={id => { setPendingId(id); removeMut.mutate(id) }}
-                  onBlock={(id, username, avatarUrl) => block({ targetId: id, username, avatarUrl })}
+                  onRemove={id => {
+                    setPendingId(id)
+                    removeMut.mutate(id)
+                  }}
+                  onBlock={(id, username, avatarUrl) =>
+                    block({ targetId: id, username, avatarUrl })
+                  }
                   removePending={pendingId === f.friend_id}
                   blockPending={blockPending}
                 />
               ))
-            )
-          )}
+            ))}
 
-          {tab === 'pending' && (
-            safePending.length === 0 ? (
+          {tab === 'pending' &&
+            (safePending.length === 0 ? (
               <p className={styles.empty}>No pending requests.</p>
             ) : (
               safePending.map(f => (
@@ -180,16 +205,21 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
                   requesterId={f.friend_id}
                   username={f.friend_username}
                   avatarUrl={f.friend_avatar_url}
-                  onAccept={id => { setPendingId(id); acceptMut.mutate(id) }}
-                  onDecline={id => { setPendingId(id); declineMut.mutate(id) }}
+                  onAccept={id => {
+                    setPendingId(id)
+                    acceptMut.mutate(id)
+                  }}
+                  onDecline={id => {
+                    setPendingId(id)
+                    declineMut.mutate(id)
+                  }}
                   pending={pendingId === f.friend_id}
                 />
               ))
-            )
-          )}
+            ))}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }
 
@@ -202,7 +232,14 @@ interface FriendsButtonProps {
 export function FriendsButton({ pendingCount, onClick }: FriendsButtonProps) {
   return (
     <button className={styles.floatingBtn} onClick={onClick} {...testId('friends-btn')}>
-      <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'>
+      <svg
+        width='14'
+        height='14'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.5'
+      >
         <path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' />
         <circle cx='9' cy='7' r='4' />
         <path d='M22 21v-2a4 4 0 0 0-3-3.87' />

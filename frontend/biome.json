@@ -35,6 +35,7 @@
       "recommended": true,
       "correctness": {
         "noUnusedVariables": "warn",
+        "noPrivateImports": "error",
         "useExhaustiveDependencies": "warn",
         "useIsNan": "error",
         "useJsonImportAttributes": "on"

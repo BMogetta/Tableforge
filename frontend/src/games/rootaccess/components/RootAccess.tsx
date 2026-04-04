@@ -13,6 +13,7 @@ import styles from './RootAccess.module.css'
 // State shape mirroring the backend Root Access engine (filtered view).
 // ---------------------------------------------------------------------------
 
+/** @package */
 export interface RootAccessState {
   round: number
   phase: 'playing' | 'debugger_pending' | 'round_over' | 'game_over'
@@ -93,6 +94,7 @@ interface Props {
 // Component
 // ---------------------------------------------------------------------------
 
+/** @package */
 export function RootAccess({
   state,
   currentPlayerId,

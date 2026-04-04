@@ -6,6 +6,7 @@ interface Props {
   card: CardName
 }
 
+/** @package */
 export function CardFace({ card }: Props) {
   const meta = CARD_META[card]
 

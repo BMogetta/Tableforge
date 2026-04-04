@@ -1,6 +1,6 @@
 import type { GameAsset } from '@/lib/assets'
-import { tictactoeAssets } from './tictactoe/assets'
-import { rootAccessAssets } from './rootaccess/assets'
+import { rootAccessAssets } from './rootaccess'
+import { tictactoeAssets } from './tictactoe'
 
 const GAME_ASSETS: Record<string, GameAsset[]> = {
   tictactoe: tictactoeAssets,

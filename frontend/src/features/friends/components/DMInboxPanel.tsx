@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useQuery } from '@tanstack/react-query'
-import { dmConversations, type DMConversation as DMConversationType } from '@/features/friends/api'
-import { useAppStore } from '@/stores/store'
+import { useState } from 'react'
+import { type DMConversation as DMConversationType, dmConversations } from '@/features/friends/api'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { keys } from '@/lib/queryClient'
+import { useAppStore } from '@/stores/store'
+import { ModalOverlay } from '@/ui/ModalOverlay'
+import { testId } from '@/utils/testId'
 import { DMConversation } from './DMConversation'
 import styles from './DMInboxPanel.module.css'
-import { testId } from '@/utils/testId'
 
 interface DMInboxPanelProps {
   onClose: () => void
@@ -28,9 +29,12 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
   const safeConversations = conversations ?? []
 
   if (selectedId) {
-    const name = selectedUsername || safeConversations.find(c => c.other_player_id === selectedId)?.other_username || 'Player'
+    const name =
+      selectedUsername ||
+      safeConversations.find(c => c.other_player_id === selectedId)?.other_username ||
+      'Player'
     return (
-      <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
+      <ModalOverlay onClose={onClose} className={styles.overlay}>
         <div className={styles.panel}>
           <DMConversation
             otherPlayerId={selectedId}
@@ -38,16 +42,27 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
             onBack={() => setSelectedId(null)}
           />
         </div>
-      </div>
+      </ModalOverlay>
     )
   }
 
   return (
-    <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div ref={trapRef} className={styles.panel} {...testId('dm-inbox-panel')} role='dialog' aria-modal='true' aria-labelledby='dm-inbox-title'>
+    <ModalOverlay onClose={onClose} className={styles.overlay}>
+      <div
+        ref={trapRef}
+        className={styles.panel}
+        {...testId('dm-inbox-panel')}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='dm-inbox-title'
+      >
         <div className={styles.header}>
-          <h2 className={styles.title} id='dm-inbox-title'>Messages</h2>
-          <button className={styles.closeBtn} onClick={onClose}>x</button>
+          <h2 className={styles.title} id='dm-inbox-title'>
+            Messages
+          </h2>
+          <button className={styles.closeBtn} onClick={onClose}>
+            x
+          </button>
         </div>
 
         <div className={styles.list}>
@@ -85,7 +100,7 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
           )}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }
 

@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { GAME_RULES } from '@/games/registry'
-import type { CardName } from '@/games/rootaccess/components/CardDisplay'
-import styles from './RulesModal.module.css'
+import type { CardName } from '@/games/rootaccess'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { testId } from '@/utils/testId'
+import { ModalOverlay } from './ModalOverlay'
+import styles from './RulesModal.module.css'
 
 interface Props {
   /** Pre-select this game's tab when opening from in-game. */
@@ -17,37 +18,45 @@ export function RulesModal({ initialGameId, handCards, onClose }: Props) {
   const trapRef = useFocusTrap<HTMLDivElement>()
   const entries = GAME_RULES
   const initialIndex = initialGameId
-    ? Math.max(0, entries.findIndex(e => e.id === initialGameId))
+    ? Math.max(
+        0,
+        entries.findIndex(e => e.id === initialGameId),
+      )
     : 0
   const [activeTab, setActiveTab] = useState(initialIndex)
 
   const active = entries[activeTab]
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
+    <ModalOverlay onClose={onClose}>
       <div
         ref={trapRef}
         className={styles.modal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="rules-modal-title"
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='rules-modal-title'
         {...testId('rules-modal')}
       >
         <header className={styles.header}>
-          <h2 className={styles.title} id="rules-modal-title">Game Rules</h2>
-          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
+          <h2 className={styles.title} id='rules-modal-title'>
+            Game Rules
+          </h2>
+          <button
+            type='button'
+            className='btn btn-ghost btn-sm'
+            onClick={onClose}
+            aria-label='Close'
+          >
             ✕
           </button>
         </header>
 
-        <nav className={styles.tabs} role="tablist">
+        <div className={styles.tabs} role='tablist'>
           {entries.map((entry, i) => (
             <button
+              type='button'
               key={entry.id}
-              role="tab"
+              role='tab'
               aria-selected={i === activeTab}
               className={`${styles.tab} ${i === activeTab ? styles.tabActive : ''}`}
               onClick={() => setActiveTab(i)}
@@ -56,12 +65,12 @@ export function RulesModal({ initialGameId, handCards, onClose }: Props) {
               {entry.label}
             </button>
           ))}
-        </nav>
+        </div>
 
-        <div className={styles.content} role="tabpanel">
+        <div className={styles.content} role='tabpanel'>
           {active && <active.component handCards={handCards} />}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

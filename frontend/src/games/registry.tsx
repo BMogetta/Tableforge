@@ -1,8 +1,5 @@
-import { TicTacToeBoard, type TicTacToeState } from './tictactoe/components/TicTacToe'
-import { RootAccess, type RootAccessState } from './rootaccess/components/RootAccess'
-import { TicTacToeRules } from './tictactoe/Rules'
-import { RootAccessRules } from './rootaccess/components/Rules'
-import type { CardName } from './rootaccess/components/CardDisplay'
+import { type CardName, RootAccess, RootAccessRules, type RootAccessState } from './rootaccess'
+import { TicTacToeBoard, TicTacToeRules, type TicTacToeState } from './tictactoe'
 
 // ---------------------------------------------------------------------------
 // Game renderer registry — add new games here.

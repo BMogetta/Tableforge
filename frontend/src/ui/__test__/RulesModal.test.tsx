@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { RulesModal } from '../RulesModal'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/stores/store'
+import { RulesModal } from '../RulesModal'
 
 // Mock focus trap to avoid ref issues in test
 vi.mock('@/hooks/useFocusTrap', () => ({
@@ -28,7 +28,7 @@ describe('RulesModal', () => {
   })
 
   it('pre-selects tab when initialGameId is provided', () => {
-    render(<RulesModal initialGameId="rootaccess" onClose={vi.fn()} />)
+    render(<RulesModal initialGameId='rootaccess' onClose={vi.fn()} />)
     expect(screen.getByText('Card Reference')).toBeInTheDocument()
     expect(screen.getByText('PING')).toBeInTheDocument()
   })
@@ -48,11 +48,11 @@ describe('RulesModal', () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 
-  it('calls onClose when overlay is clicked', async () => {
+  it('calls onClose when backdrop is clicked', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     render(<RulesModal onClose={onClose} />)
-    await user.click(screen.getByTestId('rules-modal').parentElement!)
+    await user.click(screen.getByLabelText('Close dialog'))
     expect(onClose).toHaveBeenCalledOnce()
   })
 })

@@ -12,6 +12,7 @@ interface Props {
   onConfirm: (keep: CardName, returnCards: [CardName, CardName]) => void
 }
 
+/** @package */
 export function DebuggerModal({ choices, onConfirm }: Props) {
   const trapRef = useFocusTrap<HTMLDivElement>()
   const [kept, setKept] = useState<CardName | null>(null)

@@ -23,6 +23,7 @@ interface Props {
 
 const AUTO_DISMISS_MS = 4_000
 
+/** @package */
 export function RoundSummary({
   round,
   winnerId,

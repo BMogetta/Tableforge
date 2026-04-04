@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { TurnTimer } from './TurnTimer'
+import type { CardName } from '@/games/rootaccess'
 import { RulesModal } from '@/ui/RulesModal'
-import type { CardName } from '@/games/rootaccess/components/CardDisplay'
-import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
+import styles from '../Game.module.css'
+import { TurnTimer } from './TurnTimer'
 
 interface Props {
   gameId: string
@@ -54,19 +54,22 @@ export function GameHeader({
   return (
     <>
       <header className={styles.header}>
-        <button
-          className='btn btn-ghost btn-sm'
-          onClick={onLobby}
-        >
+        <button className='btn btn-ghost btn-sm' onClick={onLobby}>
           ← Lobby
         </button>
         <div className={styles.gameInfo}>
           <span className={styles.gameId}>{gameId}</span>
           <span className={styles.moveCount}>Move {moveCount}</span>
-          <TurnTimer turnTimeoutSecs={turnTimeoutSecs} lastMoveAt={lastMoveAt} isOver={isOver} isSuspended={isSuspended} />
+          <TurnTimer
+            turnTimeoutSecs={turnTimeoutSecs}
+            lastMoveAt={lastMoveAt}
+            isOver={isOver}
+            isSuspended={isSuspended}
+          />
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button
+            type='button'
             {...testId('rules-btn-ingame')}
             className='btn btn-ghost btn-sm'
             onClick={() => setRulesOpen(true)}

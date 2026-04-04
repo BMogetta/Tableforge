@@ -16,6 +16,7 @@ const CARD_COUNTS: Record<CardName, number> = {
   reboot: 2, debugger: 2, swap: 1, encrypted_key: 1, root: 1,
 }
 
+/** @package */
 export function RootAccessRules({ handCards = [] }: Props) {
   return (
     <div className={styles.root}>

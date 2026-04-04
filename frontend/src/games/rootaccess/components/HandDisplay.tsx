@@ -31,6 +31,7 @@ function getLift(index: number, count: number): number {
   return Math.abs(index - mid) * 6
 }
 
+/** @package */
 export function HandDisplay({
   cards,
   selectedCard,

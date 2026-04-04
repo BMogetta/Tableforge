@@ -1,5 +1,6 @@
 import styles from './TicTacToe.module.css'
 
+/** @package */
 export interface TicTacToeState {
   board: string[] // 9 cells, "" = empty, "X" or "O"
   marks: Record<string, string> // playerID → "X" | "O"
@@ -14,6 +15,7 @@ interface Props {
   disabled: boolean
 }
 
+/** @package */
 export function TicTacToeBoard({ state, currentPlayerId, localPlayerId, onMove, disabled }: Props) {
   const { board, marks } = state
   const localMark = marks[localPlayerId]

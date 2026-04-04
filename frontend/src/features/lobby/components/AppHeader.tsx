@@ -1,15 +1,16 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { notifications } from '@/features/notifications/api'
-import { dm } from '@/features/room/api'
-import { useAppStore } from '@/stores/store'
-import { keys } from '@/lib/queryClient'
-import { Settings } from '@/ui/Settings'
-import { RulesModal } from '@/ui/RulesModal'
-import { NotificationsPanel } from '@/features/notifications/components/NotificationsPanel'
-import styles from './AppHeader.module.css'
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import { notifications } from '@/features/notifications/api'
+import { NotificationsPanel } from '@/features/notifications/components/NotificationsPanel'
+import { dm } from '@/features/room/api'
+import { keys } from '@/lib/queryClient'
+import { useAppStore } from '@/stores/store'
+import { ModalOverlay } from '@/ui/ModalOverlay'
+import { RulesModal } from '@/ui/RulesModal'
+import { Settings } from '@/ui/Settings'
 import { testId } from '@/utils/testId'
+import styles from './AppHeader.module.css'
 
 interface Props {
   onLogout: () => void
@@ -52,14 +53,25 @@ export function AppHeader({ onLogout }: Props) {
             onClick={() => setRulesOpen(true)}
             {...testId('rules-btn')}
           >
-            <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'>
+            <svg
+              width='16'
+              height='16'
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeWidth='1.5'
+            >
               <path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20' />
               <path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' />
             </svg>
           </button>
 
           {/* Notifications bell */}
-          <button className={styles.iconBtn} title='Notifications' onClick={() => setNotifsOpen(true)}>
+          <button
+            className={styles.iconBtn}
+            title='Notifications'
+            onClick={() => setNotifsOpen(true)}
+          >
             <svg
               width='16'
               height='16'
@@ -77,7 +89,11 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* DMs envelope */}
-          <button className={styles.iconBtn} title='Messages' onClick={() => useAppStore.getState().setDmTarget('__inbox__')}>
+          <button
+            className={styles.iconBtn}
+            title='Messages'
+            onClick={() => useAppStore.getState().setDmTarget('__inbox__')}
+          >
             <svg
               width='16'
               height='16'
@@ -111,7 +127,11 @@ export function AppHeader({ onLogout }: Props) {
 
           <div className={styles.divider} />
 
-          <Link to='/profile/$playerId' params={{ playerId: player.id }} className={styles.playerInfo}>
+          <Link
+            to='/profile/$playerId'
+            params={{ playerId: player.id }}
+            className={styles.playerInfo}
+          >
             {player.avatar_url && <img src={player.avatar_url} alt='' className={styles.avatar} />}
             <span {...testId('player-username')} className={styles.username}>
               {player.username}
@@ -131,23 +151,18 @@ export function AppHeader({ onLogout }: Props) {
       </header>
 
       {/* Notifications panel */}
-      {notifsOpen && (
-        <NotificationsPanel items={notifList} onClose={() => setNotifsOpen(false)} />
-      )}
+      {notifsOpen && <NotificationsPanel items={notifList} onClose={() => setNotifsOpen(false)} />}
 
       {/* Rules modal */}
       {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
 
       {/* Settings modal */}
       {settingsOpen && (
-        <div
-          className={styles.modalOverlay}
-          onClick={e => e.target === e.currentTarget && setSettingsOpen(false)}
-        >
+        <ModalOverlay onClose={() => setSettingsOpen(false)} className={styles.modalOverlay}>
           <div className={styles.modalPanel}>
             <Settings onClose={() => setSettingsOpen(false)} />
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </>
   )

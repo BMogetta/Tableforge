@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import { notifications } from '@/features/notifications/api'
-import { useAppStore } from '@/stores/store'
-import { keys } from '@/lib/queryClient'
-import { catchToAppError } from '@/utils/errors'
-import { useToast } from '@/ui/Toast'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import type { Notification } from '@/lib/api'
+import { keys } from '@/lib/queryClient'
+import { useAppStore } from '@/stores/store'
+import { ModalOverlay } from '@/ui/ModalOverlay'
+import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
+import { testId } from '@/utils/testId'
 import { NotificationItem } from './NotificationItem'
 import styles from './NotificationsPanel.module.css'
-import { useFocusTrap } from '@/hooks/useFocusTrap'
-import { testId } from '@/utils/testId'
 
 interface NotificationsPanelProps {
   items: Notification[]
@@ -23,18 +24,25 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
   const toast = useToast()
   const [pendingId, setPendingId] = useState<string | null>(null)
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: keys.notifications(player.id) })
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: keys.notifications(player.id) })
 
   const acceptMut = useMutation({
     mutationFn: (id: string) => notifications.accept(player.id, id),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => { invalidate(); setPendingId(null) },
+    onSettled: () => {
+      invalidate()
+      setPendingId(null)
+    },
   })
 
   const declineMut = useMutation({
     mutationFn: (id: string) => notifications.decline(player.id, id),
     onError: e => toast.showError(catchToAppError(e)),
-    onSettled: () => { invalidate(); setPendingId(null) },
+    onSettled: () => {
+      invalidate()
+      setPendingId(null)
+    },
   })
 
   // Mark all unread as read when panel opens
@@ -61,10 +69,19 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
   }
 
   return (
-    <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div ref={trapRef} className={styles.panel} {...testId('notifications-panel')} role='dialog' aria-modal='true' aria-labelledby='notifications-title'>
+    <ModalOverlay onClose={onClose} className={styles.overlay}>
+      <div
+        ref={trapRef}
+        className={styles.panel}
+        {...testId('notifications-panel')}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='notifications-title'
+      >
         <div className={styles.header}>
-          <h2 className={styles.title} id='notifications-title'>Notifications</h2>
+          <h2 className={styles.title} id='notifications-title'>
+            Notifications
+          </h2>
           <button className={styles.closeBtn} onClick={onClose}>
             x
           </button>
@@ -86,6 +103,6 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
           )}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

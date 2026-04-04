@@ -3,6 +3,7 @@ import { Card } from '@/ui/cards'
 import { CardFace } from './CardFace'
 import styles from './CardDisplay.module.css'
 
+/** @package */
 export type CardName =
   | 'backdoor'
   | 'ping'
@@ -21,6 +22,7 @@ interface CardMeta {
   effect: string
 }
 
+/** @package */
 const CARD_META: Record<CardName, CardMeta> = {
   backdoor: {
     label: 'BACKDOOR',
@@ -83,6 +85,7 @@ interface Props {
   className?: string
 }
 
+/** @package */
 export function CardDisplay({
   card,
   selected = false,
@@ -115,4 +118,5 @@ export function CardDisplay({
   )
 }
 
+/** @package */
 export { CARD_META }

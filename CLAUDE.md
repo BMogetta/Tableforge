@@ -142,6 +142,21 @@ React 19 + TypeScript app served via Nginx in Docker.
 Feature modules in `src/features/`: `auth`, `game`, `lobby`, `room`, `admin`, `devtools`.
 Game renderers (pluggable) in `src/games/`: `tictactoe`, `rootaccess`.
 
+#### Game Package Boundaries
+
+Each game directory (`src/games/{game}/`) is a self-contained package with a
+barrel `index.ts` that exposes its public API: main component, state type,
+rules component, card types, and assets.
+
+- All exports in internal files **must** have `/** @package */` JSDoc.
+  This marks them as package-private — only importable within the same game
+  directory. External code must import from the barrel (`@/games/{game}`).
+- Biome's `noPrivateImports` rule enforces this for relative-path imports.
+  Aliased `@/` imports are not yet resolved by Biome (known limitation).
+- When adding a new game: create `src/games/{game}/index.ts`, annotate all
+  internal exports with `/** @package */`, and register in `registry.tsx`
+  importing from the barrel.
+
 Card UI kit in `src/ui/cards/` — game-agnostic animated card components (Card, CardHand, CardPile, CardZone) powered by Framer Motion (`motion` package). Each game provides its own face content via render props (e.g., `CardFace` in rootaccess). The kit handles flip, hover lift, fan layout, fly animations, and AnimatePresence transitions.
 
 #### Styling Guidelines

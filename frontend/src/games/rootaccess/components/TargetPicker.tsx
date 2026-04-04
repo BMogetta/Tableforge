@@ -35,6 +35,7 @@ const PING_GUESS_OPTIONS: CardName[] = [
   'root',
 ]
 
+/** @package */
 export function TargetPicker({
   opponents,
   eliminatedIds,

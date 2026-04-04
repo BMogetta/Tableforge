@@ -1,5 +1,6 @@
 import styles from './Rules.module.css'
 
+/** @package */
 export function TicTacToeRules() {
   return (
     <div className={styles.root}>
