@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -84,12 +85,14 @@ func Require(jwtSecret []byte) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(CookieName)
 			if err != nil {
+				slog.Warn("auth: unauthorized", "method", r.Method, "path", r.URL.Path, "reason", "missing cookie")
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			c, err := VerifyToken(jwtSecret, cookie.Value)
 			if err != nil {
+				slog.Warn("auth: unauthorized", "method", r.Method, "path", r.URL.Path, "reason", "invalid token")
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -114,6 +117,7 @@ func RequireRole(minimum string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role, ok := RoleFromContext(r.Context())
 			if !ok || rank[role] < rank[minimum] {
+				slog.Warn("auth: insufficient role", "method", r.Method, "path", r.URL.Path, "role", role, "required", minimum)
 				http.Error(w, "forbidden", http.StatusForbidden)
 				return
 			}

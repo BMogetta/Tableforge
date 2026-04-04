@@ -104,7 +104,7 @@ services:
       - USER_SERVICE_ADDR=user-service:9082
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=game-server
-      - ENV=development
+      - ENV=${ENV:-development}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
       - JWT_SECRET=${JWT_SECRET}
