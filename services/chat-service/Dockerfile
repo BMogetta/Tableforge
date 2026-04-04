@@ -30,7 +30,7 @@ RUN apk --no-cache add ca-certificates tzdata wget
 # Copy the compiled binary from the builder stage
 COPY --from=builder /bin/chat-service /bin/chat-service
 
-# Expose the port if necessary (e.g., 8081)
-# EXPOSE 8081
+RUN adduser -D -u 1001 appuser
+USER appuser
 
 ENTRYPOINT ["/bin/chat-service"]

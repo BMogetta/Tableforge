@@ -41,6 +41,16 @@ services:
       - "traefik.http.middlewares.auth-ratelimit.ratelimit.burst=10"
       - "traefik.http.routers.auth-service.service=auth-service-svc"
       - "traefik.http.services.auth-service-svc.loadbalancer.server.port=8081"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   user-service:
     build:
@@ -92,6 +102,16 @@ services:
       # gRPC (internal only — not exposed via Traefik):
       #   game-server and ws-gateway reach user-service directly via Docker network
       #   at user-service:9082.
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   chat-service:
     build:
@@ -130,6 +150,16 @@ services:
       - "traefik.http.routers.chat-service.middlewares=security-headers@file"
       - "traefik.http.routers.chat-service.service=chat-service-svc"
       - "traefik.http.services.chat-service-svc.loadbalancer.server.port=8083"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ws-gateway:
     build:
@@ -180,6 +210,16 @@ services:
       - "traefik.http.routers.ws-gateway-presence.priority=50"
       - "traefik.http.routers.ws-gateway-presence.middlewares=security-headers@file"
       - "traefik.http.routers.ws-gateway-presence.service=ws-gateway-svc"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   rating-service:
     build:
@@ -223,6 +263,16 @@ services:
       - "traefik.http.services.rating-svc.loadbalancer.server.port=8085"
       # gRPC (internal only — not exposed via Traefik):
       #   game-server reaches rating-service directly at rating-service:9085.
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   match-service:
     build:
@@ -264,6 +314,16 @@ services:
       - "traefik.http.routers.match-service.middlewares=security-headers@file"
       - "traefik.http.routers.match-service.service=match-svc"
       - "traefik.http.services.match-svc.loadbalancer.server.port=8087"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   notification-service:
     build:
@@ -307,3 +367,13 @@ services:
       - "traefik.http.routers.notification-service.middlewares=security-headers@file"
       - "traefik.http.routers.notification-service.service=notification-svc"
       - "traefik.http.services.notification-svc.loadbalancer.server.port=8086"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

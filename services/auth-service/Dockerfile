@@ -27,4 +27,7 @@ RUN apk --no-cache add ca-certificates tzdata wget
 
 COPY --from=builder /bin/auth-service /bin/auth-service
 
+RUN adduser -D -u 1001 appuser
+USER appuser
+
 ENTRYPOINT ["/bin/auth-service"]

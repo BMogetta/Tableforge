@@ -22,6 +22,9 @@ RUN apk --no-cache add ca-certificates tzdata wget
 WORKDIR /app
 COPY --from=builder /bin/notification-service /app/notification-service
 
+RUN adduser -D -u 1001 appuser
+USER appuser
+
 EXPOSE 8086
 
 ENTRYPOINT ["/app/notification-service"]

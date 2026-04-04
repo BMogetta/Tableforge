@@ -28,4 +28,7 @@ RUN apk --no-cache add ca-certificates tzdata wget
 
 COPY --from=builder /bin/server /bin/server
 
+RUN adduser -D -u 1001 appuser
+USER appuser
+
 CMD ["/bin/server"]
