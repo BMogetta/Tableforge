@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAppStore } from '../stores/store'
+import { useAppStore } from '@/stores/store'
 import type { SessionEvent, Move } from '@/lib/schema-generated.zod'
 import { keys } from '@/lib/queryClient'
-import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
-import styles from './SessionHistory.module.css'
+import { TicTacToeBoard, type TicTacToeState } from '@/games/tictactoe'
+import styles from './Replay.module.css'
 import { sessions } from '@/lib/api/sessions'
 import { testId } from '@/utils/testId'
 
@@ -217,7 +217,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
 
 type Tab = 'events' | 'replay'
 
-export function SessionHistory({ sessionId }: { sessionId: string }) {
+export function Replay({ sessionId }: { sessionId: string }) {
   const player = useAppStore(s => s.player)!
   const [tab, setTab] = useState<Tab>('events')
 

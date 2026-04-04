@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet, useNavigate, useRouter } from '@tanstack/react-router'
+import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { useEffect, useState, Component, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore, type ResolvedSettings } from '../stores/store'
@@ -9,6 +9,9 @@ import { sfx } from '@/lib/sfx'
 import { AppHeader } from '@/features/lobby/components/AppHeader'
 import { FriendsPanel, FriendsButton } from '@/features/friends/components/FriendsPanel'
 import { DMInboxPanel } from '@/features/friends/components/DMInboxPanel'
+import { ErrorScreen } from '@/features/errors/ErrorScreen'
+import { NotFound } from '@/features/errors/NotFound'
+import { Splash } from '@/features/errors/Splash'
 import { ToastProvider } from '../ui/Toast'
 import { emitErrorLog } from '@/lib/telemetry'
 import { getDeviceContextAttrs } from '@/lib/device'
@@ -55,159 +58,6 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     }
     return this.props.children
   }
-}
-
-function ErrorScreen({ error, onReset }: { error: Error; onReset: () => void }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        gap: 24,
-        padding: 32,
-        textAlign: 'center',
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 20,
-          color: 'var(--amber)',
-          letterSpacing: '0.15em',
-        }}
-      >
-        RECESS
-      </div>
-      <div
-        style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 600, letterSpacing: '0.05em' }}
-      >
-        SOMETHING WENT WRONG
-      </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: 12, maxWidth: 400, lineHeight: 1.6 }}>
-        An unexpected error occurred. You can try resetting the page or going back to the lobby.
-      </p>
-      <code
-        style={{
-          display: 'block',
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 6,
-          padding: '10px 16px',
-          fontSize: 11,
-          color: 'var(--text-muted)',
-          maxWidth: 480,
-          wordBreak: 'break-word',
-        }}
-      >
-        {error.message}
-      </code>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className='btn btn-primary' onClick={onReset}>
-          Try Again
-        </button>
-        <button className='btn btn-ghost' onClick={() => (window.location.href = '/')}>
-          Go to Lobby
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function Splash() {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        flexDirection: 'column',
-        gap: 16,
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 24,
-          color: 'var(--amber)',
-          letterSpacing: '0.2em',
-        }}
-      >
-        RECESS
-      </div>
-      <div
-        className='pulse'
-        style={{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: '0.1em' }}
-      >
-        CONNECTING...
-      </div>
-    </div>
-  )
-}
-
-function NotFound() {
-  const navigate = useNavigate()
-  const router = useRouter()
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        gap: 24,
-        padding: 32,
-        textAlign: 'center',
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 20,
-          color: 'var(--amber)',
-          letterSpacing: '0.15em',
-        }}
-      >
-        RECESS
-      </div>
-      <div
-        style={{
-          fontSize: 72,
-          fontWeight: 800,
-          color: 'var(--text-muted)',
-          letterSpacing: '-0.05em',
-          lineHeight: 1,
-          opacity: 0.15,
-        }}
-      >
-        404
-      </div>
-      <div
-        style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 600, letterSpacing: '0.1em' }}
-      >
-        PAGE NOT FOUND
-      </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: 12, maxWidth: 360, lineHeight: 1.6 }}>
-        The route you're looking for doesn't exist. It may have been moved, deleted, or you may have
-        mistyped the address.
-      </p>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          className='btn btn-primary'
-          onClick={() => navigate({ to: '/', replace: true, ignoreBlocker: true })}
-        >
-          Go to Lobby
-        </button>
-        <button className='btn btn-ghost' onClick={() => router.history.back()}>
-          Go Back
-        </button>
-      </div>
-    </div>
-  )
 }
 
 function RootComponent() {

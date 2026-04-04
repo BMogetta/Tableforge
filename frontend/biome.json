@@ -21,7 +21,8 @@
       "!**/playwright-report",
       "!**/test-results",
       "!**/tsconfig.*",
-      "!**/routeTree.gen.ts"
+      "!**/routeTree.gen.ts",
+      "!**/vite-env.d.ts"
     ]
   },
   "linter": {
@@ -30,7 +31,7 @@
       "suspicious": {
         "noEmptyInterface": "off",
         "noArrayIndexKey": "warn",
-        "noConsole": { "level": "warn", "options": { "allow": ["log"] } }
+        "noConsole": { "level": "warn", "options": { "allow": ["log", "warn", "error"] } }
       },
       "recommended": true,
       "correctness": {
@@ -41,7 +42,6 @@
         "useJsonImportAttributes": "on"
       },
       "style": {
-        "useBlockStatements": "warn",
         "noDefaultExport": "error",
         "noNamespace": "warn",
         "noImplicitBoolean": "warn",
