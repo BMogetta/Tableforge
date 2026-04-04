@@ -1,5 +1,5 @@
 import { TicTacToeBoard, type TicTacToeState } from './tictactoe/components/TicTacToe'
-import { LoveLetter, type LoveLetterState } from './loveletter/components/LoveLetter'
+import { RootAccess, type RootAccessState } from './rootaccess/components/RootAccess'
 
 // ---------------------------------------------------------------------------
 // Game renderer registry — add new games here.
@@ -32,7 +32,7 @@ const TicTacToeRenderer: RendererComponent = ({ gameData, localPlayerId, onMove,
   />
 )
 
-const LoveLetterRenderer: RendererComponent = ({
+const RootAccessRenderer: RendererComponent = ({
   gameData,
   localPlayerId,
   onMove,
@@ -40,8 +40,8 @@ const LoveLetterRenderer: RendererComponent = ({
   isOver,
   players,
 }) => (
-  <LoveLetter
-    state={gameData.data as LoveLetterState}
+  <RootAccess
+    state={gameData.data as RootAccessState}
     currentPlayerId={gameData.current_player_id}
     localPlayerId={localPlayerId}
     onMove={onMove}
@@ -53,5 +53,5 @@ const LoveLetterRenderer: RendererComponent = ({
 
 export const GAME_RENDERERS: Record<string, RendererComponent> = {
   tictactoe: TicTacToeRenderer,
-  loveletter: LoveLetterRenderer,
+  rootaccess: RootAccessRenderer,
 }

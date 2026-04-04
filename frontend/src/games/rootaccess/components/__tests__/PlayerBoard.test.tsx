@@ -11,7 +11,7 @@ const baseProps = {
   discardPile: [] as CardName[],
   isEliminated: false,
   isProtected: false,
-  hasPlayedSpy: false,
+  hasPlayedBackdoor: false,
   isLocal: false,
   isCurrentTurn: false,
 }
@@ -70,15 +70,15 @@ describe('PlayerBoard', () => {
     expect(screen.queryByText('Eliminated')).not.toBeInTheDocument()
   })
 
-  it('renders Spy badge when player has played spy', () => {
-    render(<PlayerBoard {...baseProps} hasPlayedSpy />)
-    expect(screen.getByText('Spy')).toBeInTheDocument()
+  it('renders Backdoor badge when player has played backdoor', () => {
+    render(<PlayerBoard {...baseProps} hasPlayedBackdoor />)
+    expect(screen.getByText('Backdoor')).toBeInTheDocument()
   })
 
   it('renders discard pile cards', () => {
-    render(<PlayerBoard {...baseProps} discardPile={['guard', 'priest'] as CardName[]} />)
-    expect(screen.getByText('Guard')).toBeInTheDocument()
-    expect(screen.getByText('Priest')).toBeInTheDocument()
+    render(<PlayerBoard {...baseProps} discardPile={['ping', 'sniffer'] as CardName[]} />)
+    expect(screen.getByText('PING')).toBeInTheDocument()
+    expect(screen.getByText('SNIFFER')).toBeInTheDocument()
   })
 
   it('renders empty discard indicator when pile is empty', () => {

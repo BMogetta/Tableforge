@@ -11,28 +11,28 @@ interface Props {
   opponents: Player[]
   /** Players currently eliminated this round — shown but unselectable. */
   eliminatedIds: string[]
-  /** Players currently protected by Handmaid — shown but unselectable. */
+  /** Players currently protected by Firewall — shown but unselectable. */
   protectedIds: string[]
   /** Currently selected target player ID. */
   selectedTarget: string | null
   /** Card being played — determines whether guess dropdown is shown. */
   cardBeingPlayed: CardName
-  /** Currently selected Guard guess. */
+  /** Currently selected Ping guess. */
   selectedGuess: CardName | null
   onSelectTarget: (playerId: string) => void
   onSelectGuess: (card: CardName) => void
 }
 
-const GUARD_GUESS_OPTIONS: CardName[] = [
-  'spy',
-  'priest',
-  'baron',
-  'handmaid',
-  'prince',
-  'chancellor',
-  'king',
-  'countess',
-  'princess',
+const PING_GUESS_OPTIONS: CardName[] = [
+  'backdoor',
+  'sniffer',
+  'buffer_overflow',
+  'firewall',
+  'reboot',
+  'debugger',
+  'swap',
+  'encrypted_key',
+  'root',
 ]
 
 export function TargetPicker({
@@ -88,7 +88,7 @@ export function TargetPicker({
         </div>
       </div>
 
-      {cardBeingPlayed === 'guard' && (
+      {cardBeingPlayed === 'ping' && (
         <div className={styles.section}>
           <span className={styles.label}>Guess their card</span>
           <select
@@ -97,9 +97,9 @@ export function TargetPicker({
             onChange={e => onSelectGuess(e.target.value as CardName)}
           >
             <option value='' disabled>
-              Select a card…
+              Select a card...
             </option>
-            {GUARD_GUESS_OPTIONS.map(card => (
+            {PING_GUESS_OPTIONS.map(card => (
               <option key={card} value={card}>
                 {CARD_META[card].value} — {CARD_META[card].label}
               </option>

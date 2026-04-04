@@ -11,7 +11,7 @@ interface Props {
   discardPile: CardName[]
   isEliminated: boolean
   isProtected: boolean
-  hasPlayedSpy: boolean
+  hasPlayedBackdoor: boolean
   isLocal: boolean
   isCurrentTurn: boolean
 }
@@ -23,7 +23,7 @@ export function PlayerBoard({
   discardPile,
   isEliminated,
   isProtected,
-  hasPlayedSpy,
+  hasPlayedBackdoor,
   isLocal,
   isCurrentTurn,
 }: Props) {
@@ -60,9 +60,9 @@ export function PlayerBoard({
               Eliminated
             </span>
           )}
-          {hasPlayedSpy && (
-            <span className={styles.badge} data-variant='spy'>
-              Spy
+          {hasPlayedBackdoor && (
+            <span className={styles.badge} data-variant='backdoor'>
+              Backdoor
             </span>
           )}
         </div>

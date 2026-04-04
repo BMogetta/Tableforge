@@ -5,7 +5,7 @@ package adapter
 import (
 	"fmt"
 
-	loveletter "github.com/recess/game-server/games/loveletter"
+	rootaccess "github.com/recess/game-server/games/rootaccess"
 	"github.com/recess/game-server/internal/bot"
 	tictactoe "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 )
@@ -16,8 +16,8 @@ func New(gameID string) (bot.BotAdapter, error) {
 	switch gameID {
 	case "tictactoe":
 		return tictactoe.New(), nil
-	case "loveletter":
-		return loveletter.New(), nil
+	case "rootaccess":
+		return rootaccess.New(), nil
 	default:
 		return nil, fmt.Errorf("bot/adapter: no adapter registered for game %q", gameID)
 	}

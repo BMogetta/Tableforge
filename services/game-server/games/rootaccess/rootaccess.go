@@ -1,4 +1,4 @@
-package loveletter
+package rootaccess
 
 import (
 	"errors"
@@ -10,35 +10,35 @@ import (
 )
 
 func init() {
-	games.Register(&LoveLetter{})
+	games.Register(&RootAccess{})
 }
 
-const gameID = "loveletter"
+const gameID = "rootaccess"
 
 // Phase constants for the game phase field in state Data.
 const (
 	phasePlaying           = "playing"
-	phaseChancellorPending = "chancellor_pending"
+	phaseDebuggerPending = "debugger_pending"
 	phaseRoundOver         = "round_over"
 	phaseGameOver          = "game_over"
 )
 
-// LoveLetter implements engine.Game and engine.StateFilter.
-type LoveLetter struct{}
+// RootAccess implements engine.Game and engine.StateFilter.
+type RootAccess struct{}
 
-func (g *LoveLetter) ID() string      { return gameID }
-func (g *LoveLetter) Name() string    { return "Love Letter" }
-func (g *LoveLetter) MinPlayers() int { return 2 }
-func (g *LoveLetter) MaxPlayers() int { return 5 }
+func (g *RootAccess) ID() string      { return gameID }
+func (g *RootAccess) Name() string    { return "Root Access" }
+func (g *RootAccess) MinPlayers() int { return 2 }
+func (g *RootAccess) MaxPlayers() int { return 5 }
 
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 
-// Init sets up the first round of a new Love Letter game.
-func (g *LoveLetter) Init(players []engine.Player) (engine.GameState, error) {
+// Init sets up the first round of a new Root Access game.
+func (g *RootAccess) Init(players []engine.Player) (engine.GameState, error) {
 	if len(players) < 2 || len(players) > 5 {
-		return engine.GameState{}, fmt.Errorf("loveletter requires 2–5 players, got %d", len(players))
+		return engine.GameState{}, fmt.Errorf("rootaccess requires 2–5 players, got %d", len(players))
 	}
 
 	playerIDs := make([]string, len(players))
@@ -69,7 +69,7 @@ func (g *LoveLetter) Init(players []engine.Player) (engine.GameState, error) {
 // ValidateMove
 // ---------------------------------------------------------------------------
 
-func (g *LoveLetter) ValidateMove(state engine.GameState, move engine.Move) error {
+func (g *RootAccess) ValidateMove(state engine.GameState, move engine.Move) error {
 	phase := getString(state.Data, "phase")
 
 	// Penalty move is always valid when issued by the timer (any phase).
@@ -89,8 +89,8 @@ func (g *LoveLetter) ValidateMove(state engine.GameState, move engine.Move) erro
 	}
 
 	switch phase {
-	case phaseChancellorPending:
-		return validateChancellorResolve(state, move)
+	case phaseDebuggerPending:
+		return validateDebuggerResolve(state, move)
 	case phasePlaying:
 		return validateStandardMove(state, move)
 	default:
@@ -116,68 +116,68 @@ func validateStandardMove(state engine.GameState, move engine.Move) error {
 		return fmt.Errorf("card %q is not in your hand", card)
 	}
 
-	// Countess must be played if the player holds Countess together with
-	// King or Prince. Only enforced when Countess is actually in hand.
-	if card != CardCountess && containsCard(hand, CardCountess) {
-		if containsCard(hand, CardKing) || containsCard(hand, CardPrince) {
-			return errors.New("you must play the Countess when holding a King or Prince")
+	// Encrypted Key must be played if the player holds Encrypted Key together with
+	// Swap or Reboot. Only enforced when Encrypted Key is actually in hand.
+	if card != CardEncryptedKey && containsCard(hand, CardEncryptedKey) {
+		if containsCard(hand, CardSwap) || containsCard(hand, CardReboot) {
+			return errors.New("you must play the Encrypted Key when holding a Swap or Reboot")
 		}
 	}
 
 	// Cards that require a target.
 	target := getStringFromPayload(move.Payload, "target_player_id")
 	switch card {
-	case CardGuard:
+	case CardPing:
 		if err := validateTarget(state, move.PlayerID, target, false); err != nil {
 			return err
 		}
 		guess := getCardFromPayload(move.Payload, "guess")
 		if guess == "" {
-			return errors.New("guard requires a 'guess' card name")
+			return errors.New("ping requires a 'guess' card name")
 		}
 		if !isValidGuess(guess) {
-			return fmt.Errorf("invalid guard guess: %q", guess)
+			return fmt.Errorf("invalid ping guess: %q", guess)
 		}
-	case CardPriest, CardBaron, CardKing:
+	case CardSniffer, CardBufferOverflow, CardSwap:
 		if err := validateTarget(state, move.PlayerID, target, false); err != nil {
 			return err
 		}
-	case CardPrince:
-		// Prince can target self, so we allow empty target (defaults to self)
+	case CardReboot:
+		// Reboot can target self, so we allow empty target (defaults to self)
 		// or any non-eliminated player including self.
 		if target != "" && target != string(move.PlayerID) {
 			if err := validateTarget(state, move.PlayerID, target, false); err != nil {
 				return err
 			}
 		}
-	case CardSpy, CardHandmaid, CardCountess, CardPrincess, CardChancellor:
+	case CardBackdoor, CardFirewall, CardEncryptedKey, CardRoot, CardDebugger:
 		// No target required.
 	}
 
 	return nil
 }
 
-func validateChancellorResolve(state engine.GameState, move engine.Move) error {
+func validateDebuggerResolve(state engine.GameState, move engine.Move) error {
 	card := getCardFromPayload(move.Payload, "card")
-	if card != "chancellor_resolve" {
-		return errors.New("waiting for chancellor_resolve move")
+	if card != "debugger_resolve" {
+		return errors.New("waiting for debugger_resolve move")
 	}
 	keep := getCardFromPayload(move.Payload, "keep")
 	if keep == "" {
-		return errors.New("chancellor_resolve requires 'keep'")
+		return errors.New("debugger_resolve requires 'keep'")
 	}
 	ret := getCardSliceFromPayload(move.Payload, "return")
 	if len(ret) != 2 {
-		return errors.New("chancellor_resolve requires exactly 2 cards in 'return'")
+		return errors.New("debugger_resolve requires exactly 2 cards in 'return'")
 	}
-	choices := getStringSlice(state.Data, "chancellor_choices")
+	choices := getStringSlice(state.Data, "debugger_choices")
 	all := append([]string{string(keep)}, cardNamesToStrings(ret)...)
 	if len(choices) != 3 {
-		return errors.New("chancellor_choices state is invalid")
+		return errors.New("debugger_choices state is invalid")
 	}
 	for _, c := range all {
 		if !containsString(choices, c) {
-			return fmt.Errorf("card %q is not among chancellor choices", c)
+			return fmt.Errorf("card %q is not among debugger choices", c)
 		}
 	}
 	return nil
@@ -215,7 +215,7 @@ func validateTarget(state engine.GameState, actorID engine.PlayerID, target stri
 	}
 	for _, id := range protected {
 		if id == target {
-			return fmt.Errorf("target player %q is protected by the Handmaid", target)
+			return fmt.Errorf("target player %q is protected by the Firewall", target)
 		}
 	}
 	return nil
@@ -225,7 +225,7 @@ func validateTarget(state engine.GameState, actorID engine.PlayerID, target stri
 // ApplyMove
 // ---------------------------------------------------------------------------
 
-func (g *LoveLetter) ApplyMove(state engine.GameState, move engine.Move) (engine.GameState, error) {
+func (g *RootAccess) ApplyMove(state engine.GameState, move engine.Move) (engine.GameState, error) {
 	card := getCardFromPayload(move.Payload, "card")
 
 	// Penalty: eliminate the active player immediately.
@@ -235,8 +235,8 @@ func (g *LoveLetter) ApplyMove(state engine.GameState, move engine.Move) (engine
 
 	phase := getString(state.Data, "phase")
 
-	if phase == phaseChancellorPending {
-		return applyChancellorResolve(state, move)
+	if phase == phaseDebuggerPending {
+		return applyDebuggerResolve(state, move)
 	}
 
 	return applyStandardMove(state, move, card)
@@ -254,46 +254,46 @@ func applyStandardMove(state engine.GameState, move engine.Move, card CardName) 
 	// Add card to discard pile.
 	state = appendDiscard(state, playerID, card)
 
-	// Princess self-elimination.
-	if card == CardPrincess {
-		return applyPrincess(state, playerID)
+	// Root self-elimination.
+	if card == CardRoot {
+		return applyRoot(state, playerID)
 	}
 
 	target := getStringFromPayload(move.Payload, "target_player_id")
-	if target == "" && card == CardPrince {
-		target = playerID // default self-target for Prince
+	if target == "" && card == CardReboot {
+		target = playerID // default self-target for Reboot
 	}
 
 	var err error
 	switch card {
-	case CardSpy:
-		state = applySpy(state, playerID)
-	case CardGuard:
+	case CardBackdoor:
+		state = applyBackdoor(state, playerID)
+	case CardPing:
 		guess := getCardFromPayload(move.Payload, "guess")
-		state = applyGuard(state, target, guess)
-	case CardPriest:
+		state = applyPing(state, target, guess)
+	case CardSniffer:
 		// Effect is informational only — no state change needed beyond
 		// the private_reveal field set below.
-		state = applyPriest(state, playerID, target)
-	case CardBaron:
-		state = applyBaron(state, playerID, target)
-	case CardHandmaid:
-		state = applyHandmaid(state, playerID)
-	case CardPrince:
-		state, err = applyPrince(state, target)
+		state = applySniffer(state, playerID, target)
+	case CardBufferOverflow:
+		state = applyBufferOverflow(state, playerID, target)
+	case CardFirewall:
+		state = applyFirewall(state, playerID)
+	case CardReboot:
+		state, err = applyReboot(state, target)
 		if err != nil {
 			return state, err
 		}
-	case CardChancellor:
-		return applyChancellor(state, playerID)
-	case CardKing:
-		state = applyKing(state, playerID, target)
-	case CardCountess:
+	case CardDebugger:
+		return applyDebugger(state, playerID)
+	case CardSwap:
+		state = applySwap(state, playerID, target)
+	case CardEncryptedKey:
 		// No effect beyond being played.
 	default:
 		// Unknown card — this should never happen in a valid game but guards
 		// against corrupted payloads reaching the engine.
-		return state, fmt.Errorf("loveletter: unknown card %q", card)
+		return state, fmt.Errorf("rootaccess: unknown card %q", card)
 	}
 
 	_ = err
@@ -305,13 +305,13 @@ func applyStandardMove(state engine.GameState, move engine.Move, card CardName) 
 // Card effects
 // ---------------------------------------------------------------------------
 
-func applySpy(state engine.GameState, playerID string) engine.GameState {
-	spyPlayed := getStringSlice(state.Data, "spy_played_by")
-	state.Data["spy_played_by"] = appendUnique(spyPlayed, playerID)
+func applyBackdoor(state engine.GameState, playerID string) engine.GameState {
+	backdoorPlayed := getStringSlice(state.Data, "backdoor_played_by")
+	state.Data["backdoor_played_by"] = appendUnique(backdoorPlayed, playerID)
 	return state
 }
 
-func applyGuard(state engine.GameState, target string, guess CardName) engine.GameState {
+func applyPing(state engine.GameState, target string, guess CardName) engine.GameState {
 	if target == "" {
 		return state // no valid target — no effect
 	}
@@ -323,7 +323,7 @@ func applyGuard(state engine.GameState, target string, guess CardName) engine.Ga
 	return state
 }
 
-func applyPriest(state engine.GameState, actorID, target string) engine.GameState {
+func applySniffer(state engine.GameState, actorID, target string) engine.GameState {
 	if target == "" {
 		return state
 	}
@@ -344,7 +344,7 @@ func applyPriest(state engine.GameState, actorID, target string) engine.GameStat
 	return state
 }
 
-func applyBaron(state engine.GameState, actorID, target string) engine.GameState {
+func applyBufferOverflow(state engine.GameState, actorID, target string) engine.GameState {
 	if target == "" {
 		return state
 	}
@@ -365,13 +365,13 @@ func applyBaron(state engine.GameState, actorID, target string) engine.GameState
 	return state
 }
 
-func applyHandmaid(state engine.GameState, playerID string) engine.GameState {
+func applyFirewall(state engine.GameState, playerID string) engine.GameState {
 	protected := getStringSlice(state.Data, "protected")
 	state.Data["protected"] = appendUnique(protected, playerID)
 	return state
 }
 
-func applyPrince(state engine.GameState, target string) (engine.GameState, error) {
+func applyReboot(state engine.GameState, target string) (engine.GameState, error) {
 	if target == "" {
 		return state, nil
 	}
@@ -386,8 +386,8 @@ func applyPrince(state engine.GameState, target string) (engine.GameState, error
 	hands[target] = []string{}
 	state.Data["hands"] = handsToAny(hands)
 
-	// If discarded card is Princess, target is eliminated.
-	if CardName(discarded) == CardPrincess {
+	// If discarded card is Root, target is eliminated.
+	if CardName(discarded) == CardRoot {
 		state = eliminatePlayer(state, target)
 		return state, nil
 	}
@@ -412,7 +412,7 @@ func applyPrince(state engine.GameState, target string) (engine.GameState, error
 	return state, nil
 }
 
-func applyChancellor(state engine.GameState, playerID string) (engine.GameState, error) {
+func applyDebugger(state engine.GameState, playerID string) (engine.GameState, error) {
 	hands := getHands(state.Data)
 	hand := hands[playerID]
 	deck := getStringSlice(state.Data, "deck")
@@ -425,20 +425,20 @@ func applyChancellor(state engine.GameState, playerID string) (engine.GameState,
 	}
 	state.Data["deck"] = deck
 
-	// Chancellor choices = current hand (1 card) + drawn cards.
+	// Debugger choices = current hand (1 card) + drawn cards.
 	choices := append(hand, drawn...)
-	state.Data["chancellor_choices"] = choices
+	state.Data["debugger_choices"] = choices
 
 	// Clear hand until resolve.
 	hands[playerID] = []string{}
 	state.Data["hands"] = handsToAny(hands)
-	state.Data["phase"] = phaseChancellorPending
+	state.Data["phase"] = phaseDebuggerPending
 
-	// CurrentPlayerID stays the same — waiting for chancellor_resolve.
+	// CurrentPlayerID stays the same — waiting for debugger_resolve.
 	return state, nil
 }
 
-func applyChancellorResolve(state engine.GameState, move engine.Move) (engine.GameState, error) {
+func applyDebuggerResolve(state engine.GameState, move engine.Move) (engine.GameState, error) {
 	playerID := string(move.PlayerID)
 	keep := getCardFromPayload(move.Payload, "keep")
 	ret := getCardSliceFromPayload(move.Payload, "return")
@@ -453,13 +453,13 @@ func applyChancellorResolve(state engine.GameState, move engine.Move) (engine.Ga
 		deck = append(deck, string(c))
 	}
 	state.Data["deck"] = deck
-	delete(state.Data, "chancellor_choices")
+	delete(state.Data, "debugger_choices")
 	state.Data["phase"] = phasePlaying
 
 	return advanceTurn(state)
 }
 
-func applyKing(state engine.GameState, actorID, target string) engine.GameState {
+func applySwap(state engine.GameState, actorID, target string) engine.GameState {
 	if target == "" {
 		return state
 	}
@@ -472,7 +472,7 @@ func applyKing(state engine.GameState, actorID, target string) engine.GameState 
 	return state
 }
 
-func applyPrincess(state engine.GameState, playerID string) (engine.GameState, error) {
+func applyRoot(state engine.GameState, playerID string) (engine.GameState, error) {
 	state = eliminatePlayer(state, playerID)
 	return advanceTurn(state)
 }
@@ -486,7 +486,7 @@ func applyPenaltyLose(state engine.GameState, playerID engine.PlayerID) (engine.
 // Turn advancement and round resolution
 // ---------------------------------------------------------------------------
 
-// advanceTurn expires Handmaid protection for the next player (it expires
+// advanceTurn expires Firewall protection for the next player (it expires
 // when their turn begins), checks whether the round is over, advances to
 // the next active player, and draws their turn card if needed.
 func advanceTurn(state engine.GameState) (engine.GameState, error) {
@@ -502,7 +502,7 @@ func advanceTurn(state engine.GameState) (engine.GameState, error) {
 	// Determine next active player.
 	next := nextActivePlayer(state, currentPlayer)
 
-	// Handmaid protection expires when the protected player's turn begins.
+	// Firewall protection expires when the protected player's turn begins.
 	protected := getStringSlice(state.Data, "protected")
 	newProtected := []string{}
 	for _, id := range protected {
@@ -516,7 +516,7 @@ func advanceTurn(state engine.GameState) (engine.GameState, error) {
 	state.CurrentPlayerID = engine.PlayerID(next)
 
 	// Draw turn card if the next player holds fewer than 2 cards.
-	// Prince may have already dealt them a card directly.
+	// Reboot may have already dealt them a card directly.
 	hands := getHands(state.Data)
 	if len(hands[next]) < 2 {
 		var err error
@@ -528,7 +528,7 @@ func advanceTurn(state engine.GameState) (engine.GameState, error) {
 	return state, nil
 }
 
-// resolveRound determines the round winner, awards tokens (including Spy
+// resolveRound determines the round winner, awards tokens (including Backdoor
 // bonus), and either starts a new round or sets phase to game_over.
 func resolveRound(state engine.GameState) (engine.GameState, error) {
 	players := getStringSlice(state.Data, "players")
@@ -544,11 +544,11 @@ func resolveRound(state engine.GameState) (engine.GameState, error) {
 		roundWinner = highestHandWinner(state, active)
 	}
 
-	// Spy token: if exactly one player played or discarded a Spy, they earn
+	// Backdoor token: if exactly one player played or discarded a Backdoor, they earn
 	// an extra token — even if eliminated.
-	spyPlayed := getStringSlice(state.Data, "spy_played_by")
-	if len(spyPlayed) == 1 {
-		tokens[spyPlayed[0]]++
+	backdoorPlayed := getStringSlice(state.Data, "backdoor_played_by")
+	if len(backdoorPlayed) == 1 {
+		tokens[backdoorPlayed[0]]++
 	}
 
 	// Round winner token.
@@ -615,7 +615,7 @@ func highestHandWinner(state engine.GameState, active []string) string {
 
 // TimeoutMove implements engine.TurnTimeoutHandler.
 // Returns a penalty_lose move that eliminates the active player via the engine.
-func (g *LoveLetter) TimeoutMove() map[string]any {
+func (g *RootAccess) TimeoutMove() map[string]any {
 	return map[string]any{"card": string(CardPenaltyLose)}
 }
 
@@ -623,7 +623,7 @@ func (g *LoveLetter) TimeoutMove() map[string]any {
 // IsOver
 // ---------------------------------------------------------------------------
 
-func (g *LoveLetter) IsOver(state engine.GameState) (bool, engine.Result) {
+func (g *RootAccess) IsOver(state engine.GameState) (bool, engine.Result) {
 	if getString(state.Data, "phase") != phaseGameOver {
 		return false, engine.Result{}
 	}
@@ -642,7 +642,7 @@ func (g *LoveLetter) IsOver(state engine.GameState) (bool, engine.Result) {
 // FilterState
 // ---------------------------------------------------------------------------
 
-func (g *LoveLetter) FilterState(state engine.GameState, playerID engine.PlayerID) engine.GameState {
+func (g *RootAccess) FilterState(state engine.GameState, playerID engine.PlayerID) engine.GameState {
 	filtered := engine.GameState{
 		CurrentPlayerID: state.CurrentPlayerID,
 		Data:            shallowCopyData(state.Data),
@@ -668,9 +668,9 @@ func (g *LoveLetter) FilterState(state engine.GameState, playerID engine.PlayerI
 	}
 	filtered.Data["hands"] = handsToAny(filteredHands)
 
-	// chancellor_choices only visible to the active player.
+	// debugger_choices only visible to the active player.
 	if playerID == "" || playerID != state.CurrentPlayerID {
-		delete(filtered.Data, "chancellor_choices")
+		delete(filtered.Data, "debugger_choices")
 	}
 
 	// private_reveals: only show the reveal addressed to this player.
@@ -732,7 +732,7 @@ func dealRound(state engine.GameState, players []string, firstPlayer engine.Play
 	state.Data["set_aside_visible"] = faceUp
 	state.Data["eliminated"] = []string{}
 	state.Data["protected"] = []string{}
-	state.Data["spy_played_by"] = []string{}
+	state.Data["backdoor_played_by"] = []string{}
 	state.Data["discard_piles"] = map[string]any{}
 	state.Data["round_winner_id"] = nil
 
@@ -801,11 +801,11 @@ func eliminatePlayer(state engine.GameState, playerID string) engine.GameState {
 	hands[playerID] = []string{}
 	state.Data["hands"] = handsToAny(hands)
 
-	// Track Spy if it was discarded due to elimination.
+	// Track Backdoor if it was discarded due to elimination.
 	for _, c := range hand {
-		if CardName(c) == CardSpy {
-			spyPlayed := getStringSlice(state.Data, "spy_played_by")
-			state.Data["spy_played_by"] = appendUnique(spyPlayed, playerID)
+		if CardName(c) == CardBackdoor {
+			backdoorPlayed := getStringSlice(state.Data, "backdoor_played_by")
+			state.Data["backdoor_played_by"] = appendUnique(backdoorPlayed, playerID)
 		}
 	}
 

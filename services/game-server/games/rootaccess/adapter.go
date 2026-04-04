@@ -1,8 +1,8 @@
-// Package loveletter provides a BotAdapter implementation for Love Letter.
+// Package rootaccess provides a BotAdapter implementation for Root Access.
 //
 // # Determinization
 //
-// Love Letter is a game of imperfect information — each player can only see
+// Root Access is a game of imperfect information — each player can only see
 // their own hand. MCTS requires complete information to evaluate moves, so
 // before each search we determinize the hidden state:
 //
@@ -15,7 +15,7 @@
 //
 // Running multiple MCTS searches over independently sampled worlds (IS-MCTS)
 // averages out the uncertainty.
-package loveletter
+package rootaccess
 
 import (
 	"github.com/recess/game-server/internal/bot"
@@ -24,14 +24,14 @@ import (
 	"github.com/recess/shared/platform/randutil"
 )
 
-// Adapter implements bot.BotAdapter for Love Letter.
+// Adapter implements bot.BotAdapter for Root Access.
 type Adapter struct{}
 
-// New returns a new Love Letter BotAdapter.
+// New returns a new Root Access BotAdapter.
 func New() *Adapter { return &Adapter{} }
 
 // GameID implements bot.BotAdapter.
-func (a *Adapter) GameID() string { return "loveletter" }
+func (a *Adapter) GameID() string { return "rootaccess" }
 
 func (a *Adapter) CurrentPlayer(s bot.BotGameState) engine.PlayerID {
 	return s.EngineState().CurrentPlayerID
@@ -83,7 +83,7 @@ func (a *Adapter) Determinize(state bot.BotGameState, playerID engine.PlayerID) 
 }
 
 // collectVisible returns all cards observable by playerID:
-// own hand + all discard piles + face-up set-aside + chancellor choices if active.
+// own hand + all discard piles + face-up set-aside + debugger choices if active.
 func collectVisible(s engine.GameState, playerID engine.PlayerID) []string {
 	var visible []string
 
@@ -100,9 +100,9 @@ func collectVisible(s engine.GameState, playerID engine.PlayerID) []string {
 	faceUp := getStringSlice(s.Data, "set_aside_visible")
 	visible = append(visible, faceUp...)
 
-	// Chancellor choices visible only to the active player.
+	// Debugger choices visible only to the active player.
 	if s.CurrentPlayerID == playerID {
-		choices := getStringSlice(s.Data, "chancellor_choices")
+		choices := getStringSlice(s.Data, "debugger_choices")
 		visible = append(visible, choices...)
 	}
 
@@ -158,8 +158,8 @@ func isProtected(playerID string, protected []string) bool {
 func (a *Adapter) ValidMoves(state bot.BotGameState) []bot.BotMove {
 	s := state.EngineState()
 	switch getString(s.Data, "phase") {
-	case phaseChancellorPending:
-		return chancellorResolveMoves(s)
+	case phaseDebuggerPending:
+		return debuggerResolveMoves(s)
 	case phasePlaying:
 		return standardMoves(s)
 	default:
@@ -187,29 +187,29 @@ func standardMoves(s engine.GameState) []bot.BotMove {
 		targets = append(targets, pid)
 	}
 
-	mustPlayCountess := containsCard(hand, CardCountess) &&
-		(containsCard(hand, CardKing) || containsCard(hand, CardPrince))
+	mustPlayEncryptedKey := containsCard(hand, CardEncryptedKey) &&
+		(containsCard(hand, CardSwap) || containsCard(hand, CardReboot))
 
 	var moves []bot.BotMove
 	for _, card := range hand {
 		c := CardName(card)
-		if mustPlayCountess && c != CardCountess {
+		if mustPlayEncryptedKey && c != CardEncryptedKey {
 			continue
 		}
 
 		switch c {
-		case CardGuard:
+		case CardPing:
 			if len(targets) == 0 {
 				moves = append(moves, makeMoveNoTarget(c))
 			} else {
 				for _, t := range targets {
-					for _, guess := range allNonGuardCards {
+					for _, guess := range allNonPingCards {
 						moves = append(moves, makeGuardMove(t, guess))
 					}
 				}
 			}
 
-		case CardPriest, CardBaron, CardKing:
+		case CardSniffer, CardBufferOverflow, CardSwap:
 			if len(targets) == 0 {
 				moves = append(moves, makeMoveNoTarget(c))
 			} else {
@@ -218,7 +218,7 @@ func standardMoves(s engine.GameState) []bot.BotMove {
 				}
 			}
 
-		case CardPrince:
+		case CardReboot:
 			// Prince can self-target; include self and all non-eliminated opponents.
 			allActive := append([]string{playerID}, targets...)
 			for _, t := range allActive {
@@ -226,7 +226,7 @@ func standardMoves(s engine.GameState) []bot.BotMove {
 			}
 
 		default:
-			// Spy, Handmaid, Countess, Princess, Chancellor — no target needed.
+			// Spy, Firewall, Encrypted Key, Root, Debugger — no target needed.
 			moves = append(moves, makeMoveNoTarget(c))
 		}
 	}
@@ -237,8 +237,8 @@ func standardMoves(s engine.GameState) []bot.BotMove {
 	return moves
 }
 
-func chancellorResolveMoves(s engine.GameState) []bot.BotMove {
-	choices := getStringSlice(s.Data, "chancellor_choices")
+func debuggerResolveMoves(s engine.GameState) []bot.BotMove {
+	choices := getStringSlice(s.Data, "debugger_choices")
 	if len(choices) != 3 {
 		return nil
 	}
@@ -251,7 +251,7 @@ func chancellorResolveMoves(s engine.GameState) []bot.BotMove {
 			}
 		}
 		m, err := bot.MoveFromPayload(map[string]any{
-			"card":   "chancellor_resolve",
+			"card":   "debugger_resolve",
 			"keep":   keep,
 			"return": ret,
 		})
@@ -277,7 +277,7 @@ func makeMoveWithTarget(card CardName, target string) bot.BotMove {
 
 func makeGuardMove(target string, guess CardName) bot.BotMove {
 	m, _ := bot.MoveFromPayload(map[string]any{
-		"card":             string(CardGuard),
+		"card":             string(CardPing),
 		"target_player_id": target,
 		"guess":            string(guess),
 	})
@@ -288,14 +288,14 @@ func makeGuardMove(target string, guess CardName) bot.BotMove {
 // ApplyMove
 // ---------------------------------------------------------------------------
 
-// ApplyMove applies a bot move using the Love Letter game engine.
+// ApplyMove applies a bot move using the Root Access game engine.
 func (a *Adapter) ApplyMove(state bot.BotGameState, move bot.BotMove) bot.BotGameState {
 	s := state.EngineState()
 	payload, err := move.Payload()
 	if err != nil {
 		return state
 	}
-	newState, err := (&LoveLetter{}).ApplyMove(s, engine.Move{
+	newState, err := (&RootAccess{}).ApplyMove(s, engine.Move{
 		PlayerID: s.CurrentPlayerID,
 		Payload:  payload,
 	})

@@ -29,7 +29,7 @@ const ROOMS: Room[] = [
   {
     id: 'room2',
     code: 'XYZ789',
-    game_id: 'loveletter',
+    game_id: 'rootaccess',
     owner_id: 'p2',
     status: 'in_progress',
     max_players: 4,

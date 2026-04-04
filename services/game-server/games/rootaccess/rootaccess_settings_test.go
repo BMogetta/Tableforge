@@ -1,4 +1,4 @@
-package loveletter_test
+package rootaccess_test
 
 import (
 	"testing"

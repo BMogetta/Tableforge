@@ -9,7 +9,7 @@
 We want to add one or more AI bots that can join any game room on the platform and play as a regular player. The bot system must be:
 
 - **Embedded** as a Go library inside the existing server (not a separate microservice).
-- **Game-agnostic**: the same MCTS engine must work for any game (currently TicTacToe and Love Letter, more in the future).
+- **Game-agnostic**: the same MCTS engine must work for any game (currently TicTacToe and Root Access, more in the future).
 - **Configurable**: difficulty, time limits, style of play, and number of concurrent bots must all be tunable.
 - **Integrated with the existing room/player system**: a bot joins a room the same way a human player does, receives game state updates via the same WebSocket flow, and responds with moves via the same HTTP REST endpoints.
 
@@ -17,7 +17,7 @@ We want to add one or more AI bots that can join any game room on the platform a
 
 ## 2. Algorithm: IS-MCTS (Information Set MCTS)
 
-Standard MCTS does not handle hidden information (e.g. opponent's hand in Love Letter). IS-MCTS solves this by **determinization**: before running the search tree, the bot samples a plausible "complete" world consistent with its observations, runs MCTS on that world, and repeats this N times. The final move is the one with the best average score across all sampled worlds.
+Standard MCTS does not handle hidden information (e.g. opponent's hand in Root Access). IS-MCTS solves this by **determinization**: before running the search tree, the bot samples a plausible "complete" world consistent with its observations, runs MCTS on that world, and repeats this N times. The final move is the one with the best average score across all sampled worlds.
 
 ### The four MCTS steps (per determinization)
 
@@ -56,7 +56,7 @@ type GameState interface {
 }
 ```
 
-> **Ask the assistant:** Show me the current structs that represent game state for TicTacToe and Love Letter. We need to verify that Clone() can be implemented correctly (no shared pointers or maps that would cause aliasing bugs).
+> **Ask the assistant:** Show me the current structs that represent game state for TicTacToe and Root Access. We need to verify that Clone() can be implemented correctly (no shared pointers or maps that would cause aliasing bugs).
 
 ### 3.2 `GameAdapter`
 
@@ -233,8 +233,8 @@ internal/
     adapter.go      — GameAdapter, GameState, Move interfaces
     tictactoe/
       adapter.go    — TicTacToe implementation of GameAdapter
-    loveletter/
-      adapter.go    — LoveLetter implementation of GameAdapter
+    rootaccess/
+      adapter.go    — RootAccess implementation of GameAdapter
 ```
 
 ---
@@ -244,7 +244,7 @@ internal/
 Use these prompts in future sessions, each with this file + the relevant handsoff sections:
 
 ### Session A — Interfaces & State
-> "Here is bot.md and the current game state structs [paste files]. Verify that the GameState and GameAdapter interfaces are compatible with the existing code. Identify what's missing and implement Clone() for TicTacToe and LoveLetter."
+> "Here is bot.md and the current game state structs [paste files]. Verify that the GameState and GameAdapter interfaces are compatible with the existing code. Identify what's missing and implement Clone() for TicTacToe and RootAccess."
 
 ### Session B — Core MCTS Engine
 > "Here is bot.md and the current project structure [paste files]. Implement the packages `internal/bot/mcts/node.go`, `mcts.go`, and `engine.go` as described. Do not implement any game adapter yet — use a mock GameAdapter for tests."
@@ -252,8 +252,8 @@ Use these prompts in future sessions, each with this file + the relevant handsof
 ### Session C — TicTacToe Adapter
 > "Here is bot.md and the TicTacToe game logic files [paste files]. Implement `internal/games/tictactoe/adapter.go`. Include a Determinize that is an identity function since TicTacToe has no hidden info. Write a test that runs the bot against itself."
 
-### Session D — Love Letter Adapter
-> "Here is bot.md and the Love Letter game logic files [paste files]. Implement `internal/games/loveletter/adapter.go`. The Determinize function must sample the opponent's hand from the cards not visible to the observer. Write a test."
+### Session D — Root Access Adapter
+> "Here is bot.md and the Root Access game logic files [paste files]. Implement `internal/games/rootaccess/adapter.go`. The Determinize function must sample the opponent's hand from the cards not visible to the observer. Write a test."
 
 ### Session E — BotPlayer & Integration
 > "Here is bot.md and the room/player system files [paste files]. Implement BotPlayer so it satisfies the existing Player interface. Implement the POST /rooms/{id}/bots endpoint. Wire up the bot's turn into the game loop."
@@ -272,7 +272,7 @@ These need to be answered by reading the existing codebase:
 - [ ] How does the game engine signal "it's your turn"? (method call, channel, event?)
 - [ ] Where is turn timer logic? Can we hook into it to set the bot's deadline?
 - [ ] Are game states stored in Postgres as JSON blobs? If so, can we deserialize them into the structs needed by the adapter?
-- [ ] Does Love Letter already have a concept of "visible" vs "hidden" card state server-side?
+- [ ] Does Root Access already have a concept of "visible" vs "hidden" card state server-side?
 
 ---
 

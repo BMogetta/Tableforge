@@ -1,10 +1,10 @@
-package loveletter_test
+package rootaccess_test
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/recess/game-server/games/loveletter"
+	"github.com/recess/game-server/games/rootaccess"
 	"github.com/recess/game-server/internal/domain/engine"
 )
 
@@ -12,7 +12,7 @@ import (
 // Helpers
 // ---------------------------------------------------------------------------
 
-var game = &loveletter.LoveLetter{}
+var game = &rootaccess.RootAccess{}
 
 func players(ids ...string) []engine.Player {
 	out := make([]engine.Player, len(ids))
@@ -259,8 +259,8 @@ func TestInit_TooManyPlayers(t *testing.T) {
 func TestValidateMove_NotYourTurn(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p2 is not the current player — any move from p2 should fail.
-	state = setHand(state, "p2", "spy", "guard")
-	m := move("p2", map[string]any{"card": "spy"})
+	state = setHand(state, "p2", "backdoor", "ping")
+	m := move("p2", map[string]any{"card": "backdoor"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: not your turn")
 	}
@@ -269,54 +269,54 @@ func TestValidateMove_NotYourTurn(t *testing.T) {
 func TestValidateMove_CardNotInHand(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds guard+guard but tries to play priest.
-	state = setHand(state, "p1", "guard", "guard")
-	m := move("p1", map[string]any{"card": "priest", "target_player_id": "p2"})
+	state = setHand(state, "p1", "ping", "ping")
+	m := move("p1", map[string]any{"card": "sniffer", "target_player_id": "p2"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: card not in hand")
 	}
 }
 
-func TestValidateMove_CountessForcedWithKing(t *testing.T) {
+func TestValidateMove_EncryptedKeyForcedWithSwap(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds king+countess — must play countess, not king.
-	state = setHand(state, "p1", "king", "countess")
-	m := move("p1", map[string]any{"card": "king", "target_player_id": "p2"})
+	state = setHand(state, "p1", "swap", "encrypted_key")
+	m := move("p1", map[string]any{"card": "swap", "target_player_id": "p2"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: must play countess when holding king")
 	}
 }
 
-func TestValidateMove_CountessAllowedWhenForcedPlay(t *testing.T) {
+func TestValidateMove_EncryptedKeyAllowedWhenForcedPlay(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "king", "countess")
-	m := move("p1", map[string]any{"card": "countess"})
+	state = setHand(state, "p1", "swap", "encrypted_key")
+	m := move("p1", map[string]any{"card": "encrypted_key"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err != nil {
 		t.Fatalf("expected countess to be valid: %v", err)
 	}
 }
 
-func TestValidateMove_CountessForcedWithPrince(t *testing.T) {
+func TestValidateMove_EncryptedKeyForcedWithReboot(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "prince", "countess")
-	m := move("p1", map[string]any{"card": "prince", "target_player_id": "p1"})
+	state = setHand(state, "p1", "reboot", "encrypted_key")
+	m := move("p1", map[string]any{"card": "reboot", "target_player_id": "p1"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: must play countess when holding prince")
 	}
 }
 
-func TestValidateMove_GuardRequiresGuess(t *testing.T) {
+func TestValidateMove_PingRequiresGuess(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "guard", "spy")
-	m := move("p1", map[string]any{"card": "guard", "target_player_id": "p2"})
+	state = setHand(state, "p1", "ping", "backdoor")
+	m := move("p1", map[string]any{"card": "ping", "target_player_id": "p2"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: guard requires guess")
 	}
 }
 
-func TestValidateMove_GuardCannotGuessGuard(t *testing.T) {
+func TestValidateMove_PingCannotGuessPing(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "guard", "spy")
-	m := move("p1", map[string]any{"card": "guard", "target_player_id": "p2", "guess": "guard"})
+	state = setHand(state, "p1", "ping", "backdoor")
+	m := move("p1", map[string]any{"card": "ping", "target_player_id": "p2", "guess": "ping"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: cannot guess guard")
 	}
@@ -324,9 +324,9 @@ func TestValidateMove_GuardCannotGuessGuard(t *testing.T) {
 
 func TestValidateMove_TargetProtected(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "guard", "spy")
+	state = setHand(state, "p1", "ping", "backdoor")
 	state.Data["protected"] = []string{"p2"}
-	m := move("p1", map[string]any{"card": "guard", "target_player_id": "p2", "guess": "priest"})
+	m := move("p1", map[string]any{"card": "ping", "target_player_id": "p2", "guess": "sniffer"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: target is protected")
 	}
@@ -334,22 +334,22 @@ func TestValidateMove_TargetProtected(t *testing.T) {
 
 func TestValidateMove_TargetEliminated(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "guard", "spy")
+	state = setHand(state, "p1", "ping", "backdoor")
 	state.Data["eliminated"] = []string{"p2"}
-	m := move("p1", map[string]any{"card": "guard", "target_player_id": "p2", "guess": "priest"})
+	m := move("p1", map[string]any{"card": "ping", "target_player_id": "p2", "guess": "sniffer"})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: target is eliminated")
 	}
 }
 
-func TestValidateMove_ChancellorResolveWrongPhase(t *testing.T) {
+func TestValidateMove_DebuggerResolveWrongPhase(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "chancellor", "spy")
+	state = setHand(state, "p1", "debugger", "backdoor")
 	// Phase is still "playing" — chancellor_resolve should be rejected.
 	m := move("p1", map[string]any{
-		"card":   "chancellor_resolve",
-		"keep":   "spy",
-		"return": []any{"chancellor", "guard"},
+		"card":   "debugger_resolve",
+		"keep":   "backdoor",
+		"return": []any{"debugger", "ping"},
 	})
 	if err := game.ValidateMove(roundtrip(t, state), m); err == nil {
 		t.Fatal("expected error: chancellor_resolve invalid in playing phase")
@@ -369,36 +369,36 @@ func TestValidateMove_PenaltyLoseAlwaysValid(t *testing.T) {
 // ApplyMove — card effects
 // ---------------------------------------------------------------------------
 
-func TestApplyMove_Spy_TrackedInState(t *testing.T) {
+func TestApplyMove_Backdoor_TrackedInState(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds spy+guard; deck has 1 card for p2's draw in advanceTurn.
-	state = setHand(state, "p1", "spy", "guard")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "backdoor", "ping")
+	state = setDeck(state, "ping")
 
-	state = mustApply(t, state, move("p1", map[string]any{"card": "spy"}))
+	state = mustApply(t, state, move("p1", map[string]any{"card": "backdoor"}))
 
 	found := false
-	for _, id := range getStringSlice(t, state, "spy_played_by") {
+	for _, id := range getStringSlice(t, state, "backdoor_played_by") {
 		if id == "p1" {
 			found = true
 		}
 	}
 	if !found {
-		t.Error("expected p1 in spy_played_by after playing Spy")
+		t.Error("expected p1 in backdoor_played_by after playing Backdoor")
 	}
 }
 
-func TestApplyMove_Guard_CorrectGuess_Eliminates(t *testing.T) {
+func TestApplyMove_Ping_CorrectGuess_Eliminates(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds guard+spy (plays guard); p2 holds priest; deck for advanceTurn.
-	state = setHand(state, "p1", "guard", "spy")
-	state = setHand(state, "p2", "priest")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "ping", "backdoor")
+	state = setHand(state, "p2", "sniffer")
+	state = setDeck(state, "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "guard",
+		"card":             "ping",
 		"target_player_id": "p2",
-		"guess":            "priest",
+		"guess":            "sniffer",
 	}))
 
 	// p2 was eliminated — round resolved immediately and a new round started.
@@ -408,32 +408,32 @@ func TestApplyMove_Guard_CorrectGuess_Eliminates(t *testing.T) {
 	}
 }
 
-func TestApplyMove_Guard_WrongGuess_NoElimination(t *testing.T) {
+func TestApplyMove_Ping_WrongGuess_NoElimination(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "guard", "spy")
-	state = setHand(state, "p2", "priest")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "ping", "backdoor")
+	state = setHand(state, "p2", "sniffer")
+	state = setDeck(state, "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "guard",
+		"card":             "ping",
 		"target_player_id": "p2",
-		"guess":            "baron",
+		"guess":            "buffer_overflow",
 	}))
 
 	if isEliminated(t, state, "p2") {
-		t.Error("expected p2 to survive wrong Guard guess")
+		t.Error("expected p2 to survive wrong Ping guess")
 	}
 }
 
-func TestApplyMove_Priest_SetsPrivateReveal(t *testing.T) {
+func TestApplyMove_Sniffer_SetsPrivateReveal(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds priest+spy (plays priest); p2 holds king.
-	state = setHand(state, "p1", "priest", "spy")
-	state = setHand(state, "p2", "king")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "sniffer", "backdoor")
+	state = setHand(state, "p2", "swap")
+	state = setDeck(state, "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "priest",
+		"card":             "sniffer",
 		"target_player_id": "p2",
 	}))
 
@@ -442,24 +442,24 @@ func TestApplyMove_Priest_SetsPrivateReveal(t *testing.T) {
 	// by inspecting the raw state returned from mustApply.
 	reveals, _ := state.Data["private_reveals"].(map[string]any)
 	if reveals == nil {
-		t.Fatal("expected private_reveals in state after Priest")
+		t.Fatal("expected private_reveals in state after Sniffer")
 	}
-	if reveals["p1"] != "king" {
+	if reveals["p1"] != "swap" {
 		t.Errorf("expected p1 to see king, got %v", reveals["p1"])
 	}
 }
 
-func TestApplyMove_Baron_LowerValueEliminated(t *testing.T) {
+func TestApplyMove_BufferOverflow_LowerValueEliminated(t *testing.T) {
 	// 3 players so eliminating p2 doesn't end the round.
 	state := mustInit(t, "p1", "p2", "p3")
 	// p1 holds baron+priest (plays baron, retains priest value=2).
 	// p2 holds guard (value=1) — p2 has lower value and is eliminated.
-	state = setHand(state, "p1", "baron", "priest")
-	state = setHand(state, "p2", "guard")
-	state = setDeck(state, "guard", "guard")
+	state = setHand(state, "p1", "buffer_overflow", "sniffer")
+	state = setHand(state, "p2", "ping")
+	state = setDeck(state, "ping", "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "baron",
+		"card":             "buffer_overflow",
 		"target_player_id": "p2",
 	}))
 
@@ -468,47 +468,47 @@ func TestApplyMove_Baron_LowerValueEliminated(t *testing.T) {
 	}
 }
 
-func TestApplyMove_Baron_Tie_NoElimination(t *testing.T) {
+func TestApplyMove_BufferOverflow_Tie_NoElimination(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// Both hold guard after baron played (p1: baron+guard plays baron, keeps guard).
-	state = setHand(state, "p1", "baron", "guard")
-	state = setHand(state, "p2", "guard")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "buffer_overflow", "ping")
+	state = setHand(state, "p2", "ping")
+	state = setDeck(state, "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "baron",
+		"card":             "buffer_overflow",
 		"target_player_id": "p2",
 	}))
 
 	if isEliminated(t, state, "p1") || isEliminated(t, state, "p2") {
-		t.Error("expected no elimination on Baron tie")
+		t.Error("expected no elimination on BufferOverflow tie")
 	}
 }
 
-func TestApplyMove_Handmaid_ProtectsPlayer(t *testing.T) {
+func TestApplyMove_Firewall_ProtectsPlayer(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds handmaid+spy (plays handmaid).
-	state = setHand(state, "p1", "handmaid", "spy")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "firewall", "backdoor")
+	state = setDeck(state, "ping")
 
-	state = mustApply(t, state, move("p1", map[string]any{"card": "handmaid"}))
+	state = mustApply(t, state, move("p1", map[string]any{"card": "firewall"}))
 
 	if !isProtected(t, state, "p1") {
-		t.Error("expected p1 to be in protected list after Handmaid")
+		t.Error("expected p1 to be in protected list after Firewall")
 	}
 }
 
-func TestApplyMove_Handmaid_ExpiresNextTurn(t *testing.T) {
+func TestApplyMove_Firewall_ExpiresNextTurn(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 plays handmaid; p2 plays spy (no target); p1 should no longer be protected.
-	state = setHand(state, "p1", "handmaid", "spy")
-	state = setDeck(state, "guard", "guard", "guard", "guard")
+	state = setHand(state, "p1", "firewall", "backdoor")
+	state = setDeck(state, "ping", "ping", "ping", "ping")
 
-	state = mustApply(t, state, move("p1", map[string]any{"card": "handmaid"}))
+	state = mustApply(t, state, move("p1", map[string]any{"card": "firewall"}))
 
 	// p2 now has 2 cards (original + drawn by advanceTurn); play spy.
-	state = setHand(state, "p2", "spy", "guard")
-	state = mustApply(t, state, move("p2", map[string]any{"card": "spy"}))
+	state = setHand(state, "p2", "backdoor", "ping")
+	state = mustApply(t, state, move("p2", map[string]any{"card": "backdoor"}))
 
 	// p1's protection should have expired at end of p1's turn.
 	if isProtected(t, state, "p1") {
@@ -516,28 +516,28 @@ func TestApplyMove_Handmaid_ExpiresNextTurn(t *testing.T) {
 	}
 }
 
-func TestApplyMove_Prince_TargetDrawsNewCard(t *testing.T) {
+func TestApplyMove_Reboot_TargetDrawsNewCard(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds prince+spy (plays prince targeting p2); p2 holds guard (discarded).
 	// Deck: first card drawn by p2 after discard, second for advanceTurn (p2's next turn).
-	state = setHand(state, "p1", "prince", "spy")
-	state = setHand(state, "p2", "guard")
-	state = setDeck(state, "king", "guard")
+	state = setHand(state, "p1", "reboot", "backdoor")
+	state = setHand(state, "p2", "ping")
+	state = setDeck(state, "swap", "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "prince",
+		"card":             "reboot",
 		"target_player_id": "p2",
 	}))
 
-	// After Prince, p2 discarded their hand and received a new card from the deck.
+	// After Reboot, p2 discarded their hand and received a new card from the deck.
 	// advanceTurn then drew p2's turn card, so p2 now holds 2 cards.
 	// Verify p2 no longer holds the original guard they were forced to discard.
 	hand := getHand(t, state, "p2")
 	if len(hand) != 2 {
-		t.Fatalf("expected p2 to have 2 cards after Prince + turn draw, got %d: %v", len(hand), hand)
+		t.Fatalf("expected p2 to have 2 cards after Reboot + turn draw, got %d: %v", len(hand), hand)
 	}
 	for _, c := range hand {
-		if c == "guard" {
+		if c == "ping" {
 			// The original guard was discarded — but the deck also contains guards,
 			// so we can only verify p2 received new cards, not their exact identity.
 			// Check discard pile instead.
@@ -552,126 +552,126 @@ func TestApplyMove_Prince_TargetDrawsNewCard(t *testing.T) {
 	switch v := p2Discards.(type) {
 	case []any:
 		for _, c := range v {
-			if c == "guard" {
+			if c == "ping" {
 				found = true
 			}
 		}
 	case []string:
 		for _, c := range v {
-			if c == "guard" {
+			if c == "ping" {
 				found = true
 			}
 		}
 	}
 	if !found {
-		t.Error("expected original guard to be in p2's discard pile after Prince")
+		t.Error("expected original guard to be in p2's discard pile after Reboot")
 	}
 }
 
-func TestApplyMove_Prince_DiscardsPrincess_Eliminates(t *testing.T) {
+func TestApplyMove_Reboot_DiscardsRebootss_Eliminates(t *testing.T) {
 	// 3 players so eliminating p2 doesn't end the round immediately.
 	state := mustInit(t, "p1", "p2", "p3")
-	state = setHand(state, "p1", "prince", "spy")
-	state = setHand(state, "p2", "princess")
-	state = setDeck(state, "guard", "guard", "guard")
+	state = setHand(state, "p1", "reboot", "backdoor")
+	state = setHand(state, "p2", "root")
+	state = setDeck(state, "ping", "ping", "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "prince",
+		"card":             "reboot",
 		"target_player_id": "p2",
 	}))
 
 	if !isEliminated(t, state, "p2") {
-		t.Error("expected p2 to be eliminated when Prince forces Princess discard")
+		t.Error("expected p2 to be eliminated when Reboot forces Rebootss discard")
 	}
 }
 
-func TestApplyMove_King_SwapsHands(t *testing.T) {
+func TestApplyMove_Swap_SwapsHands(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds king+spy (plays king, keeps spy after swap); p2 holds guard.
 	// After swap: p1 gets guard, p2 gets spy.
-	state = setHand(state, "p1", "king", "spy")
-	state = setHand(state, "p2", "guard")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "swap", "backdoor")
+	state = setHand(state, "p2", "ping")
+	state = setDeck(state, "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "king",
+		"card":             "swap",
 		"target_player_id": "p2",
 	}))
 
 	p1Hand := getHand(t, state, "p1")
 	p2Hand := getHand(t, state, "p2")
 	if len(p1Hand) != 1 {
-		t.Fatalf("expected p1 to have 1 card after King, got %v", p1Hand)
+		t.Fatalf("expected p1 to have 1 card after Swap, got %v", p1Hand)
 	}
 	// advanceTurn draws p2's turn card after the swap, so p2 holds 2 cards.
 	if len(p2Hand) != 2 {
-		t.Fatalf("expected p2 to have 2 cards after King + turn draw, got %v", p2Hand)
+		t.Fatalf("expected p2 to have 2 cards after Swap + turn draw, got %v", p2Hand)
 	}
 	// p1 played king, held spy — after swap p1 gets p2's guard.
-	if p1Hand[0] != "guard" {
-		t.Errorf("expected p1 to hold guard after King swap, got %s", p1Hand[0])
+	if p1Hand[0] != "ping" {
+		t.Errorf("expected p1 to hold guard after Swap swap, got %s", p1Hand[0])
 	}
 	// p2 received spy via swap — verify spy is among p2's cards.
 	spyFound := false
 	for _, c := range p2Hand {
-		if c == "spy" {
+		if c == "backdoor" {
 			spyFound = true
 		}
 	}
 	if !spyFound {
-		t.Errorf("expected p2 to hold spy after King swap, got %v", p2Hand)
+		t.Errorf("expected p2 to hold spy after Swap swap, got %v", p2Hand)
 	}
 }
 
-func TestApplyMove_Princess_SelfEliminates(t *testing.T) {
+func TestApplyMove_Rebootss_SelfEliminates(t *testing.T) {
 	// 3 players so p1 eliminating themselves doesn't end the round.
 	state := mustInit(t, "p1", "p2", "p3")
-	state = setHand(state, "p1", "princess", "spy")
-	state = setDeck(state, "guard", "guard", "guard")
+	state = setHand(state, "p1", "root", "backdoor")
+	state = setDeck(state, "ping", "ping", "ping")
 
-	state = mustApply(t, state, move("p1", map[string]any{"card": "princess"}))
+	state = mustApply(t, state, move("p1", map[string]any{"card": "root"}))
 
 	if !isEliminated(t, state, "p1") {
-		t.Error("expected p1 to be eliminated after playing Princess")
+		t.Error("expected p1 to be eliminated after playing Rebootss")
 	}
 }
 
-func TestApplyMove_Chancellor_EntersPendingPhase(t *testing.T) {
+func TestApplyMove_Debugger_EntersPendingPhase(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds chancellor+spy (plays chancellor).
 	// Deck needs 2 cards for chancellor draw + 1 for advanceTurn later.
-	state = setHand(state, "p1", "chancellor", "spy")
-	state = setDeck(state, "guard", "priest", "baron")
+	state = setHand(state, "p1", "debugger", "backdoor")
+	state = setDeck(state, "ping", "sniffer", "buffer_overflow")
 
-	state = mustApply(t, state, move("p1", map[string]any{"card": "chancellor"}))
+	state = mustApply(t, state, move("p1", map[string]any{"card": "debugger"}))
 
-	if getString(t, state, "phase") != "chancellor_pending" {
+	if getString(t, state, "phase") != "debugger_pending" {
 		t.Errorf("expected phase chancellor_pending, got %s", getString(t, state, "phase"))
 	}
-	// chancellor_choices = remaining hand card (spy) + 2 drawn = 3 total.
+	// debugger_choices = remaining hand card (spy) + 2 drawn = 3 total.
 	state = roundtrip(t, state)
-	choices, _ := state.Data["chancellor_choices"].([]any)
+	choices, _ := state.Data["debugger_choices"].([]any)
 	if len(choices) != 3 {
-		t.Errorf("expected 3 chancellor_choices, got %d: %v", len(choices), choices)
+		t.Errorf("expected 3 debugger_choices, got %d: %v", len(choices), choices)
 	}
 }
 
-func TestApplyMove_ChancellorResolve_KeepsCard_ReturnsToDeck(t *testing.T) {
+func TestApplyMove_DebuggerResolve_KeepsCard_ReturnsToDeck(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 holds chancellor+spy; deck has guard and priest for the 2 chancellor draws,
 	// plus baron for advanceTurn after resolve.
-	state = setHand(state, "p1", "chancellor", "spy")
-	state = setDeck(state, "guard", "priest", "baron")
+	state = setHand(state, "p1", "debugger", "backdoor")
+	state = setDeck(state, "ping", "sniffer", "buffer_overflow")
 
 	// Play chancellor — enters chancellor_pending.
-	state = mustApply(t, state, move("p1", map[string]any{"card": "chancellor"}))
+	state = mustApply(t, state, move("p1", map[string]any{"card": "debugger"}))
 	state = roundtrip(t, state)
 
-	// chancellor_choices = [spy, guard, priest]; keep spy, return [guard, priest].
+	// debugger_choices = [spy, guard, priest]; keep spy, return [guard, priest].
 	resolveMove := move("p1", map[string]any{
-		"card":   "chancellor_resolve",
-		"keep":   "spy",
-		"return": []any{"guard", "priest"},
+		"card":   "debugger_resolve",
+		"keep":   "backdoor",
+		"return": []any{"ping", "sniffer"},
 	})
 	if err := game.ValidateMove(state, resolveMove); err != nil {
 		t.Fatalf("ValidateMove chancellor_resolve: %v", err)
@@ -685,7 +685,7 @@ func TestApplyMove_ChancellorResolve_KeepsCard_ReturnsToDeck(t *testing.T) {
 		t.Errorf("expected phase playing after chancellor_resolve, got %s", getString(t, next, "phase"))
 	}
 	p1Hand := getHand(t, next, "p1")
-	if len(p1Hand) != 1 || p1Hand[0] != "spy" {
+	if len(p1Hand) != 1 || p1Hand[0] != "backdoor" {
 		t.Errorf("expected p1 to hold spy after chancellor_resolve, got %v", p1Hand)
 	}
 }
@@ -693,7 +693,7 @@ func TestApplyMove_ChancellorResolve_KeepsCard_ReturnsToDeck(t *testing.T) {
 func TestApplyMove_PenaltyLose_EliminatesActivePlayer(t *testing.T) {
 	// 3 players so eliminating p1 doesn't end the round.
 	state := mustInit(t, "p1", "p2", "p3")
-	state = setDeck(state, "guard", "guard", "guard")
+	state = setDeck(state, "ping", "ping", "ping")
 
 	next, err := game.ApplyMove(state, move("p1", map[string]any{"card": "penalty_lose"}))
 	if err != nil {
@@ -712,16 +712,16 @@ func TestRoundResolution_LastPlayerWins_StartsNewRound(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
 	// p1 plays guard and guesses p2's card correctly — p2 eliminated.
 	// Round resolves, new round starts (tokens < threshold).
-	state = setHand(state, "p1", "guard", "spy")
-	state = setHand(state, "p2", "priest")
+	state = setHand(state, "p1", "ping", "backdoor")
+	state = setHand(state, "p2", "sniffer")
 	// Deck needs enough cards to deal a new round after resolution.
 	// dealRound calls buildDeck() internally — no need to set deck here.
-	state = setDeck(state, "guard")
+	state = setDeck(state, "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "guard",
+		"card":             "ping",
 		"target_player_id": "p2",
-		"guess":            "priest",
+		"guess":            "sniffer",
 	}))
 
 	// p2 eliminated → round resolves → new round starts.
@@ -734,25 +734,25 @@ func TestRoundResolution_LastPlayerWins_StartsNewRound(t *testing.T) {
 	}
 }
 
-func TestRoundResolution_SpyBonus_OnlyOneSpyPlayer(t *testing.T) {
+func TestRoundResolution_BackdoorBonus_OnlyOneBackdoorPlayer(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	// Set spy_played_by to only p1 — they should get the bonus at round end.
-	state.Data["spy_played_by"] = []string{"p1"}
+	// Set backdoor_played_by to only p1 — they should get the bonus at round end.
+	state.Data["backdoor_played_by"] = []string{"p1"}
 
-	spyPlayed := getStringSlice(t, state, "spy_played_by")
+	spyPlayed := getStringSlice(t, state, "backdoor_played_by")
 	if len(spyPlayed) != 1 || spyPlayed[0] != "p1" {
-		t.Errorf("expected spy_played_by=[p1], got %v", spyPlayed)
+		t.Errorf("expected backdoor_played_by=[p1], got %v", spyPlayed)
 	}
 }
 
-func TestRoundResolution_SpyBonus_TwoSpyPlayers_NoBonus(t *testing.T) {
+func TestRoundResolution_BackdoorBonus_TwoBackdoorPlayers_NoBonus(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	// Both played spy — len(spy_played_by) == 2, no bonus awarded.
-	state.Data["spy_played_by"] = []string{"p1", "p2"}
+	// Both played spy — len(backdoor_played_by) == 2, no bonus awarded.
+	state.Data["backdoor_played_by"] = []string{"p1", "p2"}
 
-	spyPlayed := getStringSlice(t, state, "spy_played_by")
+	spyPlayed := getStringSlice(t, state, "backdoor_played_by")
 	if len(spyPlayed) != 2 {
-		t.Errorf("expected 2 entries in spy_played_by, got %d", len(spyPlayed))
+		t.Errorf("expected 2 entries in backdoor_played_by, got %d", len(spyPlayed))
 	}
 }
 
@@ -763,14 +763,14 @@ func TestRoundResolution_GameOver_WhenTokenThresholdReached(t *testing.T) {
 	state.Data["tokens"] = tokens
 
 	// p1 plays guard and eliminates p2 to win the round.
-	state = setHand(state, "p1", "guard", "spy")
-	state = setHand(state, "p2", "priest")
-	state = setDeck(state, "guard")
+	state = setHand(state, "p1", "ping", "backdoor")
+	state = setHand(state, "p2", "sniffer")
+	state = setDeck(state, "ping")
 
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":             "guard",
+		"card":             "ping",
 		"target_player_id": "p2",
-		"guess":            "priest",
+		"guess":            "sniffer",
 	}))
 
 	if getString(t, state, "phase") != "game_over" {
@@ -815,8 +815,8 @@ func TestIsOver_GameOver(t *testing.T) {
 
 func TestFilterState_PlayerSeesOnlyOwnHand(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "king", "spy")
-	state = setHand(state, "p2", "guard")
+	state = setHand(state, "p1", "swap", "backdoor")
+	state = setHand(state, "p2", "ping")
 
 	filtered := game.FilterState(state, "p1")
 	filtered = roundtrip(t, filtered)
@@ -834,8 +834,8 @@ func TestFilterState_PlayerSeesOnlyOwnHand(t *testing.T) {
 
 func TestFilterState_SpectatorSeesNoHands(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "king", "spy")
-	state = setHand(state, "p2", "guard")
+	state = setHand(state, "p1", "swap", "backdoor")
+	state = setHand(state, "p2", "ping")
 
 	filtered := game.FilterState(state, "")
 	filtered = roundtrip(t, filtered)
@@ -848,39 +848,39 @@ func TestFilterState_SpectatorSeesNoHands(t *testing.T) {
 	}
 }
 
-func TestFilterState_ChancellorChoicesOnlyForActivePlayer(t *testing.T) {
+func TestFilterState_DebuggerChoicesOnlyForActivePlayer(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state.Data["chancellor_choices"] = []string{"king", "guard", "spy"}
-	state.Data["phase"] = "chancellor_pending"
+	state.Data["debugger_choices"] = []string{"swap", "ping", "backdoor"}
+	state.Data["phase"] = "debugger_pending"
 	state.CurrentPlayerID = "p1"
 
 	filteredP1 := game.FilterState(state, "p1")
 	filteredP1 = roundtrip(t, filteredP1)
-	if _, ok := filteredP1.Data["chancellor_choices"]; !ok {
-		t.Error("active player p1 should see chancellor_choices")
+	if _, ok := filteredP1.Data["debugger_choices"]; !ok {
+		t.Error("active player p1 should see debugger_choices")
 	}
 
 	filteredP2 := game.FilterState(state, "p2")
 	filteredP2 = roundtrip(t, filteredP2)
-	if _, ok := filteredP2.Data["chancellor_choices"]; ok {
-		t.Error("p2 should not see chancellor_choices")
+	if _, ok := filteredP2.Data["debugger_choices"]; ok {
+		t.Error("p2 should not see debugger_choices")
 	}
 
 	filteredSpectator := game.FilterState(state, "")
 	filteredSpectator = roundtrip(t, filteredSpectator)
-	if _, ok := filteredSpectator.Data["chancellor_choices"]; ok {
-		t.Error("spectator should not see chancellor_choices")
+	if _, ok := filteredSpectator.Data["debugger_choices"]; ok {
+		t.Error("spectator should not see debugger_choices")
 	}
 }
 
 func TestFilterState_PrivateRevealOnlyForRecipient(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state.Data["private_reveals"] = map[string]any{"p1": "king"}
+	state.Data["private_reveals"] = map[string]any{"p1": "swap"}
 
 	filteredP1 := game.FilterState(state, "p1")
 	filteredP1 = roundtrip(t, filteredP1)
 	reveals, _ := filteredP1.Data["private_reveals"].(map[string]any)
-	if reveals == nil || reveals["p1"] != "king" {
+	if reveals == nil || reveals["p1"] != "swap" {
 		t.Errorf("p1 should see their private reveal, got %v", reveals)
 	}
 
@@ -904,21 +904,21 @@ func TestTimeoutMove(t *testing.T) {
 	}
 }
 
-func TestLoveLetter_ImplementsTurnTimeoutHandler(t *testing.T) {
-	var _ engine.TurnTimeoutHandler = &loveletter.LoveLetter{}
+func TestRootAccess_ImplementsTurnTimeoutHandler(t *testing.T) {
+	var _ engine.TurnTimeoutHandler = &rootaccess.RootAccess{}
 }
 
-func TestApplyMove_Guard_NoValidTarget_NoEffect(t *testing.T) {
+func TestApplyMove_Ping_NoValidTarget_NoEffect(t *testing.T) {
 	state := mustInit(t, "p1", "p2")
-	state = setHand(state, "p1", "guard", "spy")
+	state = setHand(state, "p1", "ping", "backdoor")
 	state.Data["protected"] = []string{"p2"}
-	state = setDeck(state, "guard")
+	state = setDeck(state, "ping")
 
-	// Guard with empty target — legal when all opponents are protected.
+	// Ping with empty target — legal when all opponents are protected.
 	// guess is still required by validation even when there is no valid target.
 	state = mustApply(t, state, move("p1", map[string]any{
-		"card":  "guard",
-		"guess": "priest",
+		"card":  "ping",
+		"guess": "sniffer",
 	}))
 
 	if isEliminated(t, state, "p2") {

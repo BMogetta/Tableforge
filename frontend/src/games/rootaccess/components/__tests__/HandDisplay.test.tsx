@@ -8,14 +8,14 @@ describe('HandDisplay', () => {
   it('renders all cards in hand', () => {
     render(
       <HandDisplay
-        cards={['guard', 'priest'] as CardName[]}
+        cards={['ping', 'sniffer'] as CardName[]}
         selectedCard={null}
         disabled={false}
         onSelect={vi.fn()}
       />,
     )
-    expect(screen.getByText('Guard')).toBeInTheDocument()
-    expect(screen.getByText('Priest')).toBeInTheDocument()
+    expect(screen.getByText('PING')).toBeInTheDocument()
+    expect(screen.getByText('SNIFFER')).toBeInTheDocument()
   })
 
   it('shows empty message when hand is empty', () => {
@@ -28,7 +28,7 @@ describe('HandDisplay', () => {
     const onSelect = vi.fn()
     render(
       <HandDisplay
-        cards={['guard', 'spy'] as CardName[]}
+        cards={['ping', 'backdoor'] as CardName[]}
         selectedCard={null}
         disabled={false}
         onSelect={onSelect}
@@ -36,7 +36,7 @@ describe('HandDisplay', () => {
     )
     const cards = screen.getAllByTestId('card')
     await user.click(cards[0])
-    expect(onSelect).toHaveBeenCalledWith('guard')
+    expect(onSelect).toHaveBeenCalledWith('ping')
   })
 
   it('does not call onSelect when disabled', async () => {
@@ -44,7 +44,7 @@ describe('HandDisplay', () => {
     const onSelect = vi.fn()
     render(
       <HandDisplay
-        cards={['guard', 'spy'] as CardName[]}
+        cards={['ping', 'backdoor'] as CardName[]}
         selectedCard={null}
         disabled={true}
         onSelect={onSelect}
@@ -56,17 +56,17 @@ describe('HandDisplay', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  it('shows Countess must play label for blocked cards', () => {
+  it('shows ENCRYPTED_KEY must play label for blocked cards', () => {
     render(
       <HandDisplay
-        cards={['king', 'countess'] as CardName[]}
+        cards={['swap', 'encrypted_key'] as CardName[]}
         selectedCard={null}
         disabled={false}
         onSelect={vi.fn()}
-        blockedCards={['king']}
+        blockedCards={['swap']}
       />,
     )
-    expect(screen.getByText('Must play Countess')).toBeInTheDocument()
+    expect(screen.getByText('Must play ENCRYPTED_KEY')).toBeInTheDocument()
   })
 
   it('does not call onSelect for blocked cards', async () => {
@@ -74,14 +74,14 @@ describe('HandDisplay', () => {
     const onSelect = vi.fn()
     render(
       <HandDisplay
-        cards={['king', 'countess'] as CardName[]}
+        cards={['swap', 'encrypted_key'] as CardName[]}
         selectedCard={null}
         disabled={false}
         onSelect={onSelect}
-        blockedCards={['king']}
+        blockedCards={['swap']}
       />,
     )
-    // King is blocked (disabled), countess is playable
+    // Swap is blocked (disabled), encrypted_key is playable
     const cards = screen.getAllByTestId('card')
     // Click the blocked king — should not fire
     await user.click(cards[0])
@@ -89,6 +89,6 @@ describe('HandDisplay', () => {
 
     // Click countess — should fire
     await user.click(cards[1])
-    expect(onSelect).toHaveBeenCalledWith('countess')
+    expect(onSelect).toHaveBeenCalledWith('encrypted_key')
   })
 })
