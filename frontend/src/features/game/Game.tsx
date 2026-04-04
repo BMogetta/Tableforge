@@ -7,6 +7,7 @@ import { testAttr } from '@/utils/testId'
 import { useToast } from '@/ui/Toast'
 import { ErrorMessage } from '@/ui/ErrorMessage'
 import { keys } from '@/lib/queryClient'
+import { sfx } from '@/lib/sfx'
 import styles from './Game.module.css'
 import { SurrenderModal } from './components/SurrenderModal'
 import { GameHeader } from './components/GameHeader'
@@ -68,9 +69,15 @@ export function Game({ sessionId }: { sessionId: string }) {
     setMoveError(null)
   }, [sessionId])
 
-  // Request notification permission on game start + manage WakeLock.
+  // Preload game sounds + request notification permission + WakeLock.
   useEffect(() => {
+    sfx.preload(
+      'game.card_play', 'game.card_draw', 'game.my_turn',
+      'game.round_end', 'game.win', 'game.lose', 'game.draw',
+      'game.start', 'game.elimination',
+    )
     if (isSpectator) return
+    sfx.play('game.start')
     requestPermission()
     acquireWakeLock()
     return () => { releaseWakeLock() }
@@ -78,6 +85,9 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   function handleGameOver(winnerId: string | null, isDraw: boolean) {
     setGameOver({ isOver: true, winnerId, isDraw })
+    if (isDraw) sfx.play('game.draw')
+    else if (winnerId === player.id) sfx.play('game.win')
+    else sfx.play('game.lose')
   }
 
   useEffect(() => {

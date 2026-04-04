@@ -5,6 +5,7 @@ import { queue } from '@/features/lobby/api'
 import type { GameInfo } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
+import { sfx } from '@/lib/sfx'
 import styles from './NewGamePanel.module.css'
 import { useNavigate } from '@tanstack/react-router'
 import { testId } from '@/utils/testId'
@@ -57,6 +58,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
     const off = playerSocket.on(event => {
       if (event.type === 'match_found') {
         const payload = event.payload
+        sfx.play('queue.match_found')
         setMatchFound(payload.match_id)
       }
 

@@ -5,6 +5,7 @@ import { useAppStore, type ResolvedSettings } from '../stores/store'
 import { auth, wsPlayerUrl, playerSettings } from '@/lib/api'
 import { friends } from '@/features/friends/api'
 import { keys } from '@/lib/queryClient'
+import { sfx } from '@/lib/sfx'
 import { AppHeader } from '@/features/lobby/components/AppHeader'
 import { FriendsPanel, FriendsButton } from '@/features/friends/components/FriendsPanel'
 import { DMInboxPanel } from '@/features/friends/components/DMInboxPanel'
@@ -210,9 +211,31 @@ function NotFound() {
 }
 
 function RootComponent() {
-  const { player, setPlayer, disconnectPlayerSocket, dmTarget, setDmTarget } = useAppStore()
+  const { player, setPlayer, disconnectPlayerSocket, dmTarget, setDmTarget, playerSocket } = useAppStore()
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [dmInboxOpen, setDmInboxOpen] = useState(false)
+
+  // Preload notification/UI sounds on login.
+  useEffect(() => {
+    if (player) {
+      sfx.preload('notification.dm', 'notification.invite', 'queue.match_found', 'ui.click')
+    }
+  }, [player?.id])
+
+  // Play notification sounds from playerSocket events.
+  useEffect(() => {
+    if (!playerSocket) return
+    const off = playerSocket.on(event => {
+      if (event.type === 'notification_received') {
+        const payload = event.payload as { type?: string }
+        if (payload.type === 'room_invitation') sfx.play('notification.invite')
+      }
+      if (event.type === 'dm_received') {
+        sfx.play('notification.dm')
+      }
+    })
+    return () => off()
+  }, [playerSocket])
 
   useEffect(() => {
     if (!player) {

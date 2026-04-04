@@ -6,6 +6,7 @@ import type { PauseResumeState } from './usePauseResume'
 import type { RematchState } from './useRematch'
 import { ResultStatus } from '@/lib/api'
 import { notifyTurn } from '@/lib/turn-notifier'
+import { sfx } from '@/lib/sfx'
 import { useAppStore } from '@/stores/store'
 import type { SessionCache } from '../api/session-cache'
 
@@ -81,6 +82,7 @@ export function useGameSocket({
       const localId = useAppStore.getState().player?.id
       if (localId && payload.state.current_player_id === localId) {
         notifyTurn()
+        sfx.play('game.my_turn')
       }
     } else {
       qc.setQueryData(keys.session(sessionId), {

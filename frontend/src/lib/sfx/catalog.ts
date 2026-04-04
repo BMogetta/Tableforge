@@ -26,30 +26,25 @@ const CATALOG = {
   'chat.receive': 'https://l4kdz58q3w.ufs.sh/f/emSxdi95EKfJlzzTPoHAqPzRYN6uLM3mEfoOhTtnbW59BreZ',
 
   // -- Notifications ---------------------------------------------------------
-  // 'notification.dm':             '',
-  // 'notification.friend_request': '',
-  // 'notification.invite':         '',
-  // 'notification.generic':        '',
+  'notification.dm': '',
+  'notification.invite': '',
 
   // -- Game ------------------------------------------------------------------
-  // 'game.move':       '',
-  // 'game.my_turn':    '',
-  // 'game.win':        '',
-  // 'game.lose':       '',
-  // 'game.draw':       '',
-  // 'game.countdown':  '',
+  'game.card_play': ['', ''] as readonly string[],
+  'game.card_draw': ['', ''] as readonly string[],
+  'game.my_turn': '',
+  'game.round_end': '',
+  'game.win': '',
+  'game.lose': '',
+  'game.draw': '',
+  'game.start': '',
+  'game.elimination': '',
 
   // -- UI --------------------------------------------------------------------
-  // 'ui.click':   '',
-  // 'ui.error':   '',
-  // 'ui.toggle':  '',
+  'ui.click': '',
 
   // -- Queue -----------------------------------------------------------------
-  // 'queue.match_found': '',
-  // 'queue.ready':       '',
-  // -- Multi-variant examples (array format) ----------------------------------
-  // 'game.card_play': ['https://cdn.example.com/card-play-1.mp3', 'https://cdn.example.com/card-play-2.mp3'],
-  // 'game.move':      ['https://cdn.example.com/move-a.mp3', 'https://cdn.example.com/move-b.mp3', 'https://cdn.example.com/move-c.mp3'],
+  'queue.match_found': '',
 } as const satisfies Record<string, string | readonly string[]>
 
 export type SfxId = keyof typeof CATALOG

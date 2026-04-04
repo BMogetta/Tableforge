@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { CardPile } from '@/ui/cards'
+import { sfx } from '@/lib/sfx'
 import { type CardName } from './CardDisplay'
 import { HandDisplay } from './HandDisplay'
 import { TargetPicker } from './TargetPicker'
@@ -112,6 +113,7 @@ export function RootAccess({
   // Show round summary when a round completes.
   useEffect(() => {
     if (state.phase === 'round_over' && state.round !== lastSeenRound) {
+      sfx.play('game.round_end')
       setShowRoundSummary(true)
       setLastSeenRound(state.round)
     }
@@ -128,6 +130,24 @@ export function RootAccess({
   const isMyTurn = currentPlayerId === localPlayerId && !disabled && !isOver
   const blockedCards = getBlockedCards(localHand)
   const target = tokensToWin(state.players.length)
+
+  // Track hand size for card draw SFX.
+  const prevHandSize = useRef(localHand.length)
+  useEffect(() => {
+    if (localHand.length > prevHandSize.current) {
+      sfx.play('game.card_draw')
+    }
+    prevHandSize.current = localHand.length
+  }, [localHand.length])
+
+  // Track eliminations for SFX.
+  const prevEliminated = useRef(state.eliminated.length)
+  useEffect(() => {
+    if (state.eliminated.length > prevEliminated.current) {
+      sfx.play('game.elimination')
+    }
+    prevEliminated.current = state.eliminated.length
+  }, [state.eliminated.length])
 
   function getUsername(id: string): string {
     return players.find(p => p.id === id)?.username ?? id.slice(0, 8)
@@ -157,6 +177,7 @@ export function RootAccess({
 
   function handleSubmit() {
     if (!isReadyToSubmit() || !selectedCard) return
+    sfx.play('game.card_play')
     const payload: Record<string, unknown> = { card: selectedCard }
     if (selectedTarget) payload.target_player_id = selectedTarget
     if (selectedGuess) payload.guess = selectedGuess
