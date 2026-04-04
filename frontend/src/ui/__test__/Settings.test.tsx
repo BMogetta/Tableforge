@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/store'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import { Settings } from '../Settings'
@@ -55,10 +56,14 @@ function renderSettings(onClose = vi.fn()) {
     settings: { ...DEFAULT_SETTINGS },
   })
 
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
   return render(
-    <ToastProvider>
-      <Settings onClose={onClose} />
-    </ToastProvider>,
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <Settings onClose={onClose} />
+      </ToastProvider>
+    </QueryClientProvider>,
   )
 }
 

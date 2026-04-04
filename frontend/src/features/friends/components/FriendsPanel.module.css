@@ -204,6 +204,17 @@
   border-color: var(--color-border-bright);
 }
 
+.actionBtnDanger {
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.actionBtnDanger:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
 /* Floating button */
 .floatingBtn {
   position: fixed;

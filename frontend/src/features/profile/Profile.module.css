@@ -76,6 +76,20 @@
   margin-top: 2px;
 }
 
+.profileActions {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.blockBtn {
+  color: var(--color-danger);
+}
+
+.blockBtn:hover {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
 /* --- Stats bar ------------------------------------------------------------- */
 
 .statsBar {

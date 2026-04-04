@@ -4,8 +4,10 @@ import { useAppStore } from '@/stores/store'
 import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap, Language } from '@/lib/api'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from './Toast'
+import { useBlockPlayer } from '@/hooks/useBlockPlayer'
 import styles from './Settings.module.css'
 import { SKINS } from '@/lib/skins'
+import { testId } from '@/utils/testId'
 
 // ---------------------------------------------------------------------------
 // Settings cache helpers (mirrors App.tsx)
@@ -34,6 +36,7 @@ export function Settings({ onClose }: Props) {
   const settings = useAppStore(s => s.settings)
   const updateSetting = useAppStore(s => s.updateSetting)
   const toast = useToast()
+  const { blockedPlayers, unblock, unblockPending } = useBlockPlayer()
 
   // Debounced backend sync — fires 600ms after the last change.
   // Each call sends the full current settings object so rapid changes
@@ -229,6 +232,31 @@ export function Settings({ onClose }: Props) {
             ]}
             onChange={v => change('allow_dms', v as PlayerSettingMap['allow_dms'])}
           />
+        </Section>
+
+        {/* ── Blocked Players ── */}
+        <Section
+          title='Blocked Players'
+          note={blockedPlayers.length === 0 ? undefined : 'Blocked players cannot send you messages or friend requests.'}
+        >
+          {blockedPlayers.length === 0 ? (
+            <p className={styles.emptyBlocked}>No blocked players.</p>
+          ) : (
+            blockedPlayers.map(bp => (
+              <div key={bp.id} className={styles.blockedRow} {...testId(`blocked-player-${bp.id}`)}>
+                {bp.avatar_url && <img src={bp.avatar_url} alt='' className={styles.blockedAvatar} />}
+                <span className={styles.blockedName}>{bp.username}</span>
+                <button
+                  className='btn btn-ghost btn-sm'
+                  onClick={() => unblock(bp.id)}
+                  disabled={unblockPending}
+                  {...testId(`unblock-btn-${bp.id}`)}
+                >
+                  {unblockPending ? '...' : 'Unblock'}
+                </button>
+              </div>
+            ))
+          )}
         </Section>
       </div>
     </div>

@@ -49,6 +49,23 @@ export const dmConversations = {
 // Re-export dm from room/api for convenience — DM send/history/markRead stay there.
 export { dm } from '@/features/room/api'
 
+// --- Blocks ------------------------------------------------------------------
+
+export interface BlockedPlayer {
+  id: string
+  username: string
+  avatar_url?: string
+  blocked_at: string
+}
+
+export const blocks = {
+  block: (playerId: string, targetId: string) =>
+    request<unknown>(`/players/${playerId}/block/${targetId}`, { method: 'POST' }),
+
+  unblock: (playerId: string, targetId: string) =>
+    request<void>(`/players/${playerId}/block/${targetId}`, { method: 'DELETE' }),
+}
+
 // --- Presence ----------------------------------------------------------------
 
 export const presence = {
