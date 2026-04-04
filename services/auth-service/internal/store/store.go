@@ -114,8 +114,8 @@ func (s *Store) UpsertOAuthIdentity(ctx context.Context, params handler.UpsertOA
 }
 
 // CreateSession inserts a new row into player_sessions with device info
-// captured from the HTTP request.
-func (s *Store) CreateSession(ctx context.Context, params handler.CreateSessionParams) error {
+// captured from the HTTP request and returns the generated session ID.
+func (s *Store) CreateSession(ctx context.Context, params handler.CreateSessionParams) (uuid.UUID, error) {
 	deviceInfo := map[string]string{
 		"user_agent":      params.UserAgent,
 		"accept_language": params.AcceptLanguage,
@@ -123,17 +123,85 @@ func (s *Store) CreateSession(ctx context.Context, params handler.CreateSessionP
 	}
 	info, err := json.Marshal(deviceInfo)
 	if err != nil {
-		return fmt.Errorf("marshal device_info: %w", err)
+		return uuid.Nil, fmt.Errorf("marshal device_info: %w", err)
 	}
-	_, err = s.pool.Exec(ctx,
+	var sessionID uuid.UUID
+	err = s.pool.QueryRow(ctx,
 		`INSERT INTO player_sessions (player_id, device_info, expires_at)
-		 VALUES ($1, $2, $3)`,
+		 VALUES ($1, $2, $3)
+		 RETURNING id`,
 		params.PlayerID, info, params.ExpiresAt,
+	).Scan(&sessionID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("insert session: %w", err)
+	}
+	return sessionID, nil
+}
+
+// GetSession retrieves an active (not revoked, not expired) session by ID.
+func (s *Store) GetSession(ctx context.Context, sessionID uuid.UUID) (handler.Session, error) {
+	var sess handler.Session
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, player_id, expires_at, last_seen_at
+		 FROM player_sessions
+		 WHERE id = $1 AND revoked_at IS NULL AND expires_at > NOW()`,
+		sessionID,
+	).Scan(&sess.ID, &sess.PlayerID, &sess.ExpiresAt, &sess.LastSeenAt)
+	if err != nil {
+		return sess, fmt.Errorf("get session: %w", err)
+	}
+	return sess, nil
+}
+
+// RevokeSession marks a session as revoked.
+func (s *Store) RevokeSession(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE player_sessions SET revoked_at = NOW() WHERE id = $1`,
+		sessionID,
 	)
 	if err != nil {
-		return fmt.Errorf("insert session: %w", err)
+		return fmt.Errorf("revoke session: %w", err)
 	}
 	return nil
+}
+
+// RevokeAllSessions revokes all active sessions for a player.
+func (s *Store) RevokeAllSessions(ctx context.Context, playerID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE player_sessions SET revoked_at = NOW()
+		 WHERE player_id = $1 AND revoked_at IS NULL`,
+		playerID,
+	)
+	if err != nil {
+		return fmt.Errorf("revoke all sessions: %w", err)
+	}
+	return nil
+}
+
+// TouchSession updates last_seen_at for a session.
+func (s *Store) TouchSession(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE player_sessions SET last_seen_at = NOW() WHERE id = $1`,
+		sessionID,
+	)
+	if err != nil {
+		return fmt.Errorf("touch session: %w", err)
+	}
+	return nil
+}
+
+// CheckActiveBan checks if a player has an active (non-expired) ban.
+func (s *Store) CheckActiveBan(ctx context.Context, playerID uuid.UUID) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM users.bans
+			WHERE player_id = $1
+			AND lifted_at IS NULL
+			AND (expires_at IS NULL OR expires_at > NOW())
+		)`, playerID,
+	).Scan(&exists)
+	return exists, err
 }
 
 // GetPlayer fetches a player by ID.

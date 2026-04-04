@@ -18,12 +18,16 @@ import (
 
 // Store is the minimal DB interface auth-service needs.
 // Implemented by the real store (pgx) and a mock in tests.
-// Only touches: players, oauth_identities, allowed_emails.
 type Store interface {
 	IsEmailAllowed(ctx context.Context, email string) (bool, error)
 	UpsertOAuthIdentity(ctx context.Context, params UpsertOAuthParams) (OAuthIdentity, error)
 	GetPlayer(ctx context.Context, id uuid.UUID) (Player, error)
-	CreateSession(ctx context.Context, params CreateSessionParams) error
+	CreateSession(ctx context.Context, params CreateSessionParams) (uuid.UUID, error)
+	GetSession(ctx context.Context, sessionID uuid.UUID) (Session, error)
+	RevokeSession(ctx context.Context, sessionID uuid.UUID) error
+	RevokeAllSessions(ctx context.Context, playerID uuid.UUID) error
+	TouchSession(ctx context.Context, sessionID uuid.UUID) error
+	CheckActiveBan(ctx context.Context, playerID uuid.UUID) (bool, error)
 }
 
 // CreateSessionParams holds data for a new player_sessions row.
@@ -54,6 +58,14 @@ type Player struct {
 	ID       uuid.UUID `json:"id"`
 	Username string    `json:"username"`
 	Role     string    `json:"role"`
+}
+
+// Session represents an active refresh session.
+type Session struct {
+	ID         uuid.UUID
+	PlayerID   uuid.UUID
+	ExpiresAt  time.Time
+	LastSeenAt time.Time
 }
 
 // Handler holds dependencies for all auth routes.
@@ -182,18 +194,23 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create session row — best-effort, don't block login on failure.
-	if err := h.store.CreateSession(ctx, CreateSessionParams{
+	// Create session row for refresh token rotation.
+	sessionID, err := h.store.CreateSession(ctx, CreateSessionParams{
 		PlayerID:       player.ID,
 		UserAgent:      r.UserAgent(),
 		AcceptLanguage: r.Header.Get("Accept-Language"),
 		IPAddress:      clientIP(r),
-		ExpiresAt:      time.Now().Add(middleware.JWTTTL),
-	}); err != nil {
+		ExpiresAt:      time.Now().Add(middleware.RefreshTTL),
+	})
+	if err != nil {
 		slog.Error("auth: create session", "player_id", player.ID, "error", err)
+		// Still set the access token — the user can log in, just won't have refresh.
 	}
 
 	authjwt.SetSessionCookie(w, token, h.secure)
+	if sessionID != uuid.Nil {
+		authjwt.SetRefreshCookie(w, sessionID.String(), h.secure)
+	}
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
@@ -216,13 +233,104 @@ func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(player)
 }
 
-// HandleLogout clears the session cookie.
+// HandleLogout revokes the refresh session and clears both cookies.
 func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	authjwt.ClearSessionCookie(w)
+	if c, err := r.Cookie(middleware.RefreshCookieName); err == nil {
+		if sessionID, err := uuid.Parse(c.Value); err == nil {
+			if err := h.store.RevokeSession(r.Context(), sessionID); err != nil {
+				slog.Error("auth: revoke session on logout", "session_id", sessionID, "error", err)
+			}
+		}
+	}
+	authjwt.ClearAllCookies(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// HandleRefresh rotates the refresh session and issues new access + refresh cookies.
+// POST /auth/refresh — no auth middleware (the access token may be expired).
+func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(middleware.RefreshCookieName)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing refresh token"})
+		return
+	}
+
+	sessionID, err := uuid.Parse(cookie.Value)
+	if err != nil {
+		authjwt.ClearAllCookies(w)
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid refresh token"})
+		return
+	}
+
+	ctx := r.Context()
+
+	sess, err := h.store.GetSession(ctx, sessionID)
+	if err != nil {
+		authjwt.ClearAllCookies(w)
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "session expired or revoked"})
+		return
+	}
+
+	// Check if the player is banned — if so, revoke and reject.
+	banned, err := h.store.CheckActiveBan(ctx, sess.PlayerID)
+	if err != nil {
+		slog.Error("auth: check ban on refresh", "player_id", sess.PlayerID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+	if banned {
+		_ = h.store.RevokeSession(ctx, sessionID)
+		authjwt.ClearAllCookies(w)
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "account banned"})
+		return
+	}
+
+	// Fetch player to get current role/username for the new JWT.
+	player, err := h.store.GetPlayer(ctx, sess.PlayerID)
+	if err != nil {
+		slog.Error("auth: get player on refresh", "player_id", sess.PlayerID, "error", err)
+		authjwt.ClearAllCookies(w)
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "player not found"})
+		return
+	}
+
+	// Rotate: revoke current session, create new one.
+	if err := h.store.RevokeSession(ctx, sessionID); err != nil {
+		slog.Error("auth: revoke old session", "session_id", sessionID, "error", err)
+	}
+
+	newSessionID, err := h.store.CreateSession(ctx, CreateSessionParams{
+		PlayerID:       player.ID,
+		UserAgent:      r.UserAgent(),
+		AcceptLanguage: r.Header.Get("Accept-Language"),
+		IPAddress:      clientIP(r),
+		ExpiresAt:      time.Now().Add(middleware.RefreshTTL),
+	})
+	if err != nil {
+		slog.Error("auth: create rotated session", "player_id", player.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+
+	token, err := authjwt.SignToken(h.jwtSecret, player.ID, player.Username, player.Role)
+	if err != nil {
+		slog.Error("auth: sign token on refresh", "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+
+	authjwt.SetSessionCookie(w, token, h.secure)
+	authjwt.SetRefreshCookie(w, newSessionID.String(), h.secure)
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // --- helpers -----------------------------------------------------------------
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
 
 func randomState() (string, error) {
 	b := make([]byte, 16)

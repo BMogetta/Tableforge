@@ -13,16 +13,26 @@ import (
 	sharedevents "github.com/recess/shared/events"
 )
 
-func setup(t *testing.T) (*Consumer, *miniredis.Miniredis, *redis.Client) {
+type mockRevoker struct {
+	revokedPlayers []uuid.UUID
+}
+
+func (m *mockRevoker) RevokeAllSessions(_ context.Context, playerID uuid.UUID) error {
+	m.revokedPlayers = append(m.revokedPlayers, playerID)
+	return nil
+}
+
+func setup(t *testing.T) (*Consumer, *miniredis.Miniredis, *redis.Client, *mockRevoker) {
 	t.Helper()
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	c := New(rdb, slog.Default())
-	return c, mr, rdb
+	rev := &mockRevoker{}
+	c := New(rdb, slog.Default(), rev)
+	return c, mr, rdb, rev
 }
 
 func TestHandlePlayerBanned_PublishesSessionRevoked(t *testing.T) {
-	cons, _, rdb := setup(t)
+	cons, _, rdb, rev := setup(t)
 	ctx := context.Background()
 
 	// Subscribe to the output channel before publishing.
@@ -73,10 +83,15 @@ func TestHandlePlayerBanned_PublishesSessionRevoked(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for session revoked event")
 	}
+
+	// Verify DB sessions were revoked.
+	if len(rev.revokedPlayers) != 1 || rev.revokedPlayers[0] != playerID {
+		t.Errorf("expected revoker to be called with %s, got %v", playerID, rev.revokedPlayers)
+	}
 }
 
 func TestHandlePlayerBanned_InvalidJSON(t *testing.T) {
-	cons, _, _ := setup(t)
+	cons, _, _, _ := setup(t)
 	err := cons.handle(context.Background(), &redis.Message{
 		Channel: channelPlayerBanned,
 		Payload: "not json",
@@ -87,7 +102,7 @@ func TestHandlePlayerBanned_InvalidJSON(t *testing.T) {
 }
 
 func TestHandlePlayerBanned_InvalidPlayerID(t *testing.T) {
-	cons, _, _ := setup(t)
+	cons, _, _, _ := setup(t)
 	evt := sharedevents.PlayerBanned{
 		Meta:     sharedevents.Meta{EventID: uuid.New().String(), Version: 1},
 		PlayerID: "not-a-uuid",
@@ -104,7 +119,7 @@ func TestHandlePlayerBanned_InvalidPlayerID(t *testing.T) {
 }
 
 func TestHandle_UnknownChannel(t *testing.T) {
-	cons, _, _ := setup(t)
+	cons, _, _, _ := setup(t)
 	err := cons.handle(context.Background(), &redis.Message{
 		Channel: "unknown.channel",
 		Payload: "{}",

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -21,8 +22,10 @@ const (
 )
 
 const (
-	CookieName = "tf_session"
-	JWTTTL     = 7 * 24 * time.Hour
+	CookieName        = "tf_session"
+	RefreshCookieName = "tf_refresh"
+	JWTTTL            = 15 * time.Minute
+	RefreshTTL        = 7 * 24 * time.Hour
 )
 
 // Claims is the JWT payload shared across all services.
@@ -60,7 +63,13 @@ func RoleFromContext(ctx context.Context) (string, bool) {
 	return r, ok
 }
 
+// ErrTokenExpired is returned when the JWT signature is valid but the token
+// has passed its expiration time. Callers can check for this to trigger a
+// refresh flow instead of a hard logout.
+var ErrTokenExpired = errors.New("token expired")
+
 // VerifyToken parses and validates a JWT string, returning the claims.
+// Returns ErrTokenExpired when the token is well-formed but expired.
 func VerifyToken(secret []byte, raw string) (*Claims, error) {
 	tok, err := jwt.ParseWithClaims(raw, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -68,7 +77,13 @@ func VerifyToken(secret []byte, raw string) (*Claims, error) {
 		}
 		return secret, nil
 	})
-	if err != nil || !tok.Valid {
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrTokenExpired
+		}
+		return nil, errors.New("invalid token")
+	}
+	if !tok.Valid {
 		return nil, errors.New("invalid token")
 	}
 	c, ok := tok.Claims.(*Claims)
@@ -92,7 +107,15 @@ func Require(jwtSecret []byte) func(http.Handler) http.Handler {
 
 			c, err := VerifyToken(jwtSecret, cookie.Value)
 			if err != nil {
-				slog.Warn("auth: unauthorized", "method", r.Method, "path", r.URL.Path, "reason", "invalid token")
+				reason := "invalid token"
+				if errors.Is(err, ErrTokenExpired) {
+					reason = "token expired"
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(map[string]string{"error": "token_expired"})
+					return
+				}
+				slog.Warn("auth: unauthorized", "method", r.Method, "path", r.URL.Path, "reason", reason)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
