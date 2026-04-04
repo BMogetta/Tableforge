@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -62,13 +63,27 @@ func upsertLobbySetting(settings []engine.LobbySetting, s engine.LobbySetting) [
 
 // --- Rooms -------------------------------------------------------------------
 
+// hasActiveSession checks whether the player has an unfinished session.
+// Returns true and the session ID if one exists.
+func hasActiveSession(ctx context.Context, st store.Store, playerID uuid.UUID) (bool, string) {
+	sessions, err := st.ListActiveSessions(ctx, playerID)
+	if err != nil {
+		slog.Error("active session check failed", "player_id", playerID, "error", err)
+		return false, ""
+	}
+	if len(sessions) > 0 {
+		return true, sessions[0].ID.String()
+	}
+	return false, ""
+}
+
 type createRoomRequest struct {
 	GameID          string `json:"game_id"`
 	TurnTimeoutSecs *int   `json:"turn_timeout_secs,omitempty"`
 }
 
 // POST /api/v1/rooms
-func handleCreateRoom(svc *lobby.Service) http.HandlerFunc {
+func handleCreateRoom(svc *lobby.Service, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req createRoomRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -79,6 +94,14 @@ func handleCreateRoom(svc *lobby.Service) http.HandlerFunc {
 		ownerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
 			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
+			return
+		}
+
+		if blocked, sessionID := hasActiveSession(r.Context(), st, ownerID); blocked {
+			writeJSON(w, http.StatusConflict, map[string]string{
+				"error":      "active session exists",
+				"session_id": sessionID,
+			})
 			return
 		}
 
@@ -125,7 +148,7 @@ type joinRoomRequest struct {
 }
 
 // POST /api/v1/rooms/join
-func handleJoinRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
+func handleJoinRoom(svc *lobby.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req joinRoomRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -136,6 +159,14 @@ func handleJoinRoom(svc *lobby.Service, hub *ws.Hub) http.HandlerFunc {
 		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
 			writeError(w, http.StatusUnauthorized, error_message.Unauthorized)
+			return
+		}
+
+		if blocked, sessionID := hasActiveSession(r.Context(), st, playerID); blocked {
+			writeJSON(w, http.StatusConflict, map[string]string{
+				"error":      "active session exists",
+				"session_id": sessionID,
+			})
 			return
 		}
 
