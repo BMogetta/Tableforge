@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
 import { RoomCard } from './RoomCard'
@@ -8,6 +9,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { testId } from '@/utils/testId'
 
 export function OpenRooms({ disabled }: { disabled?: boolean }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const { data, isLoading } = useQuery({
@@ -20,7 +22,7 @@ export function OpenRooms({ disabled }: { disabled?: boolean }) {
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>
-        Open Rooms
+        {t('lobby.openRooms')}
         <span className={styles.count}>{roomList.length}</span>
       </h2>
 
@@ -31,7 +33,7 @@ export function OpenRooms({ disabled }: { disabled?: boolean }) {
           <RoomCardSkeleton />
         </div>
       ) : roomList.length === 0 ? (
-        <p className={styles.empty}>No open rooms. Create one to get started.</p>
+        <p className={styles.empty}>{t('lobby.noRooms')}</p>
       ) : (
         <div {...testId('lobby-room-list')} className={styles.list}>
           {roomList.map(view => (

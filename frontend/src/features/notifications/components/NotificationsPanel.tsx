@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { notifications } from '@/features/notifications/api'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import type { Notification } from '@/lib/api'
@@ -18,6 +19,7 @@ interface NotificationsPanelProps {
 }
 
 export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) {
+  const { t } = useTranslation()
   const trapRef = useFocusTrap<HTMLDivElement>()
   const player = useAppStore(s => s.player)!
   const queryClient = useQueryClient()
@@ -80,7 +82,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
       >
         <div className={styles.header}>
           <h2 className={styles.title} id='notifications-title'>
-            Notifications
+            {t('notifications.title')}
           </h2>
           <button className={styles.closeBtn} onClick={onClose}>
             x
@@ -89,7 +91,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
 
         <div className={styles.list}>
           {safeItems.length === 0 ? (
-            <p className={styles.empty}>No notifications yet.</p>
+            <p className={styles.empty}>{t('notifications.empty')}</p>
           ) : (
             safeItems.map(n => (
               <NotificationItem

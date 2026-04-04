@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import type {
   Notification,
   NotificationPayloadFriendRequest,
@@ -15,12 +17,15 @@ interface NotificationItemProps {
   pending?: boolean
 }
 
-const labels: Record<NotificationType, string> = {
-  friend_request: 'Friend Request',
-  friend_request_accepted: 'Friend Request Accepted',
-  room_invitation: 'Room Invitation',
-  ban_issued: 'Ban Notice',
-  achievement_unlocked: 'Achievement Unlocked',
+function useLabels(): Record<NotificationType, string> {
+  const { t } = useTranslation()
+  return {
+    friend_request: t('notifications.friendRequest'),
+    friend_request_accepted: t('notifications.friendRequestAccepted'),
+    room_invitation: t('notifications.roomInvitation'),
+    ban_issued: t('notifications.banIssued'),
+    achievement_unlocked: t('notifications.achievementUnlocked'),
+  }
 }
 
 export function NotificationItem({
@@ -29,6 +34,8 @@ export function NotificationItem({
   onDecline,
   pending,
 }: NotificationItemProps) {
+  const { t } = useTranslation()
+  const labels = useLabels()
   const isRead = !!n.read_at
   const hasAction = !n.action_taken && n.type !== 'ban_issued'
   const isExpired = n.action_expires_at ? new Date(n.action_expires_at) < new Date() : false
@@ -41,15 +48,15 @@ export function NotificationItem({
       <div className={styles.header}>
         <span className={styles.type}>{labels[n.type]}</span>
         <time className={styles.time} dateTime={n.created_at}>
-          {formatRelative(n.created_at)}
+          {formatRelative(n.created_at, t)}
         </time>
       </div>
 
-      <p className={styles.body}>{describeNotification(n)}</p>
+      <p className={styles.body}>{describeNotification(n, t)}</p>
 
       {n.action_taken && (
         <span className={styles.actionTaken} {...testId('action-taken')}>
-          {n.action_taken === 'accepted' ? 'Accepted' : 'Declined'}
+          {n.action_taken === 'accepted' ? t('notifications.accepted') : t('notifications.declined')}
         </span>
       )}
 
@@ -61,7 +68,7 @@ export function NotificationItem({
             onClick={() => onAccept?.(n.id)}
             {...testId('accept-btn')}
           >
-            Accept
+            {t('notifications.accept')}
           </button>
           <button
             className='btn btn-ghost btn-sm'
@@ -69,53 +76,54 @@ export function NotificationItem({
             onClick={() => onDecline?.(n.id)}
             {...testId('decline-btn')}
           >
-            Decline
+            {t('notifications.decline')}
           </button>
         </div>
       )}
 
       {hasAction && isExpired && (
         <span className={styles.expired} {...testId('expired')}>
-          Expired
+          {t('notifications.expired')}
         </span>
       )}
     </div>
   )
 }
 
-function describeNotification(n: Notification): string {
+function describeNotification(n: Notification, t: TFunction): string {
   switch (n.type) {
     case 'friend_request': {
       const p = n.payload as NotificationPayloadFriendRequest
-      return `${p.from_username} sent you a friend request.`
+      return t('notifications.friendRequestMessage', { username: p.from_username })
+    }
+    case 'friend_request_accepted': {
+      const p = n.payload as NotificationPayloadFriendRequest
+      return t('notifications.friendAcceptedMessage', { username: p.from_username })
     }
     case 'room_invitation': {
       const p = n.payload as NotificationPayloadRoomInvitation
-      return `${p.from_username} invited you to a room.`
+      return t('notifications.roomInvitationMessage', { username: p.from_username })
     }
     case 'ban_issued': {
       const p = n.payload as NotificationPayloadBanIssued
-      const reason = p.reason === 'decline_threshold' ? 'too many declines' : 'moderator action'
-      return `You were banned for ${reason}.${p.expires_at ? ` Expires: ${new Date(p.expires_at).toLocaleString()}` : ''}`
+      const reason = p.reason === 'decline_threshold'
+        ? t('notifications.banReasonDeclines')
+        : t('notifications.banReasonModerator')
+      return t('notifications.banMessage', { reason }) +
+        (p.expires_at ? ` Expires: ${new Date(p.expires_at).toLocaleString()}` : '')
     }
     default:
-      return 'You have a new notification.'
+      return t('notifications.defaultMessage')
   }
 }
 
-function formatRelative(iso: string): string {
+function formatRelative(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60_000)
-  if (mins < 1) {
-    return 'just now'
-  }
-  if (mins < 60) {
-    return `${mins}m ago`
-  }
+  if (mins < 1) return t('notifications.timeJustNow')
+  if (mins < 60) return t('notifications.timeMinutes', { count: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) {
-    return `${hours}h ago`
-  }
+  if (hours < 24) return t('notifications.timeHours', { count: hours })
   const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  return t('notifications.timeDays', { count: days })
 }

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { notifications } from '@/features/notifications/api'
 import { NotificationsPanel } from '@/features/notifications/components/NotificationsPanel'
 import { dm } from '@/features/room/api'
@@ -18,6 +19,7 @@ interface Props {
 
 export function AppHeader({ onLogout }: Props) {
   const player = useAppStore(s => s.player)!
+  const { t } = useTranslation()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifsOpen, setNotifsOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
@@ -50,7 +52,7 @@ export function AppHeader({ onLogout }: Props) {
           {/* Rules book */}
           <button
             className={styles.iconBtn}
-            title='Game Rules'
+            title={t('header.gameRules')}
             onClick={() => setRulesOpen(true)}
             {...testId('rules-btn')}
           >
@@ -70,7 +72,7 @@ export function AppHeader({ onLogout }: Props) {
           {/* Notifications bell */}
           <button
             className={styles.iconBtn}
-            title='Notifications'
+            title={t('header.notifications')}
             onClick={() => setNotifsOpen(true)}
           >
             <svg
@@ -92,7 +94,7 @@ export function AppHeader({ onLogout }: Props) {
           {/* DMs envelope */}
           <button
             className={styles.iconBtn}
-            title='Messages'
+            title={t('header.messages')}
             onClick={() => useAppStore.getState().setDmTarget('__inbox__')}
           >
             <svg
@@ -112,7 +114,7 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* Settings gear */}
-          <button className={styles.iconBtn} title='Settings' onClick={() => setSettingsOpen(true)}>
+          <button className={styles.iconBtn} title={t('header.settings')} onClick={() => setSettingsOpen(true)}>
             <svg
               width='16'
               height='16'
@@ -141,12 +143,12 @@ export function AppHeader({ onLogout }: Props) {
 
           {(player.role === 'manager' || player.role === 'owner') && (
             <Link to='/admin' className='btn btn-ghost btn-sm'>
-              Admin
+              {t('header.admin')}
             </Link>
           )}
 
           <button className='btn btn-ghost btn-sm' onClick={onLogout}>
-            Logout
+            {t('auth.logout')}
           </button>
         </div>
       </header>

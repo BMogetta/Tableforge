@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { friends, players, presence } from '@/features/friends/api'
 import { useBlockPlayer } from '@/hooks/useBlockPlayer'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -21,6 +22,7 @@ interface FriendsPanelProps {
 }
 
 export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
+  const { t } = useTranslation()
   const trapRef = useFocusTrap<HTMLDivElement>()
   const player = useAppStore(s => s.player)!
   const toast = useToast()
@@ -97,17 +99,17 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
     try {
       const found = await players.search(username)
       if (found.id === player.id) {
-        toast.showWarning("You can't add yourself as a friend.")
+        toast.showWarning(t('friends.cantAddSelf'))
         return
       }
       await friends.sendRequest(player.id, found.id)
-      toast.showInfo(`Friend request sent to ${found.username}!`)
+      toast.showInfo(t('friends.requestSent', { username: found.username }))
       setAddUsername('')
       invalidate()
     } catch (err) {
       const appErr = catchToAppError(err)
       if (appErr.reason === 'NOT_FOUND') {
-        toast.showWarning(`Player "${username}" not found.`)
+        toast.showWarning(t('friends.playerNotFound', { username }))
       } else {
         toast.showError(appErr)
       }
@@ -128,7 +130,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
       >
         <div className={styles.header}>
           <h2 className={styles.title} id='friends-title'>
-            Friends
+            {t('friends.title')}
           </h2>
           <button className={styles.closeBtn} onClick={onClose}>
             x
@@ -138,10 +140,10 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
         <form className={styles.addFriendRow} onSubmit={handleAddFriend}>
           <input
             className={styles.addFriendInput}
-            aria-label='Add friend by username'
+            aria-label={t('friends.addFriend')}
             value={addUsername}
             onChange={e => setAddUsername(e.target.value)}
-            placeholder='Add by username...'
+            placeholder={t('friends.addPlaceholder')}
             disabled={addPending}
           />
           <button
@@ -149,7 +151,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
             type='submit'
             disabled={addPending || !addUsername.trim()}
           >
-            {addPending ? '...' : 'Add'}
+            {addPending ? '...' : t('friends.add')}
           </button>
         </form>
 
@@ -158,13 +160,13 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
             className={`${styles.tab} ${tab === 'friends' ? styles.tabActive : ''}`}
             onClick={() => setTab('friends')}
           >
-            Friends ({safeFriends.length})
+            {t('friends.friendsCount', { count: safeFriends.length })}
           </button>
           <button
             className={`${styles.tab} ${tab === 'pending' ? styles.tabActive : ''}`}
             onClick={() => setTab('pending')}
           >
-            Pending
+            {t('friends.pending')}
             {pendingCount > 0 && <span className={styles.tabBadge}>{pendingCount}</span>}
           </button>
         </div>
@@ -172,7 +174,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
         <div className={styles.list}>
           {tab === 'friends' &&
             (safeFriends.length === 0 ? (
-              <p className={styles.empty}>No friends yet.</p>
+              <p className={styles.empty}>{t('friends.noFriends')}</p>
             ) : (
               safeFriends.map(f => (
                 <FriendItem
@@ -197,7 +199,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
 
           {tab === 'pending' &&
             (safePending.length === 0 ? (
-              <p className={styles.empty}>No pending requests.</p>
+              <p className={styles.empty}>{t('friends.noPending')}</p>
             ) : (
               safePending.map(f => (
                 <PendingRequestItem
@@ -230,6 +232,7 @@ interface FriendsButtonProps {
 }
 
 export function FriendsButton({ pendingCount, onClick }: FriendsButtonProps) {
+  const { t } = useTranslation()
   return (
     <button className={styles.floatingBtn} onClick={onClick} {...testId('friends-btn')}>
       <svg
@@ -245,7 +248,7 @@ export function FriendsButton({ pendingCount, onClick }: FriendsButtonProps) {
         <path d='M22 21v-2a4 4 0 0 0-3-3.87' />
         <path d='M16 3.13a4 4 0 0 1 0 7.75' />
       </svg>
-      Friends
+      {t('friends.title')}
       {pendingCount > 0 && <span className={styles.floatingBadge}>{pendingCount}</span>}
     </button>
   )

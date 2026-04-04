@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms } from '@/features/room/api'
 import { queue } from '@/features/lobby/api'
@@ -28,6 +29,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
   const setMatchFound = useAppStore(s => s.setMatchFound)
   const clearQueue = useAppStore(s => s.clearQueue)
 
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const qc = useQueryClient()
 
@@ -140,7 +142,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
 
   return (
     <section className={styles.section}>
-      <h2 className={styles.title}>New Game</h2>
+      <h2 className={styles.title}>{t('lobby.newGame')}</h2>
 
       {/* Game selector — shown for both tabs when multiple games exist */}
       {gameList.length > 1 && (
@@ -154,7 +156,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
             >
               {g.name}
               <span className={styles.playerCount}>
-                {g.min_players}–{g.max_players}p
+                {t('lobby.playerCount', { min: g.min_players, max: g.max_players })}
               </span>
             </button>
           ))}
@@ -167,13 +169,13 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
           className={`${styles.tab} ${tab === 'casual' ? styles.tabActive : ''}`}
           onClick={() => setTab('casual')}
         >
-          Casual
+          {t('lobby.casual')}
         </button>
         <button
           className={`${styles.tab} ${tab === 'ranked' ? styles.tabActive : ''}`}
           onClick={() => setTab('ranked')}
         >
-          Ranked
+          {t('lobby.ranked')}
         </button>
       </div>
 
@@ -186,15 +188,15 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
               onClick={() => createRoom.mutate()}
               disabled={disabled || createRoom.isPending || !effectiveGame}
             >
-              {createRoom.isPending ? 'Creating...' : '+ Create Room'}
+              {createRoom.isPending ? t('lobby.creatingRoom') : `+ ${t('lobby.createRoom')}`}
             </button>
 
             <div className={styles.joinRow}>
               <input
                 {...testId('join-code-input')}
                 className='input'
-                aria-label='Room code'
-                placeholder='Room code'
+                aria-label={t('lobby.enterCode')}
+                placeholder={t('lobby.enterCode')}
                 value={joinCode}
                 onChange={e => setJoinCode(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && joinRoom.mutate()}
@@ -207,7 +209,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                 onClick={() => joinRoom.mutate()}
                 disabled={disabled || joinRoom.isPending}
               >
-                Join
+                {t('lobby.join')}
               </button>
             </div>
           </div>
@@ -221,7 +223,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                 onClick={() => joinQueue.mutate()}
                 disabled={disabled || joinQueue.isPending || !effectiveGame}
               >
-                {joinQueue.isPending ? 'Joining...' : 'Find Match'}
+                {joinQueue.isPending ? t('lobby.joiningMatch') : t('lobby.findMatch')}
               </button>
             )}
 
@@ -230,7 +232,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                 <div className={styles.queueTop}>
                   <span className={styles.queueLabel}>
                     <span className={styles.spinner} />
-                    Searching for opponent
+                    {t('lobby.searchingForOpponent')}
                   </span>
                   <span className={styles.queueTimer}>{formatElapsed(elapsed)}</span>
                 </div>
@@ -240,20 +242,20 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                   disabled={leaveQueue.isPending}
                   style={{ width: '100%', marginTop: 8 }}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             )}
 
             {queueStatus === 'match_found' && (
               <div className={styles.matchFound}>
-                <span className={styles.matchFoundLabel}>⚔ Match found!</span>
-                <p className={styles.matchFoundHint}>Check your notifications to accept.</p>
+                <span className={styles.matchFoundLabel}>{t('lobby.matchFound')}</span>
+                <p className={styles.matchFoundHint}>{t('lobby.matchFoundHint')}</p>
               </div>
             )}
 
             <p className={styles.rankedNote}>
-              Ranked games affect your <span className={styles.ratingWord}>display rating</span>.
+              {t('lobby.rankedNote')} <span className={styles.ratingWord}>{t('lobby.displayRating')}</span>.
             </p>
           </div>
         )}
