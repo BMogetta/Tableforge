@@ -241,3 +241,32 @@
   align-items: center;
   justify-content: center;
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .floatingBtn {
+    bottom: 16px;
+    left: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: var(--space-2);
+    padding-bottom: 48px;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .panel {
+    max-width: 100%;
+    max-height: calc(100vh - 64px);
+  }
+
+  .floatingBtn {
+    bottom: 12px;
+    left: 12px;
+    padding: var(--space-2) var(--space-3);
+  }
+}

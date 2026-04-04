@@ -485,3 +485,56 @@
   border-top: 1px solid var(--color-border);
   margin: var(--space-1) 0;
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .panel {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .code {
+    font-size: 26px;
+    letter-spacing: 0.2em;
+  }
+
+  .codeDisplay {
+    font-size: 18px;
+    letter-spacing: 0.2em;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: var(--space-4) var(--space-3);
+    max-width: 100%;
+  }
+
+  .code {
+    font-size: 22px;
+    letter-spacing: 0.15em;
+  }
+
+  .codeDisplay {
+    font-size: 16px;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .popover {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+}

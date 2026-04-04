@@ -76,3 +76,19 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: var(--space-2);
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 48px;
+  }
+
+  .panel {
+    max-width: 100%;
+    max-height: calc(100vh - 64px);
+  }
+}

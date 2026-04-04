@@ -124,3 +124,16 @@
   margin: 0;
   line-height: 1.5;
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .panel {
+    max-width: calc(100vw - var(--space-6));
+    padding: var(--space-6);
+  }
+
+  .emblem {
+    font-size: 36px;
+  }
+}

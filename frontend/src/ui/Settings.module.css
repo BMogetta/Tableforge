@@ -262,3 +262,23 @@
   text-align: right;
   flex-shrink: 0;
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .section {
+    padding: var(--space-3) var(--space-4) var(--space-2);
+  }
+
+  .select {
+    min-width: 110px;
+  }
+
+  .skinPicker {
+    gap: var(--space-1);
+  }
+
+  .skinOption {
+    padding: var(--space-1);
+  }
+}

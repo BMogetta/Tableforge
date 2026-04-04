@@ -88,3 +88,18 @@
 .loss {
   color: var(--color-danger) !important;
 }
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .table td,
+  .table th {
+    padding: var(--space-1) var(--space-2);
+  }
+}
+
+@media (max-width: 640px) {
+  .table {
+    font-size: var(--text-xs);
+  }
+}
