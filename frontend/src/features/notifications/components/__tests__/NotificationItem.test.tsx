@@ -39,7 +39,9 @@ describe('NotificationItem', () => {
   })
 
   it('shows accept/decline buttons for actionable notifications', () => {
-    render(<NotificationItem notification={makeNotification()} onAccept={vi.fn()} onDecline={vi.fn()} />)
+    render(
+      <NotificationItem notification={makeNotification()} onAccept={vi.fn()} onDecline={vi.fn()} />,
+    )
     expect(screen.getByTestId('accept-btn')).toBeInTheDocument()
     expect(screen.getByTestId('decline-btn')).toBeInTheDocument()
   })
@@ -59,7 +61,7 @@ describe('NotificationItem', () => {
 
   it('shows expired label when action has expired', () => {
     const n = makeNotification({
-      action_expires_at: new Date(Date.now() - 86400000).toISOString(),
+      action_expires_at: new Date(Date.now() - 86_400_000).toISOString(),
     })
     render(<NotificationItem notification={n} />)
     expect(screen.getByTestId('expired')).toHaveTextContent('Expired')
@@ -80,7 +82,14 @@ describe('NotificationItem', () => {
   })
 
   it('disables buttons when pending', () => {
-    render(<NotificationItem notification={makeNotification()} onAccept={vi.fn()} onDecline={vi.fn()} pending />)
+    render(
+      <NotificationItem
+        notification={makeNotification()}
+        onAccept={vi.fn()}
+        onDecline={vi.fn()}
+        pending={true}
+      />,
+    )
     expect(screen.getByTestId('accept-btn')).toBeDisabled()
     expect(screen.getByTestId('decline-btn')).toBeDisabled()
   })

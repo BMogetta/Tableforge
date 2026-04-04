@@ -39,7 +39,7 @@ describe('CardPile', () => {
         count={3}
         faceDown={false}
         topCard={{ name: 'Princess' }}
-        renderCard={(c) => <span>{c.name}</span>}
+        renderCard={c => <span>{c.name}</span>}
       />,
     )
     expect(screen.getByText('Princess')).toBeInTheDocument()

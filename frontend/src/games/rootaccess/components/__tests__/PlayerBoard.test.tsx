@@ -23,7 +23,7 @@ describe('PlayerBoard', () => {
   })
 
   it('renders "you" badge for local player', () => {
-    render(<PlayerBoard {...baseProps} isLocal />)
+    render(<PlayerBoard {...baseProps} isLocal={true} />)
     expect(screen.getByText('you')).toBeInTheDocument()
   })
 
@@ -33,7 +33,7 @@ describe('PlayerBoard', () => {
   })
 
   it('renders turn indicator when it is current turn', () => {
-    render(<PlayerBoard {...baseProps} isCurrentTurn />)
+    render(<PlayerBoard {...baseProps} isCurrentTurn={true} />)
     expect(screen.getByText('▶')).toBeInTheDocument()
   })
 
@@ -51,7 +51,7 @@ describe('PlayerBoard', () => {
   })
 
   it('renders Protected badge when protected', () => {
-    render(<PlayerBoard {...baseProps} isProtected />)
+    render(<PlayerBoard {...baseProps} isProtected={true} />)
     expect(screen.getByText('Shielded')).toBeInTheDocument()
   })
 
@@ -61,7 +61,7 @@ describe('PlayerBoard', () => {
   })
 
   it('renders Eliminated badge when eliminated', () => {
-    render(<PlayerBoard {...baseProps} isEliminated />)
+    render(<PlayerBoard {...baseProps} isEliminated={true} />)
     expect(screen.getByText('Eliminated')).toBeInTheDocument()
   })
 
@@ -71,7 +71,7 @@ describe('PlayerBoard', () => {
   })
 
   it('renders Backdoor badge when player has played backdoor', () => {
-    render(<PlayerBoard {...baseProps} hasPlayedBackdoor />)
+    render(<PlayerBoard {...baseProps} hasPlayedBackdoor={true} />)
     expect(screen.getByText('Backdoor')).toBeInTheDocument()
   })
 

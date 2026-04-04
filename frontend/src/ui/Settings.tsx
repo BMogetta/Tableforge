@@ -71,10 +71,7 @@ export function Settings({ onClose }: Props) {
       <header className={styles.header}>
         <h2 className={styles.title}>Settings</h2>
         {onClose && (
-          <button
-            className='btn btn-ghost btn-sm'
-            onClick={onClose}
-          >
+          <button className='btn btn-ghost btn-sm' onClick={onClose}>
             ✕
           </button>
         )}
@@ -237,14 +234,20 @@ export function Settings({ onClose }: Props) {
         {/* ── Blocked Players ── */}
         <Section
           title='Blocked Players'
-          note={blockedPlayers.length === 0 ? undefined : 'Blocked players cannot send you messages or friend requests.'}
+          note={
+            blockedPlayers.length === 0
+              ? undefined
+              : 'Blocked players cannot send you messages or friend requests.'
+          }
         >
           {blockedPlayers.length === 0 ? (
             <p className={styles.emptyBlocked}>No blocked players.</p>
           ) : (
             blockedPlayers.map(bp => (
               <div key={bp.id} className={styles.blockedRow} {...testId(`blocked-player-${bp.id}`)}>
-                {bp.avatar_url && <img src={bp.avatar_url} alt='' className={styles.blockedAvatar} />}
+                {bp.avatar_url && (
+                  <img src={bp.avatar_url} alt='' className={styles.blockedAvatar} />
+                )}
                 <span className={styles.blockedName}>{bp.username}</span>
                 <button
                   className='btn btn-ghost btn-sm'

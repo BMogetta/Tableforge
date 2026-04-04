@@ -1,9 +1,5 @@
 import { request } from '@/lib/api'
-import type {
-  FriendshipView,
-  DmConversation,
-  PlayerSearchResult,
-} from '@/lib/schema-generated.zod'
+import type { FriendshipView, DmConversation, PlayerSearchResult } from '@/lib/schema-generated.zod'
 
 // Re-export for convenience so consumers don't need to know the source.
 export type { FriendshipView, PlayerSearchResult } from '@/lib/schema-generated.zod'
@@ -20,30 +16,39 @@ export const players = {
 // --- Friends -----------------------------------------------------------------
 
 export const friends = {
-  list: (playerId: string) =>
-    request<FriendshipView[]>(`/players/${playerId}/friends`),
+  list: (playerId: string) => request<FriendshipView[]>(`/players/${playerId}/friends`),
 
-  pending: (playerId: string) =>
-    request<FriendshipView[]>(`/players/${playerId}/friends/pending`),
+  pending: (playerId: string) => request<FriendshipView[]>(`/players/${playerId}/friends/pending`),
 
   sendRequest: (playerId: string, targetId: string) =>
-    request<unknown>(`/players/${playerId}/friends/${targetId}`, { method: 'POST', body: JSON.stringify({}) }),
+    request<unknown>(`/players/${playerId}/friends/${targetId}`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
 
   acceptRequest: (playerId: string, requesterId: string) =>
-    request<unknown>(`/players/${playerId}/friends/${requesterId}/accept`, { method: 'PUT', body: JSON.stringify({}) }),
+    request<unknown>(`/players/${playerId}/friends/${requesterId}/accept`, {
+      method: 'PUT',
+      body: JSON.stringify({}),
+    }),
 
   declineRequest: (playerId: string, requesterId: string) =>
-    request<void>(`/players/${playerId}/friends/${requesterId}/decline`, { method: 'DELETE', body: JSON.stringify({}) }),
+    request<void>(`/players/${playerId}/friends/${requesterId}/decline`, {
+      method: 'DELETE',
+      body: JSON.stringify({}),
+    }),
 
   remove: (playerId: string, friendId: string) =>
-    request<void>(`/players/${playerId}/friends/${friendId}`, { method: 'DELETE', body: JSON.stringify({}) }),
+    request<void>(`/players/${playerId}/friends/${friendId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({}),
+    }),
 }
 
 // --- DM conversations --------------------------------------------------------
 
 export const dmConversations = {
-  list: (playerId: string) =>
-    request<DmConversation[]>(`/players/${playerId}/dm/conversations`),
+  list: (playerId: string) => request<DmConversation[]>(`/players/${playerId}/dm/conversations`),
 }
 
 // Re-export dm from room/api for convenience — DM send/history/markRead stay there.
@@ -69,6 +74,5 @@ export const blocks = {
 // --- Presence ----------------------------------------------------------------
 
 export const presence = {
-  check: (ids: string[]) =>
-    request<Record<string, boolean>>(`/presence?ids=${ids.join(',')}`),
+  check: (ids: string[]) => request<Record<string, boolean>>(`/presence?ids=${ids.join(',')}`),
 }

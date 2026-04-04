@@ -32,7 +32,7 @@ export function RoomsTab({ callerRole }: Props) {
 
   useEffect(() => {
     fetchRooms()
-    intervalRef.current = setInterval(fetchRooms, 30000)
+    intervalRef.current = setInterval(fetchRooms, 30_000)
     return () => clearInterval(intervalRef.current)
   }, [fetchRooms])
 
@@ -60,8 +60,7 @@ export function RoomsTab({ callerRole }: Props) {
     }
   }
 
-  const filtered =
-    filter === 'all' ? rooms : rooms.filter(r => r.status === filter)
+  const filtered = filter === 'all' ? rooms : rooms.filter(r => r.status === filter)
 
   const canForceEnd = callerRole === PlayerRole.Manager || callerRole === PlayerRole.Owner
 
@@ -73,7 +72,10 @@ export function RoomsTab({ callerRole }: Props) {
             <button
               key={f}
               className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => { setFilter(f); setSelectedRoom(null) }}
+              onClick={() => {
+                setFilter(f)
+                setSelectedRoom(null)
+              }}
               {...testId(`rooms-filter-${f}`)}
             >
               {f === 'in_progress' ? 'In Game' : f}
@@ -108,7 +110,9 @@ export function RoomsTab({ callerRole }: Props) {
               <li key={p.id} className={styles.playerCell}>
                 {p.avatar_url && <img src={p.avatar_url} alt='' className={styles.avatar} />}
                 <span>{p.username}</span>
-                <span className={styles.roleBadge} data-role={p.role}>{p.role}</span>
+                <span className={styles.roleBadge} data-role={p.role}>
+                  {p.role}
+                </span>
               </li>
             ))}
           </ul>
@@ -129,7 +133,9 @@ export function RoomsTab({ callerRole }: Props) {
       ) : loadingDetail ? (
         <p className={styles.empty}>Loading room...</p>
       ) : filtered.length === 0 ? (
-        <p className={styles.empty} {...testId('rooms-empty')}>No rooms found.</p>
+        <p className={styles.empty} {...testId('rooms-empty')}>
+          No rooms found.
+        </p>
       ) : (
         <table className={styles.table} {...testId('rooms-table')}>
           <thead>

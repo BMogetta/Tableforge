@@ -38,7 +38,7 @@ describe('DimOverlay', () => {
 describe('TooltipWrapper', () => {
   it('does not show tooltip by default', () => {
     render(
-      <TooltipWrapper text="Tooltip text">
+      <TooltipWrapper text='Tooltip text'>
         <button>Hover me</button>
       </TooltipWrapper>,
     )
@@ -48,7 +48,7 @@ describe('TooltipWrapper', () => {
   it('shows tooltip on mouse enter', async () => {
     const user = userEvent.setup()
     render(
-      <TooltipWrapper text="Tooltip text">
+      <TooltipWrapper text='Tooltip text'>
         <button>Hover me</button>
       </TooltipWrapper>,
     )
@@ -59,7 +59,7 @@ describe('TooltipWrapper', () => {
   it('hides tooltip on mouse leave', async () => {
     const user = userEvent.setup()
     render(
-      <TooltipWrapper text="Tooltip text">
+      <TooltipWrapper text='Tooltip text'>
         <button>Hover me</button>
       </TooltipWrapper>,
     )
@@ -92,12 +92,12 @@ describe('HighlightBorder', () => {
 
 describe('HintText', () => {
   it('renders the text', () => {
-    render(<HintText text="Must play ENCRYPTED_KEY" />)
+    render(<HintText text='Must play ENCRYPTED_KEY' />)
     expect(screen.getByText('Must play ENCRYPTED_KEY')).toBeInTheDocument()
   })
 
   it('applies hintText class', () => {
-    const { container } = render(<HintText text="hint" />)
+    const { container } = render(<HintText text='hint' />)
     expect(container.firstChild).toHaveClass(/hintText/)
   })
 })

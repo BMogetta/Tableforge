@@ -13,7 +13,7 @@
   user-select: none;
 }
 
-.token[data-disabled='true'] {
+.token[data-disabled="true"] {
   opacity: 0.4;
   pointer-events: none;
 }

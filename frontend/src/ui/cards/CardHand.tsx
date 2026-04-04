@@ -66,8 +66,8 @@ export function CardHand<T>({
   )
 
   return (
-    <div className={styles.hand} {...testId('card-hand')} aria-label="Your hand">
-      <AnimatePresence mode="popLayout">
+    <div className={styles.hand} {...testId('card-hand')} aria-label='Your hand'>
+      <AnimatePresence mode='popLayout'>
         {cards.map((card, index) => {
           const angle = getAngle(index)
           const lift = getLift(index)
@@ -75,16 +75,16 @@ export function CardHand<T>({
           return (
             <motion.div
               key={index}
-              ref={(el) => {
+              ref={el => {
                 if (el) slotRefs.current.set(index, el)
                 else slotRefs.current.delete(index)
               }}
               className={styles.slot}
-              layout
+              layout={true}
               variants={dealVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+              initial='initial'
+              animate='animate'
+              exit='exit'
               style={{
                 rotate: `${angle}deg`,
                 translateY: lift,

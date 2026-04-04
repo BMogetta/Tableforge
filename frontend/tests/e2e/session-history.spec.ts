@@ -1,10 +1,5 @@
 import { test, expect } from '@playwright/test'
-import {
-  getPair,
-  createPlayerContexts,
-  setupAndStartGame,
-  playFullGame,
-} from './helpers'
+import { getPair, createPlayerContexts, setupAndStartGame, playFullGame } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Session History & Replay tests
@@ -17,7 +12,9 @@ import {
 // ---------------------------------------------------------------------------
 
 test.describe('Game-over transition', () => {
-  test('View Replay button appears and navigates to /sessions/:id/history', async ({ browser }, testInfo) => {
+  test('View Replay button appears and navigates to /sessions/:id/history', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
@@ -122,7 +119,7 @@ test.describe('Session history page', () => {
     const toggle = firstMoveRow.getByTestId('event-toggle')
     await toggle.click()
 
-    await expect(firstMoveRow.getByTestId('event-payload')).toBeVisible({ timeout: 5_000 })
+    await expect(firstMoveRow.getByTestId('event-payload')).toBeVisible({ timeout: 5000 })
 
     await toggle.click()
     await expect(firstMoveRow.getByTestId('event-payload')).not.toBeVisible()
@@ -140,7 +137,7 @@ test.describe('Session history page', () => {
     await expect(page.locator('[data-cell="0"]')).toBeVisible({ timeout: 10_000 })
 
     for (let i = 0; i < 9; i++) {
-      await expect(page.locator(`[data-cell="${i}"]`)).toBeDisabled({ timeout: 5_000 })
+      await expect(page.locator(`[data-cell="${i}"]`)).toBeDisabled({ timeout: 5000 })
     }
 
     await ctx.close()
@@ -158,7 +155,7 @@ test.describe('Session history page', () => {
     })
 
     for (let i = 0; i < 9; i++) {
-      await expect(page.locator(`[data-cell="${i}"]`)).toHaveText('', { timeout: 5_000 })
+      await expect(page.locator(`[data-cell="${i}"]`)).toHaveText('', { timeout: 5000 })
     }
 
     await ctx.close()
@@ -175,9 +172,9 @@ test.describe('Session history page', () => {
     })
 
     await page.getByTestId('replay-next-btn').click()
-    await expect(page.getByTestId('replay-step-label')).toContainText('Move 1', { timeout: 5_000 })
+    await expect(page.getByTestId('replay-step-label')).toContainText('Move 1', { timeout: 5000 })
 
-    await expect(page.locator('[data-cell="0"]')).not.toHaveText('', { timeout: 5_000 })
+    await expect(page.locator('[data-cell="0"]')).not.toHaveText('', { timeout: 5000 })
 
     await ctx.close()
   })
@@ -190,10 +187,10 @@ test.describe('Session history page', () => {
     await page.getByTestId('tab-replay').click()
 
     await page.getByTestId('replay-last-btn').click()
-    await expect(page.getByTestId('replay-step-label')).toContainText('Move 5', { timeout: 5_000 })
+    await expect(page.getByTestId('replay-step-label')).toContainText('Move 5', { timeout: 5000 })
 
     for (const cell of [0, 1, 2]) {
-      await expect(page.locator(`[data-cell="${cell}"]`)).not.toHaveText('', { timeout: 5_000 })
+      await expect(page.locator(`[data-cell="${cell}"]`)).not.toHaveText('', { timeout: 5000 })
     }
 
     await ctx.close()

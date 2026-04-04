@@ -9,9 +9,7 @@ const baseItems = [
 
 describe('RoomToolbar', () => {
   it('renders visible toolbar buttons', () => {
-    render(
-      <RoomToolbar items={baseItems} activePopover={null} onToggle={vi.fn()} />,
-    )
+    render(<RoomToolbar items={baseItems} activePopover={null} onToggle={vi.fn()} />)
     expect(screen.getByTitle('Settings')).toBeInTheDocument()
     expect(screen.getByTitle('Chat')).toBeInTheDocument()
   })
@@ -21,18 +19,14 @@ describe('RoomToolbar', () => {
       { id: 'settings' as const, label: 'Settings', icon: SettingsIcon, visible: false },
       { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true },
     ]
-    render(
-      <RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />,
-    )
+    render(<RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />)
     expect(screen.queryByTitle('Settings')).not.toBeInTheDocument()
     expect(screen.getByTitle('Chat')).toBeInTheDocument()
   })
 
   it('calls onToggle with item id when clicked', () => {
     const onToggle = vi.fn()
-    render(
-      <RoomToolbar items={baseItems} activePopover={null} onToggle={onToggle} />,
-    )
+    render(<RoomToolbar items={baseItems} activePopover={null} onToggle={onToggle} />)
     fireEvent.click(screen.getByTitle('Settings'))
     expect(onToggle).toHaveBeenCalledWith('settings')
   })
@@ -81,32 +75,20 @@ describe('RoomToolbar', () => {
   })
 
   it('shows badge when provided', () => {
-    const items = [
-      { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true, badge: 3 },
-    ]
-    render(
-      <RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />,
-    )
+    const items = [{ id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true, badge: 3 }]
+    render(<RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />)
     expect(screen.getByText('3')).toBeInTheDocument()
   })
 
   it('shows 9+ for badge over 9', () => {
-    const items = [
-      { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true, badge: 15 },
-    ]
-    render(
-      <RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />,
-    )
+    const items = [{ id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true, badge: 15 }]
+    render(<RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />)
     expect(screen.getByText('9+')).toBeInTheDocument()
   })
 
   it('does not show badge when 0', () => {
-    const items = [
-      { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true, badge: 0 },
-    ]
-    render(
-      <RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />,
-    )
+    const items = [{ id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true, badge: 0 }]
+    render(<RoomToolbar items={items} activePopover={null} onToggle={vi.fn()} />)
     expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
 })

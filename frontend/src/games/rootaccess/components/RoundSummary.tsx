@@ -21,7 +21,7 @@ interface Props {
   onDismiss: () => void
 }
 
-const AUTO_DISMISS_MS = 4_000
+const AUTO_DISMISS_MS = 4000
 
 /** @package */
 export function RoundSummary({
@@ -54,9 +54,17 @@ export function RoundSummary({
 
   return (
     <div className={styles.overlay}>
-      <div ref={trapRef} className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='round-summary-title'>
+      <div
+        ref={trapRef}
+        className={styles.modal}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='round-summary-title'
+      >
         <div className={styles.header}>
-          <span className={styles.roundLabel} id='round-summary-title'>Round {round} complete</span>
+          <span className={styles.roundLabel} id='round-summary-title'>
+            Round {round} complete
+          </span>
           {winner ? (
             <h2 className={styles.winnerText}>{winner.username} wins the round</h2>
           ) : (

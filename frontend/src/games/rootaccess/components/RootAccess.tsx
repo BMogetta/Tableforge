@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { CardPile } from '@/ui/cards'
 import { sfx } from '@/lib/sfx'
-import { type CardName } from './CardDisplay'
+import type { CardName } from './CardDisplay'
 import { HandDisplay } from './HandDisplay'
 import { TargetPicker } from './TargetPicker'
 import { DebuggerModal } from './DebuggerModal'
@@ -210,7 +210,8 @@ export function RootAccess({
     tokens: state.tokens[id] ?? 0,
     tokensToWin: target,
     isWinner: id === state.round_winner_id,
-    earnedBackdoorBonus: state.backdoor_played_by.length === 1 && state.backdoor_played_by[0] === id,
+    earnedBackdoorBonus:
+      state.backdoor_played_by.length === 1 && state.backdoor_played_by[0] === id,
   }))
 
   // ---------------------------------------------------------------------------
@@ -223,7 +224,7 @@ export function RootAccess({
       <div className={styles.infoBar}>
         <span className={styles.roundBadge}>Round {state.round}</span>
         <div className={styles.deckArea}>
-          <CardPile count={state.deck.length} faceDown />
+          <CardPile count={state.deck.length} faceDown={true} />
         </div>
         {state.set_aside_visible.length > 0 && (
           <span className={styles.setAside}>Set aside: {state.set_aside_visible.join(', ')}</span>

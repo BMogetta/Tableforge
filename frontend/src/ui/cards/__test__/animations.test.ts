@@ -1,13 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { getFlyOutTarget, slideInVariants } from '../animations'
 
-function mockRect(
-  left: number,
-  top: number,
-  width: number,
-  height: number,
-): DOMRect {
-  return { left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) }
+function mockRect(left: number, top: number, width: number, height: number): DOMRect {
+  return {
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    x: left,
+    y: top,
+    toJSON: () => ({}),
+  }
 }
 
 describe('getFlyOutTarget', () => {

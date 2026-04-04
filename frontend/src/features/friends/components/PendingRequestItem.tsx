@@ -10,7 +10,14 @@ interface PendingRequestItemProps {
   pending: boolean
 }
 
-export function PendingRequestItem({ requesterId, username, avatarUrl, onAccept, onDecline, pending }: PendingRequestItemProps) {
+export function PendingRequestItem({
+  requesterId,
+  username,
+  avatarUrl,
+  onAccept,
+  onDecline,
+  pending,
+}: PendingRequestItemProps) {
   return (
     <div className={styles.friendRow} {...testId(`pending-${requesterId}`)}>
       {avatarUrl && <img src={avatarUrl} alt='' className={styles.avatar} />}

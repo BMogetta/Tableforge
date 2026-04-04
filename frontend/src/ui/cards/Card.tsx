@@ -24,7 +24,7 @@ export function Card({
       <motion.button
         className={styles.card}
         data-disabled={disabled}
-        type="button"
+        type='button'
         variants={flipVariants}
         animate={faceDown ? 'faceDown' : 'faceUp'}
         transition={flipTransition}
@@ -35,9 +35,7 @@ export function Card({
         {...motionProps}
       >
         <div className={styles.front}>{front}</div>
-        <div className={styles.back}>
-          {back ?? <div className={styles.defaultBack} />}
-        </div>
+        <div className={styles.back}>{back ?? <div className={styles.defaultBack} />}</div>
       </motion.button>
     </div>
   )

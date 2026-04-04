@@ -16,13 +16,7 @@ interface Props {
   onSettingChange: (key: string, value: string) => void
 }
 
-export function RoomSettings({
-  roomId,
-  isOwner,
-  descriptors,
-  values,
-  onSettingChange,
-}: Props) {
+export function RoomSettings({ roomId, isOwner, descriptors, values, onSettingChange }: Props) {
   const [pending, setPending] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
 

@@ -5,12 +5,7 @@ import { ProfileHeader } from '../components/ProfileHeader'
 describe('ProfileHeader', () => {
   it('renders username and bio', () => {
     render(
-      <ProfileHeader
-        playerId='p1'
-        username='alice'
-        bio='I love board games'
-        isLoading={false}
-      />,
+      <ProfileHeader playerId='p1' username='alice' bio='I love board games' isLoading={false} />,
     )
     expect(screen.getByText('alice')).toBeInTheDocument()
     expect(screen.getByText('I love board games')).toBeInTheDocument()
@@ -30,16 +25,12 @@ describe('ProfileHeader', () => {
   })
 
   it('renders avatar placeholder when no image', () => {
-    render(
-      <ProfileHeader playerId='p1' username='alice' isLoading={false} />,
-    )
+    render(<ProfileHeader playerId='p1' username='alice' isLoading={false} />)
     expect(screen.getByText('A')).toBeInTheDocument()
   })
 
   it('renders country when provided', () => {
-    render(
-      <ProfileHeader playerId='p1' username='alice' country='AR' isLoading={false} />,
-    )
+    render(<ProfileHeader playerId='p1' username='alice' country='AR' isLoading={false} />)
     expect(screen.getByText('AR')).toBeInTheDocument()
   })
 

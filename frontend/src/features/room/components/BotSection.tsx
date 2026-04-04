@@ -13,7 +13,14 @@ interface BotSectionProps {
   error: AppError | null
 }
 
-export function BotSection({ profiles, selectedProfile, onSelectProfile, onAdd, adding, error: botError }: BotSectionProps) {
+export function BotSection({
+  profiles,
+  selectedProfile,
+  onSelectProfile,
+  onAdd,
+  adding,
+  error: botError,
+}: BotSectionProps) {
   return (
     <section className={styles.botSection}>
       <p className='label'>Add Bot</p>

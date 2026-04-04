@@ -1,4 +1,4 @@
-import { type RefObject } from 'react'
+import type { RefObject } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Card } from '@/ui/cards'
 import { dealVariants, springTransition } from '@/ui/cards'
@@ -32,13 +32,7 @@ function getLift(index: number, count: number): number {
 }
 
 /** @package */
-export function HandDisplay({
-  cards,
-  selectedCard,
-  disabled,
-  onSelect,
-  blockedCards = [],
-}: Props) {
+export function HandDisplay({ cards, selectedCard, disabled, onSelect, blockedCards = [] }: Props) {
   const hintsEnabled = useHintsEnabled()
   if (cards.length === 0) {
     return (
@@ -49,8 +43,8 @@ export function HandDisplay({
   }
 
   return (
-    <div className={styles.hand} aria-label="Your hand">
-      <AnimatePresence mode="popLayout">
+    <div className={styles.hand} aria-label='Your hand'>
+      <AnimatePresence mode='popLayout'>
         {cards.map((card, i) => {
           const isBlocked = blockedCards.includes(card)
           const isSelected = selectedCard === card
@@ -61,11 +55,11 @@ export function HandDisplay({
             <motion.div
               key={`${card}-${i}`}
               className={styles.cardSlot}
-              layout
+              layout={true}
               variants={dealVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+              initial='initial'
+              animate='animate'
+              exit='exit'
               style={{
                 rotate: `${angle}deg`,
                 translateY: isSelected ? lift - 12 : lift,
@@ -98,8 +92,10 @@ export function HandDisplay({
                   />
                 )}
               </div>
-              {isBlocked && hintsEnabled && <HintText text="Must play ENCRYPTED_KEY" />}
-              {isBlocked && !hintsEnabled && <span className={styles.blockedLabel}>Must play ENCRYPTED_KEY</span>}
+              {isBlocked && hintsEnabled && <HintText text='Must play ENCRYPTED_KEY' />}
+              {isBlocked && !hintsEnabled && (
+                <span className={styles.blockedLabel}>Must play ENCRYPTED_KEY</span>
+              )}
             </motion.div>
           )
         })}

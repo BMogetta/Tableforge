@@ -12,7 +12,15 @@ interface PlayerDropdownProps {
   onSendDM: () => void
 }
 
-export function PlayerDropdown({ isMuted, onMute, onUnmute, onBlock, onUnblock, onAddFriend, onSendDM }: PlayerDropdownProps) {
+export function PlayerDropdown({
+  isMuted,
+  onMute,
+  onUnmute,
+  onBlock,
+  onUnblock,
+  onAddFriend,
+  onSendDM,
+}: PlayerDropdownProps) {
   return (
     <div className={styles.dropdown}>
       {isMuted ? (

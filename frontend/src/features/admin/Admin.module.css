@@ -167,13 +167,13 @@
   border: 1px solid var(--color-border);
 }
 
-.roleBadge[data-role='owner'] {
+.roleBadge[data-role="owner"] {
   background: var(--color-interactive-glow);
   color: var(--color-interactive);
   border-color: var(--color-interactive-dim);
 }
 
-.roleBadge[data-role='manager'] {
+.roleBadge[data-role="manager"] {
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   border-color: var(--color-border-bright);
@@ -192,26 +192,26 @@
   border: 1px solid var(--color-border);
 }
 
-.statusBadge[data-status='pending'] {
+.statusBadge[data-status="pending"] {
   color: var(--color-warning);
   border-color: var(--color-warning);
 }
 
-.statusBadge[data-status='reviewed'] {
+.statusBadge[data-status="reviewed"] {
   color: var(--color-text-muted);
 }
 
-.statusBadge[data-status='waiting'] {
+.statusBadge[data-status="waiting"] {
   color: var(--color-warning);
   border-color: var(--color-warning);
 }
 
-.statusBadge[data-status='in_progress'] {
+.statusBadge[data-status="in_progress"] {
   color: var(--color-success);
   border-color: var(--color-success);
 }
 
-.statusBadge[data-status='finished'] {
+.statusBadge[data-status="finished"] {
   color: var(--color-text-muted);
 }
 

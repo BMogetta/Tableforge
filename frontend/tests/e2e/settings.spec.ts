@@ -11,11 +11,13 @@ import {
 /** Open the settings popover via the toolbar button. */
 async function openSettings(page: Page) {
   await page.getByTestId('toolbar-settings').click()
-  await expect(page.locator('[class*="popover"]').last()).toBeVisible({ timeout: 5_000 })
+  await expect(page.locator('[class*="popover"]').last()).toBeVisible({ timeout: 5000 })
 }
 
 test.describe('LobbySettings UI', () => {
-  test('setting_updated WS event updates the read-only value shown to p2', async ({ browser }, testInfo) => {
+  test('setting_updated WS event updates the read-only value shown to p2', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
@@ -41,7 +43,9 @@ test.describe('LobbySettings UI', () => {
     await p2Ctx.close()
   })
 
-  test('non-owner sees settings as read-only (no select element)', async ({ browser }, testInfo) => {
+  test('non-owner sees settings as read-only (no select element)', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
@@ -145,7 +149,12 @@ test.describe('Turn order enforcement', () => {
 
 // ---------------------------------------------------------------------------
 
-async function setupRematchLobby(p1: any, p2: any, p1Id: string, rematchPolicy: string): Promise<void> {
+async function setupRematchLobby(
+  p1: any,
+  p2: any,
+  p1Id: string,
+  rematchPolicy: string,
+): Promise<void> {
   await p1.goto('/')
   await p2.goto('/')
 

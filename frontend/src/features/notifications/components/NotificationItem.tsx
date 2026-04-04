@@ -22,7 +22,12 @@ const labels: Record<NotificationType, string> = {
   ban_issued: 'Ban Notice',
 }
 
-export function NotificationItem({ notification: n, onAccept, onDecline, pending }: NotificationItemProps) {
+export function NotificationItem({
+  notification: n,
+  onAccept,
+  onDecline,
+  pending,
+}: NotificationItemProps) {
   const isRead = !!n.read_at
   const hasAction = !n.action_taken && n.type !== 'ban_issued'
   const isExpired = n.action_expires_at ? new Date(n.action_expires_at) < new Date() : false
@@ -69,7 +74,9 @@ export function NotificationItem({ notification: n, onAccept, onDecline, pending
       )}
 
       {hasAction && isExpired && (
-        <span className={styles.expired} {...testId('expired')}>Expired</span>
+        <span className={styles.expired} {...testId('expired')}>
+          Expired
+        </span>
       )}
     </div>
   )

@@ -48,7 +48,7 @@ export function Login() {
 
   return (
     <div className={styles.root}>
-      <div className={styles.board} aria-hidden>
+      <div className={styles.board} aria-hidden={true}>
         {Array.from({ length: 64 }).map((_, i) => (
           <div key={i} className={styles.cell} style={{ animationDelay: `${(i * 37) % 800}ms` }} />
         ))}
@@ -90,7 +90,7 @@ export function Login() {
 function AccessDenied() {
   return (
     <div className={styles.root}>
-      <div className={styles.board} aria-hidden>
+      <div className={styles.board} aria-hidden={true}>
         {Array.from({ length: 64 }).map((_, i) => (
           <div key={i} className={styles.cell} style={{ animationDelay: `${(i * 73) % 3000}ms` }} />
         ))}
@@ -116,7 +116,11 @@ function AccessDenied() {
         <div className={styles.actions}>
           <button
             className={`btn btn-ghost ${styles.loginBtn}`}
-            onClick={() => openOAuthPopup(() => { window.location.href = '/' })}
+            onClick={() =>
+              openOAuthPopup(() => {
+                window.location.href = '/'
+              })
+            }
           >
             &#8592; Try another account
           </button>

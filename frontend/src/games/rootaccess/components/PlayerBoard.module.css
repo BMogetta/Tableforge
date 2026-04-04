@@ -80,17 +80,17 @@
   color: var(--color-text-secondary);
 }
 
-.badge[data-variant='protected'] {
+.badge[data-variant="protected"] {
   color: var(--color-interactive);
   border-color: color-mix(in srgb, var(--color-interactive) 30%, transparent);
 }
 
-.badge[data-variant='eliminated'] {
+.badge[data-variant="eliminated"] {
   color: var(--color-danger);
   border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
 }
 
-.badge[data-variant='spy'] {
+.badge[data-variant="spy"] {
   color: var(--color-text-secondary);
 }
 

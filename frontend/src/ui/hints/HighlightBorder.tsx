@@ -6,9 +6,5 @@ interface Props {
 }
 
 export function HighlightBorder({ highlighted, children }: Props) {
-  return (
-    <div className={highlighted ? styles.highlightBorder : undefined}>
-      {children}
-    </div>
-  )
+  return <div className={highlighted ? styles.highlightBorder : undefined}>{children}</div>
 }

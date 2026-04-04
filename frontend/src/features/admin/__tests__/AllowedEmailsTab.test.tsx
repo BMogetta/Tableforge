@@ -17,7 +17,12 @@ vi.mock('@/features/admin/api', () => ({ admin: mockAdmin }))
 
 const EMAIL_FIXTURES: AllowedEmail[] = [
   { email: 'alice@test.com', role: 'player', created_at: '2025-01-01T00:00:00Z' },
-  { email: 'bob@test.com', role: 'manager', invited_by: 'admin', created_at: '2025-01-02T00:00:00Z' },
+  {
+    email: 'bob@test.com',
+    role: 'manager',
+    invited_by: 'admin',
+    created_at: '2025-01-02T00:00:00Z',
+  },
 ]
 
 describe('AllowedEmailsTab', () => {
@@ -53,7 +58,11 @@ describe('AllowedEmailsTab', () => {
   })
 
   it('calls addEmail on form submit', async () => {
-    const newEntry: AllowedEmail = { email: 'new@test.com', role: 'player', created_at: '2025-03-01T00:00:00Z' }
+    const newEntry: AllowedEmail = {
+      email: 'new@test.com',
+      role: 'player',
+      created_at: '2025-03-01T00:00:00Z',
+    }
     mockAdmin.addEmail.mockResolvedValue(newEntry)
     render(<AllowedEmailsTab callerRole='owner' />)
     await waitFor(() => expect(screen.getByTestId('emails-table')).toBeInTheDocument())

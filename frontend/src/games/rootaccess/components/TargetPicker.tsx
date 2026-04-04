@@ -97,7 +97,7 @@ export function TargetPicker({
             value={selectedGuess ?? ''}
             onChange={e => onSelectGuess(e.target.value as CardName)}
           >
-            <option value='' disabled>
+            <option value='' disabled={true}>
               Select a card...
             </option>
             {PING_GUESS_OPTIONS.map(card => (

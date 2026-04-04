@@ -12,13 +12,15 @@ const target = {
   created_at: '',
 }
 
-function renderDropdown(overrides?: Partial<{
-  isMuted: boolean
-  onMute: () => void
-  onUnmute: () => void
-  onBlock: () => void
-  onUnblock: () => void
-}>) {
+function renderDropdown(
+  overrides?: Partial<{
+    isMuted: boolean
+    onMute: () => void
+    onUnmute: () => void
+    onBlock: () => void
+    onUnblock: () => void
+  }>,
+) {
   const props = {
     target,
     isMuted: false,

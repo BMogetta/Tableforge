@@ -105,14 +105,14 @@ Optional interfaces: `StateFilter` (hidden information), `TurnTimeoutHandler` (c
 |---------|--------|--------|
 | chat-tests | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | chromium-parallel | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| game-tests | 11/15 | ![partial](https://img.shields.io/badge/-11_of_15-yellow) |
+| game-tests | 10/15 | ![partial](https://img.shields.io/badge/-10_of_15-yellow) |
 | presence-tests | 2/5 | ![partial](https://img.shields.io/badge/-2_of_5-yellow) |
 | session-history-tests | 0/10 | ![skip](https://img.shields.io/badge/-skipped-lightgrey) |
 | settings-tests | 7/7 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | spectator-tests | 8/12 | ![partial](https://img.shields.io/badge/-8_of_12-yellow) |
-| **Total** | **34/55** | ![progress](https://img.shields.io/badge/-34_of_55-yellow) |
+| **Total** | **33/55** | ![progress](https://img.shields.io/badge/-33_of_55-yellow) |
 
-_Last updated: 2026-04-03_
+_Last updated: 2026-04-04_
 <!-- e2e:end -->
 
 <!-- coverage:start -->
@@ -128,7 +128,7 @@ _Last updated: 2026-04-03_
 | rating-service | 37 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
 | user-service | 84 passed | ![61.1%](https://img.shields.io/badge/coverage-61.1%25-green) |
 | ws-gateway | 50 passed | ![33.0%](https://img.shields.io/badge/coverage-33.0%25-red) |
-| frontend (vitest) | 356 passed | ![71.5%](https://img.shields.io/badge/coverage-71.5%25-green) |
+| frontend (vitest) | 381 passed | ![63.0%](https://img.shields.io/badge/coverage-63.0%25-green) |
 
 _Last updated: 2026-04-04_
 

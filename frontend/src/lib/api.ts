@@ -207,7 +207,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
       // On 401 with token_expired, attempt a silent refresh then retry.
       if (res.status === 401) {
-        const body = await res.clone().json().catch(() => null)
+        const body = await res
+          .clone()
+          .json()
+          .catch(() => null)
         if (body?.error === 'token_expired') {
           const refreshed = await tryRefresh()
           if (refreshed) {
@@ -317,7 +320,10 @@ export const auth = {
 
     // If access token expired, try refresh then retry.
     if (res.status === 401) {
-      const body = await res.clone().json().catch(() => null)
+      const body = await res
+        .clone()
+        .json()
+        .catch(() => null)
       if (body?.error === 'token_expired') {
         const refreshed = await tryRefresh()
         if (refreshed) {
@@ -344,14 +350,18 @@ export const players = {
   stats: (id: string) => validatedRequest(getPlayerStatsResponseSchema, `/players/${id}/stats`),
   sessions: (id: string) => validatedRequest(z.array(gameSessionSchema), `/players/${id}/sessions`),
   matches: (id: string, limit = 20, offset = 0) =>
-    validatedRequest(listPlayerMatchesResponseSchema, `/players/${id}/matches?limit=${limit}&offset=${offset}`),
+    validatedRequest(
+      listPlayerMatchesResponseSchema,
+      `/players/${id}/matches?limit=${limit}&offset=${offset}`,
+    ),
   profile: (id: string) => validatedRequest(playerProfileSchema, `/players/${id}/profile`),
 }
 
 // --- Player settings ---------------------------------------------------------
 
 export const playerSettings = {
-  get: (playerId: string) => validatedRequest(playerSettingsSchema, `/players/${playerId}/settings`),
+  get: (playerId: string) =>
+    validatedRequest(playerSettingsSchema, `/players/${playerId}/settings`),
   update: (playerId: string, settings: PlayerSettingMap) =>
     validatedRequest(playerSettingsSchema, `/players/${playerId}/settings`, {
       method: 'PUT',

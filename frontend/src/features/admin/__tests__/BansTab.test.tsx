@@ -20,7 +20,7 @@ const ACTIVE_BAN: Ban = {
   player_id: 'p1',
   banned_by: 'admin',
   reason: 'Toxic behavior',
-  expires_at: new Date(Date.now() + 86400000 * 30).toISOString(),
+  expires_at: new Date(Date.now() + 86_400_000 * 30).toISOString(),
   created_at: '2025-01-15T00:00:00Z',
 }
 
@@ -90,7 +90,9 @@ describe('BansTab', () => {
     fireEvent.change(screen.getByTestId('ban-reason-input'), { target: { value: 'Test ban' } })
     fireEvent.click(screen.getByTestId('confirm-ban-btn'))
 
-    await waitFor(() => expect(mockAdmin.banPlayer).toHaveBeenCalledWith('p5', 'Test ban', expect.any(String)))
+    await waitFor(() =>
+      expect(mockAdmin.banPlayer).toHaveBeenCalledWith('p5', 'Test ban', expect.any(String)),
+    )
   })
 
   it('lifts a ban', async () => {

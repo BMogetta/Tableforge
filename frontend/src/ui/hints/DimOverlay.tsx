@@ -6,9 +6,5 @@ interface Props {
 }
 
 export function DimOverlay({ dimmed, children }: Props) {
-  return (
-    <div className={dimmed ? styles.dimOverlay : undefined}>
-      {children}
-    </div>
-  )
+  return <div className={dimmed ? styles.dimOverlay : undefined}>{children}</div>
 }

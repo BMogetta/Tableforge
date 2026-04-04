@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test'
 import { getPair } from './helpers'
 
 test.describe('Auth and access control', () => {
-  test('error boundary catches render errors and shows recovery UI', async ({ browser }, testInfo) => {
+  test('error boundary catches render errors and shows recovery UI', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const ctx = await browser.newContext({ storageState: pair.p1State })
     const page = await ctx.newPage()

@@ -16,7 +16,11 @@ export function TooltipWrapper({ text, children }: Props) {
       onMouseLeave={() => setVisible(false)}
     >
       {children}
-      {visible && <div className={styles.tooltipContent} role="tooltip">{text}</div>}
+      {visible && (
+        <div className={styles.tooltipContent} role='tooltip'>
+          {text}
+        </div>
+      )}
     </div>
   )
 }

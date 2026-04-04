@@ -78,8 +78,7 @@ if (typeof navigator !== 'undefined' && 'userAgentData' in navigator) {
       if (v.fullVersionList?.length) {
         // Pick the most specific brand (skip "Chromium", "Not…" brands).
         const brand =
-          v.fullVersionList.find((b: any) => !/Chromium|Not/i.test(b.brand)) ??
-          v.fullVersionList[0]
+          v.fullVersionList.find((b: any) => !/Chromium|Not/i.test(b.brand)) ?? v.fullVersionList[0]
         cachedBrowser = { name: brand.brand, version: brand.version }
       }
       if (v.platform) cachedOS = { name: v.platform, version: v.platformVersion ?? '' }

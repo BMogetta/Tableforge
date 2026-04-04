@@ -48,13 +48,13 @@ const mockReady = sessions.ready as ReturnType<typeof vi.fn>
 
 function advanceSeconds(n: number) {
   for (let i = 0; i < n; i++) {
-    act(() => vi.advanceTimersByTime(1_000))
+    act(() => vi.advanceTimersByTime(1000))
   }
 }
 
 async function advancePastLoading() {
   await act(async () => {
-    vi.advanceTimersByTime(3_000)
+    vi.advanceTimersByTime(3000)
     await Promise.resolve()
   })
 }

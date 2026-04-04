@@ -51,16 +51,13 @@ export const admin = {
       method: 'POST',
       body: JSON.stringify({ reason, expires_at: expiresAt }),
     }),
-  liftBan: (banId: string) =>
-    request<void>(`/admin/bans/${banId}`, { method: 'DELETE' }),
-  listPlayerBans: (playerId: string) =>
-    request<Ban[]>(`/admin/players/${playerId}/bans`),
+  liftBan: (banId: string) => request<void>(`/admin/bans/${banId}`, { method: 'DELETE' }),
+  listPlayerBans: (playerId: string) => request<Ban[]>(`/admin/players/${playerId}/bans`),
 
   // Rooms
   listRooms: () => request<Room[]>('/rooms'),
   getRoom: (roomId: string) => request<RoomView>(`/rooms/${roomId}`),
-  listPlayerSessions: (playerId: string) =>
-    request<GameSession[]>(`/players/${playerId}/sessions`),
+  listPlayerSessions: (playerId: string) => request<GameSession[]>(`/players/${playerId}/sessions`),
   forceEndSession: (sessionId: string) =>
     request<void>(`/sessions/${sessionId}`, { method: 'DELETE' }),
 }

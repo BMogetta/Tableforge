@@ -111,9 +111,7 @@ function resolveUrl(id: SfxId, index?: number): string | null {
     }
   } else {
     // 3+ items: random excluding last
-    const candidates = Array.from({ length: arr.length }, (_, i) => i).filter(
-      i => i !== last,
-    )
+    const candidates = Array.from({ length: arr.length }, (_, i) => i).filter(i => i !== last)
     pick = candidates[Math.floor(Math.random() * candidates.length)]
   }
 
@@ -216,9 +214,7 @@ function preload(...ids: SfxId[]): void {
  * to warm the cache in the background.
  */
 function preloadAll(): void {
-  const ids = (Object.keys(CATALOG) as SfxId[]).filter(
-    k => allUrls(k).length > 0,
-  )
+  const ids = (Object.keys(CATALOG) as SfxId[]).filter(k => allUrls(k).length > 0)
   preload(...ids)
 }
 

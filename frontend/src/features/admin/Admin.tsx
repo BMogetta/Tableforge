@@ -62,15 +62,11 @@ export function Admin() {
 
       <main className={styles.content}>
         {tab === Tab.emails && <AllowedEmailsTab callerRole={player.role} />}
-        {tab === Tab.players && (
-          <PlayersTab callerRole={player.role} callerID={player.id} />
-        )}
+        {tab === Tab.players && <PlayersTab callerRole={player.role} callerID={player.id} />}
         {tab === Tab.moderation && (
           <ModerationTab callerRole={player.role} onBanPlayer={handleBanFromReport} />
         )}
-        {tab === Tab.bans && (
-          <BansTab callerRole={player.role} initialPlayerId={banTargetId} />
-        )}
+        {tab === Tab.bans && <BansTab callerRole={player.role} initialPlayerId={banTargetId} />}
         {tab === Tab.rooms && <RoomsTab callerRole={player.role} />}
       </main>
     </div>

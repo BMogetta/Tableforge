@@ -6,7 +6,7 @@ import { getGameAssets } from '@/games/assets'
 import styles from './GameLoading.module.css'
 
 // Minimum time to show the loading screen — prevents flash if assets load instantly.
-const MIN_LOADING_MS = 3_000
+const MIN_LOADING_MS = 3000
 // Timeout duration must match the server's DefaultReadyTimeout (60s).
 const READY_TIMEOUT_SECS = 60
 
@@ -114,7 +114,7 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
         }
         return c - 1
       })
-    }, 1_000)
+    }, 1000)
 
     return () => clearInterval(interval)
   }, [phase])

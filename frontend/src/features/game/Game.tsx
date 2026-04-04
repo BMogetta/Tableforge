@@ -21,7 +21,7 @@ import { useGameSession } from './hooks/useGameSession'
 import { useGameSocket } from './hooks/useGameSocket'
 import { usePauseResume } from './hooks/usePauseResume'
 import { useRematch } from './hooks/useRematch'
-import { SessionCache } from './api/session-cache'
+import type { SessionCache } from './api/session-cache'
 import { ResultStatus } from '@/lib/api'
 import { requestPermission, acquireWakeLock, releaseWakeLock } from '@/lib/turn-notifier'
 
@@ -72,15 +72,23 @@ export function Game({ sessionId }: { sessionId: string }) {
   // Preload game sounds + request notification permission + WakeLock.
   useEffect(() => {
     sfx.preload(
-      'game.card_play', 'game.card_draw', 'game.my_turn',
-      'game.round_end', 'game.win', 'game.lose', 'game.draw',
-      'game.start', 'game.elimination',
+      'game.card_play',
+      'game.card_draw',
+      'game.my_turn',
+      'game.round_end',
+      'game.win',
+      'game.lose',
+      'game.draw',
+      'game.start',
+      'game.elimination',
     )
     if (isSpectator) return
     sfx.play('game.start')
     requestPermission()
     acquireWakeLock()
-    return () => { releaseWakeLock() }
+    return () => {
+      releaseWakeLock()
+    }
   }, [sessionId, isSpectator])
 
   function handleGameOver(winnerId: string | null, isDraw: boolean) {
@@ -218,7 +226,8 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   const canPause =
     !isSpectator && !gameOver.isOver && !pauseResume.isSuspended && !pauseResume.votedPause
-  const canResume = !isSpectator && pauseResume.isSuspended && !pauseResume.votedResume && !gameOver.isOver
+  const canResume =
+    !isSpectator && pauseResume.isSuspended && !pauseResume.votedResume && !gameOver.isOver
 
   let statusText = ''
   if (isSpectator) {
@@ -245,10 +254,7 @@ export function Game({ sessionId }: { sessionId: string }) {
   // --- Render ----------------------------------------------------------------
 
   return (
-    <div
-      className={`${styles.root} page-enter`}
-      {...testAttr('socket-status', socketStatus)}
-    >
+    <div className={`${styles.root} page-enter`} {...testAttr('socket-status', socketStatus)}>
       <div className={styles.panel}>
         <GameHeader
           gameId={session.game_id}

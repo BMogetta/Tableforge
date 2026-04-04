@@ -211,7 +211,8 @@ function NotFound() {
 }
 
 function RootComponent() {
-  const { player, setPlayer, disconnectPlayerSocket, dmTarget, setDmTarget, playerSocket } = useAppStore()
+  const { player, setPlayer, disconnectPlayerSocket, dmTarget, setDmTarget, playerSocket } =
+    useAppStore()
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [dmInboxOpen, setDmInboxOpen] = useState(false)
 
@@ -277,10 +278,7 @@ function RootComponent() {
 
         {player && (
           <>
-            <FriendsButton
-              pendingCount={pendingCount}
-              onClick={() => setFriendsOpen(true)}
-            />
+            <FriendsButton pendingCount={pendingCount} onClick={() => setFriendsOpen(true)} />
 
             {friendsOpen && (
               <FriendsPanel

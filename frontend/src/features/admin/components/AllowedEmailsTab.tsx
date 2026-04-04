@@ -81,7 +81,9 @@ export function AllowedEmailsTab({ callerRole }: Props) {
       {loading ? (
         <p className={styles.empty}>Loading...</p>
       ) : entries.length === 0 ? (
-        <p className={styles.empty} {...testId('emails-empty')}>No emails in whitelist.</p>
+        <p className={styles.empty} {...testId('emails-empty')}>
+          No emails in whitelist.
+        </p>
       ) : (
         <table className={styles.table} {...testId('emails-table')}>
           <thead>

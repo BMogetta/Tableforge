@@ -8,7 +8,7 @@
   height: 168px;
 }
 
-.pile[data-empty='true'] {
+.pile[data-empty="true"] {
   cursor: default;
   opacity: 0.3;
 }

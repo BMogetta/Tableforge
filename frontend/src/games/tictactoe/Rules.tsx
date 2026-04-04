@@ -23,8 +23,13 @@ export function TicTacToeRules() {
       <section className={styles.section}>
         <h3 className={styles.heading}>Win Conditions</h3>
         <ul className={styles.list}>
-          <li><strong>Three in a row:</strong> first player to align three marks wins.</li>
-          <li><strong>Draw:</strong> if all 9 cells are filled with no three in a row, the game is a draw.</li>
+          <li>
+            <strong>Three in a row:</strong> first player to align three marks wins.
+          </li>
+          <li>
+            <strong>Draw:</strong> if all 9 cells are filled with no three in a row, the game is a
+            draw.
+          </li>
         </ul>
       </section>
     </div>

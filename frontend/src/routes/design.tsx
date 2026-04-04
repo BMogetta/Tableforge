@@ -151,7 +151,7 @@ function DesignPage() {
             <button className='btn btn-ghost'>Leave Room</button>
             <button className='btn btn-danger'>Forfeit</button>
             <button className='btn btn-secondary'>View Replay</button>
-            <button className='btn btn-primary' disabled>
+            <button className='btn btn-primary' disabled={true}>
               Disabled
             </button>
           </div>
@@ -188,7 +188,7 @@ function DesignPage() {
               <input
                 className='input'
                 placeholder='Not editable'
-                disabled
+                disabled={true}
                 style={{ maxWidth: 280 }}
               />
             </div>

@@ -13,7 +13,17 @@ interface FriendItemProps {
   blockPending: boolean
 }
 
-export function FriendItem({ friendId, username, avatarUrl, online, onDM, onRemove, onBlock, removePending, blockPending }: FriendItemProps) {
+export function FriendItem({
+  friendId,
+  username,
+  avatarUrl,
+  online,
+  onDM,
+  onRemove,
+  onBlock,
+  removePending,
+  blockPending,
+}: FriendItemProps) {
   return (
     <div className={styles.friendRow} {...testId(`friend-${friendId}`)}>
       <span className={styles.presenceDot} data-online={String(online)} />

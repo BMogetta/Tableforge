@@ -1,4 +1,4 @@
-import { GameSession } from '@/lib/schema-generated.zod'
+import type { GameSession } from '@/lib/schema-generated.zod'
 
 /**
  * Unified cache shape for session queries written to the React Query cache

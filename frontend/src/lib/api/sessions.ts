@@ -1,7 +1,5 @@
 import { request, validatedRequest } from '../api'
-import type {
-  ApplyMoveRequest,
-} from '../schema-generated.zod'
+import type { ApplyMoveRequest } from '../schema-generated.zod'
 import {
   moveSchema,
   applyMoveResponseSchema,
@@ -52,7 +50,8 @@ export const sessions = {
     })
   },
   // Manager only. Broadcasts room_closed to all clients.
-  forceClose: (sessionId: string) => request<void>(`/sessions/${sessionId}`, { method: 'DELETE', body: JSON.stringify({}) }),
+  forceClose: (sessionId: string) =>
+    request<void>(`/sessions/${sessionId}`, { method: 'DELETE', body: JSON.stringify({}) }),
   events: (id: string) => validatedRequest(z.array(sessionEventSchema), `/sessions/${id}/events`),
   history: (id: string) => validatedRequest(z.array(moveSchema), `/sessions/${id}/history`),
 }

@@ -179,6 +179,7 @@ lint:
 	@echo "=== Go (go vet) ==="
 	@fail=0; \
 	for svc in services/*/; do \
+		[ -f "$$svc/go.mod" ] || continue; \
 		echo "  $$svc"; \
 		cd $(CURDIR)/$$svc && go vet ./... 2>&1 | sed 's/^/    /' || fail=1; \
 	done; \

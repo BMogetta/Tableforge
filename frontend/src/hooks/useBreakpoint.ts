@@ -51,10 +51,7 @@ export function useBreakpoint(): BreakpointState {
     }
   }, [])
 
-  const isAtLeast = useCallback(
-    (bp: Breakpoint) => ORDER[breakpoint] >= ORDER[bp],
-    [breakpoint],
-  )
+  const isAtLeast = useCallback((bp: Breakpoint) => ORDER[breakpoint] >= ORDER[bp], [breakpoint])
 
   return {
     breakpoint,

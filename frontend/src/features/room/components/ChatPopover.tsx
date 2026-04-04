@@ -153,35 +153,65 @@ export function ChatPopover({
         addSystemMessage('[System] All local mutes cleared.')
         return true
       case 'mute': {
-        if (!username) { addSystemMessage('[Error] Usage: /mute <username>'); return true }
+        if (!username) {
+          addSystemMessage('[Error] Usage: /mute <username>')
+          return true
+        }
         const target = resolvePlayer(username)
-        if (!target) { addSystemMessage(`[Error] Player "${username}" not found in this room.`); return true }
-        if (target.id === player.id) { addSystemMessage('[Error] You cannot mute yourself.'); return true }
+        if (!target) {
+          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          return true
+        }
+        if (target.id === player.id) {
+          addSystemMessage('[Error] You cannot mute yourself.')
+          return true
+        }
         onMute(target.id)
         addSystemMessage(`[System] Muted ${target.username} for this session.`)
         return true
       }
       case 'unmute': {
-        if (!username) { addSystemMessage('[Error] Usage: /unmute <username>'); return true }
+        if (!username) {
+          addSystemMessage('[Error] Usage: /unmute <username>')
+          return true
+        }
         const target = resolvePlayer(username)
-        if (!target) { addSystemMessage(`[Error] Player "${username}" not found in this room.`); return true }
+        if (!target) {
+          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          return true
+        }
         onUnmute(target.id)
         addSystemMessage(`[System] Unmuted ${target.username}.`)
         return true
       }
       case 'block': {
-        if (!username) { addSystemMessage('[Error] Usage: /block <username>'); return true }
+        if (!username) {
+          addSystemMessage('[Error] Usage: /block <username>')
+          return true
+        }
         const target = resolvePlayer(username)
-        if (!target) { addSystemMessage(`[Error] Player "${username}" not found in this room.`); return true }
-        if (target.id === player.id) { addSystemMessage('[Error] You cannot block yourself.'); return true }
+        if (!target) {
+          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          return true
+        }
+        if (target.id === player.id) {
+          addSystemMessage('[Error] You cannot block yourself.')
+          return true
+        }
         blockMutation.mutate(target.id)
         addSystemMessage(`[System] Blocked ${target.username}.`)
         return true
       }
       case 'unblock': {
-        if (!username) { addSystemMessage('[Error] Usage: /unblock <username>'); return true }
+        if (!username) {
+          addSystemMessage('[Error] Usage: /unblock <username>')
+          return true
+        }
         const target = resolvePlayer(username)
-        if (!target) { addSystemMessage(`[Error] Player "${username}" not found in this room.`); return true }
+        if (!target) {
+          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          return true
+        }
         unblockMutation.mutate(target.id)
         addSystemMessage(`[System] Unblocked ${target.username}.`)
         return true
@@ -195,7 +225,10 @@ export function ChatPopover({
   function handleSend() {
     const content = draft.trim()
     if (!content || sendMessage.isPending) return
-    if (handleCommand(content)) { setDraft(''); return }
+    if (handleCommand(content)) {
+      setDraft('')
+      return
+    }
     sendMessage.mutate(content)
   }
 
@@ -256,7 +289,14 @@ export function ChatPopover({
           disabled={!draft.trim() || sendMessage.isPending}
           title='Send'
         >
-          <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'>
+          <svg
+            width='14'
+            height='14'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='1.5'
+          >
             <line x1='22' y1='2' x2='11' y2='13' />
             <polygon points='22 2 15 22 11 13 2 9 22 2' />
           </svg>
@@ -268,7 +308,15 @@ export function ChatPopover({
 
 // --- ChatMessage -------------------------------------------------------------
 
-function ChatMessage({ msg, isSelf, senderUsername }: { msg: RoomMessage; isSelf: boolean; senderUsername?: string }) {
+function ChatMessage({
+  msg,
+  isSelf,
+  senderUsername,
+}: {
+  msg: RoomMessage
+  isSelf: boolean
+  senderUsername?: string
+}) {
   const time = msg.timestamp
     ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : ''
@@ -290,7 +338,9 @@ function SystemMessageBubble({ text }: { text: string }) {
   return (
     <div className={styles.systemMessage}>
       {text.split('\n').map((line, i) => (
-        <span key={i} className={styles.systemLine}>{line}</span>
+        <span key={i} className={styles.systemLine}>
+          {line}
+        </span>
       ))}
     </div>
   )

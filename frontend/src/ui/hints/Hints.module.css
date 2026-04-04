@@ -38,7 +38,9 @@
 }
 
 .highlightBorder {
-  box-shadow: 0 0 0 2px var(--color-interactive), 0 0 8px var(--color-interactive-glow);
+  box-shadow:
+    0 0 0 2px var(--color-interactive),
+    0 0 8px var(--color-interactive-glow);
   border-radius: var(--radius);
   transition: box-shadow var(--transition);
 }

@@ -63,14 +63,23 @@ export function Room({ roomId }: { roomId: string }) {
       return next
     })
   }
-  function handleMuteAll() { setMuteAll(true) }
-  function handleUnmuteAll() { setMuteAll(false); setMutedIds(new Set()) }
+  function handleMuteAll() {
+    setMuteAll(true)
+  }
+  function handleUnmuteAll() {
+    setMuteAll(false)
+    setMutedIds(new Set())
+  }
 
   // --- Stable refs for socket handler ----------------------------------------
   const navigateRef = useRef(navigate)
   const toastRef = useRef(toast)
-  useEffect(() => { navigateRef.current = navigate }, [navigate])
-  useEffect(() => { toastRef.current = toast }, [toast])
+  useEffect(() => {
+    navigateRef.current = navigate
+  }, [navigate])
+  useEffect(() => {
+    toastRef.current = toast
+  }, [toast])
 
   const refresh = useCallback(() => {
     rooms
@@ -90,7 +99,9 @@ export function Room({ roomId }: { roomId: string }) {
   }, [roomId])
 
   const refreshRef = useRef(refresh)
-  useEffect(() => { refreshRef.current = refresh }, [refresh])
+  useEffect(() => {
+    refreshRef.current = refresh
+  }, [refresh])
 
   // --- WebSocket connection --------------------------------------------------
   useEffect(() => {
@@ -127,7 +138,9 @@ export function Room({ roomId }: { roomId: string }) {
 
   // --- Socket event handler --------------------------------------------------
   const startingRef = useRef(starting)
-  useEffect(() => { startingRef.current = starting }, [starting])
+  useEffect(() => {
+    startingRef.current = starting
+  }, [starting])
 
   useEffect(() => {
     if (!socket) return
@@ -237,7 +250,9 @@ export function Room({ roomId }: { roomId: string }) {
 
   if (!view) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}
+      >
         <p className='pulse' style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
           Loading room...
         </p>
@@ -264,7 +279,13 @@ export function Room({ roomId }: { roomId: string }) {
 
   const toolbarItems = [
     { id: 'settings' as const, label: 'Settings', icon: SettingsIcon, visible: hasSettings },
-    { id: 'bot' as const, label: 'Add Bot', icon: BotIcon, visible: showBotButton, disabled: !hasOpenSlot },
+    {
+      id: 'bot' as const,
+      label: 'Add Bot',
+      icon: BotIcon,
+      visible: showBotButton,
+      disabled: !hasOpenSlot,
+    },
     { id: 'invite' as const, label: 'Invite Code', icon: InviteIcon, visible: isParticipant },
     { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true },
   ]
@@ -313,17 +334,16 @@ export function Room({ roomId }: { roomId: string }) {
   })()
 
   return (
-    <div
-      className={`${styles.root} page-enter`}
-      {...testAttr('socket-status', socketStatus)}
-    >
+    <div className={`${styles.root} page-enter`} {...testAttr('socket-status', socketStatus)}>
       <ConnectionBanner status={socketStatus} />
 
       <div className={styles.panel}>
         <header className={styles.header}>
           <div>
             <p className={styles.gameLabel}>{room.game_id}</p>
-            <h1 {...testId('room-code')} className={styles.code}>{room.code}</h1>
+            <h1 {...testId('room-code')} className={styles.code}>
+              {room.code}
+            </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className='badge badge-amber'>Waiting</span>
@@ -331,11 +351,7 @@ export function Room({ roomId }: { roomId: string }) {
           </div>
         </header>
 
-        <RoomToolbar
-          items={toolbarItems}
-          activePopover={activePopover}
-          onToggle={togglePopover}
-        >
+        <RoomToolbar items={toolbarItems} activePopover={activePopover} onToggle={togglePopover}>
           {popoverContent}
         </RoomToolbar>
 

@@ -3,7 +3,7 @@ import type { PlayerSettingMap, PlayerSettings } from '@/lib/api'
 import type { Player } from '@/lib/schema-generated.zod'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import { PlayerSocket, RoomSocket } from '@/lib/ws'
-import { applyFontSize, applySkin, FontSize, type SkinId } from '@/lib/skins'
+import { applyFontSize, applySkin, type FontSize, type SkinId } from '@/lib/skins'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -230,7 +230,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   clearQueue: () => set({ queueStatus: QueueStatus.Idle, queueJoinedAt: null, matchId: null }),
 
   dmTarget: null,
-  setDmTarget: (id) => set({ dmTarget: id }),
+  setDmTarget: id => set({ dmTarget: id }),
 
   // Settings
   settings: { ...DEFAULT_SETTINGS },

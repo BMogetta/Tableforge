@@ -21,7 +21,7 @@ export function CardZone<T>({
     <div
       ref={containerRef}
       className={styles[layoutMode]}
-      aria-label="Card zone"
+      aria-label='Card zone'
       {...testId('card-zone')}
     >
       <AnimatePresence>
@@ -30,18 +30,14 @@ export function CardZone<T>({
             key={entry.key}
             className={styles.entry}
             variants={layoutMode === 'stack' ? slideInVariants : flyInVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
+            initial='initial'
+            animate='animate'
+            exit='exit'
             transition={springTransition}
             style={layoutMode === 'pile' ? { zIndex: index } : undefined}
             {...motionProps}
           >
-            <Card
-              front={renderCard(entry.data, index)}
-              faceDown={entry.faceDown}
-              disabled
-            />
+            <Card front={renderCard(entry.data, index)} faceDown={entry.faceDown} disabled={true} />
           </motion.div>
         ))}
       </AnimatePresence>

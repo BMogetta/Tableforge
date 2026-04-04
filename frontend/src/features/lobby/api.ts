@@ -12,7 +12,10 @@ import { z } from 'zod'
 export const leaderboard = {
   get: async (gameId: string, limit = 20) => {
     const params = new URLSearchParams({ limit: String(limit) })
-    const res = await validatedRequest(getLeaderboardResponseSchema, `/ratings/${gameId}/leaderboard?${params}`)
+    const res = await validatedRequest(
+      getLeaderboardResponseSchema,
+      `/ratings/${gameId}/leaderboard?${params}`,
+    )
     return res.entries
   },
 }

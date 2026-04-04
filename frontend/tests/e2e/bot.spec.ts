@@ -21,12 +21,12 @@ async function setupAndStartGameWithBot(p1: Page, p1Id: string): Promise<string>
 
   // Open bot toolbar to add a bot via the UI.
   await p1.getByTestId('toolbar-bot').click()
-  await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5_000 })
+  await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5000 })
   await p1.getByTestId('add-bot-select').selectOption('easy')
   await p1.getByTestId('add-bot-btn').click()
 
   // Wait for the bot to appear in the player list.
-  await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5_000 })
+  await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5000 })
 
   // Close bot popover if still open (room is now full so the button gets disabled).
   const backdrop = p1.locator('[class*="popoverBackdrop"]')
@@ -35,7 +35,7 @@ async function setupAndStartGameWithBot(p1: Page, p1Id: string): Promise<string>
   }
 
   // Start the game.
-  await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 5_000 })
+  await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 5000 })
   await p1.getByTestId('start-game-btn').click()
   await expect(p1).toHaveURL(/\/game\//)
 
@@ -105,7 +105,7 @@ test.describe('Bot gameplay', () => {
       }
 
       // Wait for move to be processed — counter advances or game ends.
-      await expect(p1.locator('text=/Move \\d+/')).not.toHaveText(moveBefore!, { timeout: 5_000 })
+      await expect(p1.locator('text=/Move \\d+/')).not.toHaveText(moveBefore!, { timeout: 5000 })
     }
 
     // Game should be over — any outcome is valid.
@@ -123,7 +123,9 @@ test.describe('Bot gameplay', () => {
     await p1Ctx.close()
   })
 
-  test('bot can be removed and replaced before starting the game', async ({ browser }, testInfo) => {
+  test('bot can be removed and replaced before starting the game', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const p1Ctx = await browser.newContext({ storageState: pair.p1State })
     const p1 = await p1Ctx.newPage()
@@ -144,29 +146,29 @@ test.describe('Bot gameplay', () => {
 
     // Open bot toolbar and add a bot.
     await p1.getByTestId('toolbar-bot').click()
-    await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5_000 })
+    await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5000 })
     await p1.getByTestId('add-bot-select').selectOption('easy')
     await p1.getByTestId('add-bot-btn').click()
-    await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5_000 })
+    await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5000 })
 
     // Find and remove the bot using its remove button.
     const removeBtns = p1.locator('[data-testid^="remove-bot-btn-"]')
-    await expect(removeBtns).toHaveCount(1, { timeout: 5_000 })
+    await expect(removeBtns).toHaveCount(1, { timeout: 5000 })
     await removeBtns.first().click()
 
     // Room should be back to 1 player.
-    await expect(p1.getByTestId('player-count')).toContainText('1/2', { timeout: 5_000 })
+    await expect(p1.getByTestId('player-count')).toContainText('1/2', { timeout: 5000 })
     await expect(p1.getByTestId('start-game-btn')).toBeDisabled()
 
     // Open bot toolbar and add a new bot (hard difficulty).
     await p1.getByTestId('toolbar-bot').click()
-    await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5_000 })
+    await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5000 })
     await p1.getByTestId('add-bot-select').selectOption('hard')
     await p1.getByTestId('add-bot-btn').click()
-    await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5_000 })
+    await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5000 })
 
     // Start the game.
-    await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 5_000 })
+    await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 5000 })
     await p1.getByTestId('start-game-btn').click()
     await expect(p1).toHaveURL(/\/game\//)
 

@@ -66,10 +66,12 @@ export function Profile({ playerId }: { playerId: string }) {
               ) : (
                 <button
                   className={`btn btn-ghost btn-sm ${styles.blockBtn}`}
-                  onClick={() => block({
-                    targetId: playerId,
-                    username: playerId.slice(0, 8),
-                  })}
+                  onClick={() =>
+                    block({
+                      targetId: playerId,
+                      username: playerId.slice(0, 8),
+                    })
+                  }
                   disabled={blockPending}
                   {...testId('profile-block-btn')}
                 >

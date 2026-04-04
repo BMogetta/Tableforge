@@ -45,9 +45,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
     try {
       await admin.liftBan(banId)
       setBans(prev =>
-        prev.map(b =>
-          b.id === banId ? { ...b, lifted_at: new Date().toISOString() } : b,
-        ),
+        prev.map(b => (b.id === banId ? { ...b, lifted_at: new Date().toISOString() } : b)),
       )
     } catch (e) {
       toast.showError(catchToAppError(e))
@@ -59,7 +57,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
     const expiresAt =
       banDuration === 'permanent'
         ? undefined
-        : new Date(Date.now() + banDays * 86400000).toISOString()
+        : new Date(Date.now() + banDays * 86_400_000).toISOString()
     try {
       const ban = await admin.banPlayer(banPlayerId.trim(), banReason || undefined, expiresAt)
       setBans(prev => [ban, ...prev])
@@ -71,8 +69,12 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
     }
   }
 
-  const activeBans = bans.filter(b => !b.lifted_at && (!b.expires_at || new Date(b.expires_at) > new Date()))
-  const historyBans = bans.filter(b => b.lifted_at || (b.expires_at && new Date(b.expires_at) <= new Date()))
+  const activeBans = bans.filter(
+    b => !b.lifted_at && (!b.expires_at || new Date(b.expires_at) > new Date()),
+  )
+  const historyBans = bans.filter(
+    b => b.lifted_at || (b.expires_at && new Date(b.expires_at) <= new Date()),
+  )
 
   const canBan = callerRole === 'manager' || callerRole === 'owner'
 
@@ -89,7 +91,11 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             {...testId('bans-search-input')}
           />
-          <button className='btn btn-secondary' onClick={handleSearch} {...testId('bans-search-btn')}>
+          <button
+            className='btn btn-secondary'
+            onClick={handleSearch}
+            {...testId('bans-search-btn')}
+          >
             Search
           </button>
           {canBan && (
@@ -115,7 +121,9 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
             {...testId('ban-dialog')}
           >
             <h3 id='ban-dialog-title'>Ban Player</h3>
-            <label className='label' htmlFor='ban-player-id'>Player ID</label>
+            <label className='label' htmlFor='ban-player-id'>
+              Player ID
+            </label>
             <input
               id='ban-player-id'
               className='input'
@@ -123,7 +131,9 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
               onChange={e => setBanPlayerId(e.target.value)}
               {...testId('ban-player-id-input')}
             />
-            <label className='label' htmlFor='ban-reason'>Reason</label>
+            <label className='label' htmlFor='ban-reason'>
+              Reason
+            </label>
             <input
               id='ban-reason'
               className='input'
@@ -132,7 +142,9 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
               onChange={e => setBanReason(e.target.value)}
               {...testId('ban-reason-input')}
             />
-            <label className='label' htmlFor='ban-duration'>Duration</label>
+            <label className='label' htmlFor='ban-duration'>
+              Duration
+            </label>
             <select
               id='ban-duration'
               className='input'
@@ -145,7 +157,9 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
             </select>
             {banDuration === 'temp' && (
               <>
-                <label className='label' htmlFor='ban-days'>Days</label>
+                <label className='label' htmlFor='ban-days'>
+                  Days
+                </label>
                 <input
                   id='ban-days'
                   className='input'
@@ -161,7 +175,11 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
               <button className='btn btn-ghost' onClick={() => setShowDialog(false)}>
                 Cancel
               </button>
-              <button className='btn btn-danger' onClick={handleBanSubmit} {...testId('confirm-ban-btn')}>
+              <button
+                className='btn btn-danger'
+                onClick={handleBanSubmit}
+                {...testId('confirm-ban-btn')}
+              >
                 Confirm Ban
               </button>
             </div>
@@ -178,7 +196,9 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
       ) : (
         <>
           {activeBans.length === 0 && historyBans.length === 0 ? (
-            <p className={styles.empty} {...testId('bans-no-results')}>No bans found for this player.</p>
+            <p className={styles.empty} {...testId('bans-no-results')}>
+              No bans found for this player.
+            </p>
           ) : (
             <>
               {activeBans.length > 0 && (
@@ -200,9 +220,13 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
                         <tr key={b.id}>
                           <td>{b.player_id}</td>
                           <td>{b.reason ?? '—'}</td>
-                          <td className={styles.muted}>{new Date(b.created_at).toLocaleDateString()}</td>
                           <td className={styles.muted}>
-                            {b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Permanent'}
+                            {new Date(b.created_at).toLocaleDateString()}
+                          </td>
+                          <td className={styles.muted}>
+                            {b.expires_at
+                              ? new Date(b.expires_at).toLocaleDateString()
+                              : 'Permanent'}
                           </td>
                           <td className={styles.muted}>{b.banned_by}</td>
                           <td>
@@ -243,7 +267,9 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
                         <tr key={b.id} className={styles.mutedRow}>
                           <td>{b.player_id}</td>
                           <td>{b.reason ?? '—'}</td>
-                          <td className={styles.muted}>{new Date(b.created_at).toLocaleDateString()}</td>
+                          <td className={styles.muted}>
+                            {new Date(b.created_at).toLocaleDateString()}
+                          </td>
                           <td className={styles.muted}>
                             {b.lifted_at
                               ? `Lifted ${new Date(b.lifted_at).toLocaleDateString()}`

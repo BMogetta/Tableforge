@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../stores/store'
-import { SessionEvent, Move } from '@/lib/schema-generated.zod'
+import type { SessionEvent, Move } from '@/lib/schema-generated.zod'
 import { keys } from '@/lib/queryClient'
 import { TicTacToeBoard, type TicTacToeState } from '../games/tictactoe/components/TicTacToe'
 import styles from './SessionHistory.module.css'
@@ -112,7 +112,10 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
   const stateAfter = currentMove?.state_after
     ? (() => {
         try {
-          return JSON.parse(atob(currentMove.state_after!)) as { current_player_id: string; data: unknown }
+          return JSON.parse(atob(currentMove.state_after!)) as {
+            current_player_id: string
+            data: unknown
+          }
         } catch {
           return null
         }

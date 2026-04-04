@@ -16,18 +16,18 @@ describe('CardDisplay', () => {
   })
 
   it('sets data-facedown when faceDown prop is true', () => {
-    render(<CardDisplay card='ping' faceDown />)
+    render(<CardDisplay card='ping' faceDown={true} />)
     const card = screen.getByTestId('card-display')
     expect(card).toHaveAttribute('data-facedown', 'true')
   })
 
   it('marks card as selected via data attribute', () => {
-    render(<CardDisplay card='ping' selected />)
+    render(<CardDisplay card='ping' selected={true} />)
     expect(screen.getByTestId('card-display')).toHaveAttribute('data-selected', 'true')
   })
 
   it('marks card as disabled via data attribute', () => {
-    render(<CardDisplay card='ping' disabled />)
+    render(<CardDisplay card='ping' disabled={true} />)
     expect(screen.getByTestId('card-display')).toHaveAttribute('data-disabled', 'true')
   })
 
@@ -42,13 +42,13 @@ describe('CardDisplay', () => {
   it('does not call onClick when disabled', async () => {
     const user = userEvent.setup()
     const onClick = vi.fn()
-    render(<CardDisplay card='ping' onClick={onClick} disabled />)
+    render(<CardDisplay card='ping' onClick={onClick} disabled={true} />)
     await user.click(screen.getByTestId('card'))
     expect(onClick).not.toHaveBeenCalled()
   })
 
   it('renders aria-label indicating face-down state', () => {
-    render(<CardDisplay card='ping' faceDown />)
+    render(<CardDisplay card='ping' faceDown={true} />)
     expect(screen.getByTestId('card')).toHaveAttribute('aria-label', 'Face-down card')
   })
 

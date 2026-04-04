@@ -1,6 +1,6 @@
 import { redirect } from '@tanstack/react-router'
 import { useAppStore } from '../stores/store'
-import { PlayerRole } from './api'
+import type { PlayerRole } from './api'
 
 export function requireAuth() {
   const player = useAppStore.getState().player

@@ -43,7 +43,11 @@ export function LeaderboardPanel({ gameId }: Props) {
               <tr key={e.player_id} {...testId('leaderboard-row')}>
                 <td className={styles.rank}>{e.rank}</td>
                 <td>
-                  <Link to='/profile/$playerId' params={{ playerId: e.player_id }} className={styles.player}>
+                  <Link
+                    to='/profile/$playerId'
+                    params={{ playerId: e.player_id }}
+                    className={styles.player}
+                  >
                     <span>{e.player_id}</span>
                   </Link>
                 </td>

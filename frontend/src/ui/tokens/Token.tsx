@@ -21,7 +21,7 @@ export function Token({
 
   return (
     <motion.button
-      type="button"
+      type='button'
       className={[
         styles.token,
         isClaimed ? styles.claimed : '',

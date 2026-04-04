@@ -34,13 +34,8 @@ export function CardPile<T>({
   }, [isEmpty, onDraw])
 
   return (
-    <div
-      ref={containerRef}
-      className={styles.pile}
-      data-empty={isEmpty}
-      {...testId('card-pile')}
-    >
-      <AnimatePresence mode="popLayout">
+    <div ref={containerRef} className={styles.pile} data-empty={isEmpty} {...testId('card-pile')}>
+      <AnimatePresence mode='popLayout'>
         {Array.from({ length: visibleLayers }, (_, i) => {
           const isTop = i === visibleLayers - 1
           const offset = STACK_OFFSETS[i]
@@ -54,21 +49,17 @@ export function CardPile<T>({
                 zIndex: i,
               }}
               variants={dealVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+              initial='initial'
+              animate='animate'
+              exit='exit'
               transition={springTransition}
             >
               {isTop && topCard && renderCard ? (
-                <Card
-                  front={renderCard(topCard)}
-                  faceDown={faceDown}
-                  onClick={handleClick}
-                />
+                <Card front={renderCard(topCard)} faceDown={faceDown} onClick={handleClick} />
               ) : (
                 <Card
                   front={<div />}
-                  faceDown
+                  faceDown={true}
                   onClick={isTop ? handleClick : undefined}
                   disabled={!isTop}
                 />

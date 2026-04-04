@@ -20,7 +20,10 @@ export function ProfileHeader({
   if (isLoading) {
     return (
       <div className={styles.headerInfo}>
-        <span className='pulse' style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
+        <span
+          className='pulse'
+          style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}
+        >
           Loading profile...
         </span>
       </div>

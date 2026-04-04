@@ -51,12 +51,10 @@ export function useFocusTrap<T extends HTMLElement>(): RefObject<T | null> {
           e.preventDefault()
           last.focus()
         }
-      } else {
-        if (document.activeElement === last) {
+      } else if (document.activeElement === last) {
           e.preventDefault()
           first.focus()
         }
-      }
     }
 
     document.addEventListener('keydown', handleKeyDown)

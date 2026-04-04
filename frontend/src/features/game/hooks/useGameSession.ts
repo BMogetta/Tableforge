@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
-import { GameData } from '@/games/registry'
-import { GameSession } from '@/lib/schema-generated.zod'
+import type { GameData } from '@/games/registry'
+import type { GameSession } from '@/lib/schema-generated.zod'
 import { sessions } from '@/lib/api/sessions'
 
 interface UseGameSessionOptions {
@@ -46,7 +46,7 @@ export function useGameSession({
     staleTime: 0,
     refetchInterval: query => {
       const d = query.state.data
-      return d?.session?.finished_at ? false : 3_000
+      return d?.session?.finished_at ? false : 3000
     },
   })
 

@@ -23,12 +23,7 @@ export function TokenRow<T>({
   const variants = getClaimVariants(claimOffset)
 
   return (
-    <div
-      ref={containerRef}
-      className={styles.row}
-      aria-label="Token row"
-      {...testId('token-row')}
-    >
+    <div ref={containerRef} className={styles.row} aria-label='Token row' {...testId('token-row')}>
       {tokens.map((token, index) => {
         const claimState = getClaimState(token, index)
         const animateState = claimState ?? 'unclaimed'
@@ -41,9 +36,7 @@ export function TokenRow<T>({
             transition={tokenSpring}
             {...motionProps}
           >
-            <Token claimedBy={claimState}>
-              {renderToken(token, index)}
-            </Token>
+            <Token claimedBy={claimState}>{renderToken(token, index)}</Token>
           </motion.div>
         )
       })}

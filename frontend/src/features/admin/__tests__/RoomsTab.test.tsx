@@ -70,7 +70,15 @@ describe('RoomsTab', () => {
     mockAdmin.getRoom.mockResolvedValue({
       room: ROOMS[0],
       players: [
-        { id: 'p1', username: 'alice', role: 'player', is_bot: false, seat: 0, joined_at: '2025-01-01T00:00:00Z', created_at: '2025-01-01T00:00:00Z' },
+        {
+          id: 'p1',
+          username: 'alice',
+          role: 'player',
+          is_bot: false,
+          seat: 0,
+          joined_at: '2025-01-01T00:00:00Z',
+          created_at: '2025-01-01T00:00:00Z',
+        },
       ],
       settings: {},
     })

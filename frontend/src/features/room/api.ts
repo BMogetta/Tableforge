@@ -65,7 +65,8 @@ export const rooms = {
       body: JSON.stringify(body),
     })
   },
-  messages: (roomId: string) => validatedRequest(getRoomMessagesResponseSchema, `/rooms/${roomId}/messages`),
+  messages: (roomId: string) =>
+    validatedRequest(getRoomMessagesResponseSchema, `/rooms/${roomId}/messages`),
   sendMessage: (roomId: string, playerId: string, content: string) => {
     const body: SendRoomMessageRequest = { content }
     return validatedRequest(sendRoomMessageResponseSchema, `/rooms/${roomId}/messages`, {

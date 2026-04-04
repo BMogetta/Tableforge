@@ -6,14 +6,14 @@ const chatInput = 'input[placeholder="Message or /command..."]'
 /** Open the chat popover for a page via the toolbar button. */
 async function openChat(page: Page) {
   await page.getByTestId('toolbar-chat').click()
-  await expect(page.locator(chatInput)).toBeVisible({ timeout: 5_000 })
+  await expect(page.locator(chatInput)).toBeVisible({ timeout: 5000 })
 }
 
 /** Close the chat popover by clicking outside it. */
 async function closeChat(page: Page) {
   // Click far from the popover area (top-left corner) to hit the backdrop.
   await page.locator('[class*="popoverBackdrop"]').click({ position: { x: 5, y: 5 } })
-  await expect(page.locator(chatInput)).not.toBeVisible({ timeout: 5_000 })
+  await expect(page.locator(chatInput)).not.toBeVisible({ timeout: 5000 })
 }
 
 // Scoped locator for message bubbles inside the chat popover.
@@ -42,7 +42,9 @@ test.describe('Room chat', () => {
     await p2Ctx.close()
   })
 
-  test('multiple messages from both players appear in correct order', async ({ browser }, testInfo) => {
+  test('multiple messages from both players appear in correct order', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
@@ -113,7 +115,7 @@ test.describe('Room chat', () => {
 
     await p1.locator(chatInput).fill('persistent-msg')
     await p1.locator(chatInput).press('Enter')
-    await expect(chatMessage(p1, 'persistent-msg')).toBeVisible({ timeout: 5_000 })
+    await expect(chatMessage(p1, 'persistent-msg')).toBeVisible({ timeout: 5000 })
 
     // P2 leaves the room properly before navigating away.
     const roomId = p2.url().split('/rooms/')[1]
@@ -126,7 +128,7 @@ test.describe('Room chat', () => {
     const code = await p1.getByTestId('room-code').textContent()
     await p2.getByTestId('join-code-input').fill(code!)
     await p2.getByTestId('join-btn').click()
-    await expect(p2).toHaveURL(/\/rooms\//, { timeout: 5_000 })
+    await expect(p2).toHaveURL(/\/rooms\//, { timeout: 5000 })
 
     // Open chat on P2 and verify the message was loaded from HTTP.
     await openChat(p2)

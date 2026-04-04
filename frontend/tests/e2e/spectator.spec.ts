@@ -52,7 +52,9 @@ test.describe('Spectator mode', () => {
     await p3Ctx.close()
   })
 
-  test('spectator count updates when a spectator joins and leaves', async ({ browser }, testInfo) => {
+  test('spectator count updates when a spectator joins and leaves', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     const { p3Ctx, p3 } = await createSpectatorContext(browser, pair)
@@ -129,7 +131,7 @@ test.describe('Spectator mode', () => {
 
     await expect(p3.locator('[data-cell="0"]')).toBeVisible({ timeout: 10_000 })
     for (let i = 0; i < 9; i++) {
-      await expect(p3.locator(`[data-cell="${i}"]`)).toBeDisabled({ timeout: 5_000 })
+      await expect(p3.locator(`[data-cell="${i}"]`)).toBeDisabled({ timeout: 5000 })
     }
 
     await expect(p3.getByTestId('game-status')).not.toContainText('Your turn')
@@ -183,7 +185,9 @@ test.describe('Spectator mode', () => {
     await p3Ctx.close()
   })
 
-  test('spectator does not see a rematch button after the game ends', async ({ browser }, testInfo) => {
+  test('spectator does not see a rematch button after the game ends', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     const { p3Ctx, p3 } = await createSpectatorContext(browser, pair)
@@ -284,7 +288,9 @@ test.describe('Private rooms', () => {
     await p2Ctx.close()
   })
 
-  test('private room can be joined by entering the code manually', async ({ browser }, testInfo) => {
+  test('private room can be joined by entering the code manually', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
@@ -321,7 +327,7 @@ test.describe('Private rooms', () => {
     // Open invite code popover to see the code.
     await p1.getByTestId('toolbar-invite').click()
     await expect(p1.getByTestId('room-code-display')).toBeVisible({ timeout: 10_000 })
-    await expect(p1.getByTestId('room-code-display')).toContainText(code!, { timeout: 5_000 })
+    await expect(p1.getByTestId('room-code-display')).toContainText(code!, { timeout: 5000 })
 
     await p1Ctx.close()
     await p2Ctx.close()

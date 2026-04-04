@@ -95,7 +95,9 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
   return (
     <div className={styles.root}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={onBack}>&#8592;</button>
+        <button className={styles.backBtn} onClick={onBack}>
+          &#8592;
+        </button>
         <span className={styles.username}>{otherUsername}</span>
         {!blocked && (
           <button
@@ -134,7 +136,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
           onChange={e => setText(e.target.value)}
           placeholder='Type a message...'
           disabled={sendMut.isPending}
-          autoFocus
+          autoFocus={true}
         />
         <button
           className='btn btn-primary btn-sm'

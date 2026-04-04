@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Card } from '@/ui/cards'
-import { type CardName } from './CardDisplay'
+import type { CardName } from './CardDisplay'
 import { CardFace } from './CardFace'
 import styles from './DebuggerModal.module.css'
 import { testId } from '@/utils/testId'
@@ -47,11 +47,19 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
 
   return (
     <div className={styles.overlay}>
-      <div ref={trapRef} className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='debugger-title'>
-        <h2 className={styles.title} id='debugger-title'>Debugger</h2>
+      <div
+        ref={trapRef}
+        className={styles.modal}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='debugger-title'
+      >
+        <h2 className={styles.title} id='debugger-title'>
+          Debugger
+        </h2>
         <p className={styles.description}>
-          Choose 1 card to keep. The other 2 will be placed at the bottom of the Repository — click them
-          in the order you want them stacked.
+          Choose 1 card to keep. The other 2 will be placed at the bottom of the Repository — click
+          them in the order you want them stacked.
         </p>
 
         <div className={styles.section}>

@@ -124,7 +124,9 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
       ) : loading ? (
         <p className={styles.empty}>Loading...</p>
       ) : reports.length === 0 ? (
-        <p className={styles.empty} {...testId('moderation-empty')}>No reports found.</p>
+        <p className={styles.empty} {...testId('moderation-empty')}>
+          No reports found.
+        </p>
       ) : (
         <table className={styles.table} {...testId('reports-table')}>
           <thead>

@@ -3,9 +3,30 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { BotSection } from '../BotSection'
 
 const profiles = [
-  { name: 'easy', iterations: 100, determinizations: 5, exploration_c: 1.4, aggressiveness: 0.3, risk_aversion: 0.5 },
-  { name: 'medium', iterations: 500, determinizations: 10, exploration_c: 1.4, aggressiveness: 0.5, risk_aversion: 0.5 },
-  { name: 'hard', iterations: 2000, determinizations: 20, exploration_c: 1.4, aggressiveness: 0.7, risk_aversion: 0.3 },
+  {
+    name: 'easy',
+    iterations: 100,
+    determinizations: 5,
+    exploration_c: 1.4,
+    aggressiveness: 0.3,
+    risk_aversion: 0.5,
+  },
+  {
+    name: 'medium',
+    iterations: 500,
+    determinizations: 10,
+    exploration_c: 1.4,
+    aggressiveness: 0.5,
+    risk_aversion: 0.5,
+  },
+  {
+    name: 'hard',
+    iterations: 2000,
+    determinizations: 20,
+    exploration_c: 1.4,
+    aggressiveness: 0.7,
+    risk_aversion: 0.3,
+  },
 ]
 
 const base = {

@@ -109,7 +109,9 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('rematch full flow: vote, return to lobby, start second game', async ({ browser }, testInfo) => {
+  test('rematch full flow: vote, return to lobby, start second game', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
@@ -170,7 +172,9 @@ test.describe('TicTacToe game', () => {
     await p2Ctx.close()
   })
 
-  test('back to lobby button after game ends closes socket and redirects', async ({ browser }, testInfo) => {
+  test('back to lobby button after game ends closes socket and redirects', async ({
+    browser,
+  }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupAndStartGame(p1, p2, pair.p1Id)

@@ -27,7 +27,7 @@ describe('Card', () => {
 
   it('calls onFlip with toggled value when clicked', () => {
     const onFlip = vi.fn()
-    render(<Card front={<span>Ace</span>} faceDown onFlip={onFlip} />)
+    render(<Card front={<span>Ace</span>} faceDown={true} onFlip={onFlip} />)
     fireEvent.click(screen.getByTestId('card'))
     expect(onFlip).toHaveBeenCalledWith(false)
   })
@@ -42,14 +42,14 @@ describe('Card', () => {
   it('does not fire callbacks when disabled', () => {
     const onClick = vi.fn()
     const onFlip = vi.fn()
-    render(<Card front={<span>Ace</span>} disabled onClick={onClick} onFlip={onFlip} />)
+    render(<Card front={<span>Ace</span>} disabled={true} onClick={onClick} onFlip={onFlip} />)
     fireEvent.click(screen.getByTestId('card'))
     expect(onClick).not.toHaveBeenCalled()
     expect(onFlip).not.toHaveBeenCalled()
   })
 
   it('sets aria-label based on faceDown state', () => {
-    const { rerender } = render(<Card front={<span>Ace</span>} faceDown />)
+    const { rerender } = render(<Card front={<span>Ace</span>} faceDown={true} />)
     expect(screen.getByTestId('card')).toHaveAttribute('aria-label', 'Face-down card')
 
     rerender(<Card front={<span>Ace</span>} faceDown={false} />)
@@ -57,7 +57,7 @@ describe('Card', () => {
   })
 
   it('marks disabled via data attribute', () => {
-    render(<Card front={<span>Ace</span>} disabled />)
+    render(<Card front={<span>Ace</span>} disabled={true} />)
     expect(screen.getByTestId('card')).toHaveAttribute('data-disabled', 'true')
   })
 })

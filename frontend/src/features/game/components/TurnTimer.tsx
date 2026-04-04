@@ -27,7 +27,7 @@ export function TurnTimer({ turnTimeoutSecs, lastMoveAt, isOver, isSuspended }: 
 
     const interval = setInterval(() => {
       setRemaining(calcRemaining(turnTimeoutSecs, lastMoveAt))
-    }, 1_000)
+    }, 1000)
 
     return () => clearInterval(interval)
   }, [turnTimeoutSecs, lastMoveAt, isOver, isSuspended])

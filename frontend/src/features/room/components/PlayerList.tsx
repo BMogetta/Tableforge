@@ -98,10 +98,7 @@ export function PlayerList({
               {p.avatar_url && <img src={p.avatar_url} alt='' className={styles.avatar} />}
 
               {!isSelf && !p.is_bot ? (
-                <div
-                  className={styles.playerNameWrapper}
-                  ref={isDropdownOpen ? dropdownRef : null}
-                >
+                <div className={styles.playerNameWrapper} ref={isDropdownOpen ? dropdownRef : null}>
                   <button
                     className={styles.playerNameBtn}
                     onClick={() => setOpenDropdownId(isDropdownOpen ? null : p.id)}
@@ -134,7 +131,11 @@ export function PlayerList({
                           .sendRequest(currentPlayerId, p.id)
                           .then(() => ok(null))
                           .catch(e => error(catchToAppError(e)))
-                        if (err) { toast.showError(err) } else { toast.showInfo('Friend request sent!') }
+                        if (err) {
+                          toast.showError(err)
+                        } else {
+                          toast.showInfo('Friend request sent!')
+                        }
                         setOpenDropdownId(null)
                       }}
                       onSendDM={() => {

@@ -15,7 +15,13 @@ vi.mock('@/ui/Toast', () => ({ useToast: () => mockToast }))
 vi.mock('@/features/admin/api', () => ({ admin: mockAdmin }))
 
 const PLAYERS: Player[] = [
-  { id: 'p1', username: 'alice', role: 'player', is_bot: false, created_at: '2025-01-01T00:00:00Z' },
+  {
+    id: 'p1',
+    username: 'alice',
+    role: 'player',
+    is_bot: false,
+    created_at: '2025-01-01T00:00:00Z',
+  },
   { id: 'p2', username: 'bob', role: 'manager', is_bot: false, created_at: '2025-01-02T00:00:00Z' },
   { id: 'p3', username: 'admin', role: 'owner', is_bot: false, created_at: '2025-01-03T00:00:00Z' },
 ]
