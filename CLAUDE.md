@@ -368,6 +368,8 @@ Testing protocol:
    proceeding. If tests fail, revert the merge and fix.
 3. **Never trust agent reports blindly** — always verify on main, since the
    worktree may have branched from an older commit missing recent changes.
+4. **Clean up after merge** — remove the worktree and delete the branch:
+   `git worktree remove <path> --force && git branch -D <branch>`
 
 Exceptions (OK to work directly on `main`):
 - Trivial one-line fixes (typos, config tweaks)
