@@ -63,12 +63,22 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
+    command:
+      - redis-server
+      - --requirepass
+      - "${REDIS_PASSWORD:-recess}"
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - "200mb"
+      - --maxmemory-policy
+      - "allkeys-lru"
     networks:
       - data_network
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-recess}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -100,7 +110,7 @@ services:
       - app_network
     environment:
       - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - USER_SERVICE_ADDR=user-service:9082
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=game-server
