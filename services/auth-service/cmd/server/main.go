@@ -67,6 +67,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
+	r.Use(sharedmw.MaxBodySize(16 << 10)) // 16 KB
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))

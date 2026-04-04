@@ -12,6 +12,7 @@ import (
 func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry) http.Handler {
 	r := chi.NewRouter()
 	r.Use(sharedmw.Recoverer)
+	r.Use(sharedmw.MaxBodySize(64 << 10)) // 64 KB
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
