@@ -43,7 +43,7 @@ func (s *pgStore) LogAction(ctx context.Context, actorID uuid.UUID, action, targ
 	}
 
 	_, err := s.db.Exec(ctx,
-		`INSERT INTO audit_logs (actor_id, action, target_type, target_id, details)
+		`INSERT INTO admin.audit_logs (actor_id, action, target_type, target_id, details)
 		 VALUES ($1, $2, $3, $4, $5)`,
 		actorID, action, targetType, targetID, detailsJSON,
 	)
@@ -86,7 +86,7 @@ func (s *pgStore) ListAuditLogs(ctx context.Context, filter AuditFilter) ([]Audi
 		idx++
 	}
 
-	query := "SELECT id, actor_id, action, target_type, target_id, details, created_at FROM audit_logs"
+	query := "SELECT id, actor_id, action, target_type, target_id, details, created_at FROM admin.audit_logs"
 	if len(clauses) > 0 {
 		query += " WHERE " + strings.Join(clauses, " AND ")
 	}

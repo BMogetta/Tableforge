@@ -268,3 +268,4 @@ CREATE INDEX idx_rooms_code ON rooms(code);
 CREATE INDEX idx_game_sessions_room ON game_sessions(room_id);
 CREATE INDEX idx_room_messages_room_id ON room_messages(room_id);
 CREATE INDEX idx_notifications_player_unread ON notifications(player_id, created_at DESC) WHERE read_at IS NULL;
+CREATE INDEX idx_player_sessions_player_id ON player_sessions(player_id) WHERE revoked_at IS NULL;
