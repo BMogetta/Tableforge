@@ -103,14 +103,14 @@ Optional interfaces: `StateFilter` (hidden information), `TurnTimeoutHandler` (c
 
 | Project | Passed | Status |
 |---------|--------|--------|
-| chat-tests | 0/5 | ![fail](https://img.shields.io/badge/-all_fail-red) |
+| chat-tests | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | chromium-parallel | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| game-tests | 12/15 | ![partial](https://img.shields.io/badge/-12_of_15-yellow) |
+| game-tests | 11/15 | ![partial](https://img.shields.io/badge/-11_of_15-yellow) |
 | presence-tests | 2/5 | ![partial](https://img.shields.io/badge/-2_of_5-yellow) |
 | session-history-tests | 0/10 | ![skip](https://img.shields.io/badge/-skipped-lightgrey) |
-| settings-tests | 5/7 | ![partial](https://img.shields.io/badge/-5_of_7-yellow) |
-| spectator-tests | 6/12 | ![partial](https://img.shields.io/badge/-6_of_12-yellow) |
-| **Total** | **26/55** | ![progress](https://img.shields.io/badge/-26_of_55-yellow) |
+| settings-tests | 7/7 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| spectator-tests | 8/12 | ![partial](https://img.shields.io/badge/-8_of_12-yellow) |
+| **Total** | **34/55** | ![progress](https://img.shields.io/badge/-34_of_55-yellow) |
 
 _Last updated: 2026-04-03_
 <!-- e2e:end -->
