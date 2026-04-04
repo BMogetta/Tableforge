@@ -49,6 +49,7 @@ func NewRouter(
 		}),
 	))
 	r.Use(metricsMiddleware)
+	r.Use(sharedmw.MaxBodySize(1 << 20)) // 1 MB
 
 	r.Get("/healthz", handleHealth)
 	r.Get("/metrics", promhttp.HandlerFor(
