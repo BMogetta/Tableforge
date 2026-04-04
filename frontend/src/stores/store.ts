@@ -4,7 +4,7 @@ import type { Player } from '@/lib/schema-generated.zod'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import { PlayerSocket, RoomSocket } from '@/lib/ws'
 import { applyFontSize, applySkin, type FontSize, type SkinId } from '@/lib/skins'
-import i18n from '@/lib/i18n'
+import { i18n } from '@/lib/i18n'
 
 // ---------------------------------------------------------------------------
 // Constants

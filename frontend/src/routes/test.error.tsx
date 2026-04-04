@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { TestError } from '../pages/TestError'
+import { TestError } from '@/features/errors/TestError'
 
 export const Route = createFileRoute('/test/error')({
   beforeLoad: () => {
