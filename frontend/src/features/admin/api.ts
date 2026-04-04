@@ -21,6 +21,7 @@ export const admin = {
   removeEmail: (email: string) =>
     request<void>(`/admin/allowed-emails/${encodeURIComponent(email)}`, {
       method: 'DELETE',
+      body: JSON.stringify({}),
     }),
 
   // Players

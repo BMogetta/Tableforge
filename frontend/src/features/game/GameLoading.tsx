@@ -22,6 +22,7 @@ type Phase = 'loading' | 'waiting' | 'done'
 export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
   const player = useAppStore(s => s.player)!
   const socket = useAppStore(s => s.socket)
+  const isSpectator = useAppStore(s => s.isSpectator)
 
   const [phase, setPhase] = useState<Phase>('loading')
   const [progress, setProgress] = useState<LoadProgress>({ loaded: 0, total: 0, progress: 0 })
@@ -33,6 +34,13 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
 
   // Phase 1 — load assets + enforce minimum display time.
   useEffect(() => {
+    // Spectators don't participate in ready-check — skip straight to game.
+    if (isSpectator) {
+      setPhase('done')
+      onReady()
+      return
+    }
+
     let cancelled = false
     const startedAt = Date.now()
     const assets = getGameAssets(gameId)
@@ -70,7 +78,7 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
     return () => {
       cancelled = true
     }
-  }, [sessionId, gameId, player.id])
+  }, [sessionId, gameId, player.id, isSpectator])
 
   // Phase 2 — listen for game_ready WS event.
   useEffect(() => {

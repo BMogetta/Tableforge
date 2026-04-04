@@ -49,11 +49,13 @@ export const rooms = {
   leave: (roomId: string) => {
     return request<void>(`/rooms/${roomId}/leave`, {
       method: 'POST',
+      body: JSON.stringify({}),
     })
   },
   start: (roomId: string) => {
     return validatedRequest(gameSessionSchema, `/rooms/${roomId}/start`, {
       method: 'POST',
+      body: JSON.stringify({}),
     })
   },
   updateSetting: (roomId: string, key: string, value: string) => {
@@ -87,6 +89,7 @@ export const bots = {
   remove: (roomId: string, _playerId: string, botId: string) => {
     return request<void>(`/rooms/${roomId}/bots/${botId}`, {
       method: 'DELETE',
+      body: JSON.stringify({}),
     })
   },
 }
