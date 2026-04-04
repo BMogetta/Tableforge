@@ -74,7 +74,7 @@ See `CLAUDE.md` for the full architecture, service map, and all available comman
 | `GET grafana.localhost` | grafana | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /` | frontend | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 
-_Last updated: 2026-04-03_
+_Last updated: 2026-04-04_
 
 <!-- routing:end -->
 
@@ -120,16 +120,16 @@ _Last updated: 2026-04-03_
 
 | Service | Tests | Coverage |
 |---------|-------|----------|
-| auth-service | 26 passed | ![59.0%](https://img.shields.io/badge/coverage-59.0%25-yellow) |
-| chat-service | 30 passed | ![56.5%](https://img.shields.io/badge/coverage-56.5%25-yellow) |
-| game-server | 219 passed | ![45.4%](https://img.shields.io/badge/coverage-45.4%25-yellow) |
-| match-service | 27 passed | ![42.6%](https://img.shields.io/badge/coverage-42.6%25-yellow) |
-| notification-service | 27 passed | ![55.3%](https://img.shields.io/badge/coverage-55.3%25-yellow) |
+| auth-service | 30 passed | ![46.4%](https://img.shields.io/badge/coverage-46.4%25-yellow) |
+| chat-service | 33 passed | ![52.5%](https://img.shields.io/badge/coverage-52.5%25-yellow) |
+| game-server | 290 passed | ![48.4%](https://img.shields.io/badge/coverage-48.4%25-yellow) |
+| match-service | 73 passed | ![64.7%](https://img.shields.io/badge/coverage-64.7%25-green) |
+| notification-service | 27 passed | ![55.2%](https://img.shields.io/badge/coverage-55.2%25-yellow) |
 | rating-service | 37 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
-| user-service | 79 passed | ![64.9%](https://img.shields.io/badge/coverage-64.9%25-green) |
-| ws-gateway | 21 passed | ![28.2%](https://img.shields.io/badge/coverage-28.2%25-red) |
-| frontend (vitest) | 283 passed | ![73.4%](https://img.shields.io/badge/coverage-73.4%25-green) |
+| user-service | 84 passed | ![61.1%](https://img.shields.io/badge/coverage-61.1%25-green) |
+| ws-gateway | 50 passed | ![33.0%](https://img.shields.io/badge/coverage-33.0%25-red) |
+| frontend (vitest) | 356 passed | ![71.5%](https://img.shields.io/badge/coverage-71.5%25-green) |
 
-_Last updated: 2026-04-03_
+_Last updated: 2026-04-04_
 
 <!-- coverage:end -->

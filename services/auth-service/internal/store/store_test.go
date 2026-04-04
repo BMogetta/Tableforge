@@ -202,7 +202,7 @@ func TestCreateSession(t *testing.T) {
 		t.Fatalf("setup player: %v", err)
 	}
 
-	err = env.store.CreateSession(ctx, handler.CreateSessionParams{
+	_, err = env.store.CreateSession(ctx, handler.CreateSessionParams{
 		PlayerID:       identity.PlayerID,
 		UserAgent:      "TestAgent/1.0",
 		AcceptLanguage: "en-US",
