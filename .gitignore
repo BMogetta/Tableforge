@@ -18,9 +18,7 @@ frontend/.vite/
 frontend/coverage/
 
 # ── Docker ───────────────────────────────────────────────────────────────────
-# Keep docker-compose.yml and Dockerfiles tracked
-# Ignore local override files
-docker-compose.override.yml
+# Keep docker-compose.yml, Dockerfiles, and override tracked
 
 # ── Editors ──────────────────────────────────────────────────────────────────
 .vscode/

@@ -17,7 +17,7 @@ up-all: networks
 	docker compose --profile app --profile monitoring up --build -d
 
 up-prod: networks
-	docker compose --profile production up -d --build
+	docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml --profile production --profile app --profile monitoring up -d --build
 
 up-test: networks
 	TEST_MODE=true docker compose --profile app up --build -d

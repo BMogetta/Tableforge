@@ -1,0 +1,28 @@
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  traefik:
+    ports:
+      - "9090:8080"  # Traefik dashboard (dev only)
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_TEST_MODE=${TEST_MODE:-false}
+
+  grafana:
+    environment:
+      - GF_SERVER_ROOT_URL=http://grafana.localhost/
+      # Open access as Admin for local development convenience.
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    labels:
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"

@@ -91,13 +91,10 @@ services:
     container_name: grafana
     profiles: [monitoring]
     environment:
-      - GF_SERVER_ROOT_URL=http://grafana.localhost/
-      # No login locally — open access as Admin for convenience.
-      # In production, put Grafana behind Cloudflare Access (or similar)
-      # and override these with stricter values.
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-https://grafana.recess.bmogetta.com/}
+      - GF_AUTH_ANONYMOUS_ENABLED=${GRAFANA_ANON_ENABLED:-false}
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=${GRAFANA_ANON_ROLE:-Viewer}
+      - GF_AUTH_DISABLE_LOGIN_FORM=${GRAFANA_DISABLE_LOGIN:-false}
     volumes:
       - ./infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
@@ -112,7 +109,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+      - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_HOST:-grafana.recess.bmogetta.com}`)"
       - "traefik.http.routers.grafana.entrypoints=web"
       # Grafana is excluded from security-headers — it requires 'unsafe-eval'
       # for table panels and transformations, and manages its own CSP.
