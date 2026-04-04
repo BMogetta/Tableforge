@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import styles from './RoundSummary.module.css'
 
@@ -31,6 +32,7 @@ export function RoundSummary({
   autoDismissMs = AUTO_DISMISS_MS,
   onDismiss,
 }: Props) {
+  const { t } = useTranslation()
   const trapRef = useFocusTrap<HTMLDivElement>()
   const [remaining, setRemaining] = useState(autoDismissMs)
 
@@ -63,20 +65,22 @@ export function RoundSummary({
       >
         <div className={styles.header}>
           <span className={styles.roundLabel} id='round-summary-title'>
-            Round {round} complete
+            {t('rootaccess.roundComplete', { n: round })}
           </span>
           {winner ? (
             <h2 className={styles.winnerText}>{winner.username} wins the round</h2>
           ) : (
-            <h2 className={styles.winnerText}>Round drawn</h2>
+            <h2 className={styles.winnerText}>{t('rootaccess.roundDrawn')}</h2>
           )}
         </div>
 
         {backdoorBonusPlayers.length > 0 && (
           <div className={styles.spyBonus}>
-            <span className={styles.spyLabel}>Backdoor bonus</span>
+            <span className={styles.spyLabel}>{t('rootaccess.backdoorBonus')}</span>
             <span className={styles.spyNames}>
-              {backdoorBonusPlayers.map(p => p.username).join(', ')} earned +1 token
+              {t('rootaccess.earnedToken', {
+                name: backdoorBonusPlayers.map(p => p.username).join(', '),
+              })}
             </span>
           </div>
         )}
@@ -100,7 +104,7 @@ export function RoundSummary({
                 ))}
               </div>
               <span className={styles.tokenCount}>
-                {p.tokens}/{p.tokensToWin}
+                {t('rootaccess.tokenCount', { current: p.tokens, total: p.tokensToWin })}
               </span>
             </div>
           ))}
@@ -111,7 +115,7 @@ export function RoundSummary({
             <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
           </div>
           <button className='btn btn-ghost' onClick={onDismiss}>
-            Continue
+            {t('rootaccess.continue')}
           </button>
         </div>
       </div>

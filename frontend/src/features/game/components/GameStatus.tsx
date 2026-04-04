@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
 
@@ -38,6 +39,7 @@ export function GameStatus({
   opponentId,
   opponentOnline,
 }: Props) {
+  const { t } = useTranslation()
   return (
     <div className={styles.status} role='status' aria-live='polite' aria-atomic='true'>
       <div
@@ -57,7 +59,7 @@ export function GameStatus({
             {...testId('opponent-presence-dot')}
           />
           <span {...testId('opponent-presence-text')}>
-            {opponentOnline ? 'Opponent online' : 'Opponent offline'}
+            {opponentOnline ? t('game.opponentOnline') : t('game.opponentOffline')}
           </span>
         </span>
       )}

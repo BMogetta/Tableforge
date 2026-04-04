@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from '../Room.module.css'
 import { testId } from '@/utils/testId'
 
@@ -7,17 +8,18 @@ interface InviteCodeProps {
 }
 
 export function InviteCode({ code, isPrivate }: InviteCodeProps) {
+  const { t } = useTranslation()
   return (
     <div className={styles.shareSection}>
       {isPrivate ? (
         <>
-          <p className='label'>Private Room</p>
+          <p className='label'>{t('room.privateRoom')}</p>
           <p className={styles.privateNote}>
-            Share the room code privately — it won't appear in the public lobby.
+            {t('room.privateRoomHint')}
           </p>
         </>
       ) : (
-        <p className='label'>Invite Code</p>
+        <p className='label'>{t('room.inviteCode')}</p>
       )}
       <div className={styles.codeBox}>
         <span {...testId('room-code-display')} className={styles.codeDisplay}>
@@ -27,7 +29,7 @@ export function InviteCode({ code, isPrivate }: InviteCodeProps) {
           className='btn btn-ghost btn-sm'
           onClick={() => navigator.clipboard.writeText(code)}
         >
-          Copy
+          {t('common.copy')}
         </button>
       </div>
     </div>

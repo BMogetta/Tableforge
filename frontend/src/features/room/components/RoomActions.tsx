@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { AppError } from '@/utils/errors'
 import { ErrorMessage } from '@/ui/ErrorMessage'
 import styles from '../Room.module.css'
@@ -24,12 +25,13 @@ export function RoomActions({
   onStart,
   onLeave,
 }: RoomActionsProps) {
+  const { t } = useTranslation()
   return (
     <>
       <div className={styles.actions}>
         {isSpectator ? (
           <button className='btn btn-danger' onClick={onLeave}>
-            Leave
+            {t('room.leaveRoom')}
           </button>
         ) : isOwner ? (
           <>
@@ -44,18 +46,18 @@ export function RoomActions({
               {starting
                 ? 'Starting...'
                 : canStart
-                  ? 'Start Game'
-                  : `Need ${playersNeeded} more player(s)`}
+                  ? t('room.startGame')
+                  : t('room.needMorePlayers', { count: playersNeeded })}
             </button>
             <button className='btn btn-danger' onClick={onLeave}>
-              Leave
+              {t('room.leaveRoom')}
             </button>
           </>
         ) : (
           <>
-            <p className={styles.waitingHost}>Waiting for host to start the game...</p>
+            <p className={styles.waitingHost}>{t('room.waitingForHost')}</p>
             <button className='btn btn-danger' onClick={onLeave}>
-              Leave
+              {t('room.leaveRoom')}
             </button>
           </>
         )}

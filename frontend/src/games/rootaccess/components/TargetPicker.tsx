@@ -1,4 +1,5 @@
-import { type CardName, CARD_META } from './CardDisplay'
+import { useTranslation } from 'react-i18next'
+import { CARD_META, type CardName } from './CardDisplay'
 import styles from './TargetPicker.module.css'
 
 interface Player {
@@ -46,6 +47,7 @@ export function TargetPicker({
   onSelectTarget,
   onSelectGuess,
 }: Props) {
+  const { t } = useTranslation()
   const allUnavailable = opponents.every(
     p => eliminatedIds.includes(p.id) || protectedIds.includes(p.id),
   )
@@ -53,12 +55,8 @@ export function TargetPicker({
   return (
     <div className={styles.root}>
       <div className={styles.section}>
-        <span className={styles.label}>Choose target</span>
-        {allUnavailable && (
-          <span className={styles.hint}>
-            All opponents are protected or eliminated — no effect.
-          </span>
-        )}
+        <span className={styles.label}>{t('rootaccess.chooseTarget')}</span>
+        {allUnavailable && <span className={styles.hint}>{t('rootaccess.noTargets')}</span>}
         <div className={styles.targets}>
           {opponents.map(p => {
             const isEliminated = eliminatedIds.includes(p.id)
@@ -81,8 +79,8 @@ export function TargetPicker({
                 aria-pressed={isSelected}
               >
                 <span className={styles.targetName}>{p.username}</span>
-                {isProtected && <span className={styles.tag}>Protected</span>}
-                {isEliminated && <span className={styles.tag}>Eliminated</span>}
+                {isProtected && <span className={styles.tag}>{t('rootaccess.protected')}</span>}
+                {isEliminated && <span className={styles.tag}>{t('rootaccess.eliminated')}</span>}
               </button>
             )
           })}
@@ -91,14 +89,14 @@ export function TargetPicker({
 
       {cardBeingPlayed === 'ping' && (
         <div className={styles.section}>
-          <span className={styles.label}>Guess their card</span>
+          <span className={styles.label}>{t('rootaccess.guessCard')}</span>
           <select
             className={styles.guessSelect}
             value={selectedGuess ?? ''}
             onChange={e => onSelectGuess(e.target.value as CardName)}
           >
             <option value='' disabled={true}>
-              Select a card...
+              {t('rootaccess.selectCard')}
             </option>
             {PING_GUESS_OPTIONS.map(card => (
               <option key={card} value={card}>

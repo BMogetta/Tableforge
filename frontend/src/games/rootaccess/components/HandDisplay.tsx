@@ -1,10 +1,10 @@
+import { AnimatePresence, motion } from 'motion/react'
 import type { RefObject } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { Card } from '@/ui/cards'
-import { dealVariants, springTransition } from '@/ui/cards'
-import { CardFace } from './CardFace'
+import { useTranslation } from 'react-i18next'
+import { Card, dealVariants, springTransition } from '@/ui/cards'
+import { HintText, TooltipWrapper, useHintsEnabled } from '@/ui/hints'
 import { CARD_META, type CardName } from './CardDisplay'
-import { TooltipWrapper, HintText, useHintsEnabled } from '@/ui/hints'
+import { CardFace } from './CardFace'
 import styles from './HandDisplay.module.css'
 
 interface Props {
@@ -33,17 +33,18 @@ function getLift(index: number, count: number): number {
 
 /** @package */
 export function HandDisplay({ cards, selectedCard, disabled, onSelect, blockedCards = [] }: Props) {
+  const { t } = useTranslation()
   const hintsEnabled = useHintsEnabled()
   if (cards.length === 0) {
     return (
       <div className={styles.empty}>
-        <span>No cards in hand</span>
+        <span>{t('rootaccess.noCards')}</span>
       </div>
     )
   }
 
   return (
-    <div className={styles.hand} aria-label='Your hand'>
+    <div className={styles.hand} aria-label={t('rootaccess.yourHand')}>
       <AnimatePresence mode='popLayout'>
         {cards.map((card, i) => {
           const isBlocked = blockedCards.includes(card)
@@ -92,9 +93,9 @@ export function HandDisplay({ cards, selectedCard, disabled, onSelect, blockedCa
                   />
                 )}
               </div>
-              {isBlocked && hintsEnabled && <HintText text='Must play ENCRYPTED_KEY' />}
+              {isBlocked && hintsEnabled && <HintText text={t('rootaccess.mustPlay')} />}
               {isBlocked && !hintsEnabled && (
-                <span className={styles.blockedLabel}>Must play ENCRYPTED_KEY</span>
+                <span className={styles.blockedLabel}>{t('rootaccess.mustPlay')}</span>
               )}
             </motion.div>
           )

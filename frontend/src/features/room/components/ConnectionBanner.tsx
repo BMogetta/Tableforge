@@ -1,20 +1,23 @@
+import { useTranslation } from 'react-i18next'
 import styles from '../Room.module.css'
 
 export type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
 export function ConnectionBanner({ status }: { status: SocketStatus }) {
+  const { t } = useTranslation()
+
   if (status === 'connected') {
     return null
   }
 
   const config: Record<Exclude<SocketStatus, 'connected'>, { text: string; className: string }> = {
-    connecting: { text: 'Connecting...', className: styles.bannerConnecting },
+    connecting: { text: t('common.connecting'), className: styles.bannerConnecting },
     reconnecting: {
-      text: 'Connection lost — reconnecting...',
+      text: t('common.connectionLost'),
       className: styles.bannerReconnecting,
     },
     disconnected: {
-      text: 'Disconnected. Please refresh the page.',
+      text: t('common.disconnected'),
       className: styles.bannerDisconnected,
     },
   }

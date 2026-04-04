@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { RoomPlayer } from '@/lib/schema-generated.zod'
 import { mutes } from '@/features/room/api'
 import { friends } from '@/features/friends/api'
@@ -36,6 +37,7 @@ export function PlayerList({
   onUnmute,
   onRemoveBot,
 }: PlayerListProps) {
+  const { t } = useTranslation()
   const toast = useToast()
   const presenceMap = useAppStore(s => s.presenceMap)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
@@ -76,7 +78,7 @@ export function PlayerList({
   return (
     <section className={styles.playersSection}>
       <p className='label' {...testId('player-count')}>
-        Players ({players.length}/{maxPlayers})
+        {t('room.playersCount', { current: players.length, max: maxPlayers })}
       </p>
       <div className={styles.playerList}>
         {players.map(p => {
@@ -102,11 +104,11 @@ export function PlayerList({
                   <button
                     className={styles.playerNameBtn}
                     onClick={() => setOpenDropdownId(isDropdownOpen ? null : p.id)}
-                    title={`Options for ${p.username}`}
+                    title={t('room.optionsFor', { name: p.username })}
                   >
                     {p.username}
                     {isMuted && (
-                      <span className={styles.mutedIndicator} title='Locally muted'>
+                      <span className={styles.mutedIndicator} title={t('room.locallyMuted')}>
                         🔇
                       </span>
                     )}
@@ -150,14 +152,14 @@ export function PlayerList({
                   {p.username}
                   {p.is_bot && (
                     <span className='badge badge-muted' style={{ marginLeft: 6 }}>
-                      Bot
+                      {t('room.bot')}
                     </span>
                   )}
                 </span>
               )}
 
-              {p.id === ownerId && <span className='badge badge-amber'>Host</span>}
-              {isSelf && <span className='badge badge-muted'>You</span>}
+              {p.id === ownerId && <span className='badge badge-amber'>{t('room.host')}</span>}
+              {isSelf && <span className='badge badge-muted'>{t('common.you')}</span>}
               {isOwner && p.is_bot && (
                 <button
                   {...testId(`remove-bot-btn-${p.id}`)}
@@ -175,14 +177,14 @@ export function PlayerList({
         {Array.from({ length: maxPlayers - players.length }).map((_, i) => (
           <div key={i} className={`${styles.playerRow} ${styles.empty}`}>
             <div className={styles.emptySlot} />
-            <span className={styles.waitingText}>Waiting for player...</span>
+            <span className={styles.waitingText}>{t('room.waitingForPlayer')}</span>
           </div>
         ))}
       </div>
 
       {spectatorCount > 0 && (
         <p className={styles.spectatorCount} {...testId('spectator-count')}>
-          {spectatorCount} watching
+          {t('room.spectatorCount', { count: spectatorCount })}
         </p>
       )}
     </section>

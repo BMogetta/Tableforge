@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
 
@@ -39,14 +40,15 @@ export function SuspendedScreen({
   onResume,
   onBackToLobby,
 }: Props) {
+  const { t } = useTranslation()
   return (
     <div className={styles.suspendedScreen} {...testId('suspended-screen')}>
       <span className={styles.suspendedIcon}>⏸</span>
-      <p className={styles.suspendedTitle}>Game Paused</p>
-      <p className={styles.suspendedBody}>All players must vote to resume the game.</p>
+      <p className={styles.suspendedTitle}>{t('game.gamePaused')}</p>
+      <p className={styles.suspendedBody}>{t('game.gamePausedDesc')}</p>
       {resumeVotes.length > 0 && (
         <p className={styles.voteCount} {...testId('resume-vote-count')}>
-          {resumeVotes.length} / {resumeRequired} voted to resume
+          {t('game.resumeVotes', { current: resumeVotes.length, total: resumeRequired })}
         </p>
       )}
       {canResume && (
@@ -56,12 +58,12 @@ export function SuspendedScreen({
           onClick={onResume}
           disabled={isPending}
         >
-          Vote to Resume
+          {t('game.voteResume')}
         </button>
       )}
-      {votedResume && <p className={styles.voteWaiting}>Waiting for opponent…</p>}
+      {votedResume && <p className={styles.voteWaiting}>{t('game.waitingForOpponent')}</p>}
       <button className='btn btn-ghost' onClick={onBackToLobby} style={{ marginTop: 8 }}>
-        ← Back to Lobby
+        {t('game.backToLobby')}
       </button>
     </div>
   )

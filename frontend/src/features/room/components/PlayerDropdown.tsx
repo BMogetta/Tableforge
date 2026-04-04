@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { RoomPlayer } from '@/lib/schema-generated.zod'
 import styles from '../Room.module.css'
 
@@ -21,29 +22,30 @@ export function PlayerDropdown({
   onAddFriend,
   onSendDM,
 }: PlayerDropdownProps) {
+  const { t } = useTranslation()
   return (
     <div className={styles.dropdown}>
       {isMuted ? (
         <button className={styles.dropdownItem} onClick={onUnmute}>
-          Unmute (this session)
+          {t('room.unmuteSession')}
         </button>
       ) : (
         <button className={styles.dropdownItem} onClick={onMute}>
-          Mute (this session)
+          {t('room.muteSession')}
         </button>
       )}
       <button className={styles.dropdownItem} onClick={onBlock}>
-        Block
+        {t('profile.block')}
       </button>
       <button className={styles.dropdownItem} onClick={onUnblock}>
-        Unblock
+        {t('profile.unblock')}
       </button>
       <hr className={styles.dropdownDivider} />
       <button className={styles.dropdownItem} onClick={onAddFriend}>
-        Add Friend
+        {t('room.addFriend')}
       </button>
       <button className={styles.dropdownItem} onClick={onSendDM}>
-        Send DM
+        {t('room.sendDm')}
       </button>
     </div>
   )

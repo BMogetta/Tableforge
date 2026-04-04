@@ -120,8 +120,8 @@ _Last updated: 2026-04-04_
 
 | Language | Keys | Coverage |
 |----------|------|----------|
-| English | 177 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
-| Español | 177 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
+| English | 299 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
+| Español | 299 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
 
 _Last updated: 2026-04-04_
 <!-- i18n:end -->

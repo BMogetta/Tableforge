@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { CARD_META, type CardName } from './CardDisplay'
 import styles from './Rules.module.css'
 
@@ -34,14 +35,13 @@ const CARD_COUNTS: Record<CardName, number> = {
 
 /** @package */
 export function RootAccessRules({ handCards = [] }: Props) {
+  const { t } = useTranslation()
+
   return (
     <div className={styles.root}>
       <section className={styles.section}>
-        <h3 className={styles.heading}>Objective</h3>
-        <p className={styles.text}>
-          Collect enough <strong>Access Tokens</strong> to win. Each round, try to hold the
-          highest-value card or be the last player with an active connection.
-        </p>
+        <h3 className={styles.heading}>{t('rootaccess.objective')}</h3>
+        <p className={styles.text}>{t('rootaccess.objectiveDesc')}</p>
         <table className={styles.tokensTable}>
           <thead>
             <tr>
@@ -71,37 +71,25 @@ export function RootAccessRules({ handCards = [] }: Props) {
       </section>
 
       <section className={styles.section}>
-        <h3 className={styles.heading}>Turn Flow</h3>
+        <h3 className={styles.heading}>{t('rootaccess.turnFlow')}</h3>
         <ol className={styles.list}>
-          <li>
-            Draw the top card from <strong>The Repository</strong> (you now hold 2 cards).
-          </li>
-          <li>Play one card face-up and resolve its effect.</li>
-          <li>
-            If you played <strong>DEBUGGER</strong>: pick 1 of 3 cards to keep, return 2 to the
-            bottom.
-          </li>
+          <li>{t('rootaccess.turnFlowDraw')}</li>
+          <li>{t('rootaccess.turnFlowPlay')}</li>
+          <li>{t('rootaccess.turnFlowDebugger')}</li>
         </ol>
       </section>
 
       <section className={styles.section}>
-        <h3 className={styles.heading}>Win Conditions</h3>
+        <h3 className={styles.heading}>{t('rootaccess.winConditions')}</h3>
         <ul className={styles.list}>
-          <li>
-            <strong>Last standing:</strong> all other players have their Connection Dropped.
-          </li>
-          <li>
-            <strong>Highest card:</strong> when The Repository is empty, highest value wins.
-          </li>
-          <li>
-            <strong>BACKDOOR bonus:</strong> if only one player executed BACKDOOR this round, +1
-            token.
-          </li>
+          <li>{t('rootaccess.winLastStanding')}</li>
+          <li>{t('rootaccess.winHighestCard')}</li>
+          <li>{t('rootaccess.winBackdoorBonus')}</li>
         </ul>
       </section>
 
       <section className={styles.section}>
-        <h3 className={styles.heading}>Card Reference</h3>
+        <h3 className={styles.heading}>{t('rootaccess.cardReference')}</h3>
         <table className={styles.cardTable}>
           <thead>
             <tr>
@@ -129,17 +117,11 @@ export function RootAccessRules({ handCards = [] }: Props) {
       </section>
 
       <section className={styles.section}>
-        <h3 className={styles.heading}>Special Rules</h3>
+        <h3 className={styles.heading}>{t('rootaccess.specialRules')}</h3>
         <ul className={styles.list}>
-          <li>
-            <strong>ENCRYPTED_KEY:</strong> must be played if you also hold REBOOT or SWAP.
-          </li>
-          <li>
-            <strong>FIREWALL:</strong> protects you from all effects until your next turn.
-          </li>
-          <li>
-            <strong>ROOT:</strong> if discarded for any reason, you lose your connection.
-          </li>
+          <li>{t('rootaccess.ruleEncryptedKey')}</li>
+          <li>{t('rootaccess.ruleFirewall')}</li>
+          <li>{t('rootaccess.ruleRoot')}</li>
         </ul>
       </section>
     </div>

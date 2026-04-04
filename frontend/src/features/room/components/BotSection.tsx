@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { BotProfile } from '@/lib/schema-generated.zod'
 import type { AppError } from '@/utils/errors'
 import { ErrorMessage } from '@/ui/ErrorMessage'
@@ -21,9 +22,10 @@ export function BotSection({
   adding,
   error: botError,
 }: BotSectionProps) {
+  const { t } = useTranslation()
   return (
     <section className={styles.botSection}>
-      <p className='label'>Add Bot</p>
+      <p className='label'>{t('room.addBot')}</p>
       <div className={styles.botRow}>
         <select
           {...testId('add-bot-select')}
@@ -44,7 +46,7 @@ export function BotSection({
           disabled={adding}
           onClick={onAdd}
         >
-          {adding ? 'Adding...' : 'Add Bot'}
+          {adding ? t('room.addingBot') : t('room.addBot')}
         </button>
       </div>
       <ErrorMessage error={botError} />

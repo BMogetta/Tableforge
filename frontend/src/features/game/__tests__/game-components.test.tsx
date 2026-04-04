@@ -224,7 +224,7 @@ describe('SuspendedScreen', () => {
   it('calls onBackToLobby when back button is clicked', () => {
     const onBackToLobby = vi.fn()
     render(<SuspendedScreen {...defaults} onBackToLobby={onBackToLobby} />)
-    fireEvent.click(screen.getByText('← Back to Lobby'))
+    fireEvent.click(screen.getByText('Back to Lobby'))
     expect(onBackToLobby).toHaveBeenCalledTimes(1)
   })
 })

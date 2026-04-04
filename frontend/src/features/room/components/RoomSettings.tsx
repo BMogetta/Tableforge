@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { rooms } from '@/features/room/api'
 import type { LobbySetting } from '@/lib/schema-generated.zod'
 import styles from './RoomSettings.module.css'
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function RoomSettings({ roomId, isOwner, descriptors, values, onSettingChange }: Props) {
+  const { t } = useTranslation()
   const [pending, setPending] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -40,7 +42,7 @@ export function RoomSettings({ roomId, isOwner, descriptors, values, onSettingCh
 
   return (
     <section className={styles.root} {...testId('lobby-settings')}>
-      <p className='label'>Game Settings</p>
+      <p className='label'>{t('room.gameSettings')}</p>
       <div className={styles.list}>
         {descriptors.map(setting => (
           <SettingRow

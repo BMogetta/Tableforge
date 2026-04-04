@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppStore } from '@/stores/store'
 import { rooms, bots } from '@/features/room/api'
@@ -21,6 +22,7 @@ import { testId, testAttr } from '@/utils/testId'
 type PopoverId = 'settings' | 'bot' | 'invite' | 'chat'
 
 export function Room({ roomId }: { roomId: string }) {
+  const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
   const joinRoom = useAppStore(s => s.joinRoom)
   const socket = useAppStore(s => s.socket)
@@ -254,7 +256,7 @@ export function Room({ roomId }: { roomId: string }) {
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}
       >
         <p className='pulse' style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-          Loading room...
+          {t('room.loading')}
         </p>
       </div>
     )
@@ -278,16 +280,16 @@ export function Room({ roomId }: { roomId: string }) {
   const showBotButton = isOwner && gameHasBotAdapter && botProfiles.length > 0
 
   const toolbarItems = [
-    { id: 'settings' as const, label: 'Settings', icon: SettingsIcon, visible: hasSettings },
+    { id: 'settings' as const, label: t('room.settings'), icon: SettingsIcon, visible: hasSettings },
     {
       id: 'bot' as const,
-      label: 'Add Bot',
+      label: t('room.addBot'),
       icon: BotIcon,
       visible: showBotButton,
       disabled: !hasOpenSlot,
     },
-    { id: 'invite' as const, label: 'Invite Code', icon: InviteIcon, visible: isParticipant },
-    { id: 'chat' as const, label: 'Chat', icon: ChatIcon, visible: true },
+    { id: 'invite' as const, label: t('room.inviteCode'), icon: InviteIcon, visible: isParticipant },
+    { id: 'chat' as const, label: t('room.chat'), icon: ChatIcon, visible: true },
   ]
 
   const popoverContent = (() => {
@@ -346,8 +348,8 @@ export function Room({ roomId }: { roomId: string }) {
             </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className='badge badge-amber'>Waiting</span>
-            {isSpectator && <span className='badge badge-muted'>Spectating</span>}
+            <span className='badge badge-amber'>{t('room.waiting')}</span>
+            {isSpectator && <span className='badge badge-muted'>{t('room.spectating')}</span>}
           </div>
         </header>
 

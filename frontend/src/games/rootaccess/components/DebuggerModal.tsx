@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Card } from '@/ui/cards'
+import { testId } from '@/utils/testId'
 import type { CardName } from './CardDisplay'
 import { CardFace } from './CardFace'
 import styles from './DebuggerModal.module.css'
-import { testId } from '@/utils/testId'
 
 interface Props {
   /** The 3 cards the Debugger player must choose from. */
@@ -14,6 +15,7 @@ interface Props {
 
 /** @package */
 export function DebuggerModal({ choices, onConfirm }: Props) {
+  const { t } = useTranslation()
   const trapRef = useFocusTrap<HTMLDivElement>()
   const [kept, setKept] = useState<CardName | null>(null)
   // returnOrder holds the 2 cards to return, in the order they'll go to the
@@ -55,15 +57,12 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
         aria-labelledby='debugger-title'
       >
         <h2 className={styles.title} id='debugger-title'>
-          Debugger
+          {t('rootaccess.debugger')}
         </h2>
-        <p className={styles.description}>
-          Choose 1 card to keep. The other 2 will be placed at the bottom of the Repository — click
-          them in the order you want them stacked.
-        </p>
+        <p className={styles.description}>{t('rootaccess.debuggerDesc')}</p>
 
         <div className={styles.section}>
-          <span className={styles.label}>Your choices</span>
+          <span className={styles.label}>{t('rootaccess.yourChoices')}</span>
           <div className={styles.cards}>
             {choices.map((card, i) => (
               <div key={`${card}-${i}`} className={styles.cardSlot}>
@@ -76,7 +75,7 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
                   onClick={() => handleKeep(card)}
                   disabled={kept !== null && kept !== card && !remaining.includes(card)}
                 />
-                {kept === card && <span className={styles.tagKeep}>Keep</span>}
+                {kept === card && <span className={styles.tagKeep}>{t('rootaccess.keep')}</span>}
                 {kept !== null && returnOrder.includes(card) && (
                   <span
                     className={styles.tagReturn}
@@ -93,7 +92,7 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
         {kept !== null && (
           <div className={styles.section}>
             <span className={styles.label}>
-              Return order — click to set Repository order ({returnOrder.length}/2)
+              {t('rootaccess.returnOrder', { count: `${returnOrder.length}/2` })}
             </span>
             <div className={styles.cards}>
               {remaining.map((card, i) => {
@@ -117,7 +116,7 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
                 )
               })}
             </div>
-            <p className={styles.hint}>Card 1 goes to the bottom, card 2 goes on top of it.</p>
+            <p className={styles.hint}>{t('rootaccess.returnOrderHint')}</p>
           </div>
         )}
 
@@ -126,7 +125,7 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
           onClick={handleConfirm}
           disabled={!canConfirm}
         >
-          Confirm
+          {t('common.confirm')}
         </button>
       </div>
     </div>

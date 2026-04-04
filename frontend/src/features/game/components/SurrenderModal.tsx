@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import styles from './SurrenderModal.module.css'
 import { testId } from '@/utils/testId'
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
+  const { t } = useTranslation()
   const trapRef = useFocusTrap<HTMLDivElement>()
 
   return (
@@ -21,12 +23,12 @@ export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
         aria-labelledby='surrender-title'
       >
         <h2 id='surrender-title' className={styles.title}>
-          Forfeit game?
+          {t('game.forfeitTitle')}
         </h2>
-        <p className={styles.body}>You will be recorded as the loser. Your opponent wins.</p>
+        <p className={styles.body}>{t('game.forfeitDesc')}</p>
         <div className={styles.actions}>
           <button className='btn btn-ghost' onClick={onCancel} disabled={isPending}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             className='btn btn-danger'
@@ -34,7 +36,7 @@ export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
             disabled={isPending}
             {...testId('confirm-surrender-btn')}
           >
-            {isPending ? 'Forfeiting...' : 'Forfeit'}
+            {isPending ? t('game.forfeiting') : t('game.forfeit')}
           </button>
         </div>
       </div>

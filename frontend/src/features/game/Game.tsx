@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/store'
 import { sessions } from '@/lib/api/sessions'
@@ -26,6 +27,7 @@ import { ResultStatus } from '@/lib/api'
 import { requestPermission, acquireWakeLock, releaseWakeLock } from '@/lib/turn-notifier'
 
 export function Game({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
   const socket = useAppStore(s => s.socket)
   const playerSocket = useAppStore(s => s.playerSocket)
@@ -208,7 +210,7 @@ export function Game({ sessionId }: { sessionId: string }) {
           <ErrorMessage error={catchToAppError(loadError)} />
         ) : (
           <p className='pulse' style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-            Loading game...
+            {t('game.loading')}
           </p>
         )}
       </div>

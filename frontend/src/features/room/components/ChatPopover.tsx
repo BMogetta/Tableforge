@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms, mutes } from '@/features/room/api'
 import type { RoomMessage } from '@/lib/schema-generated.zod'
@@ -31,16 +32,6 @@ function nextSysId() {
   return `sys-${++sysId}`
 }
 
-const HELP_TEXT = [
-  '/mute <username>     — hide messages from a player (this session only)',
-  '/unmute <username>   — show messages from a muted player again',
-  '/muteall             — hide messages from everyone except yourself',
-  '/unmuteall           — restore all locally muted players',
-  '/block <username>    — permanently block a player (persists across sessions)',
-  '/unblock <username>  — remove a permanent block',
-  '/help                — show this help',
-].join('\n')
-
 export function ChatPopover({
   roomId,
   mutedIds,
@@ -51,6 +42,7 @@ export function ChatPopover({
   onUnmuteAll,
   roomPlayers,
 }: Props) {
+  const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
   const socket = useAppStore(s => s.socket)
   const qc = useQueryClient()
@@ -142,83 +134,93 @@ export function ChatPopover({
     const username = args[0] ?? ''
 
     switch (cmd.toLowerCase()) {
-      case 'help':
-        addSystemMessage(HELP_TEXT)
+      case 'help': {
+        const helpText = [
+          t('room.chatCmdMute'),
+          t('room.chatCmdUnmute'),
+          t('room.chatCmdMuteAll'),
+          t('room.chatCmdUnmuteAll'),
+          t('room.chatCmdBlock'),
+          t('room.chatCmdUnblock'),
+          t('room.chatCmdHelp'),
+        ].join('\n')
+        addSystemMessage(helpText)
         return true
+      }
       case 'muteall':
         onMuteAll()
-        addSystemMessage('[System] All players muted for this session.')
+        addSystemMessage(t('room.chatSysMuteAll'))
         return true
       case 'unmuteall':
         onUnmuteAll()
-        addSystemMessage('[System] All local mutes cleared.')
+        addSystemMessage(t('room.chatSysUnmuteAll'))
         return true
       case 'mute': {
         if (!username) {
-          addSystemMessage('[Error] Usage: /mute <username>')
+          addSystemMessage(t('room.chatErrUsage', { cmd: '/mute <username>' }))
           return true
         }
         const target = resolvePlayer(username)
         if (!target) {
-          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          addSystemMessage(t('room.chatErrNotFound', { name: username }))
           return true
         }
         if (target.id === player.id) {
-          addSystemMessage('[Error] You cannot mute yourself.')
+          addSystemMessage(t('room.chatErrSelf', { action: 'mute' }))
           return true
         }
         onMute(target.id)
-        addSystemMessage(`[System] Muted ${target.username} for this session.`)
+        addSystemMessage(t('room.chatSysMuted', { name: target.username }))
         return true
       }
       case 'unmute': {
         if (!username) {
-          addSystemMessage('[Error] Usage: /unmute <username>')
+          addSystemMessage(t('room.chatErrUsage', { cmd: '/unmute <username>' }))
           return true
         }
         const target = resolvePlayer(username)
         if (!target) {
-          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          addSystemMessage(t('room.chatErrNotFound', { name: username }))
           return true
         }
         onUnmute(target.id)
-        addSystemMessage(`[System] Unmuted ${target.username}.`)
+        addSystemMessage(t('room.chatSysUnmuted', { name: target.username }))
         return true
       }
       case 'block': {
         if (!username) {
-          addSystemMessage('[Error] Usage: /block <username>')
+          addSystemMessage(t('room.chatErrUsage', { cmd: '/block <username>' }))
           return true
         }
         const target = resolvePlayer(username)
         if (!target) {
-          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          addSystemMessage(t('room.chatErrNotFound', { name: username }))
           return true
         }
         if (target.id === player.id) {
-          addSystemMessage('[Error] You cannot block yourself.')
+          addSystemMessage(t('room.chatErrSelf', { action: 'block' }))
           return true
         }
         blockMutation.mutate(target.id)
-        addSystemMessage(`[System] Blocked ${target.username}.`)
+        addSystemMessage(t('room.chatSysBlocked', { name: target.username }))
         return true
       }
       case 'unblock': {
         if (!username) {
-          addSystemMessage('[Error] Usage: /unblock <username>')
+          addSystemMessage(t('room.chatErrUsage', { cmd: '/unblock <username>' }))
           return true
         }
         const target = resolvePlayer(username)
         if (!target) {
-          addSystemMessage(`[Error] Player "${username}" not found in this room.`)
+          addSystemMessage(t('room.chatErrNotFound', { name: username }))
           return true
         }
         unblockMutation.mutate(target.id)
-        addSystemMessage(`[System] Unblocked ${target.username}.`)
+        addSystemMessage(t('room.chatSysUnblocked', { name: target.username }))
         return true
       }
       default:
-        addSystemMessage(`[Error] Unknown command "/${cmd}". Type /help for available commands.`)
+        addSystemMessage(t('room.chatErrUnknown', { cmd }))
         return true
     }
   }
@@ -245,13 +247,13 @@ export function ChatPopover({
   return (
     <div className={styles.chat}>
       <div className={styles.chatHeader}>
-        <span className={styles.chatTitle}>Room Chat</span>
+        <span className={styles.chatTitle}>{t('room.roomChat')}</span>
         <span className={styles.chatCount}>{visibleMessages.length}</span>
       </div>
 
       <div className={styles.messages} aria-live='polite' aria-relevant='additions'>
         {visibleMessages.length === 0 && systemMessages.length === 0 ? (
-          <p className={styles.empty}>No messages yet. Type /help for commands.</p>
+          <p className={styles.empty}>{t('room.noMessages')}</p>
         ) : (
           <>
             {visibleMessages.map(msg => {
@@ -278,7 +280,7 @@ export function ChatPopover({
           ref={inputRef}
           className={`input ${styles.input}`}
           aria-label='Chat message'
-          placeholder='Message or /command...'
+          placeholder={t('room.typeMessage')}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
@@ -288,7 +290,7 @@ export function ChatPopover({
           className={styles.sendBtn}
           onClick={handleSend}
           disabled={!draft.trim() || sendMessage.isPending}
-          title='Send'
+          title={t('room.send')}
         >
           <svg
             width='14'

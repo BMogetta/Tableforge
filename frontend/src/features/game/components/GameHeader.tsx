@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CardName } from '@/games/rootaccess'
 import { RulesModal } from '@/ui/RulesModal'
 import { testId } from '@/utils/testId'
@@ -49,17 +50,18 @@ export function GameHeader({
   onPause,
   handCards,
 }: Props) {
+  const { t } = useTranslation()
   const [rulesOpen, setRulesOpen] = useState(false)
 
   return (
     <>
       <header className={styles.header}>
         <button className='btn btn-ghost btn-sm' onClick={onLobby}>
-          ← Lobby
+          {t('lobby.backToLobby')}
         </button>
         <div className={styles.gameInfo}>
           <span className={styles.gameId}>{gameId}</span>
-          <span className={styles.moveCount}>Move {moveCount}</span>
+          <span className={styles.moveCount}>{t('game.moveNumber', { n: moveCount })}</span>
           <TurnTimer
             turnTimeoutSecs={turnTimeoutSecs}
             lastMoveAt={lastMoveAt}
@@ -74,7 +76,7 @@ export function GameHeader({
             className='btn btn-ghost btn-sm'
             onClick={() => setRulesOpen(true)}
           >
-            ? Rules
+            {t('game.viewRules')}
           </button>
           {canPause && (
             <button
@@ -83,7 +85,7 @@ export function GameHeader({
               onClick={onPause}
               disabled={isPausePending}
             >
-              ⏸ Pause
+              {t('game.pauseGame')}
             </button>
           )}
         </div>

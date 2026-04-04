@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
 
@@ -39,13 +40,14 @@ export function GameOverActions({
   onViewReplay,
   onRematch,
 }: Props) {
+  const { t } = useTranslation()
   return (
     <div className={styles.gameOver}>
       <button className='btn btn-ghost' onClick={onBackToLobby}>
-        Back to Lobby
+        {t('game.backToLobby')}
       </button>
       <button className='btn btn-ghost' {...testId('view-replay-btn')} onClick={onViewReplay}>
-        View Replay
+        {t('game.viewReplay')}
       </button>
       {!isSpectator && (
         <button
@@ -55,10 +57,10 @@ export function GameOverActions({
           disabled={votedRematch || isRematchPending}
         >
           {votedRematch
-            ? `Waiting for opponent… (${rematchVotes}/${totalPlayers})`
+            ? t('game.rematchWaiting', { current: rematchVotes, total: totalPlayers })
             : rematchVotes > 0
-              ? `Rematch (${rematchVotes}/${totalPlayers} voted)`
-              : 'Rematch'}
+              ? t('game.rematchVotes', { current: rematchVotes, total: totalPlayers })
+              : t('game.rematch')}
         </button>
       )}
     </div>

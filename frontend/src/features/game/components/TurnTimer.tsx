@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
 
@@ -10,6 +11,7 @@ interface TurnTimerProps {
 }
 
 export function TurnTimer({ turnTimeoutSecs, lastMoveAt, isOver, isSuspended }: TurnTimerProps) {
+  const { t } = useTranslation()
   const [remaining, setRemaining] = useState(() => calcRemaining(turnTimeoutSecs ?? 0, lastMoveAt))
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export function TurnTimer({ turnTimeoutSecs, lastMoveAt, isOver, isSuspended }: 
       className={`${styles.turnTimer} ${urgent ? styles.turnTimerUrgent : ''} ${paused ? styles.turnTimerPaused : ''}`}
       {...testId('turn-timer')}
     >
-      {secs}s{paused ? ' (paused)' : ''}
+      {paused ? t('game.timerPaused', { seconds: secs }) : `${secs}s`}
     </span>
   )
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
 
@@ -31,11 +32,12 @@ export function PauseVoteOverlay({
   isSpectator,
   onVote,
 }: Props) {
+  const { t } = useTranslation()
   return (
     <div className={styles.voteOverlay} {...testId('pause-vote-overlay')}>
-      <p className={styles.voteTitle}>Pause requested</p>
+      <p className={styles.voteTitle}>{t('game.pauseRequested')}</p>
       <p className={styles.voteCount}>
-        {votes.length} / {required} voted
+        {t('game.pauseVotes', { current: votes.length, total: required })}
       </p>
       {!isSpectator && !votedPause && (
         <button
@@ -44,10 +46,10 @@ export function PauseVoteOverlay({
           onClick={onVote}
           disabled={isPending}
         >
-          Vote to Pause
+          {t('game.votePause')}
         </button>
       )}
-      {votedPause && <p className={styles.voteWaiting}>Waiting for opponent…</p>}
+      {votedPause && <p className={styles.voteWaiting}>{t('game.waitingForOpponent')}</p>}
     </div>
   )
 }

@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next'
 import { CardZone, type CardZoneEntry } from '@/ui/cards'
-import { CardFace } from './CardFace'
-import type { CardName } from './CardDisplay'
 import { DimOverlay, useHintsEnabled } from '@/ui/hints'
+import type { CardName } from './CardDisplay'
+import { CardFace } from './CardFace'
 import styles from './PlayerBoard.module.css'
 
 interface Props {
@@ -32,6 +33,7 @@ export function PlayerBoard({
   isCurrentTurn,
   dimProtected = false,
 }: Props) {
+  const { t } = useTranslation()
   const hintsEnabled = useHintsEnabled()
   const zoneCards: CardZoneEntry<CardName>[] = discardPile.map((card, i) => ({
     key: `${card}-${i}`,
@@ -54,22 +56,22 @@ export function PlayerBoard({
           <div className={styles.nameRow}>
             {isCurrentTurn && <span className={styles.turnIndicator}>▶</span>}
             <span className={styles.username}>{username}</span>
-            {isLocal && <span className={styles.youBadge}>you</span>}
+            {isLocal && <span className={styles.youBadge}>{t('common.you')}</span>}
           </div>
           <div className={styles.badges}>
             {isProtected && (
               <span className={styles.badge} data-variant='protected'>
-                Shielded
+                {t('rootaccess.shielded')}
               </span>
             )}
             {isEliminated && (
               <span className={styles.badge} data-variant='eliminated'>
-                Eliminated
+                {t('rootaccess.eliminated')}
               </span>
             )}
             {hasPlayedBackdoor && (
               <span className={styles.badge} data-variant='backdoor'>
-                Backdoor
+                {t('rootaccess.backdoor')}
               </span>
             )}
           </div>
@@ -80,13 +82,13 @@ export function PlayerBoard({
             <span
               key={i}
               className={[styles.token, i < tokens ? styles.tokenFilled : ''].join(' ')}
-              aria-label={i < tokens ? 'Token earned' : 'Token pending'}
+              aria-label={i < tokens ? t('rootaccess.tokenEarned') : t('rootaccess.tokenPending')}
             />
           ))}
         </div>
 
         <div className={styles.discardSection}>
-          <span className={styles.discardLabel}>Discards</span>
+          <span className={styles.discardLabel}>{t('rootaccess.discards')}</span>
           {discardPile.length === 0 ? (
             <span className={styles.empty}>—</span>
           ) : (

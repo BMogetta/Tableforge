@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
-import { CardPile } from '@/ui/cards'
+import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { sfx } from '@/lib/sfx'
+import { CardPile } from '@/ui/cards'
 import type { CardName } from './CardDisplay'
-import { HandDisplay } from './HandDisplay'
-import { TargetPicker } from './TargetPicker'
 import { DebuggerModal } from './DebuggerModal'
+import { HandDisplay } from './HandDisplay'
 import { PlayerBoard } from './PlayerBoard'
-import { RoundSummary } from './RoundSummary'
 import styles from './RootAccess.module.css'
+import { RoundSummary } from './RoundSummary'
+import { TargetPicker } from './TargetPicker'
 
 // ---------------------------------------------------------------------------
 // State shape mirroring the backend Root Access engine (filtered view).
@@ -104,6 +105,7 @@ export function RootAccess({
   isOver,
   players = [],
 }: Props) {
+  const { t } = useTranslation()
   const [selectedCard, setSelectedCard] = useState<CardName | null>(null)
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
   const [selectedGuess, setSelectedGuess] = useState<CardName | null>(null)
@@ -222,12 +224,14 @@ export function RootAccess({
     <div className={styles.root}>
       {/* Round / game info bar + deck */}
       <div className={styles.infoBar}>
-        <span className={styles.roundBadge}>Round {state.round}</span>
+        <span className={styles.roundBadge}>{t('rootaccess.round', { n: state.round })}</span>
         <div className={styles.deckArea}>
           <CardPile count={state.deck.length} faceDown={true} />
         </div>
         {state.set_aside_visible.length > 0 && (
-          <span className={styles.setAside}>Set aside: {state.set_aside_visible.join(', ')}</span>
+          <span className={styles.setAside}>
+            {t('rootaccess.setAside', { card: state.set_aside_visible.join(', ') })}
+          </span>
         )}
       </div>
 
@@ -262,7 +266,7 @@ export function RootAccess({
       {/* Local player hand */}
       {localHand.length > 0 && (
         <div className={styles.handSection}>
-          <span className={styles.sectionLabel}>Your hand</span>
+          <span className={styles.sectionLabel}>{t('rootaccess.yourHand')}</span>
           <HandDisplay
             cards={localHand}
             selectedCard={selectedCard}
@@ -301,10 +305,10 @@ export function RootAccess({
               setSelectedGuess(null)
             }}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className='btn btn-primary' onClick={handleSubmit} disabled={!isReadyToSubmit()}>
-            Play {selectedCard}
+            {t('rootaccess.play', { card: selectedCard })}
           </button>
         </div>
       )}
