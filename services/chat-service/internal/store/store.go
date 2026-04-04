@@ -67,6 +67,11 @@ type Store interface {
 	// Acceptable during migration phase — will be replaced by gRPC call
 	// when room-service is extracted.
 	IsRoomParticipant(ctx context.Context, roomID, playerID uuid.UUID) (bool, error)
+
+	// GetAllowDMs returns the receiver's allow_dms setting ("anyone", "friends_only", "nobody").
+	// Reads from public.player_settings (owned by user-service).
+	// Returns "anyone" (the default) if no settings row exists.
+	GetAllowDMs(ctx context.Context, playerID uuid.UUID) (string, error)
 }
 
 // --- Postgres implementation -------------------------------------------------

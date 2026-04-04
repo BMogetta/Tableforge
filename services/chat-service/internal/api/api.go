@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -10,7 +11,14 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 )
 
-func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry, serviceName string) http.Handler {
+// UserChecker abstracts the gRPC call to user-service for friendship checks.
+// Nil is accepted — the DM handler skips the friends_only gate when nil (tests).
+type UserChecker interface {
+	// AreFriends returns true if the two players have an accepted friendship.
+	AreFriends(ctx context.Context, playerAID, playerBID string) (bool, error)
+}
+
+func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry, serviceName string, uc UserChecker) http.Handler {
 	r := chi.NewRouter()
 	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
@@ -39,7 +47,7 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		Delete("/api/v1/rooms/{roomID}/messages/{messageID}", handleHideRoomMessage(st, pub))
 
 	// --- Direct messages -----------------------------------------------------
-	r.With(validate("send_dm.request")).Post("/api/v1/players/{playerID}/dm", handleSendDM(st, pub))
+	r.With(validate("send_dm.request")).Post("/api/v1/players/{playerID}/dm", handleSendDM(st, pub, uc))
 	r.Get("/api/v1/players/{playerID}/dm/conversations", handleListDMConversations(st))
 	r.Get("/api/v1/players/{playerID}/dm/unread", handleGetUnreadDMCount(st))
 	r.Get("/api/v1/players/{playerID}/dm/{otherPlayerID}", handleGetDMHistory(st))

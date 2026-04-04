@@ -25,6 +25,7 @@ type mockStore struct {
 	readMessages  map[uuid.UUID]bool
 	unreadCounts  map[uuid.UUID]int
 	saveDMErr     error
+	allowDMs      map[uuid.UUID]string // playerID → "anyone" | "friends_only" | "nobody"
 }
 
 func newMockStore() *mockStore {
@@ -35,6 +36,7 @@ func newMockStore() *mockStore {
 		reported:     make(map[uuid.UUID]bool),
 		readMessages: make(map[uuid.UUID]bool),
 		unreadCounts: make(map[uuid.UUID]int),
+		allowDMs:     make(map[uuid.UUID]string),
 	}
 }
 
@@ -119,6 +121,32 @@ func (m *mockStore) ReportDM(_ context.Context, messageID, _, _ uuid.UUID) error
 	return nil
 }
 
+func (m *mockStore) GetAllowDMs(_ context.Context, playerID uuid.UUID) (string, error) {
+	if v, ok := m.allowDMs[playerID]; ok {
+		return v, nil
+	}
+	return "anyone", nil
+}
+
+// --- mock user checker -------------------------------------------------------
+
+type mockUserChecker struct {
+	friends map[string]bool // key: "playerA:playerB"
+}
+
+func newMockUserChecker() *mockUserChecker {
+	return &mockUserChecker{friends: make(map[string]bool)}
+}
+
+func (m *mockUserChecker) addFriendship(a, b uuid.UUID) {
+	m.friends[a.String()+":"+b.String()] = true
+	m.friends[b.String()+":"+a.String()] = true
+}
+
+func (m *mockUserChecker) AreFriends(_ context.Context, playerAID, playerBID string) (bool, error) {
+	return m.friends[playerAID+":"+playerBID], nil
+}
+
 // --- stub publisher ----------------------------------------------------------
 
 type stubPublisher struct {
@@ -136,10 +164,14 @@ func newStubPublisher() *Publisher {
 // --- helpers -----------------------------------------------------------------
 
 func newTestRouter(st store.Store) http.Handler {
+	return newTestRouterWithUC(st, nil)
+}
+
+func newTestRouterWithUC(st store.Store, uc UserChecker) http.Handler {
 	// Stub publisher with nil redis — events logged but not published.
 	pub := &Publisher{rdb: nil}
 	noopAuth := func(next http.Handler) http.Handler { return next }
-	return NewRouter(st, pub, noopAuth, nil, "chat-service-test")
+	return NewRouter(st, pub, noopAuth, nil, "chat-service-test", uc)
 }
 
 func withAuth(r *http.Request, playerID uuid.UUID, role string) *http.Request {
@@ -534,5 +566,62 @@ func TestSendDM_EmptyContent(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for empty content, got %d", rec.Code)
+	}
+}
+
+// --- friends-only DM gate ----------------------------------------------------
+
+func TestSendDM_AllowDMs_Nobody(t *testing.T) {
+	st := newMockStore()
+	sender := uuid.New()
+	receiver := uuid.New()
+	st.allowDMs[receiver] = "nobody"
+
+	router := newTestRouterWithUC(st, newMockUserChecker())
+	rec := postJSONAs(t, router, "/api/v1/players/"+receiver.String()+"/dm", sender, sharedmw.RolePlayer, map[string]string{
+		"content": "hello",
+	})
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for nobody, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSendDM_FriendsOnly_NotFriend(t *testing.T) {
+	st := newMockStore()
+	sender := uuid.New()
+	receiver := uuid.New()
+	st.allowDMs[receiver] = "friends_only"
+
+	uc := newMockUserChecker() // no friendship added
+	router := newTestRouterWithUC(st, uc)
+	rec := postJSONAs(t, router, "/api/v1/players/"+receiver.String()+"/dm", sender, sharedmw.RolePlayer, map[string]string{
+		"content": "hello",
+	})
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for non-friend, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSendDM_FriendsOnly_IsFriend(t *testing.T) {
+	st := newMockStore()
+	sender := uuid.New()
+	receiver := uuid.New()
+	st.allowDMs[receiver] = "friends_only"
+
+	uc := newMockUserChecker()
+	uc.addFriendship(sender, receiver)
+
+	router := newTestRouterWithUC(st, uc)
+	rec := postJSONAs(t, router, "/api/v1/players/"+receiver.String()+"/dm", sender, sharedmw.RolePlayer, map[string]string{
+		"content": "hello friend",
+	})
+
+	if rec.Code != http.StatusCreated {
+		t.Errorf("expected 201 for friend, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(st.directMsgs) != 1 {
+		t.Errorf("expected 1 DM stored, got %d", len(st.directMsgs))
 	}
 }
