@@ -20,6 +20,8 @@ import (
 )
 
 // GET /api/v1/players/{playerID}/sessions
+// No ownership check — player sessions are visible to all authenticated users
+// (opponents can view each other's history).
 func handleListPlayerSessions(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
@@ -37,6 +39,8 @@ func handleListPlayerSessions(st store.Store) http.HandlerFunc {
 }
 
 // GET /api/v1/players/{playerID}/stats
+// No ownership check — player stats are visible to all authenticated users
+// (opponents can view each other's history).
 func handleGetPlayerStats(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))
@@ -54,6 +58,8 @@ func handleGetPlayerStats(st store.Store) http.HandlerFunc {
 }
 
 // GET /api/v1/players/{playerID}/matches?limit=20&offset=0
+// No ownership check — player matches are visible to all authenticated users
+// (opponents can view each other's history).
 func handleListPlayerMatches(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := uuid.Parse(chi.URLParam(r, "playerID"))

@@ -191,6 +191,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=rating-service
+      - JWT_SECRET=${JWT_SECRET}
       - HTTP_ADDR=:8085
       - GRPC_ADDR=:9085
     depends_on:

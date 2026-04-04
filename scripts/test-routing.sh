@@ -115,7 +115,7 @@ echo ""
 
 # -- rating-service (priority 50) ---------------------------------------------
 echo "rating-service (ratings, leaderboard):"
-check_not "GET /api/v1/ratings/tictactoe/leaderboard"  404 GET  "/api/v1/ratings/tictactoe/leaderboard"  "GET /api/v1/ratings/{game}/leaderboard"  "rating-service"
+check     "GET /api/v1/ratings/tictactoe/leaderboard"  401 GET  "/api/v1/ratings/tictactoe/leaderboard"  "GET /api/v1/ratings/{game}/leaderboard"  "rating-service"
 echo ""
 
 # -- notification-service (priority 50) ---------------------------------------
