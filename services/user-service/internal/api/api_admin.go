@@ -9,6 +9,38 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 )
 
+type broadcastRequest struct {
+	Message string `json:"message"`
+	Type    string `json:"type"` // "info" | "warning"
+}
+
+// POST /api/v1/admin/broadcast
+func handleBroadcast(pub *Publisher) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req broadcastRequest
+		if err := decodeJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if req.Message == "" {
+			writeError(w, http.StatusBadRequest, "message is required")
+			return
+		}
+		if req.Type == "" {
+			req.Type = "info"
+		}
+		if req.Type != "info" && req.Type != "warning" {
+			writeError(w, http.StatusBadRequest, "type must be info or warning")
+			return
+		}
+
+		callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
+		pub.PublishBroadcast(r.Context(), req.Message, req.Type, callerID.String())
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 // GET /api/v1/admin/allowed-emails
 func handleListAllowedEmails(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

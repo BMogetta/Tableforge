@@ -79,3 +79,7 @@ func (f *fakePublisher) PublishFriendshipRequested(_ context.Context, requesterI
 func (f *fakePublisher) PublishFriendshipAccepted(_ context.Context, friendship store.Friendship) {
 	f.record(channelFriendshipAccepted)
 }
+
+func (f *fakePublisher) PublishBroadcast(_ context.Context, message, broadcastType, sentBy string) {
+	f.record(channelBroadcastSent)
+}

@@ -288,6 +288,48 @@ func (h *Hub) fanoutPlayer(playerID uuid.UUID, data []byte) {
 	}
 }
 
+// BroadcastAll delivers data to every connected client (all rooms + all player channels).
+// Used for admin broadcast messages that must reach all players.
+func (h *Hub) BroadcastAll(data []byte) {
+	sent := make(map[*Client]struct{})
+
+	h.mu.RLock()
+	for _, clients := range h.rooms {
+		for c := range clients {
+			if _, ok := sent[c]; ok {
+				continue
+			}
+			sent[c] = struct{}{}
+			select {
+			case c.send <- data:
+				wsMessagesDelivered.WithLabelValues(string(sharedws.EventBroadcast)).Inc()
+			default:
+				slog.Warn("hub: dropping slow client on broadcast")
+				close(c.send)
+			}
+		}
+	}
+	h.mu.RUnlock()
+
+	h.pmu.RLock()
+	for _, clients := range h.players {
+		for c := range clients {
+			if _, ok := sent[c]; ok {
+				continue
+			}
+			sent[c] = struct{}{}
+			select {
+			case c.send <- data:
+				wsMessagesDelivered.WithLabelValues(string(sharedws.EventBroadcast)).Inc()
+			default:
+				slog.Warn("hub: dropping slow client on broadcast")
+				close(c.send)
+			}
+		}
+	}
+	h.pmu.RUnlock()
+}
+
 // SendDirect delivers data directly to a client's send channel.
 // Used for presence snapshots on connect — bypasses Redis.
 func (h *Hub) SendDirect(c *Client, data []byte) {

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "admin_broadcast.request.json",
+  "title": "AdminBroadcastRequest",
+  "type": "object",
+  "properties": {
+    "message": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "type": { "type": "string", "enum": ["info", "warning"] }
+  },
+  "required": ["message"]
+}

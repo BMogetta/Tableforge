@@ -76,6 +76,12 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		r.With(validate("review_report.request")).Put("/api/v1/admin/reports/{reportID}/review", handleReviewReport(st))
 	})
 
+	// --- Admin: broadcast ----------------------------------------------------
+	r.Group(func(r chi.Router) {
+		r.Use(requireRole(sharedmw.RoleManager))
+		r.With(validate("admin_broadcast.request")).Post("/api/v1/admin/broadcast", handleBroadcast(pub))
+	})
+
 	// --- Admin: players & allowed emails -------------------------------------
 	r.Group(func(r chi.Router) {
 		r.Use(requireRole(sharedmw.RoleManager))

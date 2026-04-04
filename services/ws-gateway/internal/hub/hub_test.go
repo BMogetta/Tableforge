@@ -398,6 +398,70 @@ func TestDisconnectPlayer_NoClients(t *testing.T) {
 	h.DisconnectPlayer(uuid.New())
 }
 
+func TestBroadcastAll(t *testing.T) {
+	h := New(nil)
+	roomID := uuid.New()
+	playerID := uuid.New()
+	otherID := uuid.New()
+
+	roomClient := newTestClient(h, roomID, uuid.New(), false)
+	playerClient := newTestClient(h, uuid.Nil, playerID, false)
+	otherClient := newTestClient(h, uuid.Nil, otherID, false)
+
+	h.SubscribeRoom(roomID, roomClient)
+	h.SubscribePlayer(playerID, playerClient)
+	h.SubscribePlayer(otherID, otherClient)
+
+	data := []byte(`{"type":"broadcast","payload":{"message":"hello","broadcast_type":"info"}}`)
+	h.BroadcastAll(data)
+
+	// All three clients should receive the broadcast.
+	for i, c := range []*Client{roomClient, playerClient, otherClient} {
+		select {
+		case msg := <-c.send:
+			if string(msg) != string(data) {
+				t.Errorf("client %d: payload mismatch", i)
+			}
+		default:
+			t.Errorf("client %d: expected broadcast message", i)
+		}
+	}
+}
+
+func TestBroadcastAll_DeduplicatesClients(t *testing.T) {
+	h := New(nil)
+	roomID := uuid.New()
+	playerID := uuid.New()
+
+	// Client is in both room and player maps
+	c := newTestClient(h, roomID, playerID, false)
+	h.SubscribeRoom(roomID, c)
+	h.SubscribePlayer(playerID, c)
+
+	data := []byte(`{"type":"broadcast","payload":{"message":"once"}}`)
+	h.BroadcastAll(data)
+
+	// Should receive exactly one message (deduplicated)
+	select {
+	case <-c.send:
+	default:
+		t.Error("expected one broadcast message")
+	}
+
+	select {
+	case <-c.send:
+		t.Error("should not receive duplicate broadcast")
+	default:
+		// ok
+	}
+}
+
+func TestBroadcastAll_NoClients(t *testing.T) {
+	h := New(nil)
+	// Should not panic with no clients
+	h.BroadcastAll([]byte(`{"type":"broadcast"}`))
+}
+
 func TestSendDirect_FullChannel(t *testing.T) {
 	h := New(nil)
 	c := &Client{

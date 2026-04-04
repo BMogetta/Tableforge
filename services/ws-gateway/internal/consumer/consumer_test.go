@@ -20,11 +20,21 @@ func (m *mockDisconnector) DisconnectPlayer(playerID uuid.UUID) {
 	m.disconnected = append(m.disconnected, playerID)
 }
 
+// --- mock broadcaster --------------------------------------------------------
+
+type mockBroadcaster struct {
+	messages [][]byte
+}
+
+func (m *mockBroadcaster) BroadcastAll(data []byte) {
+	m.messages = append(m.messages, data)
+}
+
 // --- tests -------------------------------------------------------------------
 
 func TestHandleSessionRevoked(t *testing.T) {
 	disc := &mockDisconnector{}
-	c := New(nil, disc, slog.Default())
+	c := New(nil, disc, &mockBroadcaster{}, slog.Default())
 
 	playerID := uuid.New()
 	evt := sharedevents.PlayerSessionRevoked{
@@ -54,7 +64,7 @@ func TestHandleSessionRevoked(t *testing.T) {
 
 func TestHandleSessionRevoked_InvalidJSON(t *testing.T) {
 	disc := &mockDisconnector{}
-	c := New(nil, disc, slog.Default())
+	c := New(nil, disc, &mockBroadcaster{}, slog.Default())
 
 	msg := &redis.Message{
 		Channel: channelSessionRevoked,
@@ -71,7 +81,7 @@ func TestHandleSessionRevoked_InvalidJSON(t *testing.T) {
 
 func TestHandleSessionRevoked_InvalidPlayerID(t *testing.T) {
 	disc := &mockDisconnector{}
-	c := New(nil, disc, slog.Default())
+	c := New(nil, disc, &mockBroadcaster{}, slog.Default())
 
 	payload, _ := json.Marshal(map[string]string{
 		"player_id": "not-a-uuid",
@@ -93,7 +103,7 @@ func TestHandleSessionRevoked_InvalidPlayerID(t *testing.T) {
 
 func TestHandle_UnknownChannel(t *testing.T) {
 	disc := &mockDisconnector{}
-	c := New(nil, disc, slog.Default())
+	c := New(nil, disc, &mockBroadcaster{}, slog.Default())
 
 	msg := &redis.Message{
 		Channel: "unknown.channel",
@@ -102,5 +112,65 @@ func TestHandle_UnknownChannel(t *testing.T) {
 
 	if err := c.handle(t.Context(), msg); err == nil {
 		t.Fatal("expected error for unknown channel")
+	}
+}
+
+func TestHandleBroadcastSent(t *testing.T) {
+	disc := &mockDisconnector{}
+	bc := &mockBroadcaster{}
+	c := New(nil, disc, bc, slog.Default())
+
+	evt := sharedevents.AdminBroadcastSent{
+		Meta:          sharedevents.Meta{EventID: uuid.NewString()},
+		Message:       "Server restart in 5 min",
+		BroadcastType: "warning",
+		SentBy:        uuid.NewString(),
+	}
+	payload, _ := json.Marshal(evt)
+
+	msg := &redis.Message{
+		Channel: channelBroadcastSent,
+		Payload: string(payload),
+	}
+
+	if err := c.handle(t.Context(), msg); err != nil {
+		t.Fatalf("handle: %v", err)
+	}
+
+	if len(bc.messages) != 1 {
+		t.Fatalf("expected 1 broadcast, got %d", len(bc.messages))
+	}
+
+	// Verify the WS event structure
+	var wsEvt map[string]any
+	if err := json.Unmarshal(bc.messages[0], &wsEvt); err != nil {
+		t.Fatalf("unmarshal ws event: %v", err)
+	}
+	if wsEvt["type"] != "broadcast" {
+		t.Errorf("expected type=broadcast, got %v", wsEvt["type"])
+	}
+	p, _ := wsEvt["payload"].(map[string]any)
+	if p["message"] != "Server restart in 5 min" {
+		t.Errorf("expected message='Server restart in 5 min', got %v", p["message"])
+	}
+	if p["broadcast_type"] != "warning" {
+		t.Errorf("expected broadcast_type=warning, got %v", p["broadcast_type"])
+	}
+}
+
+func TestHandleBroadcastSent_InvalidJSON(t *testing.T) {
+	bc := &mockBroadcaster{}
+	c := New(nil, &mockDisconnector{}, bc, slog.Default())
+
+	msg := &redis.Message{
+		Channel: channelBroadcastSent,
+		Payload: "not json",
+	}
+
+	if err := c.handle(t.Context(), msg); err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+	if len(bc.messages) != 0 {
+		t.Error("should not broadcast on invalid JSON")
 	}
 }

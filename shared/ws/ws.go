@@ -45,6 +45,7 @@ const (
 	EventMatchCancelled       EventType = "match_cancelled"
 	EventMatchReady           EventType = "match_ready"
 	EventNotificationReceived EventType = "notification_received"
+	EventBroadcast            EventType = "broadcast"
 )
 
 // SpectatorBlocklist lists events that must never be delivered to spectators.
@@ -78,3 +79,6 @@ func RoomChannelKey(roomID uuid.UUID) string {
 func PlayerChannelKey(playerID uuid.UUID) string {
 	return fmt.Sprintf("ws:player:%s", playerID)
 }
+
+// BroadcastChannelKey is the Redis pub/sub channel for admin broadcast messages.
+const BroadcastChannelKey = "ws:broadcast"
