@@ -222,6 +222,7 @@ export function RootAccess({
             hasPlayedBackdoor={state.backdoor_played_by.includes(id)}
             isLocal={id === localPlayerId}
             isCurrentTurn={id === currentPlayerId}
+            dimProtected={selectedCard !== null && needsTarget}
           />
         ))}
       </div>

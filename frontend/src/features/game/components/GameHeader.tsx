@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { TurnTimer } from './TurnTimer'
+import { RulesModal } from '@/ui/RulesModal'
+import type { CardName } from '@/games/rootaccess/components/CardDisplay'
 import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
 
@@ -14,6 +17,8 @@ interface Props {
   isSpectator: boolean
   onLobby: () => void
   onPause: () => void
+  /** Cards in the local player's hand — passed to RulesModal for highlighting. */
+  handCards?: CardName[]
 }
 
 /**
@@ -42,30 +47,52 @@ export function GameHeader({
   isOver,
   onLobby,
   onPause,
+  handCards,
 }: Props) {
+  const [rulesOpen, setRulesOpen] = useState(false)
+
   return (
-    <header className={styles.header}>
-      <button
-        className='btn btn-ghost btn-sm'
-        onClick={onLobby}
-      >
-        ← Lobby
-      </button>
-      <div className={styles.gameInfo}>
-        <span className={styles.gameId}>{gameId}</span>
-        <span className={styles.moveCount}>Move {moveCount}</span>
-        <TurnTimer turnTimeoutSecs={turnTimeoutSecs} lastMoveAt={lastMoveAt} isOver={isOver} isSuspended={isSuspended} />
-      </div>
-      {canPause && (
+    <>
+      <header className={styles.header}>
         <button
-          {...testId('pause-btn')}
           className='btn btn-ghost btn-sm'
-          onClick={onPause}
-          disabled={isPausePending}
+          onClick={onLobby}
         >
-          ⏸ Pause
+          ← Lobby
         </button>
+        <div className={styles.gameInfo}>
+          <span className={styles.gameId}>{gameId}</span>
+          <span className={styles.moveCount}>Move {moveCount}</span>
+          <TurnTimer turnTimeoutSecs={turnTimeoutSecs} lastMoveAt={lastMoveAt} isOver={isOver} isSuspended={isSuspended} />
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <button
+            {...testId('rules-btn-ingame')}
+            className='btn btn-ghost btn-sm'
+            onClick={() => setRulesOpen(true)}
+          >
+            ? Rules
+          </button>
+          {canPause && (
+            <button
+              {...testId('pause-btn')}
+              className='btn btn-ghost btn-sm'
+              onClick={onPause}
+              disabled={isPausePending}
+            >
+              ⏸ Pause
+            </button>
+          )}
+        </div>
+      </header>
+
+      {rulesOpen && (
+        <RulesModal
+          initialGameId={gameId}
+          handCards={handCards}
+          onClose={() => setRulesOpen(false)}
+        />
       )}
-    </header>
+    </>
   )
 }

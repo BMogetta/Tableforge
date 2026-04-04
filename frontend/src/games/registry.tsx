@@ -1,5 +1,8 @@
 import { TicTacToeBoard, type TicTacToeState } from './tictactoe/components/TicTacToe'
 import { RootAccess, type RootAccessState } from './rootaccess/components/RootAccess'
+import { TicTacToeRules } from './tictactoe/Rules'
+import { RootAccessRules } from './rootaccess/components/Rules'
+import type { CardName } from './rootaccess/components/CardDisplay'
 
 // ---------------------------------------------------------------------------
 // Game renderer registry — add new games here.
@@ -55,3 +58,18 @@ export const GAME_RENDERERS: Record<string, RendererComponent> = {
   tictactoe: TicTacToeRenderer,
   rootaccess: RootAccessRenderer,
 }
+
+// ---------------------------------------------------------------------------
+// Game rules registry — used by RulesModal.
+// ---------------------------------------------------------------------------
+
+interface RulesEntry {
+  id: string
+  label: string
+  component: React.FC<{ handCards?: CardName[] }>
+}
+
+export const GAME_RULES: RulesEntry[] = [
+  { id: 'tictactoe', label: 'TicTacToe', component: TicTacToeRules },
+  { id: 'rootaccess', label: 'Root Access', component: RootAccessRules },
+]

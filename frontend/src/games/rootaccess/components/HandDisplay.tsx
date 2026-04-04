@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Card } from '@/ui/cards'
 import { dealVariants, springTransition } from '@/ui/cards'
 import { CardFace } from './CardFace'
-import type { CardName } from './CardDisplay'
+import { CARD_META, type CardName } from './CardDisplay'
+import { TooltipWrapper, HintText, useHintsEnabled } from '@/ui/hints'
 import styles from './HandDisplay.module.css'
 
 interface Props {
@@ -37,6 +38,7 @@ export function HandDisplay({
   onSelect,
   blockedCards = [],
 }: Props) {
+  const hintsEnabled = useHintsEnabled()
   if (cards.length === 0) {
     return (
       <div className={styles.empty}>
@@ -71,17 +73,32 @@ export function HandDisplay({
               transition={springTransition}
             >
               <div className={isSelected ? styles.selectedGlow : undefined}>
-                <Card
-                  front={
-                    <div className={styles.face}>
-                      <CardFace card={card} />
-                    </div>
-                  }
-                  disabled={disabled || isBlocked}
-                  onClick={!disabled && !isBlocked ? () => onSelect(card) : undefined}
-                />
+                {hintsEnabled ? (
+                  <TooltipWrapper text={`${CARD_META[card].label}: ${CARD_META[card].effect}`}>
+                    <Card
+                      front={
+                        <div className={styles.face}>
+                          <CardFace card={card} />
+                        </div>
+                      }
+                      disabled={disabled || isBlocked}
+                      onClick={!disabled && !isBlocked ? () => onSelect(card) : undefined}
+                    />
+                  </TooltipWrapper>
+                ) : (
+                  <Card
+                    front={
+                      <div className={styles.face}>
+                        <CardFace card={card} />
+                      </div>
+                    }
+                    disabled={disabled || isBlocked}
+                    onClick={!disabled && !isBlocked ? () => onSelect(card) : undefined}
+                  />
+                )}
               </div>
-              {isBlocked && <span className={styles.blockedLabel}>Must play ENCRYPTED_KEY</span>}
+              {isBlocked && hintsEnabled && <HintText text="Must play ENCRYPTED_KEY" />}
+              {isBlocked && !hintsEnabled && <span className={styles.blockedLabel}>Must play ENCRYPTED_KEY</span>}
             </motion.div>
           )
         })}

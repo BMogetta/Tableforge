@@ -1,6 +1,7 @@
 import { CardZone, type CardZoneEntry } from '@/ui/cards'
 import { CardFace } from './CardFace'
 import type { CardName } from './CardDisplay'
+import { DimOverlay, useHintsEnabled } from '@/ui/hints'
 import styles from './PlayerBoard.module.css'
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
   hasPlayedBackdoor: boolean
   isLocal: boolean
   isCurrentTurn: boolean
+  /** When true and hints are enabled, dim this player (FIREWALL active, not targetable). */
+  dimProtected?: boolean
 }
 
 export function PlayerBoard({
@@ -26,13 +29,16 @@ export function PlayerBoard({
   hasPlayedBackdoor,
   isLocal,
   isCurrentTurn,
+  dimProtected = false,
 }: Props) {
+  const hintsEnabled = useHintsEnabled()
   const zoneCards: CardZoneEntry<CardName>[] = discardPile.map((card, i) => ({
     key: `${card}-${i}`,
     data: card,
   }))
 
   return (
+    <DimOverlay dimmed={dimProtected && hintsEnabled && isProtected && !isLocal}>
     <div
       className={[
         styles.root,
@@ -95,5 +101,6 @@ export function PlayerBoard({
         )}
       </div>
     </div>
+    </DimOverlay>
   )
 }

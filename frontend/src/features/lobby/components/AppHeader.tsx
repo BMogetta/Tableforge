@@ -5,6 +5,7 @@ import { dm } from '@/features/room/api'
 import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import { Settings } from '@/ui/Settings'
+import { RulesModal } from '@/ui/RulesModal'
 import { NotificationsPanel } from '@/features/notifications/components/NotificationsPanel'
 import styles from './AppHeader.module.css'
 import { Link } from '@tanstack/react-router'
@@ -18,6 +19,7 @@ export function AppHeader({ onLogout }: Props) {
   const player = useAppStore(s => s.player)!
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifsOpen, setNotifsOpen] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
 
   const { data: notifList = [] } = useQuery({
     queryKey: keys.notifications(player.id),
@@ -43,6 +45,19 @@ export function AppHeader({ onLogout }: Props) {
         </Link>
 
         <div className={styles.actions}>
+          {/* Rules book */}
+          <button
+            className={styles.iconBtn}
+            title='Game Rules'
+            onClick={() => setRulesOpen(true)}
+            {...testId('rules-btn')}
+          >
+            <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'>
+              <path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20' />
+              <path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' />
+            </svg>
+          </button>
+
           {/* Notifications bell */}
           <button className={styles.iconBtn} title='Notifications' onClick={() => setNotifsOpen(true)}>
             <svg
@@ -119,6 +134,9 @@ export function AppHeader({ onLogout }: Props) {
       {notifsOpen && (
         <NotificationsPanel items={notifList} onClose={() => setNotifsOpen(false)} />
       )}
+
+      {/* Rules modal */}
+      {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
 
       {/* Settings modal */}
       {settingsOpen && (
