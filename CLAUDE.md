@@ -360,6 +360,15 @@ HEAD when the agent launched. If `main` has advanced since, the worktree will be
 behind. To avoid this: always merge or rebase completed agent branches promptly,
 and launch new agents only after prior merges land on `main`.
 
+Testing protocol:
+1. **Agent tests in worktree** — before finishing, the agent runs tests and
+   reports results.
+2. **Orchestrator verifies after merge** — after merging a worktree branch to
+   `main`, run `go test`, `npm test`, and `tsc --noEmit` on main before
+   proceeding. If tests fail, revert the merge and fix.
+3. **Never trust agent reports blindly** — always verify on main, since the
+   worktree may have branched from an older commit missing recent changes.
+
 Exceptions (OK to work directly on `main`):
 - Trivial one-line fixes (typos, config tweaks)
 - Planning, research, or exploration (read-only)
