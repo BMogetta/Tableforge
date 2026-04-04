@@ -349,8 +349,16 @@ Rules for worktree agents:
   context from the orchestrator.
 - Specify **which files it owns** and which it must not touch (to prevent
   conflicts between concurrent agents).
+- Agents should **commit their changes** before finishing (with a conventional
+  commit message). If the agent doesn't commit, the orchestrator must commit
+  in the worktree before merging.
 - Agents should run tests before finishing.
 - The orchestrator never duplicates work an agent is doing.
+
+**Critical: worktree branch point.** Worktrees branch from the commit that was
+HEAD when the agent launched. If `main` has advanced since, the worktree will be
+behind. To avoid this: always merge or rebase completed agent branches promptly,
+and launch new agents only after prior merges land on `main`.
 
 Exceptions (OK to work directly on `main`):
 - Trivial one-line fixes (typos, config tweaks)
