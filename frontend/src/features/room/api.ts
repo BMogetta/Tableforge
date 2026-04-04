@@ -6,7 +6,6 @@ import type {
   StartGameRequest,
   UpdateRoomSettingRequest,
   AddBotRequest,
-  RemoveBotRequest,
   SendRoomMessageRequest,
   SendDmRequest,
   ReportDmRequest,
@@ -32,10 +31,9 @@ import { z } from 'zod'
 export const rooms = {
   list: () => validatedRequest(z.array(getRoomResponseSchema), '/rooms'),
   get: (id: string) => validatedRequest(getRoomResponseSchema, `/rooms/${id}`),
-  create: (gameId: string, playerId: string, turnTimeoutSecs?: number) => {
+  create: (gameId: string, _playerId: string, turnTimeoutSecs?: number) => {
     const body: CreateRoomRequest = {
       game_id: gameId,
-      player_id: playerId,
       ...(turnTimeoutSecs != null && { turn_timeout_secs: turnTimeoutSecs }),
     }
     return validatedRequest(createRoomResponseSchema, '/rooms', {
@@ -85,18 +83,16 @@ export const rooms = {
 
 export const bots = {
   profiles: () => validatedRequest(z.array(botProfileSchema), '/bots/profiles'),
-  add: (roomId: string, playerId: string, profile: string) => {
-    const body: AddBotRequest = { player_id: playerId, profile: profile as AddBotRequest['profile'] }
+  add: (roomId: string, _playerId: string, profile: string) => {
+    const body: AddBotRequest = { profile: profile as AddBotRequest['profile'] }
     return validatedRequest(addBotResponseSchema, `/rooms/${roomId}/bots`, {
       method: 'POST',
       body: JSON.stringify(body),
     })
   },
-  remove: (roomId: string, playerId: string, botId: string) => {
-    const body: RemoveBotRequest = { player_id: playerId }
+  remove: (roomId: string, _playerId: string, botId: string) => {
     return request<void>(`/rooms/${roomId}/bots/${botId}`, {
       method: 'DELETE',
-      body: JSON.stringify(body),
     })
   },
 }

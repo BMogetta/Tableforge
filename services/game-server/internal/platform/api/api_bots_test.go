@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/recess/game-server/internal/platform/store"
+	sharedmw "github.com/recess/shared/middleware"
 )
 
 // deleteJSONWithBody sends a DELETE request with a JSON body and returns the response.
@@ -19,6 +20,18 @@ func deleteJSONWithBody(t *testing.T, router http.Handler, path string, body any
 	b, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodDelete, path, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
+// deleteJSONWithBodyAs sends a DELETE with a JSON body and injected auth context.
+func deleteJSONWithBodyAs(t *testing.T, router http.Handler, path string, playerID uuid.UUID, role string, body any) *httptest.ResponseRecorder {
+	t.Helper()
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodDelete, path, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(sharedmw.ContextWithPlayer(req.Context(), playerID, "testuser", role))
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	return w
@@ -107,9 +120,8 @@ func TestAddBot_Success(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "tictactoe",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "tictactoe",
 	})
 	var view struct {
 		Room struct {
@@ -118,9 +130,8 @@ func TestAddBot_Success(t *testing.T) {
 	}
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	w := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", map[string]string{
-		"player_id": owner.ID.String(),
-		"profile":   "easy",
+	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
+		"profile": "easy",
 	})
 
 	if w.Code != http.StatusCreated {
@@ -143,9 +154,8 @@ func TestAddBot_DefaultsToMediumProfile(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "tictactoe",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "tictactoe",
 	})
 	var view struct {
 		Room struct {
@@ -155,9 +165,7 @@ func TestAddBot_DefaultsToMediumProfile(t *testing.T) {
 	json.NewDecoder(createResp.Body).Decode(&view)
 
 	// No profile specified — should default to medium.
-	w := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", map[string]string{
-		"player_id": owner.ID.String(),
-	})
+	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{})
 
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
@@ -169,9 +177,8 @@ func TestAddBot_InvalidProfile(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -180,9 +187,8 @@ func TestAddBot_InvalidProfile(t *testing.T) {
 	}
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	w := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", map[string]string{
-		"player_id": owner.ID.String(),
-		"profile":   "godmode",
+	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
+		"profile": "godmode",
 	})
 
 	if w.Code != http.StatusBadRequest {
@@ -196,9 +202,8 @@ func TestAddBot_NonOwnerForbidden(t *testing.T) {
 	owner, _ := s.CreatePlayer(ctx, "alice")
 	guest, _ := s.CreatePlayer(ctx, "bob")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -207,9 +212,8 @@ func TestAddBot_NonOwnerForbidden(t *testing.T) {
 	}
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	w := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", map[string]string{
-		"player_id": guest.ID.String(),
-		"profile":   "easy",
+	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", guest.ID, "player", map[string]string{
+		"profile": "easy",
 	})
 
 	if w.Code != http.StatusForbidden {
@@ -222,9 +226,8 @@ func TestAddBot_InvalidRoomID(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	w := postJSON(t, router, "/api/v1/rooms/not-a-uuid/bots", map[string]string{
-		"player_id": owner.ID.String(),
-		"profile":   "easy",
+	w := postJSONAs(t, router, "/api/v1/rooms/not-a-uuid/bots", owner.ID, "player", map[string]string{
+		"profile": "easy",
 	})
 
 	if w.Code != http.StatusBadRequest {
@@ -240,9 +243,8 @@ func TestAddBot_UnknownGame(t *testing.T) {
 	// Create a room with a game that has no bot adapter.
 	// "chess" in our stub game has no adapter registered in botadapter.New.
 	// We rely on the adapter registry returning an error for unknown games.
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -251,9 +253,8 @@ func TestAddBot_UnknownGame(t *testing.T) {
 	}
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	w := postJSON(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", map[string]string{
-		"player_id": owner.ID.String(),
-		"profile":   "easy",
+	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
+		"profile": "easy",
 	})
 
 	// chess has no bot adapter — expect 400.
@@ -269,9 +270,8 @@ func TestRemoveBot_Success(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -284,8 +284,8 @@ func TestRemoveBot_Success(t *testing.T) {
 	botPlayer, _ := s.CreateBotPlayer(ctx, "bot:easy:test1234")
 	s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), botPlayer.ID, 1)
 
-	w := deleteJSONWithBody(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
-		map[string]string{"player_id": owner.ID.String()},
+	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
+		owner.ID, "player", nil,
 	)
 
 	if w.Code != http.StatusNoContent {
@@ -299,9 +299,8 @@ func TestRemoveBot_NonOwnerForbidden(t *testing.T) {
 	owner, _ := s.CreatePlayer(ctx, "alice")
 	guest, _ := s.CreatePlayer(ctx, "bob")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -313,8 +312,8 @@ func TestRemoveBot_NonOwnerForbidden(t *testing.T) {
 	botPlayer, _ := s.CreateBotPlayer(ctx, "bot:easy:test5678")
 	s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), botPlayer.ID, 1)
 
-	w := deleteJSONWithBody(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
-		map[string]string{"player_id": guest.ID.String()},
+	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
+		guest.ID, "player", nil,
 	)
 
 	if w.Code != http.StatusForbidden {
@@ -328,9 +327,8 @@ func TestRemoveBot_NotABot(t *testing.T) {
 	owner, _ := s.CreatePlayer(ctx, "alice")
 	human, _ := s.CreatePlayer(ctx, "bob")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -341,8 +339,8 @@ func TestRemoveBot_NotABot(t *testing.T) {
 
 	s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), human.ID, 1)
 
-	w := deleteJSONWithBody(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+human.ID.String(),
-		map[string]string{"player_id": owner.ID.String()},
+	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+human.ID.String(),
+		owner.ID, "player", nil,
 	)
 
 	if w.Code != http.StatusBadRequest {
@@ -355,9 +353,8 @@ func TestRemoveBot_NotInRoom(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -369,8 +366,8 @@ func TestRemoveBot_NotInRoom(t *testing.T) {
 	// Create bot but don't add to room.
 	botPlayer, _ := s.CreateBotPlayer(ctx, "bot:easy:notinroom")
 
-	w := deleteJSONWithBody(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
-		map[string]string{"player_id": owner.ID.String()},
+	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
+		owner.ID, "player", nil,
 	)
 
 	if w.Code != http.StatusNotFound {
@@ -383,9 +380,8 @@ func TestRemoveBot_InvalidBotID(t *testing.T) {
 	ctx := context.Background()
 	owner, _ := s.CreatePlayer(ctx, "alice")
 
-	createResp := postJSON(t, router, "/api/v1/rooms", map[string]string{
-		"game_id":   "chess",
-		"player_id": owner.ID.String(),
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
 	})
 	var view struct {
 		Room struct {
@@ -394,8 +390,8 @@ func TestRemoveBot_InvalidBotID(t *testing.T) {
 	}
 	json.NewDecoder(createResp.Body).Decode(&view)
 
-	w := deleteJSONWithBody(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/not-a-uuid",
-		map[string]string{"player_id": owner.ID.String()},
+	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/not-a-uuid",
+		owner.ID, "player", nil,
 	)
 
 	if w.Code != http.StatusBadRequest {

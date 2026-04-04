@@ -8,14 +8,10 @@
       "type": "string",
       "minLength": 1
     },
-    "player_id": {
-      "type": "string",
-      "minLength": 1
-    },
     "turn_timeout_secs": {
       "type": "integer",
       "minimum": 5
     }
   },
-  "required": ["game_id", "player_id"]
+  "required": ["game_id"]
 }

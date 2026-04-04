@@ -593,6 +593,31 @@ func (f *FakeStore) CountPlayerMatches(_ context.Context, _ uuid.UUID) (int, err
 
 // --- Player settings ---------------------------------------------------------
 
+// --- Cleanup -----------------------------------------------------------------
+
+func (f *FakeStore) CleanupOrphanRooms(_ context.Context, waitingMaxAge, finishedMaxAge time.Duration) (int, error) {
+	count := 0
+	now := time.Now()
+	for id, r := range f.Rooms {
+		if r.DeletedAt != nil {
+			continue
+		}
+		if r.Status == store.RoomStatusWaiting && now.Sub(r.UpdatedAt) > waitingMaxAge {
+			if len(f.RoomPlayers[id]) == 0 {
+				delete(f.Rooms, id)
+				count++
+			}
+		}
+		if r.Status == store.RoomStatusFinished && now.Sub(r.UpdatedAt) > finishedMaxAge {
+			now := time.Now()
+			r.DeletedAt = &now
+			f.Rooms[id] = r
+			count++
+		}
+	}
+	return count, nil
+}
+
 // --- Exec (used by test migrations) ------------------------------------------
 
 func (f *FakeStore) Exec(_ context.Context, _ string) error { return nil }

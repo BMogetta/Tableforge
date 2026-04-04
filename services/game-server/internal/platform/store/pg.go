@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/exaring/otelpgx"
 	"github.com/google/uuid"
@@ -758,6 +759,40 @@ func (s *PGStore) DeleteRematchVotes(ctx context.Context, sessionID uuid.UUID) e
 		return fmt.Errorf("DeleteRematchVotes: %w", err)
 	}
 	return nil
+}
+
+// --- Cleanup -----------------------------------------------------------------
+
+// CleanupOrphanRooms hard-deletes waiting rooms with 0 players that haven't
+// been updated in waitingMaxAge, and soft-deletes finished rooms older than
+// finishedMaxAge. Returns total rows affected.
+func (s *PGStore) CleanupOrphanRooms(ctx context.Context, waitingMaxAge, finishedMaxAge time.Duration) (int, error) {
+	// 1. Hard-delete empty waiting rooms older than threshold.
+	res1, err := s.pool.Exec(ctx,
+		`DELETE FROM rooms
+		 WHERE status = 'waiting'
+		   AND deleted_at IS NULL
+		   AND updated_at < NOW() - $1::interval
+		   AND id NOT IN (SELECT DISTINCT room_id FROM room_players)`,
+		waitingMaxAge,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("CleanupOrphanRooms (waiting): %w", err)
+	}
+
+	// 2. Soft-delete finished rooms older than threshold.
+	res2, err := s.pool.Exec(ctx,
+		`UPDATE rooms SET deleted_at = NOW()
+		 WHERE status = 'finished'
+		   AND deleted_at IS NULL
+		   AND updated_at < NOW() - $1::interval`,
+		finishedMaxAge,
+	)
+	if err != nil {
+		return int(res1.RowsAffected()), fmt.Errorf("CleanupOrphanRooms (finished): %w", err)
+	}
+
+	return int(res1.RowsAffected() + res2.RowsAffected()), nil
 }
 
 // --- Helpers -----------------------------------------------------------------

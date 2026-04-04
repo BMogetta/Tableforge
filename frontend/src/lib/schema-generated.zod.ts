@@ -124,7 +124,7 @@ export type AcceptMatchRequest = z.infer<typeof acceptMatchRequestSchema>
 export const addAllowedEmailRequestSchema = z.object({ "email": z.string().min(1), "role": z.enum(["player","manager","owner"]).optional() })
 export type AddAllowedEmailRequest = z.infer<typeof addAllowedEmailRequestSchema>
 
-export const addBotRequestSchema = z.object({ "player_id": z.string().min(1), "profile": z.enum(["easy","medium","hard","aggressive"]).optional() })
+export const addBotRequestSchema = z.object({ "profile": z.enum(["easy","medium","hard","aggressive"]).optional() })
 export type AddBotRequest = z.infer<typeof addBotRequestSchema>
 
 export const addBotResponseSchema = playerSchema
@@ -144,7 +144,7 @@ export type ApplyMoveResponse = z.infer<typeof applyMoveResponseSchema>
 export const createReportRequestSchema = z.object({ "reported_id": z.string().min(1), "reason": z.string().min(1), "context": z.any().optional() })
 export type CreateReportRequest = z.infer<typeof createReportRequestSchema>
 
-export const createRoomRequestSchema = z.object({ "game_id": z.string().min(1), "player_id": z.string().min(1), "turn_timeout_secs": z.number().int().gte(5).optional() })
+export const createRoomRequestSchema = z.object({ "game_id": z.string().min(1), "turn_timeout_secs": z.number().int().gte(5).optional() })
 export type CreateRoomRequest = z.infer<typeof createRoomRequestSchema>
 
 export const createRoomResponseSchema = z.object({
@@ -224,7 +224,7 @@ export type ListRoomsResponse = z.infer<typeof listRoomsResponseSchema>
 export const mutePlayerRequestSchema = z.object({ "muted_id": z.string().min(1) })
 export type MutePlayerRequest = z.infer<typeof mutePlayerRequestSchema>
 
-export const removeBotRequestSchema = z.object({ "player_id": z.string().min(1) })
+export const removeBotRequestSchema = z.object({})
 export type RemoveBotRequest = z.infer<typeof removeBotRequestSchema>
 
 export const reportDmRequestSchema = z.object({ "message_id": z.string().min(1) })

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -189,6 +190,15 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+
+	// --- Room reaper (orphan cleanup) ----------------------------------------
+	reaperInterval := lobby.DefaultReaperInterval
+	if raw := config.Env("ROOM_REAPER_INTERVAL", ""); raw != "" {
+		if secs, err := strconv.Atoi(raw); err == nil && secs > 0 {
+			reaperInterval = time.Duration(secs) * time.Second
+		}
+	}
+	go lobby.StartReaper(ctx, st, reaperInterval)
 
 	<-ctx.Done()
 	slog.Info("shutting down...")

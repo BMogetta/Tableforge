@@ -4,11 +4,9 @@
   "title": "AddBotRequest",
   "type": "object",
   "properties": {
-    "player_id": { "type": "string", "minLength": 1 },
     "profile": {
       "type": "string",
       "enum": ["easy", "medium", "hard", "aggressive"]
     }
-  },
-  "required": ["player_id"]
+  }
 }
