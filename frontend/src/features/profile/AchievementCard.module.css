@@ -41,7 +41,7 @@
 
 .name {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.15em;
   color: var(--color-text-primary);
   text-transform: uppercase;
@@ -54,7 +54,7 @@
 }
 
 .gameTag {
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -84,7 +84,7 @@
 }
 
 .progressLabel {
-  font-size: 9px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
   text-align: right;
   font-family: monospace;
@@ -115,7 +115,7 @@
 
 .maxTier {
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.15em;
   color: var(--color-interactive);
   text-transform: uppercase;

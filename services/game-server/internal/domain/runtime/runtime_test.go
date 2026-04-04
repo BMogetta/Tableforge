@@ -45,7 +45,8 @@ func (f *fakeStore) GetRoomByCode(_ context.Context, _ string) (store.Room, erro
 func (f *fakeStore) UpdateRoomStatus(_ context.Context, _ uuid.UUID, _ store.RoomStatus) error {
 	return nil
 }
-func (f *fakeStore) ListWaitingRooms(_ context.Context) ([]store.Room, error) { return nil, nil }
+func (f *fakeStore) ListWaitingRooms(_ context.Context, _, _ int) ([]store.Room, error) { return nil, nil }
+func (f *fakeStore) CountWaitingRooms(_ context.Context) (int, error) { return 0, nil }
 func (f *fakeStore) AddPlayerToRoom(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ int) error {
 	return nil
 }

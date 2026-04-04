@@ -10,11 +10,12 @@ import { testId } from '@/utils/testId'
 export function OpenRooms({ disabled }: { disabled?: boolean }) {
   const navigate = useNavigate()
 
-  const { data: roomList = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: keys.rooms(),
-    queryFn: rooms.list,
+    queryFn: () => rooms.list(),
     refetchInterval: 10_000,
   })
+  const roomList = data?.items ?? []
 
   return (
     <section className={styles.section}>

@@ -1,4 +1,4 @@
-import { request } from '@/lib/api'
+import { request, validatedRequest } from '@/lib/api'
 import type { PlayerRole } from '@/lib/api'
 import type {
   AllowedEmail,
@@ -8,25 +8,13 @@ import type {
   PlayerReport,
   Room,
 } from '@/lib/schema-generated.zod'
+import {
+  getAdminStatsResponseSchema,
+  listAuditLogsResponseSchema,
+} from '@/lib/schema-generated.zod'
 import type { RoomView } from '@/lib/api'
 
-export interface SystemStats {
-  online_players: number
-  active_rooms: number
-  active_sessions: number
-  total_players: number
-  total_sessions_today: number
-}
-
-export interface AuditLog {
-  id: string
-  actor_id: string
-  action: string
-  target_type: string
-  target_id: string
-  details?: Record<string, unknown>
-  created_at: string
-}
+export type { SystemStats, AuditLog } from '@/lib/schema-generated.zod'
 
 export interface AuditLogFilter {
   action?: string
@@ -82,7 +70,7 @@ export const admin = {
   listPlayerBans: (playerId: string) => request<Ban[]>(`/admin/players/${playerId}/bans`),
 
   // Stats (served by game-server)
-  getStats: () => request<SystemStats>('/admin/stats'),
+  getStats: () => validatedRequest(getAdminStatsResponseSchema, '/admin/stats'),
 
   // Audit logs
   listAuditLogs: (filter?: AuditLogFilter) => {
@@ -94,7 +82,7 @@ export const admin = {
     if (filter?.limit) params.set('limit', String(filter.limit))
     if (filter?.offset) params.set('offset', String(filter.offset))
     const qs = params.toString()
-    return request<AuditLog[]>(`/admin/audit-logs${qs ? `?${qs}` : ''}`)
+    return validatedRequest(listAuditLogsResponseSchema, `/admin/audit-logs${qs ? `?${qs}` : ''}`)
   },
 
   // Broadcast
@@ -105,7 +93,7 @@ export const admin = {
     }),
 
   // Rooms
-  listRooms: () => request<Room[]>('/rooms'),
+  listRooms: () => request<{ items: Room[]; total: number }>('/rooms?limit=100&offset=0'),
   getRoom: (roomId: string) => request<RoomView>(`/rooms/${roomId}`),
   listPlayerSessions: (playerId: string) => request<GameSession[]>(`/players/${playerId}/sessions`),
   forceEndSession: (sessionId: string) =>

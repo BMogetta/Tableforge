@@ -100,6 +100,7 @@
   --color-bg-surface: var(--primitive-obsidian-800);
   --color-bg-elevated: var(--primitive-obsidian-700);
   --color-bg-hover: var(--primitive-obsidian-600);
+  --color-bg-overlay: rgba(0, 0, 0, 0.6);
 
   /* Text */
   --color-text-primary: var(--primitive-sand-100);
@@ -155,6 +156,7 @@
   --color-bg-surface: var(--primitive-parchment-100);
   --color-bg-elevated: var(--primitive-parchment-200);
   --color-bg-hover: #d6c8b0;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
 
   /* Text */
   --color-text-primary: var(--primitive-ink-800);
@@ -210,6 +212,7 @@
   --color-bg-surface: var(--primitive-slate-800);
   --color-bg-elevated: var(--primitive-slate-700);
   --color-bg-hover: var(--primitive-slate-600);
+  --color-bg-overlay: rgba(0, 0, 0, 0.6);
 
   /* Text */
   --color-text-primary: #dde2f0;
@@ -265,6 +268,7 @@
   --color-bg-surface: var(--primitive-ivory-100);
   --color-bg-elevated: var(--primitive-ivory-200);
   --color-bg-hover: var(--primitive-ivory-hover);
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
 
   /* Text */
   --color-text-primary: var(--primitive-charcoal-800);
@@ -341,6 +345,7 @@
   --text-base: calc(0.875rem * var(--font-scale));
   --text-lg: calc(1rem * var(--font-scale));
   --text-xl: calc(1.25rem * var(--font-scale));
+  --text-2xl: calc(1.5rem * var(--font-scale));
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;

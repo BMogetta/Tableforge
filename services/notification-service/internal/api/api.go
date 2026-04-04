@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -38,7 +39,8 @@ type Publisher interface {
 type NotificationStore interface {
 	Create(ctx context.Context, p store.CreateParams) (store.Notification, error)
 	Get(ctx context.Context, id uuid.UUID) (store.Notification, error)
-	List(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]store.Notification, error)
+	List(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time, limit, offset int) ([]store.Notification, error)
+	CountNotifications(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) (int, error)
 	MarkRead(ctx context.Context, id uuid.UUID) error
 	SetAction(ctx context.Context, id uuid.UUID, action string) error
 }
@@ -84,7 +86,21 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 
 	includeRead := r.URL.Query().Get("include_read") == "true"
 	cutoff := time.Now().Add(-readNotificationCutoff)
-	notifications, err := h.store.List(r.Context(), playerID, includeRead, cutoff)
+
+	limit := 20
+	offset := 0
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 100 {
+			limit = n
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+
+	notifications, err := h.store.List(r.Context(), playerID, includeRead, cutoff, limit, offset)
 	if err != nil {
 		h.log.Error("list notifications", "player_id", playerID, "error", err)
 		writeError(w, http.StatusInternalServerError, apierrors.InternalError)
@@ -93,7 +109,18 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	if notifications == nil {
 		notifications = []store.Notification{}
 	}
-	writeJSON(w, http.StatusOK, notifications)
+
+	total, err := h.store.CountNotifications(r.Context(), playerID, includeRead, cutoff)
+	if err != nil {
+		h.log.Error("count notifications", "player_id", playerID, "error", err)
+		writeError(w, http.StatusInternalServerError, apierrors.InternalError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"items": notifications,
+		"total": total,
+	})
 }
 
 // POST /notifications/{notificationID}/read

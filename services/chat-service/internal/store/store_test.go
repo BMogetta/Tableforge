@@ -87,7 +87,7 @@ func TestSaveAndGetRoomMessages(t *testing.T) {
 		t.Error("expected hidden=false and reported=false")
 	}
 
-	messages, err := env.store.GetRoomMessages(ctx, roomID)
+	messages, err := env.store.GetRoomMessages(ctx, roomID, 100, 0)
 	if err != nil {
 		t.Fatalf("GetRoomMessages: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestHideRoomMessage(t *testing.T) {
 		t.Fatalf("HideRoomMessage: %v", err)
 	}
 
-	messages, _ := env.store.GetRoomMessages(ctx, roomID)
+	messages, _ := env.store.GetRoomMessages(ctx, roomID, 100, 0)
 	if !messages[0].Hidden {
 		t.Error("expected message to be hidden")
 	}
@@ -138,7 +138,7 @@ func TestReportRoomMessage(t *testing.T) {
 		t.Fatalf("ReportRoomMessage: %v", err)
 	}
 
-	messages, _ := env.store.GetRoomMessages(ctx, roomID)
+	messages, _ := env.store.GetRoomMessages(ctx, roomID, 100, 0)
 	if !messages[0].Reported {
 		t.Error("expected message to be reported")
 	}

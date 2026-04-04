@@ -13,6 +13,9 @@ import { z } from 'zod'
 export const allowedEmailSchema = z.object({ "email": z.string(), "role": z.enum(["player","manager","owner"]), "note": z.string().optional(), "invited_by": z.string().optional(), "expires_at": z.string().datetime({ offset: true }).optional(), "created_at": z.string().datetime({ offset: true }) })
 export type AllowedEmail = z.infer<typeof allowedEmailSchema>
 
+export const auditLogSchema = z.object({ "id": z.string(), "actor_id": z.string(), "action": z.string(), "target_type": z.string(), "target_id": z.string(), "details": z.record(z.string(), z.any()).optional(), "created_at": z.string().datetime({ offset: true }) })
+export type AuditLog = z.infer<typeof auditLogSchema>
+
 export const banSchema = z.object({ "id": z.string(), "player_id": z.string(), "banned_by": z.string(), "reason": z.string().optional(), "expires_at": z.string().datetime({ offset: true }).optional(), "lifted_at": z.string().datetime({ offset: true }).optional(), "lifted_by": z.string().optional(), "created_at": z.string().datetime({ offset: true }) })
 export type Ban = z.infer<typeof banSchema>
 
@@ -100,6 +103,9 @@ export type RoomPlayer = z.infer<typeof roomPlayerSchema>
 export const sessionEventSchema = z.object({ "id": z.string(), "session_id": z.string(), "event_type": z.string(), "player_id": z.string().optional(), "payload": z.any().optional(), "occurred_at": z.string().datetime({ offset: true }) })
 export type SessionEvent = z.infer<typeof sessionEventSchema>
 
+export const systemStatsSchema = z.object({ "online_players": z.number().int(), "active_rooms": z.number().int(), "active_sessions": z.number().int(), "total_players": z.number().int(), "total_sessions_today": z.number().int() })
+export type SystemStats = z.infer<typeof systemStatsSchema>
+
 export const gameInfoSchema = z.object({
   "id": z.string(),
   "name": z.string(),
@@ -160,6 +166,9 @@ export type CreateRoomResponse = z.infer<typeof createRoomResponseSchema>
 export const declineMatchRequestSchema = z.object({ "match_id": z.string().min(1) })
 export type DeclineMatchRequest = z.infer<typeof declineMatchRequestSchema>
 
+export const getAdminStatsResponseSchema = systemStatsSchema
+export type GetAdminStatsResponse = z.infer<typeof getAdminStatsResponseSchema>
+
 export const getDmHistoryResponseSchema = z.array(directMessageSchema)
 export type GetDmHistoryResponse = z.infer<typeof getDmHistoryResponseSchema>
 
@@ -189,7 +198,10 @@ export const getRoomResponseSchema = z.object({
 })
 export type GetRoomResponse = z.infer<typeof getRoomResponseSchema>
 
-export const getRoomMessagesResponseSchema = z.array(roomMessageSchema)
+export const getRoomMessagesResponseSchema = z.object({
+  "items": z.array(roomMessageSchema),
+  "total": z.number().int()
+})
 export type GetRoomMessagesResponse = z.infer<typeof getRoomMessagesResponseSchema>
 
 export const getSessionResponseSchema = z.object({
@@ -215,13 +227,28 @@ export type JoinRoomResponse = z.infer<typeof joinRoomResponseSchema>
 export const leaveRoomRequestSchema = z.object({})
 export type LeaveRoomRequest = z.infer<typeof leaveRoomRequestSchema>
 
+export const listAchievementsResponseSchema = z.array(playerAchievementSchema)
+export type ListAchievementsResponse = z.infer<typeof listAchievementsResponseSchema>
+
+export const listAuditLogsResponseSchema = z.array(auditLogSchema)
+export type ListAuditLogsResponse = z.infer<typeof listAuditLogsResponseSchema>
+
+export const listNotificationsResponseSchema = z.object({
+  "items": z.array(notificationSchema),
+  "total": z.number().int()
+})
+export type ListNotificationsResponse = z.infer<typeof listNotificationsResponseSchema>
+
 export const listPlayerMatchesResponseSchema = z.object({
   "matches": z.array(matchHistoryEntrySchema),
   "total": z.number().int()
 })
 export type ListPlayerMatchesResponse = z.infer<typeof listPlayerMatchesResponseSchema>
 
-export const listRoomsResponseSchema = z.array(roomSchema)
+export const listRoomsResponseSchema = z.object({
+  "items": z.array(roomSchema),
+  "total": z.number().int()
+})
 export type ListRoomsResponse = z.infer<typeof listRoomsResponseSchema>
 
 export const mutePlayerRequestSchema = z.object({ "muted_id": z.string().min(1) })

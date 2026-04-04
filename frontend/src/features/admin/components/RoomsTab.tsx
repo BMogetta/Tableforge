@@ -25,7 +25,7 @@ export function RoomsTab({ callerRole }: Props) {
   const fetchRooms = useCallback(() => {
     admin
       .listRooms()
-      .then(setRooms)
+      .then(data => setRooms(data.items))
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
   }, [])

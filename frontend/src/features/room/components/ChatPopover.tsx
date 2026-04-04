@@ -80,11 +80,12 @@ export function ChatPopover({
     onSettled: () => qc.invalidateQueries({ queryKey: keys.mutes(player.id) }),
   })
 
-  const { data: messages = [] } = useQuery({
+  const { data: messagesData } = useQuery({
     queryKey: keys.roomMessages(roomId),
     queryFn: () => rooms.messages(roomId),
     refetchInterval: 30_000,
   })
+  const messages = messagesData?.items ?? []
 
   useEffect(() => {
     if (!socket) return

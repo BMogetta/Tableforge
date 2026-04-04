@@ -191,10 +191,16 @@ func TestListRooms(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 
-	var rooms []lobby.RoomView
-	json.NewDecoder(w.Body).Decode(&rooms)
-	if len(rooms) != 1 {
-		t.Errorf("expected 1 room, got %d", len(rooms))
+	var resp struct {
+		Items []lobby.RoomView `json:"items"`
+		Total int              `json:"total"`
+	}
+	json.NewDecoder(w.Body).Decode(&resp)
+	if len(resp.Items) != 1 {
+		t.Errorf("expected 1 room, got %d", len(resp.Items))
+	}
+	if resp.Total != 1 {
+		t.Errorf("expected total=1, got %d", resp.Total)
 	}
 }
 

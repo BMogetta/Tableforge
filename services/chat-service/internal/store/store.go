@@ -50,7 +50,8 @@ type DMConversation struct {
 type Store interface {
 	// Room chat
 	SaveRoomMessage(ctx context.Context, roomID, playerID uuid.UUID, content string) (RoomMessage, error)
-	GetRoomMessages(ctx context.Context, roomID uuid.UUID) ([]RoomMessage, error)
+	GetRoomMessages(ctx context.Context, roomID uuid.UUID, limit, offset int) ([]RoomMessage, error)
+	CountRoomMessages(ctx context.Context, roomID uuid.UUID) (int, error)
 	HideRoomMessage(ctx context.Context, messageID uuid.UUID) error
 	ReportRoomMessage(ctx context.Context, messageID uuid.UUID) error
 

@@ -1,12 +1,11 @@
 import { request, validatedRequest } from '@/lib/api'
-import { notificationSchema } from '@/lib/schema-generated.zod'
-import { z } from 'zod'
+import { listNotificationsResponseSchema } from '@/lib/schema-generated.zod'
 
 export const notifications = {
-  list: (playerId: string, includeRead = false) =>
+  list: (playerId: string, includeRead = false, limit = 20, offset = 0) =>
     validatedRequest(
-      z.array(notificationSchema),
-      `/players/${playerId}/notifications?include_read=${includeRead}&player_id=${playerId}`,
+      listNotificationsResponseSchema,
+      `/players/${playerId}/notifications?include_read=${includeRead}&player_id=${playerId}&limit=${limit}&offset=${offset}`,
     ),
   markRead: (playerId: string, notificationId: string) =>
     request<void>(`/notifications/${notificationId}/read`, {

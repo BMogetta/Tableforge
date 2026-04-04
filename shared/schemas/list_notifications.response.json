@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "list_rooms.response.json",
-  "title": "ListRoomsResponse",
+  "$id": "list_notifications.response.json",
+  "title": "ListNotificationsResponse",
   "type": "object",
   "properties": {
     "items": {
       "type": "array",
-      "items": { "$ref": "defs/room.json" }
+      "items": { "$ref": "defs/notification.json" }
     },
     "total": { "type": "integer" }
   },

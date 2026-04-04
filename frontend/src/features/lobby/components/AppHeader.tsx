@@ -22,11 +22,12 @@ export function AppHeader({ onLogout }: Props) {
   const [notifsOpen, setNotifsOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
 
-  const { data: notifList = [] } = useQuery({
+  const { data: notifData } = useQuery({
     queryKey: keys.notifications(player.id),
     queryFn: () => notifications.list(player.id),
     refetchInterval: 30_000,
   })
+  const notifList = notifData?.items ?? []
 
   const { data: unreadDMs } = useQuery({
     queryKey: keys.dmUnread(player.id),

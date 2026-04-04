@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_admin_stats.response.json",
+  "title": "GetAdminStatsResponse",
+  "$ref": "defs/system_stats.json"
+}

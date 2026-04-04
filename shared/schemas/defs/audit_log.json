@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/audit_log.json",
+  "title": "AuditLog",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "actor_id": { "type": "string" },
+    "action": { "type": "string" },
+    "target_type": { "type": "string" },
+    "target_id": { "type": "string" },
+    "details": { "type": "object" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "actor_id", "action", "target_type", "target_id", "created_at"]
+}

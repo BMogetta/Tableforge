@@ -56,8 +56,20 @@ func (m *mockStore) SaveRoomMessage(_ context.Context, roomID, playerID uuid.UUI
 	return msg, nil
 }
 
-func (m *mockStore) GetRoomMessages(_ context.Context, roomID uuid.UUID) ([]store.RoomMessage, error) {
-	return m.roomMessages[roomID], nil
+func (m *mockStore) GetRoomMessages(_ context.Context, roomID uuid.UUID, limit, offset int) ([]store.RoomMessage, error) {
+	msgs := m.roomMessages[roomID]
+	if offset > len(msgs) {
+		return []store.RoomMessage{}, nil
+	}
+	msgs = msgs[offset:]
+	if limit < len(msgs) {
+		msgs = msgs[:limit]
+	}
+	return msgs, nil
+}
+
+func (m *mockStore) CountRoomMessages(_ context.Context, roomID uuid.UUID) (int, error) {
+	return len(m.roomMessages[roomID]), nil
 }
 
 func (m *mockStore) HideRoomMessage(_ context.Context, messageID uuid.UUID) error {
@@ -295,9 +307,18 @@ func TestGetRoomMessages(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 
-	msgs := decodeResponse[[]store.RoomMessage](t, rec)
-	if len(msgs) != 2 {
-		t.Errorf("expected 2 messages, got %d", len(msgs))
+	var resp struct {
+		Items []store.RoomMessage `json:"items"`
+		Total int                 `json:"total"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.Items) != 2 {
+		t.Errorf("expected 2 messages, got %d", len(resp.Items))
+	}
+	if resp.Total != 2 {
+		t.Errorf("expected total=2, got %d", resp.Total)
 	}
 }
 

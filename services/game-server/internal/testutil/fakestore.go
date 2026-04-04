@@ -127,14 +127,31 @@ func (f *FakeStore) UpdateRoomStatus(_ context.Context, id uuid.UUID, status sto
 	return nil
 }
 
-func (f *FakeStore) ListWaitingRooms(_ context.Context) ([]store.Room, error) {
+func (f *FakeStore) ListWaitingRooms(_ context.Context, limit, offset int) ([]store.Room, error) {
 	var rooms []store.Room
 	for _, r := range f.Rooms {
 		if r.Status == store.RoomStatusWaiting {
 			rooms = append(rooms, r)
 		}
 	}
+	if offset > len(rooms) {
+		return []store.Room{}, nil
+	}
+	rooms = rooms[offset:]
+	if limit < len(rooms) {
+		rooms = rooms[:limit]
+	}
 	return rooms, nil
+}
+
+func (f *FakeStore) CountWaitingRooms(_ context.Context) (int, error) {
+	count := 0
+	for _, r := range f.Rooms {
+		if r.Status == store.RoomStatusWaiting {
+			count++
+		}
+	}
+	return count, nil
 }
 
 func (f *FakeStore) SoftDeleteRoom(_ context.Context, _ uuid.UUID) error { return nil }

@@ -1,6 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "get_room_messages.response.json",
-  "type": "array",
-  "items": { "$ref": "defs/room_message.json" }
+  "title": "GetRoomMessagesResponse",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": { "$ref": "defs/room_message.json" }
+    },
+    "total": { "type": "integer" }
+  },
+  "required": ["items", "total"]
 }

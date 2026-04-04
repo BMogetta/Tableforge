@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -114,15 +115,31 @@ func handleCreateRoom(svc *lobby.Service, st store.Store) http.HandlerFunc {
 	}
 }
 
-// GET /api/v1/rooms
+// GET /api/v1/rooms?limit=20&offset=0
 func handleListRooms(svc *lobby.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rooms, err := svc.ListWaitingRooms(r.Context())
+		limit := 20
+		offset := 0
+		if v := r.URL.Query().Get("limit"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 100 {
+				limit = n
+			}
+		}
+		if v := r.URL.Query().Get("offset"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				offset = n
+			}
+		}
+
+		rooms, total, err := svc.ListWaitingRooms(r.Context(), limit, offset)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to list rooms")
 			return
 		}
-		writeJSON(w, http.StatusOK, rooms)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"items": rooms,
+			"total": total,
+		})
 	}
 }
 

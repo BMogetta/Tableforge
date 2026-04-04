@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "list_achievements.response.json",
+  "title": "ListAchievementsResponse",
+  "type": "array",
+  "items": { "$ref": "defs/player_achievement.json" }
+}

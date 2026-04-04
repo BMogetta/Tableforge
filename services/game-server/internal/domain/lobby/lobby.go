@@ -355,17 +355,21 @@ func (svc *Service) GetRoom(ctx context.Context, roomID uuid.UUID) (RoomView, er
 // Private rooms (room_visibility = "private") are included in the list but
 // have their Code field redacted — the frontend renders them with a lock icon
 // and no direct-join button, requiring the player to know the code.
-func (svc *Service) ListWaitingRooms(ctx context.Context) ([]RoomView, error) {
-	rooms, err := svc.store.ListWaitingRooms(ctx)
+func (svc *Service) ListWaitingRooms(ctx context.Context, limit, offset int) ([]RoomView, int, error) {
+	total, err := svc.store.CountWaitingRooms(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("ListWaitingRooms: %w", err)
+		return nil, 0, fmt.Errorf("ListWaitingRooms count: %w", err)
+	}
+	rooms, err := svc.store.ListWaitingRooms(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("ListWaitingRooms: %w", err)
 	}
 
 	views := make([]RoomView, 0, len(rooms))
 	for _, r := range rooms {
 		v, err := svc.getRoomView(ctx, r)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		// Redact the join code for private rooms so it never reaches
 		// clients who haven't been given the code out-of-band.
@@ -374,7 +378,7 @@ func (svc *Service) ListWaitingRooms(ctx context.Context) ([]RoomView, error) {
 		}
 		views = append(views, v)
 	}
-	return views, nil
+	return views, total, nil
 }
 
 func (svc *Service) getRoomView(ctx context.Context, room store.Room) (RoomView, error) {

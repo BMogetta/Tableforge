@@ -104,7 +104,7 @@ func TestListUnreadOnly(t *testing.T) {
 	}
 
 	// List unread only.
-	unread, err := s.List(ctx, playerID, false, time.Time{})
+	unread, err := s.List(ctx, playerID, false, time.Time{}, 100, 0)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestListIncludeRead(t *testing.T) {
 	}
 
 	// Include read with a cutoff far in the past — should include the read one.
-	all, err := s.List(ctx, playerID, true, time.Now().Add(-1*time.Hour))
+	all, err := s.List(ctx, playerID, true, time.Now().Add(-1*time.Hour), 100, 0)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -236,8 +236,8 @@ func TestListIsolationBetweenPlayers(t *testing.T) {
 	createNotification(t, s, player1, store.NotificationTypeBanIssued)
 	createNotification(t, s, player2, store.NotificationTypeRoomInvitation)
 
-	list1, _ := s.List(ctx, player1, false, time.Time{})
-	list2, _ := s.List(ctx, player2, false, time.Time{})
+	list1, _ := s.List(ctx, player1, false, time.Time{}, 100, 0)
+	list2, _ := s.List(ctx, player2, false, time.Time{}, 100, 0)
 
 	if len(list1) != 2 {
 		t.Errorf("player1: expected 2, got %d", len(list1))

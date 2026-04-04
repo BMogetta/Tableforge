@@ -27,7 +27,7 @@ that can be handed directly to an agent.
 | # | Task | File | Effort |
 |---|------|------|--------|
 | 8 | ~~Admin panel UI~~ | `admin-panel-ui.md` | Done |
-| 9 | ~~Admin backend (audit logs, stats, broadcast)~~ | `admin-backend-features.md` | Done (backend complete, frontend UI pending) |
+| 9 | ~~Admin backend + frontend (audit logs, stats, broadcast)~~ | `admin-backend-features.md` | Done |
 
 ### Nice to have
 

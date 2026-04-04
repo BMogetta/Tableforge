@@ -51,7 +51,7 @@ func (m *mockStore) Get(_ context.Context, id uuid.UUID) (store.Notification, er
 	return n, nil
 }
 
-func (m *mockStore) List(_ context.Context, playerID uuid.UUID, includeRead bool, _ time.Time) ([]store.Notification, error) {
+func (m *mockStore) List(_ context.Context, playerID uuid.UUID, includeRead bool, _ time.Time, limit, offset int) ([]store.Notification, error) {
 	var result []store.Notification
 	for _, n := range m.notifications {
 		if n.PlayerID != playerID {
@@ -62,7 +62,28 @@ func (m *mockStore) List(_ context.Context, playerID uuid.UUID, includeRead bool
 		}
 		result = append(result, n)
 	}
+	if offset > len(result) {
+		return []store.Notification{}, nil
+	}
+	result = result[offset:]
+	if limit < len(result) {
+		result = result[:limit]
+	}
 	return result, nil
+}
+
+func (m *mockStore) CountNotifications(_ context.Context, playerID uuid.UUID, includeRead bool, _ time.Time) (int, error) {
+	count := 0
+	for _, n := range m.notifications {
+		if n.PlayerID != playerID {
+			continue
+		}
+		if !includeRead && n.ReadAt != nil {
+			continue
+		}
+		count++
+	}
+	return count, nil
 }
 
 func (m *mockStore) MarkRead(_ context.Context, id uuid.UUID) error {

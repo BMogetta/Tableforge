@@ -4,8 +4,8 @@ import { z } from 'zod'
 import {
   gameSessionSchema,
   getPlayerStatsResponseSchema,
+  listAchievementsResponseSchema,
   listPlayerMatchesResponseSchema,
-  playerAchievementSchema,
   playerProfileSchema,
   playerSettingsSchema,
 } from './schema-generated.zod'
@@ -359,7 +359,7 @@ export const players = {
     ),
   profile: (id: string) => validatedRequest(playerProfileSchema, `/players/${id}/profile`),
   achievements: (id: string) =>
-    validatedRequest(z.array(playerAchievementSchema), `/players/${id}/achievements`),
+    validatedRequest(listAchievementsResponseSchema, `/players/${id}/achievements`),
 }
 
 // --- Player settings ---------------------------------------------------------

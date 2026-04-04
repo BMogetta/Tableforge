@@ -205,12 +205,14 @@ func (s *PGStore) UpdateRoomStatus(ctx context.Context, id uuid.UUID, status Roo
 	return nil
 }
 
-func (s *PGStore) ListWaitingRooms(ctx context.Context) ([]Room, error) {
+func (s *PGStore) ListWaitingRooms(ctx context.Context, limit, offset int) ([]Room, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, code, game_id, owner_id, status, max_players,
 		        turn_timeout_secs, created_at, updated_at, deleted_at
 		 FROM rooms WHERE status = 'waiting' AND deleted_at IS NULL
-		 ORDER BY created_at DESC`,
+		 ORDER BY created_at DESC
+		 LIMIT $1 OFFSET $2`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ListWaitingRooms: %w", err)
@@ -226,6 +228,17 @@ func (s *PGStore) ListWaitingRooms(ctx context.Context) ([]Room, error) {
 		rooms = append(rooms, r)
 	}
 	return rooms, rows.Err()
+}
+
+func (s *PGStore) CountWaitingRooms(ctx context.Context) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM rooms WHERE status = 'waiting' AND deleted_at IS NULL`,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("CountWaitingRooms: %w", err)
+	}
+	return count, nil
 }
 
 func (s *PGStore) SoftDeleteRoom(ctx context.Context, id uuid.UUID) error {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -92,13 +93,35 @@ func handleGetRoomMessages(st store.Store) http.HandlerFunc {
 			return
 		}
 
-		messages, err := st.GetRoomMessages(r.Context(), roomID)
+		limit := 50
+		offset := 0
+		if v := r.URL.Query().Get("limit"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
+				limit = n
+			}
+		}
+		if v := r.URL.Query().Get("offset"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				offset = n
+			}
+		}
+
+		messages, err := st.GetRoomMessages(r.Context(), roomID, limit, offset)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to get messages")
 			return
 		}
 
-		writeJSON(w, http.StatusOK, messages)
+		total, err := st.CountRoomMessages(r.Context(), roomID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to count messages")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"items": messages,
+			"total": total,
+		})
 	}
 }
 

@@ -236,7 +236,7 @@ func TestGetRoom_NotFound(t *testing.T) {
 func TestListWaitingRooms_Empty(t *testing.T) {
 	svc, _ := newTestService()
 
-	rooms, err := svc.ListWaitingRooms(context.Background())
+	rooms, _, err := svc.ListWaitingRooms(context.Background(), 100, 0)
 	if err != nil {
 		t.Fatalf("ListWaitingRooms: %v", err)
 	}
@@ -258,7 +258,7 @@ func TestListWaitingRooms_OnlyWaiting(t *testing.T) {
 	svc.JoinRoom(context.Background(), view1.Room.Code, guest.ID)
 	svc.StartGame(context.Background(), view1.Room.ID, owner.ID, store.SessionModeCasual)
 
-	rooms, err := svc.ListWaitingRooms(context.Background())
+	rooms, _, err := svc.ListWaitingRooms(context.Background(), 100, 0)
 	if err != nil {
 		t.Fatalf("ListWaitingRooms: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestListWaitingRooms_PrivateRoomCodeRedacted(t *testing.T) {
 	// Set room to private.
 	s.SetRoomSetting(context.Background(), view.Room.ID, "room_visibility", "private")
 
-	rooms, err := svc.ListWaitingRooms(context.Background())
+	rooms, _, err := svc.ListWaitingRooms(context.Background(), 100, 0)
 	if err != nil {
 		t.Fatalf("ListWaitingRooms: %v", err)
 	}

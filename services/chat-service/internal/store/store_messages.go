@@ -23,13 +23,14 @@ func (s *pgStore) SaveRoomMessage(ctx context.Context, roomID, playerID uuid.UUI
 	return m, nil
 }
 
-func (s *pgStore) GetRoomMessages(ctx context.Context, roomID uuid.UUID) ([]RoomMessage, error) {
+func (s *pgStore) GetRoomMessages(ctx context.Context, roomID uuid.UUID, limit, offset int) ([]RoomMessage, error) {
 	rows, err := s.db.Query(ctx,
 		`SELECT id, room_id, player_id, content, reported, hidden, created_at
 		 FROM room_messages
 		 WHERE room_id = $1
-		 ORDER BY created_at ASC`,
-		roomID,
+		 ORDER BY created_at ASC
+		 LIMIT $2 OFFSET $3`,
+		roomID, limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("GetRoomMessages: %w", err)
@@ -45,6 +46,18 @@ func (s *pgStore) GetRoomMessages(ctx context.Context, roomID uuid.UUID) ([]Room
 		messages = append(messages, m)
 	}
 	return messages, rows.Err()
+}
+
+func (s *pgStore) CountRoomMessages(ctx context.Context, roomID uuid.UUID) (int, error) {
+	var count int
+	err := s.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM room_messages WHERE room_id = $1`,
+		roomID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("CountRoomMessages: %w", err)
+	}
+	return count, nil
 }
 
 func (s *pgStore) HideRoomMessage(ctx context.Context, messageID uuid.UUID) error {

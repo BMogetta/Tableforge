@@ -41,7 +41,7 @@ const ROOMS: Room[] = [
 describe('RoomsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockAdmin.listRooms.mockResolvedValue(ROOMS)
+    mockAdmin.listRooms.mockResolvedValue({ items: ROOMS, total: ROOMS.length })
     window.confirm = vi.fn().mockReturnValue(true)
   })
 
@@ -53,7 +53,7 @@ describe('RoomsTab', () => {
   })
 
   it('shows empty state when no rooms', async () => {
-    mockAdmin.listRooms.mockResolvedValue([])
+    mockAdmin.listRooms.mockResolvedValue({ items: [], total: 0 })
     render(<RoomsTab callerRole='manager' />)
     await waitFor(() => expect(screen.getByTestId('rooms-empty')).toBeInTheDocument())
   })

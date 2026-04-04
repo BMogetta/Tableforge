@@ -192,7 +192,8 @@ type Store interface {
 	GetRoom(ctx context.Context, id uuid.UUID) (Room, error)
 	GetRoomByCode(ctx context.Context, code string) (Room, error)
 	UpdateRoomStatus(ctx context.Context, id uuid.UUID, status RoomStatus) error
-	ListWaitingRooms(ctx context.Context) ([]Room, error)
+	ListWaitingRooms(ctx context.Context, limit, offset int) ([]Room, error)
+	CountWaitingRooms(ctx context.Context) (int, error)
 	SoftDeleteRoom(ctx context.Context, id uuid.UUID) error
 	UpdateRoomOwner(ctx context.Context, roomID, newOwnerID uuid.UUID) error
 	DeleteRoom(ctx context.Context, roomID uuid.UUID) error

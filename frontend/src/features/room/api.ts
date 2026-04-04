@@ -26,8 +26,16 @@ import { z } from 'zod'
 
 // --- Rooms -------------------------------------------------------------------
 
+// listRoomsResponseSchema can't resolve $ref to another response schema,
+// so we compose it from getRoomResponseSchema (RoomView) inline.
+const paginatedRoomsSchema = z.object({
+  items: z.array(getRoomResponseSchema),
+  total: z.number(),
+})
+
 export const rooms = {
-  list: () => validatedRequest(z.array(getRoomResponseSchema), '/rooms'),
+  list: (limit = 20, offset = 0) =>
+    validatedRequest(paginatedRoomsSchema, `/rooms?limit=${limit}&offset=${offset}`),
   get: (id: string) => validatedRequest(getRoomResponseSchema, `/rooms/${id}`),
   create: (gameId: string, _playerId: string, turnTimeoutSecs?: number) => {
     const body: CreateRoomRequest = {
@@ -65,8 +73,11 @@ export const rooms = {
       body: JSON.stringify(body),
     })
   },
-  messages: (roomId: string) =>
-    validatedRequest(getRoomMessagesResponseSchema, `/rooms/${roomId}/messages`),
+  messages: (roomId: string, limit = 50, offset = 0) =>
+    validatedRequest(
+      getRoomMessagesResponseSchema,
+      `/rooms/${roomId}/messages?limit=${limit}&offset=${offset}`,
+    ),
   sendMessage: (roomId: string, playerId: string, content: string) => {
     const body: SendRoomMessageRequest = { content }
     return validatedRequest(sendRoomMessageResponseSchema, `/rooms/${roomId}/messages`, {

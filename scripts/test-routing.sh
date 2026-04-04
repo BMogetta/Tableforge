@@ -91,6 +91,7 @@ echo "game-server (catchall /api):"
 check     "GET /api/v1/games"             401 GET  "/api/v1/games"            "GET /api/v1/games"            "game-server"
 check     "GET /api/v1/bots/profiles"     401 GET  "/api/v1/bots/profiles"    "GET /api/v1/bots/profiles"    "game-server"
 check     "GET /api/v1/sessions/{id}"     401 GET  "/api/v1/sessions/$FAKE_UUID" "GET /api/v1/sessions/{id}" "game-server"
+check     "GET /api/v1/admin/stats"      401 GET  "/api/v1/admin/stats"        "GET /api/v1/admin/stats"   "game-server"
 echo ""
 
 # -- auth-service (priority 100) ----------------------------------------------
@@ -106,6 +107,8 @@ check     "GET /api/v1/players/{id}/friends"   401 GET  "/api/v1/players/$FAKE_U
 check     "GET /api/v1/players/{id}/settings"  401 GET  "/api/v1/players/$FAKE_UUID/settings"  "GET /api/v1/players/{id}/settings"  "user-service"
 check     "GET /api/v1/admin/players"          401 GET  "/api/v1/admin/players"                "GET /api/v1/admin/players"          "user-service"
 check     "GET /api/v1/admin/allowed-emails"   401 GET  "/api/v1/admin/allowed-emails"         "GET /api/v1/admin/allowed-emails"   "user-service"
+check     "GET /api/v1/admin/audit-logs"       401 GET  "/api/v1/admin/audit-logs"             "GET /api/v1/admin/audit-logs"       "user-service"
+check     "POST /api/v1/admin/broadcast"       401 POST "/api/v1/admin/broadcast"              "POST /api/v1/admin/broadcast"       "user-service"
 echo ""
 
 # -- chat-service (priority 50) -----------------------------------------------

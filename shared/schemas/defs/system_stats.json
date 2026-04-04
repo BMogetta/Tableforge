@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/system_stats.json",
+  "title": "SystemStats",
+  "type": "object",
+  "properties": {
+    "online_players": { "type": "integer" },
+    "active_rooms": { "type": "integer" },
+    "active_sessions": { "type": "integer" },
+    "total_players": { "type": "integer" },
+    "total_sessions_today": { "type": "integer" }
+  },
+  "required": ["online_players", "active_rooms", "active_sessions", "total_players", "total_sessions_today"]
+}

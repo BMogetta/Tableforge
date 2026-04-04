@@ -132,15 +132,16 @@ func (s *Store) Get(ctx context.Context, id uuid.UUID) (Notification, error) {
 	return n, nil
 }
 
-func (s *Store) List(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) ([]Notification, error) {
+func (s *Store) List(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time, limit, offset int) ([]Notification, error) {
 	query := `
 		SELECT id, player_id, type, payload, read_at, action_taken, action_expires_at, created_at
 		FROM notifications
 		WHERE player_id = $1
 		  AND (read_at IS NULL OR (read_at IS NOT NULL AND $2 AND read_at > $3))
 		ORDER BY created_at DESC
+		LIMIT $4 OFFSET $5
 	`
-	rows, err := s.db.Query(ctx, query, playerID, includeRead, readCutoff)
+	rows, err := s.db.Query(ctx, query, playerID, includeRead, readCutoff, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("notification store: list: %w", err)
 	}
@@ -158,6 +159,19 @@ func (s *Store) List(ctx context.Context, playerID uuid.UUID, includeRead bool, 
 		out = append(out, n)
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) CountNotifications(ctx context.Context, playerID uuid.UUID, includeRead bool, readCutoff time.Time) (int, error) {
+	var count int
+	err := s.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM notifications
+		WHERE player_id = $1
+		  AND (read_at IS NULL OR (read_at IS NOT NULL AND $2 AND read_at > $3))
+	`, playerID, includeRead, readCutoff).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("notification store: count: %w", err)
+	}
+	return count, nil
 }
 
 func (s *Store) MarkRead(ctx context.Context, id uuid.UUID) error {

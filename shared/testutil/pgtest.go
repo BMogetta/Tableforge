@@ -24,9 +24,12 @@ func migrationsDir() string {
 type Migration string
 
 const (
-	MigrationInitial     Migration = "001_initial.sql"
-	MigrationUserService Migration = "002_user_service.sql"
-	MigrationRating      Migration = "003_rating_service.sql"
+	MigrationInitial      Migration = "001_initial.sql"
+	MigrationUserService  Migration = "002_user_service.sql"
+	MigrationRating       Migration = "003_rating_service.sql"
+	MigrationAdmin        Migration = "004_admin.sql"
+	MigrationRebrand      Migration = "005_rebrand_rootaccess.sql"
+	MigrationAchievements Migration = "006_achievements_update.sql"
 )
 
 // NewTestDB spins up a Postgres container, runs the requested migrations,
