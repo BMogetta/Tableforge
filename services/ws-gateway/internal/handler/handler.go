@@ -148,7 +148,9 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 		go func() {
 			c.ReadPump()
 			if !spectator && ps != nil {
-				h.Publish(ctx, roomID, hub.Event{
+				// Use background context — the HTTP request context is already
+				// cancelled by the time the WS connection closes.
+				h.Publish(context.Background(), roomID, hub.Event{
 					Type: sharedws.EventPresenceUpdate,
 					Payload: map[string]any{
 						"player_id": playerID.String(),

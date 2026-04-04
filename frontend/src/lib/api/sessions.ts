@@ -18,6 +18,7 @@ export const sessions = {
   ready: (sessionId: string) =>
     validatedRequest(readyVoteResultSchema, `/sessions/${sessionId}/ready`, {
       method: 'POST',
+      body: JSON.stringify({}),
     }),
   move: (sessionId: string, payload: Record<string, unknown>) => {
     const body: ApplyMoveRequest = { payload }
@@ -29,25 +30,29 @@ export const sessions = {
   surrender: (sessionId: string) => {
     return validatedRequest(applyMoveResponseSchema, `/sessions/${sessionId}/surrender`, {
       method: 'POST',
+      body: JSON.stringify({}),
     })
   },
   rematch: (sessionId: string) => {
     return validatedRequest(voteRematchResponseSchema, `/sessions/${sessionId}/rematch`, {
       method: 'POST',
+      body: JSON.stringify({}),
     })
   },
   pause: (sessionId: string) => {
     return validatedRequest(pauseVoteResultSchema, `/sessions/${sessionId}/pause`, {
       method: 'POST',
+      body: JSON.stringify({}),
     })
   },
   resume: (sessionId: string) => {
     return validatedRequest(pauseVoteResultSchema, `/sessions/${sessionId}/resume`, {
       method: 'POST',
+      body: JSON.stringify({}),
     })
   },
   // Manager only. Broadcasts room_closed to all clients.
-  forceClose: (sessionId: string) => request<void>(`/sessions/${sessionId}`, { method: 'DELETE' }),
+  forceClose: (sessionId: string) => request<void>(`/sessions/${sessionId}`, { method: 'DELETE', body: JSON.stringify({}) }),
   events: (id: string) => validatedRequest(z.array(sessionEventSchema), `/sessions/${id}/events`),
   history: (id: string) => validatedRequest(z.array(moveSchema), `/sessions/${id}/history`),
 }

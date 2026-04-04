@@ -27,16 +27,16 @@ export const friends = {
     request<FriendshipView[]>(`/players/${playerId}/friends/pending`),
 
   sendRequest: (playerId: string, targetId: string) =>
-    request<unknown>(`/players/${playerId}/friends/${targetId}`, { method: 'POST' }),
+    request<unknown>(`/players/${playerId}/friends/${targetId}`, { method: 'POST', body: JSON.stringify({}) }),
 
   acceptRequest: (playerId: string, requesterId: string) =>
-    request<unknown>(`/players/${playerId}/friends/${requesterId}/accept`, { method: 'PUT' }),
+    request<unknown>(`/players/${playerId}/friends/${requesterId}/accept`, { method: 'PUT', body: JSON.stringify({}) }),
 
   declineRequest: (playerId: string, requesterId: string) =>
-    request<void>(`/players/${playerId}/friends/${requesterId}/decline`, { method: 'DELETE' }),
+    request<void>(`/players/${playerId}/friends/${requesterId}/decline`, { method: 'DELETE', body: JSON.stringify({}) }),
 
   remove: (playerId: string, friendId: string) =>
-    request<void>(`/players/${playerId}/friends/${friendId}`, { method: 'DELETE' }),
+    request<void>(`/players/${playerId}/friends/${friendId}`, { method: 'DELETE', body: JSON.stringify({}) }),
 }
 
 // --- DM conversations --------------------------------------------------------

@@ -12,6 +12,7 @@ export const admin = {
   removeEmail: (email: string) =>
     request<void>(`/admin/allowed-emails/${encodeURIComponent(email)}`, {
       method: 'DELETE',
+      body: JSON.stringify({}),
     }),
   listPlayers: () => request<Player[]>('/admin/players'),
   setRole: (playerId: string, role: PlayerRole) =>
