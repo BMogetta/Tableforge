@@ -328,3 +328,31 @@ check. Example: `WHERE id = $1 AND receiver_id = $2` instead of `WHERE id = $1`.
   never from raw user input.
 - Errors: return generic messages ("forbidden", "not found"). Never reflect
   user input or internal details (query text, stack traces) in responses.
+
+## Workflow
+
+### Orchestrator + worktree agents
+
+**Always use this pattern for implementation tasks.** Do not edit code directly
+on `main` — dispatch work to worktree agents instead.
+
+1. **You are the orchestrator.** Stay on `main`. Plan, review, merge — never
+   write application code yourself.
+2. **For each task**, launch an agent with `isolation: "worktree"`. It gets its
+   own copy of the repo and works on a dedicated branch.
+3. **Wait for the agent to finish.** Then review the diff, run tests if needed,
+   and merge the branch back to `main`.
+4. For multiple independent tasks, launch agents **in parallel** (one per task).
+
+Rules for worktree agents:
+- Give each agent a **complete, self-contained brief** — it has no conversation
+  context from the orchestrator.
+- Specify **which files it owns** and which it must not touch (to prevent
+  conflicts between concurrent agents).
+- Agents should run tests before finishing.
+- The orchestrator never duplicates work an agent is doing.
+
+Exceptions (OK to work directly on `main`):
+- Trivial one-line fixes (typos, config tweaks)
+- Planning, research, or exploration (read-only)
+- Reviewing and merging agent branches
