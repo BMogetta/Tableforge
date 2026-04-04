@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
 import { useAppStore } from '@/stores/store'
 import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap, Language } from '@/lib/api'
@@ -37,6 +38,7 @@ export function Settings({ onClose }: Props) {
   const updateSetting = useAppStore(s => s.updateSetting)
   const toast = useToast()
   const { blockedPlayers, unblock, unblockPending } = useBlockPlayer()
+  const { t } = useTranslation()
 
   // Debounced backend sync — fires 600ms after the last change.
   // Each call sends the full current settings object so rapid changes
@@ -69,7 +71,7 @@ export function Settings({ onClose }: Props) {
   return (
     <div className={styles.root}>
       <header className={styles.header}>
-        <h2 className={styles.title}>Settings</h2>
+        <h2 className={styles.title}>{t('settings.title')}</h2>
         {onClose && (
           <button className='btn btn-ghost btn-sm' onClick={onClose}>
             ✕
@@ -79,11 +81,11 @@ export function Settings({ onClose }: Props) {
 
       <div className={styles.sections}>
         {/* ── Appearance ── */}
-        <Section title='Appearance'>
+        <Section title={t('settings.appearance')}>
           <div className={styles.row}>
             <div className={styles.rowLabel}>
-              <span>Skin</span>
-              <span className={styles.rowDesc}>Interface appearance</span>
+              <span>{t('settings.theme')}</span>
+              <span className={styles.rowDesc}>{t('settings.themeDescription')}</span>
             </div>
             <div className={styles.skinPicker}>
               {SKINS.map(skin => (
@@ -104,17 +106,17 @@ export function Settings({ onClose }: Props) {
             </div>
           </div>
           <SelectRow
-            label='Language'
-            description='Display language'
+            label={t('settings.language')}
+            description={t('settings.languageDescription')}
             value={settings.language}
             options={[
               { value: Language.En, label: 'English' },
-              { value: Language.Es, label: 'Español (coming soon)', disabled: true },
+              { value: Language.Es, label: 'Español' },
             ]}
             onChange={v => change('language', v as Language)}
           />
           <SelectRow
-            label='Font Size'
+            label={t('settings.fontSize')}
             value={settings.font_size}
             options={[
               { value: 'small', label: 'Small' },
@@ -124,108 +126,108 @@ export function Settings({ onClose }: Props) {
             onChange={v => change('font_size', v as PlayerSettingMap['font_size'])}
           />
           <ToggleRow
-            label='Reduce Motion'
-            description='Disable animations and transitions'
+            label={t('settings.reduceMotion')}
+            description={t('settings.reduceMotionDescription')}
             checked={settings.reduce_motion}
             onChange={v => change('reduce_motion', v)}
           />
         </Section>
 
         {/* ── Gameplay ── */}
-        <Section title='Gameplay'>
+        <Section title={t('settings.gameplay')}>
           <ToggleRow
-            label='Show Move Hints'
-            description='Highlight available moves on hover'
+            label={t('settings.showMoveHints')}
+            description={t('settings.showMoveHintsDescription')}
             checked={settings.show_move_hints}
             onChange={v => change('show_move_hints', v)}
           />
           <ToggleRow
-            label='Confirm Move'
-            description='Require confirmation before applying a move'
+            label={t('settings.confirmMove')}
+            description={t('settings.confirmMoveDescription')}
             checked={settings.confirm_move}
             onChange={v => change('confirm_move', v)}
           />
           <ToggleRow
-            label='Turn Timer Warning'
-            description='Alert when your turn timer is running low'
+            label={t('settings.showTimerWarning')}
+            description={t('settings.showTimerWarningDescription')}
             checked={settings.show_timer_warning}
             onChange={v => change('show_timer_warning', v)}
           />
         </Section>
 
         {/* ── Notifications ── */}
-        <Section title='Notifications'>
+        <Section title={t('notifications.title')}>
           <ToggleRow
-            label='Direct Messages'
+            label={t('settings.notifyDm')}
             checked={settings.notify_dm}
             onChange={v => change('notify_dm', v)}
           />
           <ToggleRow
-            label='Game Invites'
+            label={t('settings.notifyGameInvite')}
             checked={settings.notify_game_invite}
             onChange={v => change('notify_game_invite', v)}
           />
           <ToggleRow
-            label='Friend Requests'
+            label={t('settings.notifyFriendRequest')}
             checked={settings.notify_friend_request}
             onChange={v => change('notify_friend_request', v)}
           />
           <ToggleRow
-            label='Notification Sounds'
+            label={t('settings.notifySound')}
             checked={settings.notify_sound}
             onChange={v => change('notify_sound', v)}
           />
         </Section>
 
         {/* ── Audio ── */}
-        <Section title='Audio'>
+        <Section title={t('settings.sound')}>
           <ToggleRow
-            label='Mute All'
+            label={t('settings.muteAll')}
             checked={settings.mute_all}
             onChange={v => change('mute_all', v)}
           />
           <VolumeRow
-            label='Master Volume'
+            label={t('settings.masterVolume')}
             value={settings.volume_master}
             onChange={v => change('volume_master', v)}
           />
           <VolumeRow
-            label='Sound Effects'
+            label={t('settings.sfxVolume')}
             value={settings.volume_sfx}
             onChange={v => change('volume_sfx', v)}
           />
           <VolumeRow
-            label='UI Sounds'
+            label={t('settings.uiVolume')}
             value={settings.volume_ui}
             onChange={v => change('volume_ui', v)}
           />
           <VolumeRow
-            label='Notifications'
+            label={t('settings.notificationVolume')}
             value={settings.volume_notifications}
             onChange={v => change('volume_notifications', v)}
           />
           <VolumeRow
-            label='Music'
+            label={t('settings.musicVolume')}
             value={settings.volume_music}
             onChange={v => change('volume_music', v)}
           />
         </Section>
 
         {/* ── Privacy ── */}
-        <Section title='Privacy'>
+        <Section title={t('settings.social')}>
           <ToggleRow
-            label='Show Online Status'
-            description="Let other players see when you're online"
+            label={t('settings.showOnlineStatus')}
+            description={t('settings.showOnlineStatusDescription')}
             checked={settings.show_online_status}
             onChange={v => change('show_online_status', v)}
           />
           <SelectRow
-            label='Allow Direct Messages'
+            label={t('settings.allowDms')}
             value={settings.allow_dms}
             options={[
-              { value: 'anyone', label: 'Anyone' },
-              { value: 'friends_only', label: 'Friends only' },
-              { value: 'nobody', label: 'Nobody' },
+              { value: 'anyone', label: t('settings.allowDmsAnyone') },
+              { value: 'friends_only', label: t('settings.allowDmsFriendsOnly') },
+              { value: 'nobody', label: t('settings.allowDmsNobody') },
             ]}
             onChange={v => change('allow_dms', v as PlayerSettingMap['allow_dms'])}
           />
@@ -233,15 +235,15 @@ export function Settings({ onClose }: Props) {
 
         {/* ── Blocked Players ── */}
         <Section
-          title='Blocked Players'
+          title={t('settings.blockedPlayers')}
           note={
             blockedPlayers.length === 0
               ? undefined
-              : 'Blocked players cannot send you messages or friend requests.'
+              : t('settings.blockedPlayersDescription')
           }
         >
           {blockedPlayers.length === 0 ? (
-            <p className={styles.emptyBlocked}>No blocked players.</p>
+            <p className={styles.emptyBlocked}>{t('settings.noBlockedPlayers')}</p>
           ) : (
             blockedPlayers.map(bp => (
               <div key={bp.id} className={styles.blockedRow} {...testId(`blocked-player-${bp.id}`)}>
@@ -255,7 +257,7 @@ export function Settings({ onClose }: Props) {
                   disabled={unblockPending}
                   {...testId(`unblock-btn-${bp.id}`)}
                 >
-                  {unblockPending ? '...' : 'Unblock'}
+                  {unblockPending ? '...' : t('settings.unblock')}
                 </button>
               </div>
             ))

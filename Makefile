@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing coverage logs ps clean clean-test gen-types gen-proto setup lint
+.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing coverage check-i18n logs ps clean clean-test gen-types gen-proto setup lint
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -111,6 +111,12 @@ clean-test:
 # Remove all docker volumes (wipes the database).
 clean:
 	docker compose --profile app --profile monitoring --profile production down -v
+
+# ── i18n ──────────────────────────────────────────────────────────────────
+
+# Check that all locale files have matching keys.
+check-i18n:
+	@node scripts/check-i18n.mjs
 
 # ── API Types ─────────────────────────────────────────────────────────────────
 

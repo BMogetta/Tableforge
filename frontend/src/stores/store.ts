@@ -4,6 +4,7 @@ import type { Player } from '@/lib/schema-generated.zod'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import { PlayerSocket, RoomSocket } from '@/lib/ws'
 import { applyFontSize, applySkin, type FontSize, type SkinId } from '@/lib/skins'
+import i18n from '@/lib/i18n'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -240,6 +241,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ settings: merged })
     if (merged.theme) applySkin(merged.theme as SkinId)
     if (merged.font_size) applyFontSize(merged.font_size as FontSize)
+    if (merged.language) i18n.changeLanguage(merged.language)
   },
 
   updateSetting: (key, value) => {
@@ -248,6 +250,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }))
     if (key === 'theme') applySkin(value as SkinId)
     if (key === 'font_size') applyFontSize(value as FontSize)
+    if (key === 'language') i18n.changeLanguage(value as string)
   },
 
   setSettings: settings => set({ settings }),

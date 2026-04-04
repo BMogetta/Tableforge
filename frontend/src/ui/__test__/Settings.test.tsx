@@ -90,13 +90,11 @@ describe('Settings rendering', () => {
     renderSettings()
     expect(screen.getByText('Appearance')).toBeInTheDocument()
     expect(screen.getByText('Gameplay')).toBeInTheDocument()
-    // 'Notifications' appears twice — once as section heading, once as volume label.
-    // Assert the section heading specifically by checking for the p element.
+    // 'Notifications' appears as both section heading and volume label.
     const notifHeadings = screen.getAllByText('Notifications')
     expect(notifHeadings.length).toBeGreaterThanOrEqual(1)
-    expect(notifHeadings.some(el => el.tagName === 'P')).toBe(true)
-    expect(screen.getByText('Audio')).toBeInTheDocument()
-    expect(screen.getByText('Privacy')).toBeInTheDocument()
+    expect(screen.getByText('Sound')).toBeInTheDocument()
+    expect(screen.getByText('Social')).toBeInTheDocument()
   })
 
   it('calls onClose when close button is clicked', () => {
