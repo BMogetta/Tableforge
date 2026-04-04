@@ -10,6 +10,80 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 )
 
+// --- Broadcast ---------------------------------------------------------------
+
+func TestBroadcast(t *testing.T) {
+	st := newMockStore()
+	router := newTestRouter(st)
+
+	manager := uuid.New()
+	rec := postJSONAs(t, router, "/api/v1/admin/broadcast", manager, sharedmw.RoleManager, map[string]any{
+		"message": "Server maintenance in 5 minutes",
+		"type":    "warning",
+	})
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestBroadcast_DefaultType(t *testing.T) {
+	st := newMockStore()
+	router := newTestRouter(st)
+
+	manager := uuid.New()
+	rec := postJSONAs(t, router, "/api/v1/admin/broadcast", manager, sharedmw.RoleManager, map[string]any{
+		"message": "Welcome everyone!",
+	})
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestBroadcast_EmptyMessage(t *testing.T) {
+	st := newMockStore()
+	router := newTestRouter(st)
+
+	manager := uuid.New()
+	rec := postJSONAs(t, router, "/api/v1/admin/broadcast", manager, sharedmw.RoleManager, map[string]any{
+		"message": "",
+	})
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestBroadcast_InvalidType(t *testing.T) {
+	st := newMockStore()
+	router := newTestRouter(st)
+
+	manager := uuid.New()
+	rec := postJSONAs(t, router, "/api/v1/admin/broadcast", manager, sharedmw.RoleManager, map[string]any{
+		"message": "hello",
+		"type":    "error",
+	})
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestBroadcast_Unauthorized(t *testing.T) {
+	st := newMockStore()
+	router := newTestRouter(st)
+
+	player := uuid.New()
+	rec := postJSONAs(t, router, "/api/v1/admin/broadcast", player, sharedmw.RolePlayer, map[string]any{
+		"message": "hello",
+	})
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 // --- Allowed emails ----------------------------------------------------------
 
 func TestListAllowedEmails(t *testing.T) {

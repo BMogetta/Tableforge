@@ -86,7 +86,7 @@ func main() {
 	ps := presence.New(rdb)
 
 	// --- Event consumer (player.session.revoked) ------------------------------
-	cons := consumer.New(rdb, h, slog.Default())
+	cons := consumer.New(rdb, h, h, slog.Default())
 	consErr := make(chan error, 1)
 	go func() {
 		consErr <- cons.Run(ctx)

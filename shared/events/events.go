@@ -12,7 +12,7 @@
 // Channel ownership:
 //   game-service    → game.session.finished, game.move.applied
 //   match-service   → match.found, match.cancelled, match.ready
-//   user-service    → player.banned, player.unbanned, friendship.requested, friendship.accepted
+//   user-service    → player.banned, player.unbanned, friendship.requested, friendship.accepted, admin.broadcast.sent
 //   auth-service    → player.session.revoked
 //
 // These are DIFFERENT from the ws hub event types (those are client-facing).
@@ -170,6 +170,19 @@ type FriendshipAccepted struct {
 	RequesterID       string `json:"requester_id"`
 	AddresseeID       string `json:"addressee_id"`
 	AddresseeUsername string `json:"addressee_username"` // username of who accepted
+}
+
+// ─── admin events ────────────────────────────────────────────────────────────
+
+// Channel: admin.broadcast.sent
+// Published by: user-service when an admin sends a broadcast message.
+// Consumers:
+//   ws-gateway → fan out to ALL connected WebSocket clients
+type AdminBroadcastSent struct {
+	Meta
+	Message       string `json:"message"`
+	BroadcastType string `json:"broadcast_type"` // "info" | "warning"
+	SentBy        string `json:"sent_by"`        // admin player_id
 }
 
 // ─── auth-service events ──────────────────────────────────────────────────────

@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	channelPlayerBanned     = "player.banned"
-	channelPlayerUnbanned   = "player.unbanned"
+	channelPlayerBanned        = "player.banned"
+	channelPlayerUnbanned      = "player.unbanned"
 	channelFriendshipRequested = "friendship.requested"
 	channelFriendshipAccepted  = "friendship.accepted"
+	channelBroadcastSent       = "admin.broadcast.sent"
 )
 
 // Publisher publishes user-service domain events to Redis Pub/Sub.
@@ -76,6 +77,16 @@ func (p *Publisher) PublishFriendshipAccepted(ctx context.Context, f store.Frien
 		AddresseeID: f.AddresseeID.String(),
 	}
 	p.publish(ctx, channelFriendshipAccepted, evt)
+}
+
+func (p *Publisher) PublishBroadcast(ctx context.Context, message, broadcastType, sentBy string) {
+	evt := events.AdminBroadcastSent{
+		Meta:          newMeta(),
+		Message:       message,
+		BroadcastType: broadcastType,
+		SentBy:        sentBy,
+	}
+	p.publish(ctx, channelBroadcastSent, evt)
 }
 
 func (p *Publisher) publish(ctx context.Context, channel string, evt any) {
