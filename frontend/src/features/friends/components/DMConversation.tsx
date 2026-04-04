@@ -5,9 +5,11 @@ import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { useBlockPlayer } from '@/hooks/useBlockPlayer'
 import type { DirectMessage } from '@/lib/schema-generated.zod'
 import { sfx } from '@/lib/sfx'
 import styles from './DMConversation.module.css'
+import { testId } from '@/utils/testId'
 
 interface DMConversationProps {
   otherPlayerId: string
@@ -22,6 +24,8 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
   const qc = useQueryClient()
   const [text, setText] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+  const { block, isBlocked, blockPending } = useBlockPlayer()
+  const blocked = isBlocked(otherPlayerId)
 
   const { data: messages = [] } = useQuery({
     queryKey: keys.dmHistory(player.id, otherPlayerId),
@@ -93,6 +97,17 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
       <div className={styles.header}>
         <button className={styles.backBtn} onClick={onBack}>&#8592;</button>
         <span className={styles.username}>{otherUsername}</span>
+        {!blocked && (
+          <button
+            className={`${styles.blockBtn}`}
+            onClick={() => block({ targetId: otherPlayerId, username: otherUsername })}
+            disabled={blockPending}
+            title='Block player'
+            {...testId('dm-block-btn')}
+          >
+            {blockPending ? '...' : 'Block'}
+          </button>
+        )}
       </div>
 
       <div className={styles.messages} ref={listRef}>

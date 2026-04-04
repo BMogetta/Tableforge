@@ -4,9 +4,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppStore } from '@/stores/store'
 import { players } from '@/lib/api'
 import { keys } from '@/lib/queryClient'
+import { useBlockPlayer } from '@/hooks/useBlockPlayer'
 import { ProfileHeader } from './components/ProfileHeader'
 import { MatchHistory } from './components/MatchHistory'
 import styles from './Profile.module.css'
+import { testId } from '@/utils/testId'
 
 const PAGE_SIZE = 20
 
@@ -35,6 +37,8 @@ export function Profile({ playerId }: { playerId: string }) {
 
   const isOwnProfile = currentPlayer?.id === playerId
   const isLoading = statsLoading || profileLoading
+  const { block, unblock, isBlocked, blockPending, unblockPending } = useBlockPlayer()
+  const blocked = isBlocked(playerId)
 
   return (
     <div className={`${styles.root} page-enter`}>
@@ -48,6 +52,32 @@ export function Profile({ playerId }: { playerId: string }) {
             country={profile?.country}
             isLoading={isLoading}
           />
+          {!isOwnProfile && currentPlayer && (
+            <div className={styles.profileActions}>
+              {blocked ? (
+                <button
+                  className='btn btn-ghost btn-sm'
+                  onClick={() => unblock(playerId)}
+                  disabled={unblockPending}
+                  {...testId('profile-unblock-btn')}
+                >
+                  {unblockPending ? 'Unblocking...' : 'Unblock'}
+                </button>
+              ) : (
+                <button
+                  className={`btn btn-ghost btn-sm ${styles.blockBtn}`}
+                  onClick={() => block({
+                    targetId: playerId,
+                    username: playerId.slice(0, 8),
+                  })}
+                  disabled={blockPending}
+                  {...testId('profile-block-btn')}
+                >
+                  {blockPending ? 'Blocking...' : 'Block'}
+                </button>
+              )}
+            </div>
+          )}
         </header>
 
         {stats && (

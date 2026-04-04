@@ -8,10 +8,12 @@ interface FriendItemProps {
   online: boolean
   onDM: (friendId: string) => void
   onRemove: (friendId: string) => void
+  onBlock: (friendId: string, username: string, avatarUrl?: string) => void
   removePending: boolean
+  blockPending: boolean
 }
 
-export function FriendItem({ friendId, username, avatarUrl, online, onDM, onRemove, removePending }: FriendItemProps) {
+export function FriendItem({ friendId, username, avatarUrl, online, onDM, onRemove, onBlock, removePending, blockPending }: FriendItemProps) {
   return (
     <div className={styles.friendRow} {...testId(`friend-${friendId}`)}>
       <span className={styles.presenceDot} data-online={String(online)} />
@@ -34,6 +36,15 @@ export function FriendItem({ friendId, username, avatarUrl, online, onDM, onRemo
           {...testId('remove-btn')}
         >
           {removePending ? '...' : 'x'}
+        </button>
+        <button
+          className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+          onClick={() => onBlock(friendId, username, avatarUrl)}
+          disabled={blockPending}
+          title='Block player'
+          {...testId('block-btn')}
+        >
+          {blockPending ? '...' : 'Block'}
         </button>
       </div>
     </div>

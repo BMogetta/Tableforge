@@ -6,6 +6,7 @@ import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { useBlockPlayer } from '@/hooks/useBlockPlayer'
 import { FriendItem } from './FriendItem'
 import { PendingRequestItem } from './PendingRequestItem'
 import styles from './FriendsPanel.module.css'
@@ -73,6 +74,8 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
     onError: e => toast.showError(catchToAppError(e)),
     onSettled: () => { invalidate(); setPendingId(null) },
   })
+
+  const { block, blockPending } = useBlockPlayer()
 
   async function handleAddFriend(e: React.FormEvent) {
     e.preventDefault()
@@ -159,7 +162,9 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
                   online={onlineMap[f.friend_id] ?? false}
                   onDM={onOpenDM}
                   onRemove={id => { setPendingId(id); removeMut.mutate(id) }}
+                  onBlock={(id, username, avatarUrl) => block({ targetId: id, username, avatarUrl })}
                   removePending={pendingId === f.friend_id}
+                  blockPending={blockPending}
                 />
               ))
             )
