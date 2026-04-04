@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      go-services: ${{ steps.go-services.outputs.matrix }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      compose: ${{ steps.filter.outputs.compose }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            game-server:
+              - 'services/game-server/**'
+              - 'shared/**'
+            auth-service:
+              - 'services/auth-service/**'
+              - 'shared/**'
+            user-service:
+              - 'services/user-service/**'
+              - 'shared/**'
+            chat-service:
+              - 'services/chat-service/**'
+              - 'shared/**'
+            rating-service:
+              - 'services/rating-service/**'
+              - 'shared/**'
+            match-service:
+              - 'services/match-service/**'
+              - 'shared/**'
+            notification-service:
+              - 'services/notification-service/**'
+              - 'shared/**'
+            ws-gateway:
+              - 'services/ws-gateway/**'
+              - 'shared/**'
+            frontend:
+              - 'frontend/**'
+            compose:
+              - 'docker-compose*.yml'
+              - 'infra/**'
+              - 'Makefile'
+
+      - name: Build Go service matrix
+        id: go-services
+        run: |
+          raw='${{ steps.filter.outputs.changes }}'
+          matrix=$(echo "$raw" | jq -c '[.[] | select(. != "frontend" and . != "compose")]')
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  go-lint:
+    name: "Lint: ${{ matrix.service }}"
+    needs: changes
+    if: ${{ needs.changes.outputs.go-services != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.changes.outputs.go-services) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: services/${{ matrix.service }}
+
+  go-test:
+    name: "Test: ${{ matrix.service }}"
+    needs: changes
+    if: ${{ needs.changes.outputs.go-services != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.changes.outputs.go-services) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache: true
+      - name: Run tests
+        run: go test -race -count=1 -coverprofile=coverage.out ./services/${{ matrix.service }}/...
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: coverage.out
+          retention-days: 7
+
+  frontend-ci:
+    name: Frontend
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Biome lint
+        run: npx @biomejs/biome lint ./src
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Vitest
+        run: npx vitest run
+
+  compose-validate:
+    name: Validate Compose
+    needs: changes
+    if: ${{ needs.changes.outputs.compose == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose files
+        run: docker compose config --quiet
