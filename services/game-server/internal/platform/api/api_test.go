@@ -340,6 +340,84 @@ func TestGetPlayerStats_InvalidID(t *testing.T) {
 	}
 }
 
+func TestCreateRoom_ActiveSessionBlocked(t *testing.T) {
+	router, s := newTestRouter(t)
+	owner, _ := s.CreatePlayer(context.Background(), "alice")
+	guest, _ := s.CreatePlayer(context.Background(), "bob")
+
+	// Create room, join, and start a game to produce an active session.
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
+	})
+	var view lobby.RoomView
+	json.NewDecoder(createResp.Body).Decode(&view)
+
+	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
+		"code": view.Room.Code,
+	})
+	postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", owner.ID, "player", map[string]string{})
+
+	// Now try to create another room — should be 409.
+	w := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
+	})
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]string
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp["error"] != "active session exists" {
+		t.Errorf("expected error 'active session exists', got %q", resp["error"])
+	}
+	if resp["session_id"] == "" {
+		t.Error("expected non-empty session_id in response")
+	}
+}
+
+func TestJoinRoom_ActiveSessionBlocked(t *testing.T) {
+	router, s := newTestRouter(t)
+	owner, _ := s.CreatePlayer(context.Background(), "alice")
+	guest, _ := s.CreatePlayer(context.Background(), "bob")
+	third, _ := s.CreatePlayer(context.Background(), "charlie")
+
+	// Create room, join bob, and start a game so bob has an active session.
+	createResp := postJSONAs(t, router, "/api/v1/rooms", owner.ID, "player", map[string]string{
+		"game_id": "chess",
+	})
+	var view lobby.RoomView
+	json.NewDecoder(createResp.Body).Decode(&view)
+
+	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
+		"code": view.Room.Code,
+	})
+	postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", owner.ID, "player", map[string]string{})
+
+	// Third player creates a new room.
+	createResp2 := postJSONAs(t, router, "/api/v1/rooms", third.ID, "player", map[string]string{
+		"game_id": "chess",
+	})
+	var view2 lobby.RoomView
+	json.NewDecoder(createResp2.Body).Decode(&view2)
+
+	// Bob (who has an active session) tries to join — should be 409.
+	w := postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
+		"code": view2.Room.Code,
+	})
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]string
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp["error"] != "active session exists" {
+		t.Errorf("expected error 'active session exists', got %q", resp["error"])
+	}
+	if resp["session_id"] == "" {
+		t.Error("expected non-empty session_id in response")
+	}
+}
+
 func TestGetSessionHistory_Empty(t *testing.T) {
 	router, s := newTestRouter(t)
 	owner, _ := s.CreatePlayer(context.Background(), "alice")
