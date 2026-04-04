@@ -134,6 +134,9 @@ jobs:
         run: npx tsc --noEmit
       - name: Vitest
         run: npx vitest run
+      - name: i18n key coverage
+        continue-on-error: true
+        run: node ../scripts/check-i18n.mjs --warn
 
   compose-validate:
     name: Validate Compose
