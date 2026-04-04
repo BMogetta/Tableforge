@@ -17,7 +17,7 @@ describe('TargetPicker', () => {
         eliminatedIds={[]}
         protectedIds={[]}
         selectedTarget={null}
-        cardBeingPlayed={'guard' as CardName}
+        cardBeingPlayed={'ping' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
@@ -36,7 +36,7 @@ describe('TargetPicker', () => {
         eliminatedIds={[]}
         protectedIds={[]}
         selectedTarget={null}
-        cardBeingPlayed={'priest' as CardName}
+        cardBeingPlayed={'sniffer' as CardName}
         selectedGuess={null}
         onSelectTarget={onSelectTarget}
         onSelectGuess={vi.fn()}
@@ -53,7 +53,7 @@ describe('TargetPicker', () => {
         eliminatedIds={['p2']}
         protectedIds={[]}
         selectedTarget={null}
-        cardBeingPlayed={'baron' as CardName}
+        cardBeingPlayed={'buffer_overflow' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
@@ -71,7 +71,7 @@ describe('TargetPicker', () => {
         eliminatedIds={[]}
         protectedIds={['p3']}
         selectedTarget={null}
-        cardBeingPlayed={'king' as CardName}
+        cardBeingPlayed={'swap' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
@@ -89,7 +89,7 @@ describe('TargetPicker', () => {
         eliminatedIds={['p2']}
         protectedIds={['p3']}
         selectedTarget={null}
-        cardBeingPlayed={'guard' as CardName}
+        cardBeingPlayed={'ping' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
@@ -98,14 +98,14 @@ describe('TargetPicker', () => {
     expect(screen.getByText(/no effect/i)).toBeInTheDocument()
   })
 
-  it('shows guard guess dropdown only when card is guard', () => {
+  it('shows ping guess dropdown only when card is ping', () => {
     const { rerender } = render(
       <TargetPicker
         opponents={opponents}
         eliminatedIds={[]}
         protectedIds={[]}
         selectedTarget={null}
-        cardBeingPlayed={'guard' as CardName}
+        cardBeingPlayed={'ping' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
@@ -119,7 +119,7 @@ describe('TargetPicker', () => {
         eliminatedIds={[]}
         protectedIds={[]}
         selectedTarget={null}
-        cardBeingPlayed={'priest' as CardName}
+        cardBeingPlayed={'sniffer' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
@@ -128,7 +128,7 @@ describe('TargetPicker', () => {
     expect(screen.queryByText('Guess their card')).not.toBeInTheDocument()
   })
 
-  it('calls onSelectGuess when guard guess is changed', async () => {
+  it('calls onSelectGuess when ping guess is changed', async () => {
     const user = userEvent.setup()
     const onSelectGuess = vi.fn()
     render(
@@ -137,24 +137,24 @@ describe('TargetPicker', () => {
         eliminatedIds={[]}
         protectedIds={[]}
         selectedTarget={'p2'}
-        cardBeingPlayed={'guard' as CardName}
+        cardBeingPlayed={'ping' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={onSelectGuess}
       />,
     )
-    await user.selectOptions(screen.getByRole('combobox'), 'priest')
-    expect(onSelectGuess).toHaveBeenCalledWith('priest')
+    await user.selectOptions(screen.getByRole('combobox'), 'sniffer')
+    expect(onSelectGuess).toHaveBeenCalledWith('sniffer')
   })
 
-  it('does not include guard in guess options', () => {
+  it('does not include ping in guess options', () => {
     render(
       <TargetPicker
         opponents={opponents}
         eliminatedIds={[]}
         protectedIds={[]}
         selectedTarget={null}
-        cardBeingPlayed={'guard' as CardName}
+        cardBeingPlayed={'ping' as CardName}
         selectedGuess={null}
         onSelectTarget={vi.fn()}
         onSelectGuess={vi.fn()}
@@ -162,6 +162,6 @@ describe('TargetPicker', () => {
     )
     const options = screen.getAllByRole('option')
     const optionValues = options.map(o => o.getAttribute('value'))
-    expect(optionValues).not.toContain('guard')
+    expect(optionValues).not.toContain('ping')
   })
 })

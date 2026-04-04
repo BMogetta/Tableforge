@@ -1,22 +1,22 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ChancellorModal } from '../ChancellorModal'
+import { DebuggerModal } from '../DebuggerModal'
 import type { CardName } from '../CardDisplay'
 
-const choices: CardName[] = ['spy', 'guard', 'priest']
+const choices: CardName[] = ['backdoor', 'ping', 'sniffer']
 
-describe('ChancellorModal', () => {
+describe('DebuggerModal', () => {
   it('renders all 3 choices', () => {
-    render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
-    expect(screen.getByText('Spy')).toBeInTheDocument()
-    expect(screen.getByText('Guard')).toBeInTheDocument()
-    expect(screen.getByText('Priest')).toBeInTheDocument()
+    render(<DebuggerModal choices={choices} onConfirm={vi.fn()} />)
+    expect(screen.getByText('BACKDOOR')).toBeInTheDocument()
+    expect(screen.getByText('PING')).toBeInTheDocument()
+    expect(screen.getByText('SNIFFER')).toBeInTheDocument()
   })
 
   it('Confirm button is disabled until keep and return order are selected', async () => {
     const user = userEvent.setup()
-    render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
+    render(<DebuggerModal choices={choices} onConfirm={vi.fn()} />)
 
     const confirmBtn = screen.getByRole('button', { name: /confirm/i })
     expect(confirmBtn).toBeDisabled()
@@ -40,7 +40,7 @@ describe('ChancellorModal', () => {
   it('calls onConfirm with correct keep and return args', async () => {
     const user = userEvent.setup()
     const onConfirm = vi.fn()
-    render(<ChancellorModal choices={choices} onConfirm={onConfirm} />)
+    render(<DebuggerModal choices={choices} onConfirm={onConfirm} />)
 
     // Keep spy (index 0).
     const allCards = screen.getAllByTestId('card')
@@ -54,12 +54,12 @@ describe('ChancellorModal', () => {
     await user.click(screen.getByRole('button', { name: /confirm/i }))
 
     expect(onConfirm).toHaveBeenCalledOnce()
-    expect(onConfirm).toHaveBeenCalledWith('spy', ['guard', 'priest'])
+    expect(onConfirm).toHaveBeenCalledWith('backdoor', ['ping', 'sniffer'])
   })
 
   it('shows Keep tag on selected keep card', async () => {
     const user = userEvent.setup()
-    render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
+    render(<DebuggerModal choices={choices} onConfirm={vi.fn()} />)
 
     const cards = screen.getAllByTestId('card')
     await user.click(cards[0])
@@ -69,7 +69,7 @@ describe('ChancellorModal', () => {
 
   it('shows return order tags on selected return cards', async () => {
     const user = userEvent.setup()
-    render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
+    render(<DebuggerModal choices={choices} onConfirm={vi.fn()} />)
 
     const allCards = screen.getAllByTestId('card')
     await user.click(allCards[0]) // keep spy
@@ -84,7 +84,7 @@ describe('ChancellorModal', () => {
 
   it('deselects a return card when clicked again', async () => {
     const user = userEvent.setup()
-    render(<ChancellorModal choices={choices} onConfirm={vi.fn()} />)
+    render(<DebuggerModal choices={choices} onConfirm={vi.fn()} />)
 
     const allCards = screen.getAllByTestId('card')
     await user.click(allCards[0]) // keep spy

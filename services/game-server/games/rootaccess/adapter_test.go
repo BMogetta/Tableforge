@@ -1,4 +1,4 @@
-package loveletter_test
+package rootaccess_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	botadapter "github.com/recess/game-server/games/loveletter"
+	botadapter "github.com/recess/game-server/games/rootaccess"
 	"github.com/recess/game-server/internal/bot"
 	"github.com/recess/game-server/internal/bot/mcts"
 	"github.com/recess/game-server/internal/domain/engine"
@@ -17,7 +17,7 @@ import (
 // ---------------------------------------------------------------------------
 
 // getAdapterHand extracts a player's hand from the engine state.
-// Distinct from getAdapterHand in loveletter_test.go which takes *testing.T and
+// Distinct from getAdapterHand in rootaccess_test.go which takes *testing.T and
 // applies a JSON round-trip.
 func getAdapterHand(s engine.GameState, playerID string) []string {
 	handsRaw, ok := s.Data["hands"]
@@ -121,9 +121,9 @@ func TestDeterminize_AssignedCardIsFromValidPool(t *testing.T) {
 	state := initState(t, "p1", "p2")
 
 	fullDeckCounts := map[string]int{
-		"spy": 2, "guard": 6, "priest": 2, "baron": 2,
-		"handmaid": 2, "prince": 2, "chancellor": 2,
-		"king": 1, "countess": 1, "princess": 1,
+		"backdoor": 2, "ping": 6, "sniffer": 2, "buffer_overflow": 2,
+		"firewall": 2, "reboot": 2, "debugger": 2,
+		"swap": 1, "encrypted_key": 1, "root": 1,
 	}
 
 	// Run 30 determinizations — assigned cards must always be valid.
@@ -155,9 +155,9 @@ func TestDeterminize_EliminatedPlayerGetsNoCard(t *testing.T) {
 	state := initState(t, "p1", "p2", "p3")
 	state.Data["eliminated"] = []any{"p2"}
 	state.Data["hands"] = map[string]any{
-		"p1": []any{"guard", "spy"},
+		"p1": []any{"ping", "backdoor"},
 		"p2": []any{},
-		"p3": []any{"priest"},
+		"p3": []any{"sniffer"},
 	}
 
 	det := adapter.Determinize(toBotState(state), "p1")
@@ -207,12 +207,12 @@ func TestLegalMoves_ReturnsNilInTerminalPhase(t *testing.T) {
 	}
 }
 
-func TestLegalMoves_CountessRule(t *testing.T) {
+func TestLegalMoves_EncryptedKeyRule(t *testing.T) {
 	adapter := botadapter.New()
 	state := initState(t, "p1", "p2")
 	state.Data["hands"] = map[string]any{
-		"p1": []any{"countess", "king"},
-		"p2": []any{"guard"},
+		"p1": []any{"encrypted_key", "swap"},
+		"p2": []any{"ping"},
 	}
 	state.CurrentPlayerID = "p1"
 
@@ -223,17 +223,17 @@ func TestLegalMoves_CountessRule(t *testing.T) {
 	for _, m := range moves {
 		payload, _ := m.Payload()
 		card, _ := payload["card"].(string)
-		if card != "countess" {
-			t.Errorf("Countess rule violated: move with card=%q generated", card)
+		if card != "encrypted_key" {
+			t.Errorf("Encrypted Key rule violated: move with card=%q generated", card)
 		}
 	}
 }
 
-func TestLegalMoves_ChancellorPendingReturnsResolves(t *testing.T) {
+func TestLegalMoves_DebuggerPendingReturnsResolves(t *testing.T) {
 	adapter := botadapter.New()
 	state := initState(t, "p1", "p2")
-	state.Data["phase"] = "chancellor_pending"
-	state.Data["chancellor_choices"] = []any{"guard", "priest", "spy"}
+	state.Data["phase"] = "debugger_pending"
+	state.Data["debugger_choices"] = []any{"ping", "sniffer", "backdoor"}
 	state.Data["hands"] = map[string]any{"p1": []any{}}
 	state.CurrentPlayerID = "p1"
 
@@ -243,7 +243,7 @@ func TestLegalMoves_ChancellorPendingReturnsResolves(t *testing.T) {
 	}
 	for _, m := range moves {
 		payload, _ := m.Payload()
-		if payload["card"] != "chancellor_resolve" {
+		if payload["card"] != "debugger_resolve" {
 			t.Errorf("expected chancellor_resolve, got %v", payload["card"])
 		}
 		if _, ok := payload["keep"]; !ok {
@@ -256,22 +256,22 @@ func TestLegalMoves_ChancellorPendingReturnsResolves(t *testing.T) {
 	}
 }
 
-func TestLegalMoves_GuardNoTargetWhenAllProtected(t *testing.T) {
+func TestLegalMoves_PingNoTargetWhenAllProtected(t *testing.T) {
 	adapter := botadapter.New()
 	state := initState(t, "p1", "p2")
 	state.Data["protected"] = []any{"p2"}
 	state.Data["hands"] = map[string]any{
-		"p1": []any{"guard", "spy"},
-		"p2": []any{"priest"},
+		"p1": []any{"ping", "backdoor"},
+		"p2": []any{"sniffer"},
 	}
 	state.CurrentPlayerID = "p1"
 
 	moves := adapter.ValidMoves(toBotState(state))
 	for _, m := range moves {
 		payload, _ := m.Payload()
-		if payload["card"] == "guard" {
+		if payload["card"] == "ping" {
 			if _, hasTarget := payload["target_player_id"]; hasTarget {
-				t.Error("Guard should not target protected opponent")
+				t.Error("Ping should not target protected opponent")
 			}
 		}
 	}
@@ -379,7 +379,7 @@ func TestApplyMove_AdvancesState(t *testing.T) {
 
 	// Either player changed or we entered chancellor_pending (same player).
 	if before.CurrentPlayerID == after.CurrentPlayerID &&
-		phase(after) != "chancellor_pending" {
+		phase(after) != "debugger_pending" {
 		t.Error("state did not advance after ApplyMove")
 	}
 }
@@ -411,8 +411,8 @@ func TestBotVsBot_CompletesGame(t *testing.T) {
 	p1UUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	p2UUID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
-	bp1 := &bot.BotPlayer{ID: p1UUID, GameID: "loveletter", Adapter: adapter, Config: cfg, Search: mcts.Search}
-	bp2 := &bot.BotPlayer{ID: p2UUID, GameID: "loveletter", Adapter: adapter, Config: cfg, Search: mcts.Search}
+	bp1 := &bot.BotPlayer{ID: p1UUID, GameID: "rootaccess", Adapter: adapter, Config: cfg, Search: mcts.Search}
+	bp2 := &bot.BotPlayer{ID: p2UUID, GameID: "rootaccess", Adapter: adapter, Config: cfg, Search: mcts.Search}
 
 	state := initState(t, p1ID, p2ID)
 

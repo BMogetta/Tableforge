@@ -9,7 +9,7 @@ that can be handed directly to an agent.
 
 | # | Task | File | Effort |
 |---|------|------|--------|
-| 1 | Love Letter rebrand (trademarked name) | `rebrand-loveletter.md` | Medium |
+| 1 | ~~Love Letter rebrand (trademarked name)~~ | `rebrand-rootaccess.md` | Done |
 | 2 | JWT refresh tokens (security) | `jwt-refresh-design.md` | High |
 | 3 | Backend enforcement: active session guard | `active-session-guard.md` | Low |
 

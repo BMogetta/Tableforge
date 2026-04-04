@@ -108,8 +108,8 @@ describe('GameLoading', () => {
   // ── Loading phase ──────────────────────────────────────────────────────────
 
   it('shows the game id during loading phase', () => {
-    renderComponent({ gameId: 'loveletter' })
-    expect(screen.getByText('loveletter')).toBeInTheDocument()
+    renderComponent({ gameId: 'rootaccess' })
+    expect(screen.getByText('rootaccess')).toBeInTheDocument()
   })
 
   it('shows "Loading..." while assets are loading', () => {

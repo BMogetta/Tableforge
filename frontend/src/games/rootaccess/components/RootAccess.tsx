@@ -3,32 +3,32 @@ import { CardPile } from '@/ui/cards'
 import { type CardName } from './CardDisplay'
 import { HandDisplay } from './HandDisplay'
 import { TargetPicker } from './TargetPicker'
-import { ChancellorModal } from './ChancellorModal'
+import { DebuggerModal } from './DebuggerModal'
 import { PlayerBoard } from './PlayerBoard'
 import { RoundSummary } from './RoundSummary'
-import styles from './LoveLetter.module.css'
+import styles from './RootAccess.module.css'
 
 // ---------------------------------------------------------------------------
-// State shape mirroring the backend LoveLetter engine (filtered view).
+// State shape mirroring the backend Root Access engine (filtered view).
 // ---------------------------------------------------------------------------
 
-export interface LoveLetterState {
+export interface RootAccessState {
   round: number
-  phase: 'playing' | 'chancellor_pending' | 'round_over' | 'game_over'
+  phase: 'playing' | 'debugger_pending' | 'round_over' | 'game_over'
   players: string[]
   tokens: Record<string, number>
   eliminated: string[]
   protected: string[]
-  spy_played_by: string[]
+  backdoor_played_by: string[]
   discard_piles: Record<string, string[]>
   set_aside_visible: string[]
   deck: string[]
   hands: Record<string, string[]>
   round_winner_id: string | null
   game_winner_id: string | null
-  // Only present for the active player during chancellor_pending.
-  chancellor_choices?: string[]
-  // Only present for the Priest caster on their turn.
+  // Only present for the active player during debugger_pending.
+  debugger_choices?: string[]
+  // Only present for the Sniffer caster on their turn.
   private_reveals?: Record<string, string>
 }
 
@@ -36,29 +36,29 @@ export interface LoveLetterState {
 // Cards that require a target player.
 // ---------------------------------------------------------------------------
 
-const CARDS_REQUIRING_TARGET: CardName[] = ['guard', 'priest', 'baron', 'king']
+const CARDS_REQUIRING_TARGET: CardName[] = ['ping', 'sniffer', 'buffer_overflow', 'swap']
 
 function requiresTarget(card: CardName): boolean {
   return CARDS_REQUIRING_TARGET.includes(card)
 }
 
 function canTargetSelf(card: CardName): boolean {
-  return card === 'prince'
+  return card === 'reboot'
 }
 
 // ---------------------------------------------------------------------------
-// Countess blocking — which cards cannot be played when Countess is in hand.
+// Encrypted Key blocking — which cards cannot be played when Encrypted Key is in hand.
 // ---------------------------------------------------------------------------
 
 function getBlockedCards(hand: CardName[]): CardName[] {
-  if (!hand.includes('countess')) return []
-  const hasKingOrPrince = hand.includes('king') || hand.includes('prince')
-  if (!hasKingOrPrince) return []
-  return hand.filter(c => c !== 'countess')
+  if (!hand.includes('encrypted_key')) return []
+  const hasSwapOrReboot = hand.includes('swap') || hand.includes('reboot')
+  if (!hasSwapOrReboot) return []
+  return hand.filter(c => c !== 'encrypted_key')
 }
 
 // ---------------------------------------------------------------------------
-// Tokens needed to win by player count.
+// Access Tokens needed to win by player count.
 // ---------------------------------------------------------------------------
 
 function tokensToWin(playerCount: number): number {
@@ -78,13 +78,13 @@ interface PlayerInfo {
 }
 
 interface Props {
-  state: LoveLetterState
+  state: RootAccessState
   currentPlayerId: string
   localPlayerId: string
   onMove: (payload: Record<string, unknown>) => void
   disabled: boolean
   isOver: boolean
-  /** Map of player ID → username for display. Provided by Game.tsx. */
+  /** Map of player ID -> username for display. Provided by Game.tsx. */
   players?: PlayerInfo[]
 }
 
@@ -92,7 +92,7 @@ interface Props {
 // Component
 // ---------------------------------------------------------------------------
 
-export function LoveLetter({
+export function RootAccess({
   state,
   currentPlayerId,
   localPlayerId,
@@ -150,7 +150,7 @@ export function LoveLetter({
     if (blockedCards.includes(selectedCard)) return false
     if (requiresTarget(selectedCard)) {
       if (!selectedTarget) return false
-      if (selectedCard === 'guard' && !selectedGuess) return false
+      if (selectedCard === 'ping' && !selectedGuess) return false
     }
     return true
   }
@@ -163,19 +163,19 @@ export function LoveLetter({
     onMove(payload)
   }
 
-  function handleChancellorConfirm(keep: CardName, returnCards: [CardName, CardName]) {
+  function handleDebuggerConfirm(keep: CardName, returnCards: [CardName, CardName]) {
     onMove({
-      card: 'chancellor_resolve',
+      card: 'debugger_resolve',
       keep,
       return: returnCards,
     })
   }
 
   // ---------------------------------------------------------------------------
-  // Priest reveal
+  // Sniffer reveal
   // ---------------------------------------------------------------------------
 
-  const priestReveal = state.private_reveals?.[localPlayerId]
+  const snifferReveal = state.private_reveals?.[localPlayerId]
 
   // ---------------------------------------------------------------------------
   // Round summary data
@@ -187,7 +187,7 @@ export function LoveLetter({
     tokens: state.tokens[id] ?? 0,
     tokensToWin: target,
     isWinner: id === state.round_winner_id,
-    earnedSpyBonus: state.spy_played_by.length === 1 && state.spy_played_by[0] === id,
+    earnedBackdoorBonus: state.backdoor_played_by.length === 1 && state.backdoor_played_by[0] === id,
   }))
 
   // ---------------------------------------------------------------------------
@@ -219,18 +219,18 @@ export function LoveLetter({
             discardPile={(state.discard_piles[id] ?? []) as CardName[]}
             isEliminated={state.eliminated.includes(id)}
             isProtected={state.protected.includes(id)}
-            hasPlayedSpy={state.spy_played_by.includes(id)}
+            hasPlayedBackdoor={state.backdoor_played_by.includes(id)}
             isLocal={id === localPlayerId}
             isCurrentTurn={id === currentPlayerId}
           />
         ))}
       </div>
 
-      {/* Priest reveal notification */}
-      {priestReveal && (
+      {/* Sniffer reveal notification */}
+      {snifferReveal && (
         <div className={styles.priestReveal}>
-          <span className={styles.priestLabel}>You peeked —</span>
-          <span className={styles.priestCard}>{priestReveal}</span>
+          <span className={styles.priestLabel}>You sniffed --</span>
+          <span className={styles.priestCard}>{snifferReveal}</span>
         </div>
       )}
 
@@ -284,13 +284,13 @@ export function LoveLetter({
         </div>
       )}
 
-      {/* Chancellor modal */}
-      {state.phase === 'chancellor_pending' &&
+      {/* Debugger modal */}
+      {state.phase === 'debugger_pending' &&
         currentPlayerId === localPlayerId &&
-        state.chancellor_choices && (
-          <ChancellorModal
-            choices={state.chancellor_choices as CardName[]}
-            onConfirm={handleChancellorConfirm}
+        state.debugger_choices && (
+          <DebuggerModal
+            choices={state.debugger_choices as CardName[]}
+            onConfirm={handleDebuggerConfirm}
           />
         )}
 

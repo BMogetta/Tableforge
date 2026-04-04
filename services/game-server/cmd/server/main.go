@@ -32,7 +32,7 @@ import (
 	sharedredis "github.com/recess/shared/redis"
 	"github.com/recess/shared/telemetry"
 
-	_ "github.com/recess/game-server/games/loveletter"
+	_ "github.com/recess/game-server/games/rootaccess"
 	_ "github.com/recess/game-server/games/tictactoe"
 )
 

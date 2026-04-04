@@ -711,9 +711,9 @@ func TestNew_DefaultGameID(t *testing.T) {
 }
 
 func TestNew_CustomGameID(t *testing.T) {
-	svc := New(nil, nil, nil, nil, "loveletter", nil, nil)
-	if svc.rankedGameID != "loveletter" {
-		t.Errorf("expected game ID %q, got %q", "loveletter", svc.rankedGameID)
+	svc := New(nil, nil, nil, nil, "rootaccess", nil, nil)
+	if svc.rankedGameID != "rootaccess" {
+		t.Errorf("expected game ID %q, got %q", "rootaccess", svc.rankedGameID)
 	}
 }
 

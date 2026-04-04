@@ -1,9 +1,9 @@
-package loveletter
+package rootaccess
 
 import "github.com/recess/game-server/internal/domain/engine"
 
 // LobbySettings implements engine.LobbySettingsProvider.
-func (g *LoveLetter) LobbySettings() []engine.LobbySetting {
+func (g *RootAccess) LobbySettings() []engine.LobbySetting {
 	min2, max5 := 2, 5
 	return append([]engine.LobbySetting{
 		{

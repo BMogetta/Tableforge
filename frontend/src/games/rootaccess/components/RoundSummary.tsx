@@ -9,7 +9,7 @@ interface PlayerResult {
   tokensToWin: number
   handCard?: string // card held at end of round (if deck-empty resolution)
   isWinner: boolean
-  earnedSpyBonus: boolean
+  earnedBackdoorBonus: boolean
 }
 
 interface Props {
@@ -48,7 +48,7 @@ export function RoundSummary({
   }, [autoDismissMs, onDismiss])
 
   const winner = players.find(p => p.id === winnerId)
-  const spyBonusPlayers = players.filter(p => p.earnedSpyBonus)
+  const backdoorBonusPlayers = players.filter(p => p.earnedBackdoorBonus)
   const progressPct = (remaining / autoDismissMs) * 100
 
   return (
@@ -63,11 +63,11 @@ export function RoundSummary({
           )}
         </div>
 
-        {spyBonusPlayers.length > 0 && (
+        {backdoorBonusPlayers.length > 0 && (
           <div className={styles.spyBonus}>
-            <span className={styles.spyLabel}>Spy bonus</span>
+            <span className={styles.spyLabel}>Backdoor bonus</span>
             <span className={styles.spyNames}>
-              {spyBonusPlayers.map(p => p.username).join(', ')} earned +1 token
+              {backdoorBonusPlayers.map(p => p.username).join(', ')} earned +1 token
             </span>
           </div>
         )}

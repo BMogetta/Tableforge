@@ -3,20 +3,20 @@ import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Card } from '@/ui/cards'
 import { type CardName } from './CardDisplay'
 import { CardFace } from './CardFace'
-import styles from './ChancellorModal.module.css'
+import styles from './DebuggerModal.module.css'
 import { testId } from '@/utils/testId'
 
 interface Props {
-  /** The 3 cards the Chancellor player must choose from. */
+  /** The 3 cards the Debugger player must choose from. */
   choices: CardName[]
   onConfirm: (keep: CardName, returnCards: [CardName, CardName]) => void
 }
 
-export function ChancellorModal({ choices, onConfirm }: Props) {
+export function DebuggerModal({ choices, onConfirm }: Props) {
   const trapRef = useFocusTrap<HTMLDivElement>()
   const [kept, setKept] = useState<CardName | null>(null)
   // returnOrder holds the 2 cards to return, in the order they'll go to the
-  // bottom of the deck. Index 0 = first at bottom, index 1 = second at bottom.
+  // bottom of the Repository. Index 0 = first at bottom, index 1 = second at bottom.
   const [returnOrder, setReturnOrder] = useState<CardName[]>([])
 
   const remaining = choices.filter(c => c !== kept)
@@ -46,10 +46,10 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
 
   return (
     <div className={styles.overlay}>
-      <div ref={trapRef} className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='chancellor-title'>
-        <h2 className={styles.title} id='chancellor-title'>Chancellor</h2>
+      <div ref={trapRef} className={styles.modal} role='dialog' aria-modal='true' aria-labelledby='debugger-title'>
+        <h2 className={styles.title} id='debugger-title'>Debugger</h2>
         <p className={styles.description}>
-          Choose 1 card to keep. The other 2 will be placed at the bottom of the deck — click them
+          Choose 1 card to keep. The other 2 will be placed at the bottom of the Repository — click them
           in the order you want them stacked.
         </p>
 
@@ -84,7 +84,7 @@ export function ChancellorModal({ choices, onConfirm }: Props) {
         {kept !== null && (
           <div className={styles.section}>
             <span className={styles.label}>
-              Return order — click to set deck order ({returnOrder.length}/2)
+              Return order — click to set Repository order ({returnOrder.length}/2)
             </span>
             <div className={styles.cards}>
               {remaining.map((card, i) => {

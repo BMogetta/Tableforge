@@ -81,7 +81,7 @@ export function HandDisplay({
                   onClick={!disabled && !isBlocked ? () => onSelect(card) : undefined}
                 />
               </div>
-              {isBlocked && <span className={styles.blockedLabel}>Must play Countess</span>}
+              {isBlocked && <span className={styles.blockedLabel}>Must play ENCRYPTED_KEY</span>}
             </motion.div>
           )
         })}

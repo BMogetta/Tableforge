@@ -1,14 +1,14 @@
-# Love Letter — Implementation Plan
+# Root Access — Implementation Plan
 
 ## Game overview
 
-Love Letter is a card game of deduction and risk for 2–5 players. Each round,
+Root Access (formerly Love Letter) is a card game of deduction and risk for 2–5 players. Each round,
 players try to have the highest-value card at the end, or be the last player
-standing. The full game is won by collecting a number of round tokens (affection
+standing. The full game is won by collecting a number of Access Tokens (affection
 tokens) that depends on player count.
 
-This plan targets the **updated edition** (20-card deck) which adds the Spy (0)
-and Chancellor (6) and shifts King, Countess and Princess up by one value.
+This plan targets the **updated edition** (20-card deck) which adds the BACKDOOR (0)
+and DEBUGGER (6) and shifts King, Countess and Princess up by one value.
 
 ---
 
@@ -18,16 +18,16 @@ The updated deck has 20 cards across 9 types:
 
 | Card | Value | Count | Effect when played |
 |---|---|---|---|
-| Spy | 0 | 2 | No immediate effect. At the end of the round, if you are the only player who played or discarded a Spy this round, you gain 1 affection token (even if eliminated) |
-| Guard | 1 | 6 | Name a non-Guard card. If the target player holds it, they are eliminated |
-| Priest | 2 | 2 | Look at another player's hand (private — only the caster sees it) |
-| Baron | 3 | 2 | Compare hands with another player in secret; lower value is eliminated (tie = nothing happens) |
-| Handmaid | 4 | 2 | Protected from all card effects until your next turn |
-| Prince | 5 | 2 | Choose a player (including yourself) to discard their hand and draw a new card. If the Princess is discarded this way, that player is eliminated |
-| Chancellor | 6 | 2 | Draw 2 cards from the deck. Keep 1, place the other 2 at the bottom of the deck in any order. If fewer than 2 cards remain in the deck, draw as many as available |
-| King | 7 | 1 | Trade hands with another player |
-| Countess | 8 | 1 | Must be played if you also hold a King or Prince in hand |
-| Princess | 9 | 1 | If you play or discard this card for any reason, you are eliminated |
+| BACKDOOR | 0 | 2 | No immediate effect. At the end of the round, if you are the only player who played or discarded a Spy this round, you gain 1 Access Token (even if eliminated) |
+| PING | 1 | 6 | Name a non-Guard card. If the target player holds it, they are eliminated |
+| SNIFFER | 2 | 2 | Look at another player's hand (private — only the caster sees it) |
+| BUFFER_OVERFLOW | 3 | 2 | Compare hands with another player in secret; lower value is eliminated (tie = nothing happens) |
+| FIREWALL | 4 | 2 | Protected from all card effects until your next turn |
+| REBOOT | 5 | 2 | Choose a player (including yourself) to discard their hand and draw a new card. If the Princess is discarded this way, that player is eliminated |
+| DEBUGGER | 6 | 2 | Draw 2 cards from the deck. Keep 1, place the other 2 at the bottom of the deck in any order. If fewer than 2 cards remain in the deck, draw as many as available |
+| SWAP | 7 | 1 | Trade hands with another player |
+| ENCRYPTED_KEY | 8 | 1 | Must be played if you also hold a King or Prince in hand |
+| ROOT | 9 | 1 | If you play or discard this card for any reason, you are eliminated |
 
 ---
 
@@ -48,7 +48,7 @@ The updated deck has 20 cards across 9 types:
    - Only one player remains (all others eliminated).
 5. Spy token check: if exactly one player played or discarded a Spy this round
    (regardless of whether they are still in the round), that player gains 1 token.
-6. The round winner gains 1 affection token.
+6. The round winner gains 1 Access Token.
 7. Shuffle and start a new round. The player who most recently won a round goes first.
 
 ### Tokens to win
