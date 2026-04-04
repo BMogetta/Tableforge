@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-test down build seed-test test test-one test-ui test-e2e-readme test-routing coverage logs ps clean clean-test gen-types gen-proto setup lint
+.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing coverage logs ps clean clean-test gen-types gen-proto setup lint
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -16,29 +16,32 @@ up-app: networks
 up-all: networks
 	docker compose --profile app --profile monitoring up --build -d
 
+up-prod: networks
+	docker compose --profile production up -d --build
+
 up-test: networks
 	TEST_MODE=true docker compose --profile app up --build -d
 
 # Stop all services and remove containers.
 down:
-	docker compose --profile app --profile monitoring down
+	docker compose --profile app --profile monitoring --profile production down
 
 # Rebuild all images without starting.
 build:
-	docker compose --profile app --profile monitoring build
+	docker compose --profile app --profile monitoring --profile production build
 
 # Show running containers.
 ps:
-	docker compose --profile app --profile monitoring ps
+	docker compose --profile app --profile monitoring --profile production ps
 
 # Tail logs for all services.
 logs:
-	docker compose --profile app --profile monitoring logs -f
+	docker compose --profile app --profile monitoring --profile production logs -f
 
 # Hard reset — removes all containers, volumes, images and networks for this project.
 # WARNING: wipes the database.
 reset:
-	docker compose --profile app --profile monitoring down -v --rmi local --remove-orphans
+	docker compose --profile app --profile monitoring --profile production down -v --rmi local --remove-orphans
 	docker network rm app_network data_network monitoring_network 2>/dev/null || true
 
 # ── Database ──────────────────────────────────────────────────────────────────
@@ -107,7 +110,7 @@ clean-test:
 
 # Remove all docker volumes (wipes the database).
 clean:
-	docker compose --profile app --profile monitoring down -v
+	docker compose --profile app --profile monitoring --profile production down -v
 
 # ── API Types ─────────────────────────────────────────────────────────────────
 

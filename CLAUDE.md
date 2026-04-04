@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 make up          # Start data layer + game-server (postgres, redis, game-server)
 make up-app      # Add traefik + frontend
 make up-all      # Add full observability stack (OTel, Tempo, Loki, Prometheus, Grafana)
+make up-prod     # Start with production profile (adds PgBouncer + pg-backup)
 make up-test     # Start with TEST_MODE=true for e2e tests
 make down        # Stop all services
 make reset       # Hard reset — wipes volumes, images, and networks

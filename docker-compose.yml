@@ -79,7 +79,7 @@ services:
       - data_network
       - app_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://redis:6379
       - USER_SERVICE_ADDR=user-service:9082
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
@@ -180,3 +180,4 @@ volumes:
   postgres_data:
   redis_data:
   traefik_certs:
+  pg_backups:
