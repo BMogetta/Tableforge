@@ -5,6 +5,7 @@ import {
   gameSessionSchema,
   getPlayerStatsResponseSchema,
   listPlayerMatchesResponseSchema,
+  playerAchievementSchema,
   playerProfileSchema,
   playerSettingsSchema,
 } from './schema-generated.zod'
@@ -51,6 +52,7 @@ export const NotificationType = {
   FriendRequestAccepted: 'friend_request_accepted',
   RoomInvitation: 'room_invitation',
   BanIssued: 'ban_issued',
+  AchievementUnlocked: 'achievement_unlocked',
 } as const
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
@@ -85,6 +87,7 @@ export type Language = (typeof Language)[keyof typeof Language]
 
 export type {
   Player,
+  PlayerAchievement,
   RoomPlayer,
   PlayerSettingMap,
   PlayerSettings,
@@ -355,6 +358,8 @@ export const players = {
       `/players/${id}/matches?limit=${limit}&offset=${offset}`,
     ),
   profile: (id: string) => validatedRequest(playerProfileSchema, `/players/${id}/profile`),
+  achievements: (id: string) =>
+    validatedRequest(z.array(playerAchievementSchema), `/players/${id}/achievements`),
 }
 
 // --- Player settings ---------------------------------------------------------

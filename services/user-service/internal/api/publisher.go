@@ -13,11 +13,12 @@ import (
 )
 
 const (
-	channelPlayerBanned        = "player.banned"
-	channelPlayerUnbanned      = "player.unbanned"
-	channelFriendshipRequested = "friendship.requested"
-	channelFriendshipAccepted  = "friendship.accepted"
-	channelBroadcastSent       = "admin.broadcast.sent"
+	channelPlayerBanned         = "player.banned"
+	channelPlayerUnbanned       = "player.unbanned"
+	channelFriendshipRequested  = "friendship.requested"
+	channelFriendshipAccepted   = "friendship.accepted"
+	channelBroadcastSent        = "admin.broadcast.sent"
+	channelAchievementUnlocked  = "achievement.unlocked"
 )
 
 // Publisher publishes user-service domain events to Redis Pub/Sub.
@@ -87,6 +88,17 @@ func (p *Publisher) PublishBroadcast(ctx context.Context, message, broadcastType
 		SentBy:        sentBy,
 	}
 	p.publish(ctx, channelBroadcastSent, evt)
+}
+
+func (p *Publisher) PublishAchievementUnlocked(ctx context.Context, playerID, achievementKey string, tier int, tierName string) {
+	evt := events.AchievementUnlocked{
+		Meta:           newMeta(),
+		PlayerID:       playerID,
+		AchievementKey: achievementKey,
+		Tier:           tier,
+		TierName:       tierName,
+	}
+	p.publish(ctx, channelAchievementUnlocked, evt)
 }
 
 func (p *Publisher) publish(ctx context.Context, channel string, evt any) {

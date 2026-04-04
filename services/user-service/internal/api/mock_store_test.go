@@ -390,13 +390,25 @@ func (m *mockStore) UpsertProfile(_ context.Context, params store.UpsertProfileP
 
 // --- Achievements ------------------------------------------------------------
 
-func (m *mockStore) UnlockAchievement(_ context.Context, playerID uuid.UUID, key string) (store.PlayerAchievement, error) {
+func (m *mockStore) UpsertAchievement(_ context.Context, playerID uuid.UUID, key string, tier, progress int) (store.PlayerAchievement, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	// Check if it already exists — update in place.
+	for i, existing := range m.achievements[playerID] {
+		if existing.AchievementKey == key {
+			if tier > existing.Tier {
+				m.achievements[playerID][i].Tier = tier
+			}
+			m.achievements[playerID][i].Progress = progress
+			return m.achievements[playerID][i], nil
+		}
+	}
 	a := store.PlayerAchievement{
 		ID:             uuid.New(),
 		PlayerID:       playerID,
 		AchievementKey: key,
+		Tier:           tier,
+		Progress:       progress,
 		UnlockedAt:     time.Now(),
 	}
 	m.achievements[playerID] = append(m.achievements[playerID], a)

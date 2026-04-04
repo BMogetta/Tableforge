@@ -18,6 +18,7 @@ const (
 	NotificationTypeFriendRequestAccepted NotificationType = "friend_request_accepted"
 	NotificationTypeRoomInvitation        NotificationType = "room_invitation"
 	NotificationTypeBanIssued             NotificationType = "ban_issued"
+	NotificationTypeAchievementUnlocked   NotificationType = "achievement_unlocked"
 )
 
 // BanReason mirrors the queue domain's ban reason values.
@@ -75,6 +76,13 @@ type PayloadBanIssued struct {
 	Reason       BanReason `json:"reason"`
 	DurationSecs int       `json:"duration_secs"`
 	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+// PayloadAchievementUnlocked is the payload for achievement_unlocked notifications.
+type PayloadAchievementUnlocked struct {
+	AchievementKey string `json:"achievement_key"`
+	Tier           int    `json:"tier"`
+	TierName       string `json:"tier_name"`
 }
 
 // Store handles notification persistence.

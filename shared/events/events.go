@@ -12,7 +12,7 @@
 // Channel ownership:
 //   game-service    → game.session.finished, game.move.applied
 //   match-service   → match.found, match.cancelled, match.ready
-//   user-service    → player.banned, player.unbanned, friendship.requested, friendship.accepted, admin.broadcast.sent
+//   user-service    → player.banned, player.unbanned, friendship.requested, friendship.accepted, admin.broadcast.sent, achievement.unlocked
 //   auth-service    → player.session.revoked
 //
 // These are DIFFERENT from the ws hub event types (those are client-facing).
@@ -183,6 +183,20 @@ type AdminBroadcastSent struct {
 	Message       string `json:"message"`
 	BroadcastType string `json:"broadcast_type"` // "info" | "warning"
 	SentBy        string `json:"sent_by"`        // admin player_id
+}
+
+// ─── achievement events ──────────────────────────────────────────────────────
+
+// Channel: achievement.unlocked
+// Published by: user-service when a player unlocks or tiers up an achievement.
+// Consumers:
+//   notification-service → create notification + WS push
+type AchievementUnlocked struct {
+	Meta
+	PlayerID       string `json:"player_id"`
+	AchievementKey string `json:"achievement_key"`
+	Tier           int    `json:"tier"`
+	TierName       string `json:"tier_name"`
 }
 
 // ─── auth-service events ──────────────────────────────────────────────────────

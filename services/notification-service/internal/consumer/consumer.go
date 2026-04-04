@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	channelFriendshipRequested = "friendship.requested"
-	channelFriendshipAccepted  = "friendship.accepted"
-	channelPlayerBanned        = "player.banned"
+	channelFriendshipRequested  = "friendship.requested"
+	channelFriendshipAccepted   = "friendship.accepted"
+	channelPlayerBanned         = "player.banned"
+	channelAchievementUnlocked  = "achievement.unlocked"
 )
 
 // NotificationCreator persists notifications. Implemented by *store.Store.
@@ -51,12 +52,12 @@ func New(rdb *redis.Client, st NotificationCreator, pub Publisher, log *slog.Log
 
 // Run blocks until ctx is cancelled.
 func (c *Consumer) Run(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned)
+	sub := c.rdb.Subscribe(ctx, channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned, channelAchievementUnlocked)
 	defer sub.Close()
 
 	ch := sub.Channel()
 	c.log.Info("subscribed to Redis channels",
-		"channels", []string{channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned},
+		"channels", []string{channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned, channelAchievementUnlocked},
 	)
 
 	for {
@@ -85,6 +86,8 @@ func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
 		return c.handleFriendshipAccepted(ctx, msg.Payload)
 	case channelPlayerBanned:
 		return c.handlePlayerBanned(ctx, msg.Payload)
+	case channelAchievementUnlocked:
+		return c.handleAchievementUnlocked(ctx, msg.Payload)
 	default:
 		return fmt.Errorf("unknown channel: %s", msg.Channel)
 	}
@@ -229,6 +232,50 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error
 		"event_id", evt.EventID,
 		"player_id", playerID,
 		"reason", evt.Reason,
+	)
+	return nil
+}
+
+func (c *Consumer) handleAchievementUnlocked(ctx context.Context, payload string) error {
+	var evt events.AchievementUnlocked
+	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+		return fmt.Errorf("unmarshal AchievementUnlocked: %w", err)
+	}
+
+	playerID, err := uuid.Parse(evt.PlayerID)
+	if err != nil {
+		return fmt.Errorf("invalid player_id: %w", err)
+	}
+
+	p := store.PayloadAchievementUnlocked{
+		AchievementKey: evt.AchievementKey,
+		Tier:           evt.Tier,
+		TierName:       evt.TierName,
+	}
+	payloadJSON, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("marshal PayloadAchievementUnlocked: %w", err)
+	}
+
+	n, err := c.store.Create(ctx, store.CreateParams{
+		PlayerID: playerID,
+		Type:     store.NotificationTypeAchievementUnlocked,
+		Payload:  payloadJSON,
+	})
+	if err != nil {
+		return fmt.Errorf("create achievement_unlocked notification: %w", err)
+	}
+
+	c.pub.PublishToPlayer(ctx, playerID, sharedws.Event{
+		Type:    sharedws.EventNotificationReceived,
+		Payload: n,
+	})
+
+	c.log.Debug("sent achievement_unlocked notification",
+		"event_id", evt.EventID,
+		"player_id", playerID,
+		"achievement_key", evt.AchievementKey,
+		"tier", evt.Tier,
 	)
 	return nil
 }

@@ -7,6 +7,7 @@ import { keys } from '@/lib/queryClient'
 import { useBlockPlayer } from '@/hooks/useBlockPlayer'
 import { ProfileHeader } from './components/ProfileHeader'
 import { MatchHistory } from './components/MatchHistory'
+import { AchievementGrid } from './AchievementGrid'
 import styles from './Profile.module.css'
 import { testId } from '@/utils/testId'
 
@@ -33,6 +34,12 @@ export function Profile({ playerId }: { playerId: string }) {
     queryKey: keys.playerMatches(playerId, page),
     queryFn: () => players.matches(playerId, PAGE_SIZE, page * PAGE_SIZE),
     staleTime: 30_000,
+  })
+
+  const { data: achievements, isLoading: achievementsLoading } = useQuery({
+    queryKey: keys.playerAchievements(playerId),
+    queryFn: () => players.achievements(playerId),
+    staleTime: 60_000,
   })
 
   const isOwnProfile = currentPlayer?.id === playerId
@@ -114,6 +121,12 @@ export function Profile({ playerId }: { playerId: string }) {
             </div>
           </div>
         )}
+
+        <div className={styles.sectionTitle}>Achievements</div>
+        <AchievementGrid
+          achievements={achievements ?? []}
+          isLoading={achievementsLoading}
+        />
 
         <div className={styles.sectionTitle}>Match History</div>
 

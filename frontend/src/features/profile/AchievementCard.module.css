@@ -1,0 +1,122 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  transition: border-color var(--transition);
+}
+
+.unlocked {
+  border-color: color-mix(in srgb, var(--color-interactive) 40%, transparent);
+}
+
+.locked {
+  opacity: 0.5;
+}
+
+/* --- Icon ----------------------------------------------------------------- */
+
+.icon {
+  font-size: var(--text-lg);
+  line-height: 1;
+  min-height: 24px;
+  color: var(--color-interactive);
+}
+
+.locked .icon {
+  color: var(--color-text-muted);
+}
+
+/* --- Info ----------------------------------------------------------------- */
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+}
+
+.description {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+.gameTag {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* --- Progress bar --------------------------------------------------------- */
+
+.progressArea {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.progressBar {
+  height: 4px;
+  background: var(--color-bg-base);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-interactive);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  text-align: right;
+  font-family: monospace;
+}
+
+/* --- Tier dots ------------------------------------------------------------ */
+
+.tierDots {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+}
+
+.dotFilled {
+  background: var(--color-interactive);
+  border-color: var(--color-interactive);
+}
+
+/* --- Max tier badge ------------------------------------------------------- */
+
+.maxTier {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--color-interactive);
+  text-transform: uppercase;
+}

@@ -392,18 +392,34 @@ func TestAchievements(t *testing.T) {
 
 	player := env.seedPlayer(t, "alice")
 
-	a, err := env.store.UnlockAchievement(ctx, player, "first_win")
+	// First upsert creates the row.
+	a, err := env.store.UpsertAchievement(ctx, player, "games_played", 1, 1)
 	if err != nil {
-		t.Fatalf("UnlockAchievement: %v", err)
+		t.Fatalf("UpsertAchievement: %v", err)
 	}
-	if a.AchievementKey != "first_win" {
-		t.Errorf("expected first_win, got %s", a.AchievementKey)
+	if a.AchievementKey != "games_played" {
+		t.Errorf("expected games_played, got %s", a.AchievementKey)
+	}
+	if a.Tier != 1 || a.Progress != 1 {
+		t.Errorf("expected tier=1, progress=1, got tier=%d, progress=%d", a.Tier, a.Progress)
 	}
 
-	// Unlocking again returns ErrConflict.
-	_, err = env.store.UnlockAchievement(ctx, player, "first_win")
-	if err != store.ErrConflict {
-		t.Errorf("expected ErrConflict on duplicate unlock, got %v", err)
+	// Upserting again with higher tier updates the row.
+	a2, err := env.store.UpsertAchievement(ctx, player, "games_played", 2, 10)
+	if err != nil {
+		t.Fatalf("UpsertAchievement tier-up: %v", err)
+	}
+	if a2.Tier != 2 || a2.Progress != 10 {
+		t.Errorf("expected tier=2, progress=10, got tier=%d, progress=%d", a2.Tier, a2.Progress)
+	}
+
+	// Upserting with lower tier keeps the higher tier.
+	a3, err := env.store.UpsertAchievement(ctx, player, "games_played", 1, 10)
+	if err != nil {
+		t.Fatalf("UpsertAchievement lower tier: %v", err)
+	}
+	if a3.Tier != 2 {
+		t.Errorf("expected tier=2 (kept higher), got tier=%d", a3.Tier)
 	}
 
 	achievements, err := env.store.ListAchievements(ctx, player)

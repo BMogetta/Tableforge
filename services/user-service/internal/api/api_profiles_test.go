@@ -92,8 +92,8 @@ func TestListAchievements(t *testing.T) {
 	router := newTestRouter(st)
 
 	playerID := uuid.New()
-	st.UnlockAchievement(nil, playerID, "first_win")
-	st.UnlockAchievement(nil, playerID, "ten_games")
+	st.UpsertAchievement(nil, playerID, "first_win", 1, 1)
+	st.UpsertAchievement(nil, playerID, "ten_games", 1, 10)
 
 	path := fmt.Sprintf("/api/v1/players/%s/achievements", playerID)
 	rec := getJSONAs(t, router, path, playerID, sharedmw.RolePlayer)

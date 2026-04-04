@@ -144,6 +144,11 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   margin-bottom: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.sectionTitle:first-of-type {
+  margin-top: 0;
 }
 
 /* --- Match list ------------------------------------------------------------ */

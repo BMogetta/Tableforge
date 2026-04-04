@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/recess/services/user-service/internal/api"
+	"github.com/recess/services/user-service/internal/consumer"
 	usgrpc "github.com/recess/services/user-service/internal/grpc"
 	"github.com/recess/services/user-service/internal/store"
 	"github.com/recess/shared/config"
@@ -103,6 +104,14 @@ func main() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("HTTP server error", "error", err)
 			panic(err)
+		}
+	}()
+
+	// --- Achievement consumer ------------------------------------------------
+	achievementConsumer := consumer.New(rdb, st, pub, slog.Default())
+	go func() {
+		if err := achievementConsumer.Run(ctx); err != nil {
+			slog.Error("achievement consumer error", "error", err)
 		}
 	}()
 

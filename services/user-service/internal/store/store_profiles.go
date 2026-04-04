@@ -58,26 +58,24 @@ func (s *pgStore) UpsertProfile(ctx context.Context, params UpsertProfileParams)
 	return p, err
 }
 
-func (s *pgStore) UnlockAchievement(ctx context.Context, playerID uuid.UUID, key string) (PlayerAchievement, error) {
+func (s *pgStore) UpsertAchievement(ctx context.Context, playerID uuid.UUID, key string, tier, progress int) (PlayerAchievement, error) {
 	row := s.db.QueryRow(ctx, `
-		INSERT INTO users.player_achievements (player_id, achievement_key)
-		VALUES ($1, $2)
-		ON CONFLICT (player_id, achievement_key) DO NOTHING
-		RETURNING id, player_id, achievement_key, unlocked_at
-	`, playerID, key)
+		INSERT INTO users.player_achievements (player_id, achievement_key, tier, progress)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (player_id, achievement_key) DO UPDATE
+		SET tier     = GREATEST(users.player_achievements.tier, EXCLUDED.tier),
+		    progress = EXCLUDED.progress
+		RETURNING id, player_id, achievement_key, tier, progress, unlocked_at
+	`, playerID, key, tier, progress)
 
 	var a PlayerAchievement
-	err := row.Scan(&a.ID, &a.PlayerID, &a.AchievementKey, &a.UnlockedAt)
-	if errors.Is(err, pgx.ErrNoRows) {
-		// Already unlocked — not an error, just a no-op.
-		return PlayerAchievement{}, ErrConflict
-	}
+	err := row.Scan(&a.ID, &a.PlayerID, &a.AchievementKey, &a.Tier, &a.Progress, &a.UnlockedAt)
 	return a, err
 }
 
 func (s *pgStore) ListAchievements(ctx context.Context, playerID uuid.UUID) ([]PlayerAchievement, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT id, player_id, achievement_key, unlocked_at
+		SELECT id, player_id, achievement_key, tier, progress, unlocked_at
 		FROM users.player_achievements
 		WHERE player_id = $1
 		ORDER BY unlocked_at DESC
@@ -90,7 +88,7 @@ func (s *pgStore) ListAchievements(ctx context.Context, playerID uuid.UUID) ([]P
 	var out []PlayerAchievement
 	for rows.Next() {
 		var a PlayerAchievement
-		if err := rows.Scan(&a.ID, &a.PlayerID, &a.AchievementKey, &a.UnlockedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.PlayerID, &a.AchievementKey, &a.Tier, &a.Progress, &a.UnlockedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, a)

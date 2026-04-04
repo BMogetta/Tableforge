@@ -20,6 +20,7 @@ const labels: Record<NotificationType, string> = {
   friend_request_accepted: 'Friend Request Accepted',
   room_invitation: 'Room Invitation',
   ban_issued: 'Ban Notice',
+  achievement_unlocked: 'Achievement Unlocked',
 }
 
 export function NotificationItem({

@@ -85,6 +85,8 @@ type PlayerAchievement struct {
 	ID             uuid.UUID `json:"id"`
 	PlayerID       uuid.UUID `json:"player_id"`
 	AchievementKey string    `json:"achievement_key"`
+	Tier           int       `json:"tier"`
+	Progress       int       `json:"progress"`
 	UnlockedAt     time.Time `json:"unlocked_at"`
 }
 
@@ -154,7 +156,7 @@ type Store interface {
 	UpsertProfile(ctx context.Context, params UpsertProfileParams) (PlayerProfile, error)
 
 	// Achievements
-	UnlockAchievement(ctx context.Context, playerID uuid.UUID, key string) (PlayerAchievement, error)
+	UpsertAchievement(ctx context.Context, playerID uuid.UUID, key string, tier, progress int) (PlayerAchievement, error)
 	ListAchievements(ctx context.Context, playerID uuid.UUID) ([]PlayerAchievement, error)
 
 	// Search
