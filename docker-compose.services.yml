@@ -10,7 +10,7 @@ services:
       - data_network
     environment:
       - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=auth-service
       - JWT_SECRET=${JWT_SECRET}
@@ -62,7 +62,7 @@ services:
       - data_network
     environment:
       - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=user-service
       - JWT_SECRET=${JWT_SECRET}
@@ -125,7 +125,7 @@ services:
       - data_network
     environment:
       - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=chat-service
       - JWT_SECRET=${JWT_SECRET}
@@ -174,7 +174,7 @@ services:
       - app_network
       - data_network
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=ws-gateway
       - JWT_SECRET=${JWT_SECRET}
@@ -239,7 +239,7 @@ services:
       - data_network
     environment:
       - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=rating-service
       - JWT_SECRET=${JWT_SECRET}
@@ -293,7 +293,7 @@ services:
       - app_network
       - data_network
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - RATING_SERVICE_ADDR=rating-service:9085
       - GAME_SERVER_ADDR=game-server:9080
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
@@ -347,7 +347,7 @@ services:
       - data_network
     environment:
       - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=notification-service
       - JWT_SECRET=${JWT_SECRET}
