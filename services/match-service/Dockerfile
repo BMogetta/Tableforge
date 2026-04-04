@@ -20,5 +20,8 @@ RUN apk --no-cache add ca-certificates tzdata wget
 WORKDIR /app
 COPY --from=builder /bin/match-service /app/match-service
 
+RUN adduser -D -u 1001 appuser
+USER appuser
+
 EXPOSE 8087
 ENTRYPOINT ["/app/match-service"]

@@ -31,7 +31,9 @@ WORKDIR /app
 # Copy the compiled binary from the builder stage
 COPY --from=builder /bin/rating-service /app/rating-service
 
-# Standard ports for this service
+RUN adduser -D -u 1001 appuser
+USER appuser
+
 EXPOSE 8085 9085
 
 ENTRYPOINT ["/app/rating-service"]

@@ -30,7 +30,7 @@ RUN apk --no-cache add ca-certificates tzdata wget
 # Copy the compiled binary from the builder stage
 COPY --from=builder /bin/ws-gateway /bin/ws-gateway
 
-# Expose the WebSocket port (common for gateways, e.g., 8080 or 3000)
-# EXPOSE 8080
+RUN adduser -D -u 1001 appuser
+USER appuser
 
 ENTRYPOINT ["/bin/ws-gateway"]
