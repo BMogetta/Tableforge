@@ -6,28 +6,37 @@ import { PlayersTab } from './components/PlayersTab'
 import { ModerationTab } from './components/ModerationTab'
 import { BansTab } from './components/BansTab'
 import { RoomsTab } from './components/RoomsTab'
+import { StatsTab } from './components/StatsTab'
+import { AuditLogTab } from './components/AuditLogTab'
+import { BroadcastTab } from './components/BroadcastTab'
 import styles from './Admin.module.css'
 
 const Tab = {
+  stats: 'stats',
   emails: 'emails',
   players: 'players',
   moderation: 'moderation',
   bans: 'bans',
   rooms: 'rooms',
+  audit: 'audit',
+  broadcast: 'broadcast',
 } as const
 type Tab = (typeof Tab)[keyof typeof Tab]
 
 const TAB_LABELS: Record<Tab, string> = {
+  stats: 'Stats',
   emails: 'Allowed Emails',
   players: 'Players',
   moderation: 'Moderation',
   bans: 'Bans',
   rooms: 'Rooms',
+  audit: 'Audit Log',
+  broadcast: 'Broadcast',
 }
 
 export function Admin() {
   const player = useAppStore(s => s.player)!
-  const [tab, setTab] = useState<Tab>(Tab.emails)
+  const [tab, setTab] = useState<Tab>(Tab.stats)
   const [banTargetId, setBanTargetId] = useState<string | undefined>()
 
   function handleBanFromReport(playerId: string) {
@@ -61,6 +70,7 @@ export function Admin() {
       </nav>
 
       <main className={styles.content}>
+        {tab === Tab.stats && <StatsTab />}
         {tab === Tab.emails && <AllowedEmailsTab callerRole={player.role} />}
         {tab === Tab.players && <PlayersTab callerRole={player.role} callerID={player.id} />}
         {tab === Tab.moderation && (
@@ -68,6 +78,8 @@ export function Admin() {
         )}
         {tab === Tab.bans && <BansTab callerRole={player.role} initialPlayerId={banTargetId} />}
         {tab === Tab.rooms && <RoomsTab callerRole={player.role} />}
+        {tab === Tab.audit && <AuditLogTab />}
+        {tab === Tab.broadcast && <BroadcastTab />}
       </main>
     </div>
   )
