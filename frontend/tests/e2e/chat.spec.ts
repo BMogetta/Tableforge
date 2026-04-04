@@ -1,7 +1,22 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getPair, createPlayerContexts, setupRoom } from './helpers'
 
-// Scoped locator for message bubbles inside the chat sidebar.
+const chatInput = 'input[placeholder="Message or /command..."]'
+
+/** Open the chat popover for a page via the toolbar button. */
+async function openChat(page: Page) {
+  await page.getByTestId('toolbar-chat').click()
+  await expect(page.locator(chatInput)).toBeVisible({ timeout: 5_000 })
+}
+
+/** Close the chat popover by clicking outside it. */
+async function closeChat(page: Page) {
+  // Click far from the popover area (top-left corner) to hit the backdrop.
+  await page.locator('[class*="popoverBackdrop"]').click({ position: { x: 5, y: 5 } })
+  await expect(page.locator(chatInput)).not.toBeVisible({ timeout: 5_000 })
+}
+
+// Scoped locator for message bubbles inside the chat popover.
 function chatMessage(page: Page, text: string) {
   return page.locator('[class*="messages"]').locator(`text=${text}`)
 }
@@ -14,15 +29,11 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 5_000,
-    })
-    await expect(p2.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 5_000,
-    })
+    await openChat(p1)
+    await openChat(p2)
 
-    await p1.locator('input[placeholder="Message or /command..."]').fill('hello from p1')
-    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
+    await p1.locator(chatInput).fill('hello from p1')
+    await p1.locator(chatInput).press('Enter')
 
     await expect(chatMessage(p1, 'hello from p1')).toBeVisible({ timeout: 10_000 })
     await expect(chatMessage(p2, 'hello from p1')).toBeVisible({ timeout: 10_000 })
@@ -36,22 +47,18 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 5_000,
-    })
-    await expect(p2.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 5_000,
-    })
+    await openChat(p1)
+    await openChat(p2)
 
-    await p1.locator('input[placeholder="Message or /command..."]').fill('msg-alpha')
-    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
+    await p1.locator(chatInput).fill('msg-alpha')
+    await p1.locator(chatInput).press('Enter')
 
     // Wait for P2 to receive it before P2 replies.
     await expect(chatMessage(p2, 'msg-alpha')).toBeVisible({ timeout: 10_000 })
 
-    await p2.locator('input[placeholder="Message or /command..."]').click()
-    await p2.locator('input[placeholder="Message or /command..."]').fill('msg-beta')
-    await p2.locator('input[placeholder="Message or /command..."]').press('Enter')
+    await p2.locator(chatInput).click()
+    await p2.locator(chatInput).fill('msg-beta')
+    await p2.locator(chatInput).press('Enter')
 
     // Both messages appear on both sides.
     await expect(chatMessage(p2, 'msg-beta')).toBeVisible({ timeout: 10_000 })
@@ -63,22 +70,16 @@ test.describe('Room chat', () => {
     await p2Ctx.close()
   })
 
-  test('sidebar can be collapsed and reopened', async ({ browser }, testInfo) => {
+  test('chat popover can be toggled open and closed', async ({ browser }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 5_000,
-    })
+    await openChat(p1)
+    await closeChat(p1)
 
-    await p1.locator('button[title="Hide chat"]').click()
-    await expect(p1.locator('input[placeholder="Message or /command..."]')).not.toBeVisible()
-
-    await p1.locator('button[title="Show chat"]').click()
-    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 3_000,
-    })
+    // Reopen to confirm it works a second time.
+    await openChat(p1)
 
     await p1Ctx.close()
     await p2Ctx.close()
@@ -89,14 +90,12 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 5_000,
-    })
+    await openChat(p1)
 
     const sendBtn = p1.locator('button[title="Send"]')
     await expect(sendBtn).toBeDisabled()
 
-    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
+    await p1.locator(chatInput).press('Enter')
 
     const messages = p1.locator('[class*="messageBubble"]')
     await expect(messages).toHaveCount(0)
@@ -110,12 +109,10 @@ test.describe('Room chat', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
     await setupRoom(p1, p2)
 
-    await expect(p1.locator('input[placeholder="Message or /command..."]')).toBeVisible({
-      timeout: 5_000,
-    })
+    await openChat(p1)
 
-    await p1.locator('input[placeholder="Message or /command..."]').fill('persistent-msg')
-    await p1.locator('input[placeholder="Message or /command..."]').press('Enter')
+    await p1.locator(chatInput).fill('persistent-msg')
+    await p1.locator(chatInput).press('Enter')
     await expect(chatMessage(p1, 'persistent-msg')).toBeVisible({ timeout: 5_000 })
 
     // P2 leaves the room properly before navigating away.
@@ -125,13 +122,14 @@ test.describe('Room chat', () => {
     })
     await p2.goto('/')
 
-    // Re-join using the room code displayed to P1.
-    const code = await p1.getByTestId('room-code-display').textContent()
+    // Re-join using the room code shown to P1 in the header.
+    const code = await p1.getByTestId('room-code').textContent()
     await p2.getByTestId('join-code-input').fill(code!)
     await p2.getByTestId('join-btn').click()
     await expect(p2).toHaveURL(/\/rooms\//, { timeout: 5_000 })
 
-    // Message loaded from HTTP on fresh mount.
+    // Open chat on P2 and verify the message was loaded from HTTP.
+    await openChat(p2)
     await expect(chatMessage(p2, 'persistent-msg')).toBeVisible({ timeout: 10_000 })
 
     await p1Ctx.close()

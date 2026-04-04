@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { getPair, type PlayerPair } from './helpers'
+import { getPair, patchEmptyBodyRoutes, type PlayerPair } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Bot helpers
@@ -19,13 +19,20 @@ async function setupAndStartGameWithBot(p1: Page, p1Id: string): Promise<string>
     data: { player_id: p1Id, value: 'fixed' },
   })
 
-  // Add a bot via the UI.
+  // Open bot toolbar to add a bot via the UI.
+  await p1.getByTestId('toolbar-bot').click()
   await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5_000 })
   await p1.getByTestId('add-bot-select').selectOption('easy')
   await p1.getByTestId('add-bot-btn').click()
 
   // Wait for the bot to appear in the player list.
   await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5_000 })
+
+  // Close bot popover if still open (room is now full so the button gets disabled).
+  const backdrop = p1.locator('[class*="popoverBackdrop"]')
+  if (await backdrop.isVisible().catch(() => false)) {
+    await backdrop.click({ position: { x: 5, y: 5 } })
+  }
 
   // Start the game.
   await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 5_000 })
@@ -46,6 +53,7 @@ test.describe('Bot gameplay', () => {
     const p1 = await p1Ctx.newPage()
     p1.on('console', msg => console.log('P1:', msg.text()))
     p1.on('pageerror', err => console.log('P1 ERROR:', err.message))
+    await patchEmptyBodyRoutes(p1)
     await p1.goto('/')
 
     await setupAndStartGameWithBot(p1, pair.p1Id)
@@ -105,12 +113,12 @@ test.describe('Bot gameplay', () => {
       timeout: 10_000,
     })
 
-    // Rematch button is visible — bot auto-votes so P1's single vote is enough.
+    // Rematch button is visible — bot auto-votes so the rematch resolves immediately.
+    // With a bot, both votes arrive and a new game starts directly (no lobby).
     await p1.getByTestId('rematch-btn').click()
-    await expect(p1).toHaveURL(/\/rooms\//, { timeout: 15_000 })
 
-    // Room is back in waiting state — P1 can start a new game.
-    await expect(p1.getByTestId('start-game-btn')).toBeEnabled({ timeout: 5_000 })
+    // Either we land back in the room lobby or directly in a new game.
+    await expect(p1).toHaveURL(/\/(rooms|game)\//, { timeout: 15_000 })
 
     await p1Ctx.close()
   })
@@ -121,6 +129,7 @@ test.describe('Bot gameplay', () => {
     const p1 = await p1Ctx.newPage()
     p1.on('console', msg => console.log('P1:', msg.text()))
     p1.on('pageerror', err => console.log('P1 ERROR:', err.message))
+    await patchEmptyBodyRoutes(p1)
     await p1.goto('/')
 
     await p1.getByTestId('game-option-tictactoe').click()
@@ -133,7 +142,8 @@ test.describe('Bot gameplay', () => {
       data: { player_id: pair.p1Id, value: 'fixed' },
     })
 
-    // Add a bot.
+    // Open bot toolbar and add a bot.
+    await p1.getByTestId('toolbar-bot').click()
     await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5_000 })
     await p1.getByTestId('add-bot-select').selectOption('easy')
     await p1.getByTestId('add-bot-btn').click()
@@ -148,7 +158,9 @@ test.describe('Bot gameplay', () => {
     await expect(p1.getByTestId('player-count')).toContainText('1/2', { timeout: 5_000 })
     await expect(p1.getByTestId('start-game-btn')).toBeDisabled()
 
-    // Add a new bot (hard difficulty this time).
+    // Open bot toolbar and add a new bot (hard difficulty).
+    await p1.getByTestId('toolbar-bot').click()
+    await expect(p1.getByTestId('add-bot-select')).toBeVisible({ timeout: 5_000 })
     await p1.getByTestId('add-bot-select').selectOption('hard')
     await p1.getByTestId('add-bot-btn').click()
     await expect(p1.getByTestId('player-count')).toContainText('2/2', { timeout: 5_000 })

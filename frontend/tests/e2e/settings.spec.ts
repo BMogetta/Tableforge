@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import {
   getPair,
   createPlayerContexts,
@@ -8,12 +8,21 @@ import {
   waitForSocketConnected,
 } from './helpers'
 
+/** Open the settings popover via the toolbar button. */
+async function openSettings(page: Page) {
+  await page.getByTestId('toolbar-settings').click()
+  await expect(page.locator('[class*="popover"]').last()).toBeVisible({ timeout: 5_000 })
+}
+
 test.describe('LobbySettings UI', () => {
   test('setting_updated WS event updates the read-only value shown to p2', async ({ browser }, testInfo) => {
     const pair = getPair(testInfo.project.name)
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
     await setupRoom(p1, p2)
+
+    await openSettings(p1)
+    await openSettings(p2)
 
     await expect(p1.getByTestId('setting-select-first_mover_policy')).toBeVisible({
       timeout: 10_000,
@@ -37,6 +46,8 @@ test.describe('LobbySettings UI', () => {
     const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
 
     await setupRoom(p1, p2)
+
+    await openSettings(p2)
 
     await expect(p2.getByTestId('setting-value-first_mover_policy')).toBeVisible({
       timeout: 10_000,

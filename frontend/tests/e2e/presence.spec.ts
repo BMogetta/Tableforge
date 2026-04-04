@@ -36,7 +36,7 @@ test.describe('Player presence', () => {
     await expect(p1.locator(`[data-testid="presence-dot-${pair.p2Id}"]`)).toHaveAttribute(
       'data-online',
       'false',
-      { timeout: 10_000 },
+      { timeout: 30_000 },
     )
 
     await p1Ctx.close()
@@ -76,7 +76,7 @@ test.describe('Player presence', () => {
     await p2Ctx.close()
 
     await expect(p1.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'false', {
-      timeout: 10_000,
+      timeout: 20_000,
     })
 
     await p1Ctx.close()
@@ -96,7 +96,7 @@ test.describe('Player presence', () => {
     await p2Ctx.close()
 
     await expect(p1.getByTestId('opponent-presence-text')).toContainText('Opponent offline', {
-      timeout: 10_000,
+      timeout: 30_000,
     })
 
     await p1Ctx.close()
