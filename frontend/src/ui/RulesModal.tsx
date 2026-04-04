@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { GAME_RULES } from '@/games/registry'
 import type { CardName } from '@/games/rootaccess'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function RulesModal({ initialGameId, handCards, onClose }: Props) {
+  const { t } = useTranslation()
   const trapRef = useFocusTrap<HTMLDivElement>()
   const entries = GAME_RULES
   const initialIndex = initialGameId
@@ -39,13 +41,13 @@ export function RulesModal({ initialGameId, handCards, onClose }: Props) {
       >
         <header className={styles.header}>
           <h2 className={styles.title} id='rules-modal-title'>
-            Game Rules
+            {t('rules.title')}
           </h2>
           <button
             type='button'
             className='btn btn-ghost btn-sm'
             onClick={onClose}
-            aria-label='Close'
+            aria-label={t('common.close')}
           >
             ✕
           </button>

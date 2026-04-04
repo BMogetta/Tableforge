@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { MatchHistoryEntry } from '@/lib/schema-generated.zod'
 import styles from '../Profile.module.css'
 
@@ -33,16 +34,18 @@ export function MatchHistory({
   onPageChange,
   onViewReplay,
 }: MatchHistoryProps) {
+  const { t } = useTranslation()
+
   if (isLoading) {
     return (
       <div className={styles.loading}>
-        <span className='pulse'>Loading matches...</span>
+        <span className='pulse'>{t('profile.loadingMatches')}</span>
       </div>
     )
   }
 
   if (matches.length === 0) {
-    return <div className={styles.empty}>No matches played yet.</div>
+    return <div className={styles.empty}>{t('profile.noMatches')}</div>
   }
 
   const totalPages = Math.ceil(total / pageSize)
@@ -84,17 +87,17 @@ export function MatchHistory({
             onClick={() => onPageChange(page - 1)}
             disabled={page === 0}
           >
-            ← Prev
+            ← {t('common.prev')}
           </button>
           <span className={styles.pageInfo}>
-            {page + 1} / {totalPages}
+            {t('profile.pageInfo', { current: page + 1, total: totalPages })}
           </span>
           <button
             className='btn btn-ghost'
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages - 1}
           >
-            Next →
+            {t('common.next')} →
           </button>
         </div>
       )}

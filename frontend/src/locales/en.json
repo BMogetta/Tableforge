@@ -6,15 +6,28 @@
     "confirm": "Confirm",
     "back": "Back",
     "close": "Close",
+    "closeDialog": "Close dialog",
     "delete": "Delete",
     "error": "Something went wrong",
     "empty": "Nothing here yet",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "prev": "Prev",
+    "next": "Next"
   },
   "auth": {
-    "loginWithGithub": "Sign in with GitHub",
+    "loginWithGithub": "Continue with GitHub",
+    "waitingForGithub": "Waiting for GitHub...",
     "logout": "Log Out",
-    "sessionExpired": "Session expired"
+    "sessionExpired": "Session expired",
+    "subtitle": "Multiplayer board games",
+    "invitationOnly": "Access is by invitation only.",
+    "beta": "BETA",
+    "inviteOnly": "Invite only",
+    "accessRestricted": "Access Restricted",
+    "emailNotAllowed": "EMAIL_NOT_ALLOWED",
+    "accessDeniedDesc": "This platform operates as a closed circuit. Entry is granted by invitation only. Your GitHub account is not on the access list.",
+    "tryAnotherAccount": "Try another account",
+    "closedBeta": "Closed beta"
   },
   "settings": {
     "title": "Settings",
@@ -105,7 +118,14 @@
     "draws": "Draws",
     "winRate": "Win Rate",
     "block": "Block",
-    "unblock": "Unblock"
+    "blocking": "Blocking...",
+    "unblock": "Unblock",
+    "unblocking": "Unblocking...",
+    "loadingProfile": "Loading profile...",
+    "loadingMatches": "Loading matches...",
+    "loadingAchievements": "Loading achievements...",
+    "noMatches": "No matches played yet.",
+    "pageInfo": "{{current}} / {{total}}"
   },
   "notifications": {
     "title": "Notifications",
@@ -126,6 +146,9 @@
     "offline": "Offline",
     "removeFriend": "Remove Friend",
     "noFriends": "No friends yet"
+  },
+  "rules": {
+    "title": "Game Rules"
   },
   "errors": {
     "unauthorized": "You need to log in to do that.",

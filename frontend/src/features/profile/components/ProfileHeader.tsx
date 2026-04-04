@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import styles from '../Profile.module.css'
 
 interface ProfileHeaderProps {
@@ -17,6 +18,8 @@ export function ProfileHeader({
   country,
   isLoading,
 }: ProfileHeaderProps) {
+  const { t } = useTranslation()
+
   if (isLoading) {
     return (
       <div className={styles.headerInfo}>
@@ -24,7 +27,7 @@ export function ProfileHeader({
           className='pulse'
           style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}
         >
-          Loading profile...
+          {t('profile.loadingProfile')}
         </span>
       </div>
     )

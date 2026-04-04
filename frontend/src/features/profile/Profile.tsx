@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppStore } from '@/stores/store'
@@ -42,6 +43,7 @@ export function Profile({ playerId }: { playerId: string }) {
     staleTime: 60_000,
   })
 
+  const { t } = useTranslation()
   const isOwnProfile = currentPlayer?.id === playerId
   const isLoading = statsLoading || profileLoading
   const { block, unblock, isBlocked, blockPending, unblockPending } = useBlockPlayer()
@@ -68,7 +70,7 @@ export function Profile({ playerId }: { playerId: string }) {
                   disabled={unblockPending}
                   {...testId('profile-unblock-btn')}
                 >
-                  {unblockPending ? 'Unblocking...' : 'Unblock'}
+                  {unblockPending ? t('profile.unblocking') : t('profile.unblock')}
                 </button>
               ) : (
                 <button
@@ -82,7 +84,7 @@ export function Profile({ playerId }: { playerId: string }) {
                   disabled={blockPending}
                   {...testId('profile-block-btn')}
                 >
-                  {blockPending ? 'Blocking...' : 'Block'}
+                  {blockPending ? t('profile.blocking') : t('profile.block')}
                 </button>
               )}
             </div>
@@ -92,27 +94,27 @@ export function Profile({ playerId }: { playerId: string }) {
         {stats && (
           <div className={styles.statsBar}>
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Games</span>
+              <span className={styles.statLabel}>{t('profile.games')}</span>
               <span className={styles.statValue}>{stats.total_games}</span>
             </div>
             <div className={styles.statDivider} />
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Wins</span>
+              <span className={styles.statLabel}>{t('profile.wins')}</span>
               <span className={styles.statValue}>{stats.wins}</span>
             </div>
             <div className={styles.statDivider} />
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Losses</span>
+              <span className={styles.statLabel}>{t('profile.losses')}</span>
               <span className={styles.statValue}>{stats.losses}</span>
             </div>
             <div className={styles.statDivider} />
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Draws</span>
+              <span className={styles.statLabel}>{t('profile.draws')}</span>
               <span className={styles.statValue}>{stats.draws}</span>
             </div>
             <div className={styles.statDivider} />
             <div className={styles.stat}>
-              <span className={styles.statLabel}>Win Rate</span>
+              <span className={styles.statLabel}>{t('profile.winRate')}</span>
               <span className={styles.statValue}>
                 {stats.total_games > 0
                   ? `${Math.round((stats.wins / stats.total_games) * 100)}%`
@@ -122,13 +124,13 @@ export function Profile({ playerId }: { playerId: string }) {
           </div>
         )}
 
-        <div className={styles.sectionTitle}>Achievements</div>
+        <div className={styles.sectionTitle}>{t('profile.achievements')}</div>
         <AchievementGrid
           achievements={achievements ?? []}
           isLoading={achievementsLoading}
         />
 
-        <div className={styles.sectionTitle}>Match History</div>
+        <div className={styles.sectionTitle}>{t('profile.matchHistory')}</div>
 
         <MatchHistory
           matches={matchData?.matches ?? []}

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import styles from './ModalOverlay.module.css'
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
  *   </ModalOverlay>
  */
 export function ModalOverlay({ onClose, children, className }: Props) {
+  const { t } = useTranslation()
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
@@ -36,7 +38,7 @@ export function ModalOverlay({ onClose, children, className }: Props) {
         type='button'
         className={styles.backdrop}
         onClick={onClose}
-        aria-label='Close dialog'
+        aria-label={t('common.closeDialog')}
         tabIndex={-1}
       />
       {children}

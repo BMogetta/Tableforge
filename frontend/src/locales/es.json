@@ -6,15 +6,28 @@
     "confirm": "Confirmar",
     "back": "Volver",
     "close": "Cerrar",
+    "closeDialog": "Cerrar di\u00e1logo",
     "delete": "Eliminar",
     "error": "Algo sali\u00f3 mal",
     "empty": "Nada por aqu\u00ed todav\u00eda",
-    "comingSoon": "Pr\u00f3ximamente"
+    "comingSoon": "Pr\u00f3ximamente",
+    "prev": "Anterior",
+    "next": "Siguiente"
   },
   "auth": {
-    "loginWithGithub": "Iniciar sesi\u00f3n con GitHub",
+    "loginWithGithub": "Continuar con GitHub",
+    "waitingForGithub": "Esperando a GitHub...",
     "logout": "Cerrar sesi\u00f3n",
-    "sessionExpired": "Sesi\u00f3n expirada"
+    "sessionExpired": "Sesi\u00f3n expirada",
+    "subtitle": "Juegos de mesa multijugador",
+    "invitationOnly": "El acceso es solo por invitaci\u00f3n.",
+    "beta": "BETA",
+    "inviteOnly": "Solo invitados",
+    "accessRestricted": "Acceso restringido",
+    "emailNotAllowed": "EMAIL_NO_PERMITIDO",
+    "accessDeniedDesc": "Esta plataforma opera como un circuito cerrado. El acceso se otorga solo por invitaci\u00f3n. Tu cuenta de GitHub no est\u00e1 en la lista de acceso.",
+    "tryAnotherAccount": "Probar otra cuenta",
+    "closedBeta": "Beta cerrada"
   },
   "settings": {
     "title": "Configuraci\u00f3n",
@@ -105,7 +118,14 @@
     "draws": "Empates",
     "winRate": "Efectividad",
     "block": "Bloquear",
-    "unblock": "Desbloquear"
+    "blocking": "Bloqueando...",
+    "unblock": "Desbloquear",
+    "unblocking": "Desbloqueando...",
+    "loadingProfile": "Cargando perfil...",
+    "loadingMatches": "Cargando partidas...",
+    "loadingAchievements": "Cargando logros...",
+    "noMatches": "No hay partidas a\u00fan.",
+    "pageInfo": "{{current}} / {{total}}"
   },
   "notifications": {
     "title": "Notificaciones",
@@ -126,6 +146,9 @@
     "offline": "Desconectado",
     "removeFriend": "Eliminar amigo",
     "noFriends": "A\u00fan no ten\u00e9s amigos"
+  },
+  "rules": {
+    "title": "Reglas del juego"
   },
   "errors": {
     "unauthorized": "Necesit\u00e1s iniciar sesi\u00f3n para hacer eso.",

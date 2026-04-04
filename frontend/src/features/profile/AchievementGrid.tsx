@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { PlayerAchievement } from '@/lib/api'
 import { testId } from '@/utils/testId'
 import { AchievementCard, type AchievementDef } from './AchievementCard'
@@ -76,8 +77,10 @@ interface Props {
 }
 
 export function AchievementGrid({ achievements, isLoading }: Props) {
+  const { t } = useTranslation()
+
   if (isLoading) {
-    return <div className={styles.loading}>Loading achievements...</div>
+    return <div className={styles.loading}>{t('profile.loadingAchievements')}</div>
   }
 
   const achievementMap = new Map(achievements.map(a => [a.achievement_key, a]))
