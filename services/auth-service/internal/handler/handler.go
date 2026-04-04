@@ -146,12 +146,15 @@ func (h *Handler) HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !allowed {
-		slog.Warn("auth: email not allowed", "email", email)
+		slog.Warn("auth: email not allowed", "email", maskEmail(email))
 		http.Redirect(w, r, "/?error=email_not_allowed", http.StatusTemporaryRedirect)
 		return
 	}
 
 	avatarURL := ghUser.AvatarURL
+	if !strings.HasPrefix(avatarURL, "https://avatars.githubusercontent.com/") {
+		avatarURL = ""
+	}
 	identity, err := h.store.UpsertOAuthIdentity(ctx, UpsertOAuthParams{
 		Provider:   "github",
 		ProviderID: fmt.Sprintf("%d", ghUser.ID),
@@ -243,6 +246,21 @@ func clientIP(r *http.Request) string {
 		return host[:i]
 	}
 	return host
+}
+
+// maskEmail masks the local part of an email address for safe logging.
+// "alice@example.com" -> "al***@example.com"
+func maskEmail(email string) string {
+	at := strings.LastIndex(email, "@")
+	if at <= 0 {
+		return "***"
+	}
+	local := email[:at]
+	domain := email[at:]
+	if len(local) <= 2 {
+		return "***" + domain
+	}
+	return local[:2] + "***" + domain
 }
 
 // sanitizeUsername lowercases and strips characters that aren't alphanumeric

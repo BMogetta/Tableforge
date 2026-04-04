@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -37,8 +38,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
       # Build server image for linux/arm64 (Pi 5)
       - name: Build and push server
+        id: build-server
         uses: docker/build-push-action@v6
         with:
           context: ./server
@@ -49,8 +54,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Sign server image
+        run: cosign sign --yes ${{ env.SERVER_IMAGE }}@${{ steps.build-server.outputs.digest }}
+
       # Build frontend image for linux/arm64
       - name: Build and push frontend
+        id: build-frontend
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -59,3 +68,6 @@ jobs:
           tags: ${{ env.FRONTEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Sign frontend image
+        run: cosign sign --yes ${{ env.FRONTEND_IMAGE }}@${{ steps.build-frontend.outputs.digest }}

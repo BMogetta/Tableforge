@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/riandyrn/otelchi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -74,7 +73,9 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 	ratingv1.RegisterRatingServiceServer(grpcServer, grpcH)
-	reflection.Register(grpcServer)
+	if config.Env("ENV", "development") != "production" {
+		reflection.Register(grpcServer)
+	}
 
 	go func() {
 		slog.Info("gRPC listening", "addr", grpcAddr)
@@ -86,7 +87,7 @@ func main() {
 
 	// ── HTTP server ───────────────────────────────────────────────────────────
 	r := chi.NewRouter()
-	r.Use(middleware.Recoverer)
+	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -113,6 +114,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

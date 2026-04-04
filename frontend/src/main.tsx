@@ -47,24 +47,28 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
-      {isDev && <DevtoolsCapture />}
-      <TanStackDevtools
-        plugins={[
-          {
-            name: 'TanStack Query',
-            render: <ReactQueryDevtoolsPanel />,
-          },
-          {
-            name: 'TanStack Router',
-            render: <TanStackRouterDevtools router={router} />,
-          },
-          pacerDevtoolsPlugin(),
-          {
-            name: 'WebSocket',
-            render: <WsDevtools />,
-          },
-        ]}
-      ></TanStackDevtools>
+      {isDev && (
+        <>
+          <DevtoolsCapture />
+          <TanStackDevtools
+            plugins={[
+              {
+                name: 'TanStack Query',
+                render: <ReactQueryDevtoolsPanel />,
+              },
+              {
+                name: 'TanStack Router',
+                render: <TanStackRouterDevtools router={router} />,
+              },
+              pacerDevtoolsPlugin(),
+              {
+                name: 'WebSocket',
+                render: <WsDevtools />,
+              },
+            ]}
+          ></TanStackDevtools>
+        </>
+      )}
     </QueryClientProvider>
   </StrictMode>,
 )

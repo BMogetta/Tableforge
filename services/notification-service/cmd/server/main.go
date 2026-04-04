@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/riandyrn/otelchi"
 	"github.com/recess/notification-service/internal/api"
 	"github.com/recess/notification-service/internal/consumer"
@@ -60,7 +59,7 @@ func main() {
 
 	// ── HTTP ──────────────────────────────────────────────────────────────────
 	r := chi.NewRouter()
-	r.Use(chimw.Recoverer)
+	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +85,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

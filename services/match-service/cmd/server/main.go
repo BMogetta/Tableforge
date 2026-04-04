@@ -11,7 +11,6 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi/v5"
-	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/hibiken/asynq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -136,7 +135,7 @@ func main() {
 	authMW := sharedmw.Require([]byte(jwtSecret))
 
 	r := chi.NewRouter()
-	r.Use(chimw.Recoverer)
+	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
 	r.Get("/metrics", promhttp.HandlerFor(
 		prometheus.DefaultGatherer,
@@ -159,6 +158,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

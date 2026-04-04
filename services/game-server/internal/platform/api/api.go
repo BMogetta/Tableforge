@@ -40,7 +40,7 @@ func NewRouter(
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(sharedmw.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(otelchi.Middleware("game-server",
 		otelchi.WithChiRoutes(r),

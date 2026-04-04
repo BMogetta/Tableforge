@@ -58,7 +58,7 @@ func main() {
 		}
 	}()
 
-	st, err := store.New(ctx, config.Env("DATABASE_URL", "postgres://recess:recess@localhost:5432/recess?sslmode=disable"))
+	st, err := store.New(ctx, config.MustEnv("DATABASE_URL"))
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)
 		os.Exit(1)
@@ -111,7 +111,9 @@ func main() {
 	grpcServer := grpc.NewServer()
 	lobbyv1.RegisterLobbyServiceServer(grpcServer, grpchandler.NewLobbyHandler(lobbyService, st))
 	gamev1.RegisterGameServiceServer(grpcServer, grpchandler.NewGameHandler(lobbyService, runtimeService, st, hub))
-	reflection.Register(grpcServer)
+	if config.Env("ENV", "development") != "production" {
+		reflection.Register(grpcServer)
+	}
 
 	go func() {
 		slog.Info("gRPC listening", "addr", grpcAddr)
@@ -185,6 +187,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {
