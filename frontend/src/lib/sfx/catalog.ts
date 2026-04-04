@@ -47,8 +47,14 @@ const CATALOG = {
   // -- Queue -----------------------------------------------------------------
   // 'queue.match_found': '',
   // 'queue.ready':       '',
-} as const satisfies Record<string, string>
+  // -- Multi-variant examples (array format) ----------------------------------
+  // 'game.card_play': ['https://cdn.example.com/card-play-1.mp3', 'https://cdn.example.com/card-play-2.mp3'],
+  // 'game.move':      ['https://cdn.example.com/move-a.mp3', 'https://cdn.example.com/move-b.mp3', 'https://cdn.example.com/move-c.mp3'],
+} as const satisfies Record<string, string | readonly string[]>
 
 export type SfxId = keyof typeof CATALOG
+
+/** The union of possible catalog entry types (single URL or array of URLs). */
+export type CatalogEntry = string | readonly string[]
 
 export { CATALOG }

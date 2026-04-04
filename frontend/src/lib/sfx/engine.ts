@@ -19,10 +19,15 @@
  * ## AudioContext
  * Created lazily on first user interaction (Chrome autoplay policy).
  * A single AudioContext is shared for all SFX playback.
+ *
+ * ## Multi-variant sounds
+ * Catalog entries can be a single URL string or an array of URLs.
+ * When an array, `play()` picks a random variant with anti-repetition
+ * (never the same variant twice in a row for a given key).
  */
 
 import { useAppStore } from '@/stores/store'
-import { CATALOG, type SfxId } from './catalog'
+import { CATALOG, type CatalogEntry, type SfxId } from './catalog'
 
 const CACHE_NAME = 'tf-sfx-v1'
 
@@ -60,6 +65,71 @@ function getContext(): AudioContext {
 
 const bufferCache = new Map<string, AudioBuffer>()
 
+// -- Anti-repetition state ---------------------------------------------------
+// Tracks the last-played variant index per key to avoid consecutive repeats.
+
+const lastPlayed = new Map<string, number>()
+
+// -- URL resolution ----------------------------------------------------------
+
+/**
+ * Resolve the actual URL for a catalog entry.
+ * - string entry → return it directly (index ignored).
+ * - array entry + index → return that index (clamped to valid range).
+ * - array entry + no index → return undefined (caller should pick randomly).
+ * - empty string or empty array → return null.
+ */
+function resolveUrl(id: SfxId, index?: number): string | null {
+  const entry = CATALOG[id] as CatalogEntry
+
+  if (typeof entry === 'string') {
+    return entry || null
+  }
+
+  // Array entry
+  const arr = entry
+  if (arr.length === 0) return null
+
+  if (index !== undefined) {
+    const clamped = Math.max(0, Math.min(index, arr.length - 1))
+    return arr[clamped] || null
+  }
+
+  // No index provided — pick random with anti-repetition
+  if (arr.length === 1) return arr[0] || null
+
+  const last = lastPlayed.get(id)
+  let pick: number
+
+  if (last === undefined || arr.length === 2) {
+    // With 2 items: alternate. First call: random.
+    if (last === undefined) {
+      pick = Math.floor(Math.random() * arr.length)
+    } else {
+      // 2 items → pick the other one
+      pick = last === 0 ? 1 : 0
+    }
+  } else {
+    // 3+ items: random excluding last
+    const candidates = Array.from({ length: arr.length }, (_, i) => i).filter(
+      i => i !== last,
+    )
+    pick = candidates[Math.floor(Math.random() * candidates.length)]
+  }
+
+  lastPlayed.set(id, pick)
+  return arr[pick] || null
+}
+
+/** Get all URLs for a catalog entry (for preloading). */
+function allUrls(id: SfxId): string[] {
+  const entry = CATALOG[id] as CatalogEntry
+  if (typeof entry === 'string') {
+    return entry ? [entry] : []
+  }
+  return entry.filter(u => u.length > 0) as string[]
+}
+
 // -- Core --------------------------------------------------------------------
 
 async function fetchAndCache(url: string): Promise<Response> {
@@ -75,8 +145,7 @@ async function fetchAndCache(url: string): Promise<Response> {
   return res
 }
 
-async function getBuffer(id: SfxId): Promise<AudioBuffer | null> {
-  const url = CATALOG[id]
+async function getBuffer(url: string): Promise<AudioBuffer | null> {
   if (!url) return null
 
   const existing = bufferCache.get(url)
@@ -97,8 +166,11 @@ async function getBuffer(id: SfxId): Promise<AudioBuffer | null> {
 /**
  * Play a sound by catalog key. Non-blocking, never throws.
  * Respects mute_all, notify_sound, and per-category volume settings.
+ *
+ * For multi-variant entries (arrays), pass `index` to select a specific
+ * variant, or omit it for random selection with anti-repetition.
  */
-function play(id: SfxId): void {
+function play(id: SfxId, index?: number): void {
   const settings = useAppStore.getState().settings
 
   if (settings.mute_all || !settings.notify_sound) return
@@ -108,8 +180,11 @@ function play(id: SfxId): void {
   const finalVol = masterVol * categoryVol
   if (finalVol <= 0) return
 
+  const url = resolveUrl(id, index)
+  if (!url) return
+
   // Fire-and-forget — playback errors are silently ignored.
-  getBuffer(id)
+  getBuffer(url)
     .then(buffer => {
       if (!buffer) return
       const audioCtx = getContext()
@@ -126,11 +201,13 @@ function play(id: SfxId): void {
 /**
  * Preload one or more sounds into Cache API + decode buffer.
  * Call during idle time (e.g. after login) to warm the cache.
- * Non-blocking, never throws.
+ * Non-blocking, never throws. Preloads all variants for array entries.
  */
 function preload(...ids: SfxId[]): void {
   for (const id of ids) {
-    getBuffer(id).catch(() => {})
+    for (const url of allUrls(id)) {
+      getBuffer(url).catch(() => {})
+    }
   }
 }
 
@@ -139,7 +216,9 @@ function preload(...ids: SfxId[]): void {
  * to warm the cache in the background.
  */
 function preloadAll(): void {
-  const ids = (Object.keys(CATALOG) as SfxId[]).filter(k => CATALOG[k].length > 0)
+  const ids = (Object.keys(CATALOG) as SfxId[]).filter(
+    k => allUrls(k).length > 0,
+  )
   preload(...ids)
 }
 
