@@ -113,7 +113,7 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
           >
             {JSON.stringify(event.payload, null, 2)}
           </pre>
-          <button
+          <button type="button"
             style={{
               margin: '0 10px 6px 24px',
               padding: '2px 8px',
@@ -170,7 +170,7 @@ export function WsDevtools() {
   useEffect(() => {
     if (!autoScroll || !listRef.current) return
     listRef.current.scrollTop = listRef.current.scrollHeight
-  }, [events.length, autoScroll])
+  }, [autoScroll])
 
   // Pause auto-scroll when user scrolls up.
   function handleScroll() {
@@ -236,7 +236,7 @@ export function WsDevtools() {
         {/* Filter mode toggle */}
         <div style={{ display: 'flex', gap: 2 }}>
           {Object.values(FilterMode).map(mode => (
-            <button
+            <button type="button"
               key={mode}
               {...testId(`filter-mode-${mode}`)}
               data-active={filterMode === mode}
@@ -303,7 +303,7 @@ export function WsDevtools() {
         </span>
 
         {/* Clear button */}
-        <button
+        <button type="button"
           {...testId('clear-btn')}
           onClick={clear}
           style={{

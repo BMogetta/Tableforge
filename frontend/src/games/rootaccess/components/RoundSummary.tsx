@@ -48,7 +48,7 @@ export function RoundSummary({
       })
     }, 100)
     return () => clearInterval(interval)
-  }, [autoDismissMs, onDismiss])
+  }, [onDismiss])
 
   const winner = players.find(p => p.id === winnerId)
   const backdoorBonusPlayers = players.filter(p => p.earnedBackdoorBonus)
@@ -114,7 +114,7 @@ export function RoundSummary({
           <div className={styles.progressBar}>
             <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
           </div>
-          <button className='btn btn-ghost' onClick={onDismiss}>
+          <button type="button" className='btn btn-ghost' onClick={onDismiss}>
             {t('rootaccess.continue')}
           </button>
         </div>

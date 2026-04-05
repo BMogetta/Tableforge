@@ -20,7 +20,6 @@ interface Props {
 type Phase = 'loading' | 'waiting' | 'done'
 
 export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
-  const player = useAppStore(s => s.player)!
   const socket = useAppStore(s => s.socket)
   const isSpectator = useAppStore(s => s.isSpectator)
 
@@ -78,7 +77,7 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
     return () => {
       cancelled = true
     }
-  }, [sessionId, gameId, player.id, isSpectator])
+  }, [sessionId, gameId, isSpectator, onReady])
 
   // Phase 2 — listen for game_ready WS event.
   useEffect(() => {
@@ -145,7 +144,7 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
           </p>
         )}
         <p className={styles.countdown}>{countdown}s</p>
-        <button
+        <button type="button"
           className='btn btn-ghost'
           style={{ marginTop: 16, fontSize: 12 }}
           onClick={onTimeout}

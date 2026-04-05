@@ -58,7 +58,7 @@ export function Admin() {
 
       <nav className={styles.tabs} {...testId('admin-tabs')}>
         {Object.entries(TAB_LABELS).map(([key, label]) => (
-          <button
+          <button type="button"
             key={key}
             className={`${styles.tab} ${tab === key ? styles.tabActive : ''}`}
             onClick={() => setTab(key as Tab)}

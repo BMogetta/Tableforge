@@ -64,7 +64,7 @@ export function Profile({ playerId }: { playerId: string }) {
           {!isOwnProfile && currentPlayer && (
             <div className={styles.profileActions}>
               {blocked ? (
-                <button
+                <button type="button"
                   className='btn btn-ghost btn-sm'
                   onClick={() => unblock(playerId)}
                   disabled={unblockPending}
@@ -73,7 +73,7 @@ export function Profile({ playerId }: { playerId: string }) {
                   {unblockPending ? t('profile.unblocking') : t('profile.unblock')}
                 </button>
               ) : (
-                <button
+                <button type="button"
                   className={`btn btn-ghost btn-sm ${styles.blockBtn}`}
                   onClick={() =>
                     block({

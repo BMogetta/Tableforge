@@ -28,7 +28,7 @@ export function RoomsTab({ callerRole }: Props) {
       .then(data => setRooms(data.items))
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toast.showError])
 
   useEffect(() => {
     fetchRooms()
@@ -69,7 +69,7 @@ export function RoomsTab({ callerRole }: Props) {
       <div className={styles.toolbar}>
         <div className={styles.filterGroup}>
           {(['all', 'waiting', 'in_progress', 'finished'] as RoomFilter[]).map(f => (
-            <button
+            <button type="button"
               key={f}
               className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => {
@@ -88,7 +88,7 @@ export function RoomsTab({ callerRole }: Props) {
         <div className={`card ${styles.detailCard}`} {...testId('room-detail')}>
           <div className={styles.detailHeader}>
             <h3>Room: {selectedRoom.room.code}</h3>
-            <button className='btn btn-ghost btn-sm' onClick={() => setSelectedRoom(null)}>
+            <button type="button" className='btn btn-ghost btn-sm' onClick={() => setSelectedRoom(null)}>
               Back
             </button>
           </div>
@@ -118,7 +118,7 @@ export function RoomsTab({ callerRole }: Props) {
           </ul>
           {selectedRoom.room.status === 'in_progress' && canForceEnd && (
             <div className={styles.actionRow}>
-              <button
+              <button type="button"
                 className='btn btn-danger btn-sm'
                 onClick={() => handleForceEnd(selectedRoom.room.id)}
                 {...testId('force-end-btn')}

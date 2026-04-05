@@ -73,7 +73,7 @@ export function Settings({ onClose }: Props) {
       <header className={styles.header}>
         <h2 className={styles.title}>{t('settings.title')}</h2>
         {onClose && (
-          <button className='btn btn-ghost btn-sm' onClick={onClose}>
+          <button type="button" className='btn btn-ghost btn-sm' onClick={onClose}>
             ✕
           </button>
         )}
@@ -89,7 +89,7 @@ export function Settings({ onClose }: Props) {
             </div>
             <div className={styles.skinPicker}>
               {SKINS.map(skin => (
-                <button
+                <button type="button"
                   key={skin.id}
                   className={`${styles.skinOption} ${settings.theme === skin.id ? styles.skinOptionActive : ''}`}
                   onClick={() => change('theme', skin.id)}
@@ -251,7 +251,7 @@ export function Settings({ onClose }: Props) {
                   <img src={bp.avatar_url} alt='' className={styles.blockedAvatar} />
                 )}
                 <span className={styles.blockedName}>{bp.username}</span>
-                <button
+                <button type="button"
                   className='btn btn-ghost btn-sm'
                   onClick={() => unblock(bp.id)}
                   disabled={unblockPending}
@@ -313,7 +313,7 @@ function ToggleRow({
         <span>{label}</span>
         {description && <span className={styles.rowDesc}>{description}</span>}
       </div>
-      <button
+      <button type="button"
         role='switch'
         aria-checked={checked}
         className={`${styles.toggle} ${checked ? styles.toggleOn : ''}`}
@@ -386,7 +386,7 @@ function VolumeRow({
     <div className={`${styles.row} ${styles.volumeRow} ${disabled ? styles.rowDisabled : ''}`}>
       <span className={styles.volumeLabel}>{label}</span>
       <div className={styles.volumeControls}>
-        <button
+        <button type="button"
           className={`${styles.muteBtn} ${muted ? styles.muteBtnActive : ''}`}
           onClick={() =>
             !disabled &&

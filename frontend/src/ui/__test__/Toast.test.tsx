@@ -25,16 +25,16 @@ function TestHarness() {
 
   return (
     <div>
-      <button data-testid='show-error' onClick={() => toast.showError(devError)}>
+      <button type="button" data-testid='show-error' onClick={() => toast.showError(devError)}>
         Error
       </button>
-      <button data-testid='show-prod-error' onClick={() => toast.showError(prodError)}>
+      <button type="button" data-testid='show-prod-error' onClick={() => toast.showError(prodError)}>
         Prod Error
       </button>
-      <button data-testid='show-warning' onClick={() => toast.showWarning('watch out')}>
+      <button type="button" data-testid='show-warning' onClick={() => toast.showWarning('watch out')}>
         Warning
       </button>
-      <button data-testid='show-info' onClick={() => toast.showInfo('heads up')}>
+      <button type="button" data-testid='show-info' onClick={() => toast.showInfo('heads up')}>
         Info
       </button>
     </div>

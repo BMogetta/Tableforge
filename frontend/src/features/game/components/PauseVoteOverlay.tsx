@@ -40,7 +40,7 @@ export function PauseVoteOverlay({
         {t('game.pauseVotes', { current: votes.length, total: required })}
       </p>
       {!isSpectator && !votedPause && (
-        <button
+        <button type="button"
           {...testId('vote-pause-btn')}
           className='btn btn-ghost'
           onClick={onVote}

@@ -22,7 +22,7 @@ export function DesignPage() {
         <h1 className={styles.headerTitle}>Design System</h1>
         <div className={styles.themeToggle}>
           {(['dark', 'parchment', 'slate', 'ivory'] as Theme[]).map(t => (
-            <button
+            <button type="button"
               key={t}
               className={`${styles.themeBtn} ${theme === t ? styles.themeBtnActive : ''}`}
               onClick={() => setTheme(t)}
@@ -142,19 +142,19 @@ export function DesignPage() {
         {/* ── Buttons ────────────────────────────────────────────────────── */}
         <Section title='Buttons'>
           <div className={styles.row}>
-            <button className='btn btn-primary'>Start Game</button>
-            <button className='btn btn-ghost'>Leave Room</button>
-            <button className='btn btn-danger'>Forfeit</button>
-            <button className='btn btn-secondary'>View Replay</button>
-            <button className='btn btn-primary' disabled={true}>
+            <button type="button" className='btn btn-primary'>Start Game</button>
+            <button type="button" className='btn btn-ghost'>Leave Room</button>
+            <button type="button" className='btn btn-danger'>Forfeit</button>
+            <button type="button" className='btn btn-secondary'>View Replay</button>
+            <button type="button" className='btn btn-primary' disabled={true}>
               Disabled
             </button>
           </div>
           <div className={styles.row} style={{ marginTop: 12 }}>
-            <button className='btn btn-ghost' style={{ padding: '4px 10px', fontSize: 11 }}>
+            <button type="button" className='btn btn-ghost' style={{ padding: '4px 10px', fontSize: 11 }}>
               ← Lobby
             </button>
-            <button className='btn btn-ghost' style={{ padding: '4px 10px', fontSize: 11 }}>
+            <button type="button" className='btn btn-ghost' style={{ padding: '4px 10px', fontSize: 11 }}>
               ⏸ Pause
             </button>
           </div>

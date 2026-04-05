@@ -50,7 +50,7 @@ export function AppHeader({ onLogout }: Props) {
 
         <div className={styles.actions}>
           {/* Rules book */}
-          <button
+          <button type="button"
             className={styles.iconBtn}
             title={t('header.gameRules')}
             onClick={() => setRulesOpen(true)}
@@ -70,7 +70,7 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* Notifications bell */}
-          <button
+          <button type="button"
             className={styles.iconBtn}
             title={t('header.notifications')}
             onClick={() => setNotifsOpen(true)}
@@ -92,7 +92,7 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* DMs envelope */}
-          <button
+          <button type="button"
             className={styles.iconBtn}
             title={t('header.messages')}
             onClick={() => useAppStore.getState().setDmTarget('__inbox__')}
@@ -114,7 +114,7 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* Settings gear */}
-          <button className={styles.iconBtn} title={t('header.settings')} onClick={() => setSettingsOpen(true)}>
+          <button type="button" className={styles.iconBtn} title={t('header.settings')} onClick={() => setSettingsOpen(true)}>
             <svg
               width='16'
               height='16'
@@ -147,7 +147,7 @@ export function AppHeader({ onLogout }: Props) {
             </Link>
           )}
 
-          <button className='btn btn-ghost btn-sm' onClick={onLogout}>
+          <button type="button" className='btn btn-ghost btn-sm' onClick={onLogout}>
             {t('auth.logout')}
           </button>
         </div>

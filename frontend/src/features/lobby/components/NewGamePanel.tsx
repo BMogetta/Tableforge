@@ -148,7 +148,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
       {gameList.length > 1 && (
         <div className={styles.gameSelector}>
           {gameList.map((g: GameInfo) => (
-            <button
+            <button type="button"
               key={g.id}
               {...testId(`game-option-${g.id}`)}
               className={`${styles.gameOption} ${effectiveGame === g.id ? styles.gameOptionActive : ''}`}
@@ -165,13 +165,13 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
 
       {/* Tabs */}
       <div className={styles.tabs}>
-        <button
+        <button type="button"
           className={`${styles.tab} ${tab === 'casual' ? styles.tabActive : ''}`}
           onClick={() => setTab('casual')}
         >
           {t('lobby.casual')}
         </button>
-        <button
+        <button type="button"
           className={`${styles.tab} ${tab === 'ranked' ? styles.tabActive : ''}`}
           onClick={() => setTab('ranked')}
         >
@@ -182,7 +182,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
       <div className={styles.body}>
         {tab === 'casual' && (
           <div className={styles.casualBody}>
-            <button
+            <button type="button"
               {...testId('create-room-btn')}
               className='btn btn-primary'
               onClick={() => createRoom.mutate()}
@@ -203,7 +203,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                 maxLength={6}
                 style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
               />
-              <button
+              <button type="button"
                 {...testId('join-btn')}
                 className='btn btn-ghost'
                 onClick={() => joinRoom.mutate()}
@@ -218,7 +218,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
         {tab === 'ranked' && (
           <div className={styles.rankedBody}>
             {queueStatus === 'idle' && (
-              <button
+              <button type="button"
                 className='btn btn-primary'
                 onClick={() => joinQueue.mutate()}
                 disabled={disabled || joinQueue.isPending || !effectiveGame}
@@ -236,7 +236,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                   </span>
                   <span className={styles.queueTimer}>{formatElapsed(elapsed)}</span>
                 </div>
-                <button
+                <button type="button"
                   className='btn btn-ghost'
                   onClick={() => leaveQueue.mutate()}
                   disabled={leaveQueue.isPending}

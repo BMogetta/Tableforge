@@ -91,7 +91,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             {...testId('bans-search-input')}
           />
-          <button
+          <button type="button"
             className='btn btn-secondary'
             onClick={handleSearch}
             {...testId('bans-search-btn')}
@@ -99,7 +99,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
             Search
           </button>
           {canBan && (
-            <button
+            <button type="button"
               className='btn btn-danger'
               onClick={() => setShowDialog(true)}
               {...testId('open-ban-dialog-btn')}
@@ -172,10 +172,10 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
               </>
             )}
             <div className={styles.actionRow}>
-              <button className='btn btn-ghost' onClick={() => setShowDialog(false)}>
+              <button type="button" className='btn btn-ghost' onClick={() => setShowDialog(false)}>
                 Cancel
               </button>
-              <button
+              <button type="button"
                 className='btn btn-danger'
                 onClick={handleBanSubmit}
                 {...testId('confirm-ban-btn')}
@@ -194,8 +194,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
           Search for a player to view ban history.
         </p>
       ) : (
-        <>
-          {activeBans.length === 0 && historyBans.length === 0 ? (
+        activeBans.length === 0 && historyBans.length === 0 ? (
             <p className={styles.empty} {...testId('bans-no-results')}>
               No bans found for this player.
             </p>
@@ -231,7 +230,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
                           <td className={styles.muted}>{b.banned_by}</td>
                           <td>
                             {canBan && (
-                              <button
+                              <button type="button"
                                 className='btn btn-ghost btn-sm'
                                 onClick={() => handleLiftBan(b.id)}
                                 {...testId(`lift-ban-${b.id}`)}
@@ -285,8 +284,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
                 </details>
               )}
             </>
-          )}
-        </>
+          )
       )}
     </div>
   )

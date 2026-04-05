@@ -101,7 +101,7 @@ export function PlayerList({
 
               {!isSelf && !p.is_bot ? (
                 <div className={styles.playerNameWrapper} ref={isDropdownOpen ? dropdownRef : null}>
-                  <button
+                  <button type="button"
                     className={styles.playerNameBtn}
                     onClick={() => setOpenDropdownId(isDropdownOpen ? null : p.id)}
                     title={t('room.optionsFor', { name: p.username })}
@@ -161,7 +161,7 @@ export function PlayerList({
               {p.id === ownerId && <span className='badge badge-amber'>{t('room.host')}</span>}
               {isSelf && <span className='badge badge-muted'>{t('common.you')}</span>}
               {isOwner && p.is_bot && (
-                <button
+                <button type="button"
                   {...testId(`remove-bot-btn-${p.id}`)}
                   className={styles.removeBotBtn}
                   disabled={removingBotId === p.id}

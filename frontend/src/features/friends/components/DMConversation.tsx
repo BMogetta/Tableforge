@@ -40,7 +40,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight
     }
-  }, [safeMessages.length])
+  }, [])
 
   // Listen for real-time DMs
   useEffect(() => {
@@ -71,7 +71,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
       qc.invalidateQueries({ queryKey: keys.dmUnread(player.id) })
       qc.invalidateQueries({ queryKey: keys.dmConversations(player.id) })
     }
-  }, [safeMessages])
+  }, [safeMessages, player.id, qc.invalidateQueries])
 
   const sendMut = useMutation({
     mutationFn: (content: string) => dm.send(player.id, otherPlayerId, content),
@@ -95,12 +95,12 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
   return (
     <div className={styles.root}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={onBack}>
+        <button type="button" className={styles.backBtn} onClick={onBack}>
           &#8592;
         </button>
         <span className={styles.username}>{otherUsername}</span>
         {!blocked && (
-          <button
+          <button type="button"
             className={`${styles.blockBtn}`}
             onClick={() => block({ targetId: otherPlayerId, username: otherUsername })}
             disabled={blockPending}
@@ -136,7 +136,6 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
           onChange={e => setText(e.target.value)}
           placeholder='Type a message...'
           disabled={sendMut.isPending}
-          autoFocus={true}
         />
         <button
           className='btn btn-primary btn-sm'

@@ -28,7 +28,7 @@ export function TicTacToeBoard({ state, currentPlayerId, localPlayerId, onMove, 
         const isClickable = isEmpty && isMyTurn
 
         return (
-          <button
+          <button type="button"
             key={i}
             data-cell={i}
             className={`${styles.cell} ${!isEmpty ? styles.cellFilled : ''} ${isClickable ? styles.cellHoverable : ''}`}

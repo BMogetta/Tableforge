@@ -39,7 +39,7 @@ describe('TooltipWrapper', () => {
   it('does not show tooltip by default', () => {
     render(
       <TooltipWrapper text='Tooltip text'>
-        <button>Hover me</button>
+        <button type="button">Hover me</button>
       </TooltipWrapper>,
     )
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
@@ -49,7 +49,7 @@ describe('TooltipWrapper', () => {
     const user = userEvent.setup()
     render(
       <TooltipWrapper text='Tooltip text'>
-        <button>Hover me</button>
+        <button type="button">Hover me</button>
       </TooltipWrapper>,
     )
     await user.hover(screen.getByText('Hover me'))
@@ -60,7 +60,7 @@ describe('TooltipWrapper', () => {
     const user = userEvent.setup()
     render(
       <TooltipWrapper text='Tooltip text'>
-        <button>Hover me</button>
+        <button type="button">Hover me</button>
       </TooltipWrapper>,
     )
     await user.hover(screen.getByText('Hover me'))

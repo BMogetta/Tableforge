@@ -82,7 +82,7 @@ export function MatchHistory({
 
       {totalPages > 1 && (
         <div className={styles.pagination}>
-          <button
+          <button type="button"
             className='btn btn-ghost'
             onClick={() => onPageChange(page - 1)}
             disabled={page === 0}
@@ -92,7 +92,7 @@ export function MatchHistory({
           <span className={styles.pageInfo}>
             {t('profile.pageInfo', { current: page + 1, total: totalPages })}
           </span>
-          <button
+          <button type="button"
             className='btn btn-ghost'
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages - 1}

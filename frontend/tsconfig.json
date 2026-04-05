@@ -26,9 +26,8 @@
     "noImplicitOverride": true,
 
     // Path alias — if you use @/ imports
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"]

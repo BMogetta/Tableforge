@@ -14,8 +14,7 @@ export function NotFound() {
         mistyped the address.
       </p>
       <div className={styles.actions}>
-        <button
-          type='button'
+        <button type="button"
           className='btn btn-primary'
           onClick={() => navigate({ to: '/', replace: true, ignoreBlocker: true })}
         >

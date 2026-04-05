@@ -43,14 +43,14 @@ export function GameOverActions({
   const { t } = useTranslation()
   return (
     <div className={styles.gameOver}>
-      <button className='btn btn-ghost' onClick={onBackToLobby}>
+      <button type="button" className='btn btn-ghost' onClick={onBackToLobby}>
         {t('game.backToLobby')}
       </button>
-      <button className='btn btn-ghost' {...testId('view-replay-btn')} onClick={onViewReplay}>
+      <button type="button" className='btn btn-ghost' {...testId('view-replay-btn')} onClick={onViewReplay}>
         {t('game.viewReplay')}
       </button>
       {!isSpectator && (
-        <button
+        <button type="button"
           className='btn btn-primary'
           {...testId('rematch-btn')}
           onClick={onRematch}

@@ -58,7 +58,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
       notifications.markRead(player.id, n.id).catch(() => {})
     }
     invalidate()
-  }, [safeItems])
+  }, [safeItems, invalidate, player.id])
 
   function handleAccept(id: string) {
     setPendingId(id)
@@ -84,7 +84,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
           <h2 className={styles.title} id='notifications-title'>
             {t('notifications.title')}
           </h2>
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button type="button" className={styles.closeBtn} onClick={onClose}>
             x
           </button>
         </div>

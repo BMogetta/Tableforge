@@ -52,7 +52,7 @@ export function SuspendedScreen({
         </p>
       )}
       {canResume && (
-        <button
+        <button type="button"
           {...testId('vote-resume-btn')}
           className='btn btn-primary'
           onClick={onResume}
@@ -62,7 +62,7 @@ export function SuspendedScreen({
         </button>
       )}
       {votedResume && <p className={styles.voteWaiting}>{t('game.waitingForOpponent')}</p>}
-      <button className='btn btn-ghost' onClick={onBackToLobby} style={{ marginTop: 8 }}>
+      <button type="button" className='btn btn-ghost' onClick={onBackToLobby} style={{ marginTop: 8 }}>
         {t('game.backToLobby')}
       </button>
     </div>

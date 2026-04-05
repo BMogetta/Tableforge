@@ -27,7 +27,7 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
       .then(setReports)
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
-  }, [filter])
+  }, [filter, toast.showError])
 
   useEffect(() => {
     fetchReports()
@@ -54,7 +54,7 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
       <div className={styles.toolbar}>
         <div className={styles.filterGroup}>
           {(['pending', 'reviewed', 'all'] as FilterStatus[]).map(s => (
-            <button
+            <button type="button"
               key={s}
               className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setFilter(s)}
@@ -73,7 +73,7 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
         <div className={`card ${styles.detailCard}`} {...testId('report-detail')}>
           <div className={styles.detailHeader}>
             <h3>Report Detail</h3>
-            <button className='btn btn-ghost btn-sm' onClick={() => setSelected(null)}>
+            <button type="button" className='btn btn-ghost btn-sm' onClick={() => setSelected(null)}>
               Back
             </button>
           </div>
@@ -95,14 +95,14 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
           </dl>
           {selected.status === 'pending' && (
             <div className={styles.actionRow}>
-              <button
+              <button type="button"
                 className='btn btn-ghost btn-sm'
                 onClick={() => handleReview(selected.id, 'dismiss')}
                 {...testId('dismiss-report-btn')}
               >
                 Dismiss
               </button>
-              <button
+              <button type="button"
                 className='btn btn-secondary btn-sm'
                 onClick={() => handleReview(selected.id, 'warn')}
                 {...testId('warn-report-btn')}
@@ -110,7 +110,7 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
                 Warn
               </button>
               {(callerRole === 'manager' || callerRole === 'owner') && (
-                <button
+                <button type="button"
                   className='btn btn-danger btn-sm'
                   onClick={() => handleBan(selected.reported_id)}
                   {...testId('ban-from-report-btn')}

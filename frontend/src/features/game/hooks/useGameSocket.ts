@@ -101,7 +101,7 @@ export function useGameSocket({
   }
 
   // Room socket — handles all game events for the current session.
-  useEffect((): (() => void) | void => {
+  useEffect((): (() => void) | undefined => {
     if (!socket) return
 
     const off = socket.on(event => {
@@ -141,12 +141,12 @@ export function useGameSocket({
     })
 
     return () => off()
-  }, [socket, sessionId])
+  }, [socket, sessionId, handleMovePayload, onPresenceUpdate, pauseResume.onSessionResumed, pauseResume.onSessionSuspended, pauseResume.setPauseVoteUpdate, pauseResume.setResumeVoteUpdate, qc.invalidateQueries, rematch.onRematchGameStarted, rematch.onRematchReady, rematch.onRematchVote])
 
   // Player socket — receives move and game_over events for sessions the player
   // is part of, regardless of which room socket is active. Used to handle
   // updates when the player is navigating between pages.
-  useEffect((): (() => void) | void => {
+  useEffect((): (() => void) | undefined => {
     if (!playerSocket) return
 
     const off = playerSocket.on(event => {
@@ -159,5 +159,5 @@ export function useGameSocket({
     })
 
     return () => off()
-  }, [playerSocket, sessionId])
+  }, [playerSocket, handleMovePayload])
 }

@@ -108,7 +108,7 @@ export function Room({ roomId }: { roomId: string }) {
   // --- WebSocket connection --------------------------------------------------
   useEffect(() => {
     joinRoom(roomId, wsRoomUrl(roomId, player.id))
-  }, [roomId, player.id])
+  }, [roomId, player.id, joinRoom])
 
   useEffect(() => {
     if (!view) return
@@ -125,7 +125,7 @@ export function Room({ roomId }: { roomId: string }) {
         if (game) setSettingDescriptors(game.settings)
       })
       .catch(() => {})
-  }, [view?.room.game_id])
+  }, [view?.room.game_id, view])
 
   useEffect(() => {
     bots
@@ -178,7 +178,7 @@ export function Room({ roomId }: { roomId: string }) {
     })
 
     return () => off()
-  }, [socket])
+  }, [socket, setPlayerPresence, setSpectatorCount])
 
   // --- Actions ---------------------------------------------------------------
 
@@ -267,11 +267,11 @@ export function Room({ roomId }: { roomId: string }) {
   const isSpectator = !isParticipant
   const isOwner = !isSpectator && ownerId === player.id
   const canStart = isOwner && view.players.length >= 2
-  const isPrivate = settings['room_visibility'] === 'private'
+  const isPrivate = settings.room_visibility === 'private'
   const hasOpenSlot = view.players.length < room.max_players
 
   const visibleDescriptors = settingDescriptors.filter(s => {
-    if (s.key === 'first_mover_seat') return settings['first_mover_policy'] === 'fixed'
+    if (s.key === 'first_mover_seat') return settings.first_mover_policy === 'fixed'
     return true
   })
 

@@ -56,7 +56,7 @@ export function GameHeader({
   return (
     <>
       <header className={styles.header}>
-        <button className='btn btn-ghost btn-sm' onClick={onLobby}>
+        <button type="button" className='btn btn-ghost btn-sm' onClick={onLobby}>
           {t('lobby.backToLobby')}
         </button>
         <div className={styles.gameInfo}>
@@ -70,8 +70,7 @@ export function GameHeader({
           />
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <button
-            type='button'
+          <button type="button"
             {...testId('rules-btn-ingame')}
             className='btn btn-ghost btn-sm'
             onClick={() => setRulesOpen(true)}
@@ -79,7 +78,7 @@ export function GameHeader({
             {t('game.viewRules')}
           </button>
           {canPause && (
-            <button
+            <button type="button"
               {...testId('pause-btn')}
               className='btn btn-ghost btn-sm'
               onClick={onPause}

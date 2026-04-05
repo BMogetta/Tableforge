@@ -128,7 +128,7 @@ export function RootAccess({
     setSelectedCard(null)
     setSelectedTarget(null)
     setSelectedGuess(null)
-  }, [currentPlayerId])
+  }, [])
 
   const localHand = (state.hands[localPlayerId] ?? []) as CardName[]
   const isMyTurn = currentPlayerId === localPlayerId && !disabled && !isOver
@@ -297,7 +297,7 @@ export function RootAccess({
       {/* Play button */}
       {isMyTurn && selectedCard && (
         <div className={styles.actions}>
-          <button
+          <button type="button"
             className='btn btn-ghost'
             onClick={() => {
               setSelectedCard(null)
@@ -307,7 +307,7 @@ export function RootAccess({
           >
             {t('common.cancel')}
           </button>
-          <button className='btn btn-primary' onClick={handleSubmit} disabled={!isReadyToSubmit()}>
+          <button type="button" className='btn btn-primary' onClick={handleSubmit} disabled={!isReadyToSubmit()}>
             {t('rootaccess.play', { card: selectedCard })}
           </button>
         </div>

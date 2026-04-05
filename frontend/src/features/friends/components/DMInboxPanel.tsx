@@ -60,7 +60,7 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
           <h2 className={styles.title} id='dm-inbox-title'>
             Messages
           </h2>
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button type="button" className={styles.closeBtn} onClick={onClose}>
             x
           </button>
         </div>
@@ -70,7 +70,7 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
             <p className={styles.empty}>No conversations yet.</p>
           ) : (
             safeConversations.map((conv: DMConversationType) => (
-              <button
+              <button type="button"
                 key={conv.other_player_id}
                 className={styles.convRow}
                 onClick={() => {
@@ -85,7 +85,7 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
                   <span className={styles.convName}>{conv.other_username}</span>
                   <span className={styles.convPreview}>
                     {conv.last_message.length > 40
-                      ? conv.last_message.slice(0, 40) + '...'
+                      ? `${conv.last_message.slice(0, 40)}...`
                       : conv.last_message}
                   </span>
                 </div>

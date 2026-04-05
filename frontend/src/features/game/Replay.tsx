@@ -76,7 +76,7 @@ function EventRow({ event, base, index }: { event: SessionEvent; base: string; i
           {label}
         </span>
         {hasPayload && (
-          <button
+          <button type="button"
             className={styles.eventToggle}
             onClick={() => setOpen(o => !o)}
             aria-label='toggle payload'
@@ -161,14 +161,14 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
       </div>
 
       <div className={styles.replayControls}>
-        <button
+        <button type="button"
           className={`btn btn-ghost ${styles.replayBtn}`}
           onClick={() => setStep(0)}
           disabled={step === 0}
         >
           ⏮
         </button>
-        <button
+        <button type="button"
           className={`btn btn-ghost ${styles.replayBtn}`}
           onClick={() => setStep(s => Math.max(0, s - 1))}
           disabled={step === 0}
@@ -192,7 +192,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
           />
         </div>
 
-        <button
+        <button type="button"
           className={`btn btn-ghost ${styles.replayBtn}`}
           {...testId('replay-next-btn')}
           onClick={() => setStep(s => Math.min(moves.length, s + 1))}
@@ -200,7 +200,7 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
         >
           →
         </button>
-        <button
+        <button type="button"
           className={`btn btn-ghost ${styles.replayBtn}`}
           {...testId('replay-last-btn')}
           onClick={() => setStep(moves.length)}
@@ -316,14 +316,14 @@ export function Replay({ sessionId }: { sessionId: string }) {
 
         {/* Tabs */}
         <div className={styles.tabs}>
-          <button
+          <button type="button"
             className={`${styles.tab} ${tab === 'events' ? styles.tabActive : ''}`}
             {...testId('tab-events')}
             onClick={() => setTab('events')}
           >
             EVENT LOG
           </button>
-          <button
+          <button type="button"
             className={`${styles.tab} ${tab === 'replay' ? styles.tabActive : ''}`}
             {...testId('tab-replay')}
             onClick={() => setTab('replay')}

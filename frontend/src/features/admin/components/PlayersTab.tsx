@@ -25,7 +25,7 @@ export function PlayersTab({ callerRole, callerID }: Props) {
       .then(setPlayers)
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toast.showError])
 
   async function handleRoleChange(playerID: string, role: PlayerRole) {
     try {

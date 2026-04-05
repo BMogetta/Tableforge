@@ -71,7 +71,7 @@ function RootComponent() {
     if (player) {
       sfx.preload('notification.dm', 'notification.invite', 'queue.match_found', 'ui.click')
     }
-  }, [player?.id])
+  }, [player?.id, player])
 
   // Play notification sounds from playerSocket events.
   useEffect(() => {
@@ -92,7 +92,7 @@ function RootComponent() {
     if (!player) {
       disconnectPlayerSocket()
     }
-  }, [player])
+  }, [player, disconnectPlayerSocket])
 
   async function handleLogout() {
     await auth.logout()

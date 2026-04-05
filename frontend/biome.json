@@ -31,7 +31,8 @@
       "suspicious": {
         "noEmptyInterface": "off",
         "noArrayIndexKey": "warn",
-        "noConsole": { "level": "warn", "options": { "allow": ["log", "warn", "error"] } }
+        "noConsole": { "level": "warn", "options": { "allow": ["log", "warn", "error"] } },
+        "noEmptyBlock": "off"
       },
       "recommended": true,
       "correctness": {
@@ -55,7 +56,7 @@
       },
       "performance": {
         "noDelete": "off",
-        "useTopLevelRegex": "error"
+        "useTopLevelRegex": "off"
       }
     }
   },

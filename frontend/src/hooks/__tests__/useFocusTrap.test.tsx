@@ -6,9 +6,9 @@ function TrapDialog() {
   const ref = useFocusTrap<HTMLDivElement>()
   return (
     <div ref={ref} role='dialog' aria-modal='true'>
-      <button data-testid='first'>First</button>
+      <button type="button" data-testid='first'>First</button>
       <input data-testid='middle' />
-      <button data-testid='last'>Last</button>
+      <button type="button" data-testid='last'>Last</button>
     </div>
   )
 }

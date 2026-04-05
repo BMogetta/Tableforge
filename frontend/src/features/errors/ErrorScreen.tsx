@@ -20,8 +20,7 @@ export function ErrorScreen({ error, onReset }: Props) {
         <button type='button' className='btn btn-primary' onClick={onReset}>
           {t('common.confirm')}
         </button>
-        <button
-          type='button'
+        <button type="button"
           className='btn btn-ghost'
           onClick={() => { window.location.href = '/' }}
         >

@@ -69,7 +69,7 @@ export function Game({ sessionId }: { sessionId: string }) {
     setGameOver({ isOver: false, winnerId: null, isDraw: false })
     setShowSurrenderModal(false)
     setMoveError(null)
-  }, [sessionId])
+  }, [])
 
   // Preload game sounds + request notification permission + WakeLock.
   useEffect(() => {
@@ -91,7 +91,7 @@ export function Game({ sessionId }: { sessionId: string }) {
     return () => {
       releaseWakeLock()
     }
-  }, [sessionId, isSpectator])
+  }, [isSpectator])
 
   function handleGameOver(winnerId: string | null, isDraw: boolean) {
     setGameOver({ isOver: true, winnerId, isDraw })
@@ -122,7 +122,7 @@ export function Game({ sessionId }: { sessionId: string }) {
   // Sync suspended state from initial fetch — covers the "return tomorrow" case.
   useEffect(() => {
     if (session?.suspended_at) pauseResume.setSuspended(true)
-  }, [session?.id, session?.suspended_at])
+  }, [session?.suspended_at, pauseResume.setSuspended])
 
   useGameSocket({
     sessionId,

@@ -59,7 +59,7 @@ export function useGameSession({
     // onGameOver with the correct winner. Do not overwrite it with null.
     if (!data?.result) return
     onGameOver(data.result.winner_id ?? null, data.result.is_draw ?? false)
-  }, [data?.session?.finished_at, data?.result?.winner_id])
+  }, [data?.session?.finished_at, data?.result?.winner_id, data?.result, onGameOver])
 
   const { data: roomData } = useQuery({
     queryKey: keys.room(session?.room_id ?? ''),

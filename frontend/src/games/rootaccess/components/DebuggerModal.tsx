@@ -120,7 +120,7 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
           </div>
         )}
 
-        <button
+        <button type="button"
           className={`btn btn-primary ${styles.confirmBtn}`}
           onClick={handleConfirm}
           disabled={!canConfirm}

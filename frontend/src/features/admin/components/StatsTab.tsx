@@ -17,7 +17,7 @@ export function StatsTab() {
       .then(setStats)
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toast.showError])
 
   useEffect(() => {
     fetchStats()

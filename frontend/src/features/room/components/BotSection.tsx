@@ -40,7 +40,7 @@ export function BotSection({
             </option>
           ))}
         </select>
-        <button
+        <button type="button"
           {...testId('add-bot-btn')}
           className='btn btn-secondary'
           disabled={adding}

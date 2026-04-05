@@ -98,11 +98,11 @@ export function ChatPopover({
       }
     })
     return () => off()
-  }, [socket, roomId, qc])
+  }, [socket, roomId, qc, player.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, systemMessages])
+  }, [])
 
   // Auto-focus input when popover opens.
   useEffect(() => {
@@ -286,7 +286,7 @@ export function ChatPopover({
           onKeyDown={e => e.key === 'Enter' && handleSend()}
           maxLength={500}
         />
-        <button
+        <button type="button"
           className={styles.sendBtn}
           onClick={handleSend}
           disabled={!draft.trim() || sendMessage.isPending}

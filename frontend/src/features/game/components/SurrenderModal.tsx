@@ -27,10 +27,10 @@ export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
         </h2>
         <p className={styles.body}>{t('game.forfeitDesc')}</p>
         <div className={styles.actions}>
-          <button className='btn btn-ghost' onClick={onCancel} disabled={isPending}>
+          <button type="button" className='btn btn-ghost' onClick={onCancel} disabled={isPending}>
             {t('common.cancel')}
           </button>
-          <button
+          <button type="button"
             className='btn btn-danger'
             onClick={onConfirm}
             disabled={isPending}

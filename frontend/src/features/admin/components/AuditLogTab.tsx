@@ -29,7 +29,7 @@ export function AuditLogTab() {
       .then(setLogs)
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
-  }, [action, targetType, page])
+  }, [action, targetType, page, toast.showError])
 
   useEffect(() => {
     fetchLogs()
@@ -69,7 +69,7 @@ export function AuditLogTab() {
           </select>
         </div>
         <div className={styles.filterGroup}>
-          <button
+          <button type="button"
             className='btn btn-ghost btn-sm'
             disabled={page === 0}
             onClick={() => setPage(p => p - 1)}
@@ -80,7 +80,7 @@ export function AuditLogTab() {
           <span className={styles.muted} style={{ fontSize: 'var(--text-xs)', alignSelf: 'center' }}>
             Page {page + 1}
           </span>
-          <button
+          <button type="button"
             className='btn btn-ghost btn-sm'
             disabled={logs.length < PAGE_SIZE}
             onClick={() => setPage(p => p + 1)}

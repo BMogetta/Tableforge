@@ -68,7 +68,7 @@ export function BroadcastTab() {
           />
 
           <div className={styles.actionRow}>
-            <button
+            <button type="button"
               className={`btn btn-sm ${type === 'warning' ? 'btn-danger' : 'btn-primary'}`}
               disabled={!message.trim() || sending}
               onClick={handleSend}

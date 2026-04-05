@@ -23,7 +23,7 @@ export function PendingRequestItem({
       {avatarUrl && <img src={avatarUrl} alt='' className={styles.avatar} />}
       <span className={styles.friendName}>{username}</span>
       <div className={styles.friendActions}>
-        <button
+        <button type="button"
           className='btn btn-primary btn-sm'
           onClick={() => onAccept(requesterId)}
           disabled={pending}
@@ -31,7 +31,7 @@ export function PendingRequestItem({
         >
           Accept
         </button>
-        <button
+        <button type="button"
           className='btn btn-ghost btn-sm'
           onClick={() => onDecline(requesterId)}
           disabled={pending}

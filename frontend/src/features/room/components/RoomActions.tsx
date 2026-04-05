@@ -30,12 +30,12 @@ export function RoomActions({
     <>
       <div className={styles.actions}>
         {isSpectator ? (
-          <button className='btn btn-danger' onClick={onLeave}>
+          <button type="button" className='btn btn-danger' onClick={onLeave}>
             {t('room.leaveRoom')}
           </button>
         ) : isOwner ? (
           <>
-            <button
+            <button type="button"
               {...testId('start-game-btn')}
               data-can-start={canStart}
               className='btn btn-primary'
@@ -49,14 +49,14 @@ export function RoomActions({
                   ? t('room.startGame')
                   : t('room.needMorePlayers', { count: playersNeeded })}
             </button>
-            <button className='btn btn-danger' onClick={onLeave}>
+            <button type="button" className='btn btn-danger' onClick={onLeave}>
               {t('room.leaveRoom')}
             </button>
           </>
         ) : (
           <>
             <p className={styles.waitingHost}>{t('room.waitingForHost')}</p>
-            <button className='btn btn-danger' onClick={onLeave}>
+            <button type="button" className='btn btn-danger' onClick={onLeave}>
               {t('room.leaveRoom')}
             </button>
           </>

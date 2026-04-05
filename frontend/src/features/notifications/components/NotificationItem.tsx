@@ -62,7 +62,7 @@ export function NotificationItem({
 
       {hasAction && !isExpired && (
         <div className={styles.actions}>
-          <button
+          <button type="button"
             className='btn btn-primary btn-sm'
             disabled={pending}
             onClick={() => onAccept?.(n.id)}
@@ -70,7 +70,7 @@ export function NotificationItem({
           >
             {t('notifications.accept')}
           </button>
-          <button
+          <button type="button"
             className='btn btn-ghost btn-sm'
             disabled={pending}
             onClick={() => onDecline?.(n.id)}

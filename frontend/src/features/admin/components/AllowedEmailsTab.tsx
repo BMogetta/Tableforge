@@ -24,7 +24,7 @@ export function AllowedEmailsTab({ callerRole }: Props) {
       .then(setEntries)
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }, [toast.showError])
 
   async function handleAdd() {
     if (!newEmail.trim()) return
@@ -71,7 +71,7 @@ export function AllowedEmailsTab({ callerRole }: Props) {
             <option value={PlayerRole.Manager}>Manager</option>
           </select>
         )}
-        <button className='btn btn-primary' onClick={handleAdd} {...testId('add-email-btn')}>
+        <button type="button" className='btn btn-primary' onClick={handleAdd} {...testId('add-email-btn')}>
           Add
         </button>
       </div>
@@ -107,7 +107,7 @@ export function AllowedEmailsTab({ callerRole }: Props) {
                 <td className={styles.muted}>{e.invited_by ?? '—'}</td>
                 <td className={styles.muted}>{new Date(e.created_at).toLocaleDateString()}</td>
                 <td>
-                  <button
+                  <button type="button"
                     className={`btn btn-ghost ${styles.removeBtn}`}
                     onClick={() => handleRemove(e.email)}
                     {...testId(`remove-email-${e.email}`)}
