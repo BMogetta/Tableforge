@@ -47,21 +47,22 @@
   background: var(--color-bg-elevated);
 }
 
-/* Rank column — top 3 get special colors */
-.rank {
-  color: var(--color-text-muted) !important;
+/* Rank column — top 3 get special colors.
+   .table .rank doubles specificity to beat .table td color. */
+.table .rank {
+  color: var(--color-text-muted);
   font-size: var(--text-xs);
   width: 24px;
 }
 
 .table tr:nth-child(1) .rank {
-  color: var(--color-interactive) !important;
+  color: var(--color-interactive);
 }
 .table tr:nth-child(2) .rank {
-  color: var(--color-text-secondary) !important;
+  color: var(--color-text-secondary);
 }
 .table tr:nth-child(3) .rank {
-  color: var(--color-interactive-dim) !important;
+  color: var(--color-interactive-dim);
 }
 
 .player {
@@ -76,17 +77,17 @@
   border-radius: 50%;
 }
 
-.rating {
+.table .rating {
   font-family: var(--font-mono);
-  color: var(--color-interactive) !important;
+  color: var(--color-interactive);
   font-size: var(--text-sm);
 }
 
-.win {
-  color: var(--color-success) !important;
+.table .win {
+  color: var(--color-success);
 }
-.loss {
-  color: var(--color-danger) !important;
+.table .loss {
+  color: var(--color-danger);
 }
 
 /* --- Responsive ------------------------------------------------------------ */

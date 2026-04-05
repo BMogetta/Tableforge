@@ -117,17 +117,17 @@
   color: var(--color-text-secondary);
 }
 
-.win {
-  color: var(--color-interactive) !important;
+.statusText.win {
+  color: var(--color-interactive);
   font-weight: var(--font-weight-medium);
 }
 
-.lose {
-  color: var(--color-danger) !important;
+.statusText.lose {
+  color: var(--color-danger);
 }
 
-.suspended {
-  color: var(--color-interactive-dim) !important;
+.statusText.suspended {
+  color: var(--color-interactive-dim);
   font-style: italic;
 }
 

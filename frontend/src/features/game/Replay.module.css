@@ -313,9 +313,10 @@
   padding: 0 var(--space-1);
 }
 
-.replayBtn {
-  padding: var(--space-2) var(--space-2) !important;
-  font-size: var(--text-sm) !important;
+/* Double class to beat .btn specificity */
+.replayBtn.replayBtn {
+  padding: var(--space-2) var(--space-2);
+  font-size: var(--text-sm);
   flex-shrink: 0;
 }
 
