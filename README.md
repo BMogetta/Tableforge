@@ -58,6 +58,7 @@ See `CLAUDE.md` for the full architecture, service map, and all available comman
 | `GET /api/v1/games` | game-server | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/bots/profiles` | game-server | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/sessions/{id}` | game-server | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/admin/stats` | game-server | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /auth/github` | auth-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /auth/me` | auth-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/profile` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
@@ -65,6 +66,8 @@ See `CLAUDE.md` for the full architecture, service map, and all available comman
 | `GET /api/v1/players/{id}/settings` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/admin/players` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/admin/allowed-emails` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/admin/audit-logs` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `POST /api/v1/admin/broadcast` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/dm` | chat-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/ratings/{game}/leaderboard` | rating-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/notifications` | notification-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
@@ -74,7 +77,7 @@ See `CLAUDE.md` for the full architecture, service map, and all available comman
 | `GET grafana.localhost` | grafana | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /` | frontend | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 
-_Last updated: 2026-04-04_
+_Last updated: 2026-04-05_
 
 <!-- routing:end -->
 
@@ -139,8 +142,8 @@ _Last updated: 2026-04-04_
 | rating-service | 37 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
 | user-service | 95 passed | ![58.7%](https://img.shields.io/badge/coverage-58.7%25-yellow) |
 | ws-gateway | 50 passed | ![33.0%](https://img.shields.io/badge/coverage-33.0%25-red) |
-| frontend (vitest) | 399 passed | ![64.6%](https://img.shields.io/badge/coverage-64.6%25-green) |
+| frontend (vitest) | 399 passed | ![65.7%](https://img.shields.io/badge/coverage-65.7%25-green) |
 
-_Last updated: 2026-04-04_
+_Last updated: 2026-04-05_
 
 <!-- coverage:end -->
