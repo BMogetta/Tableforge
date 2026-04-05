@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/recess/shared/domain/matchmaking"
 	ratingv1 "github.com/recess/shared/proto/rating/v1"
+	"github.com/recess/shared/testutil"
 	"google.golang.org/grpc"
 )
 
@@ -36,14 +37,7 @@ func (c *customRatingClient) GetRating(_ context.Context, _ *ratingv1.GetRatingR
 // newQueueTestService creates a Service backed by miniredis with a stub rating client.
 func newQueueTestService(t *testing.T, ratingClient ratingv1.RatingServiceClient) (*Service, *miniredis.Miniredis) {
 	t.Helper()
-	mr, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("miniredis: %v", err)
-	}
-	t.Cleanup(mr.Close)
-
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	rdb, mr := testutil.NewTestRedis(t)
 
 	svc := &Service{
 		rdb:          rdb,

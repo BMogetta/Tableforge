@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/alicebob/miniredis/v2"
 	sharedevents "github.com/recess/shared/events"
+	"github.com/recess/shared/testutil"
 )
 
 type mockRevoker struct {
@@ -24,8 +25,7 @@ func (m *mockRevoker) RevokeAllSessions(_ context.Context, playerID uuid.UUID) e
 
 func setup(t *testing.T) (*Consumer, *miniredis.Miniredis, *redis.Client, *mockRevoker) {
 	t.Helper()
-	mr := miniredis.RunT(t)
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	rdb, mr := testutil.NewTestRedis(t)
 	rev := &mockRevoker{}
 	c := New(rdb, slog.Default(), rev)
 	return c, mr, rdb, rev

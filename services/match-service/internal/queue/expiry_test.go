@@ -8,8 +8,8 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
 	ratingv1 "github.com/recess/shared/proto/rating/v1"
+	"github.com/recess/shared/testutil"
 	"google.golang.org/grpc"
 )
 
@@ -24,14 +24,7 @@ func (s *stubRatingClient) GetRating(_ context.Context, _ *ratingv1.GetRatingReq
 
 func newTestService(t *testing.T) (*Service, *miniredis.Miniredis) {
 	t.Helper()
-	mr, err := miniredis.Run()
-	if err != nil {
-		t.Fatalf("miniredis: %v", err)
-	}
-	t.Cleanup(mr.Close)
-
-	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	rdb, mr := testutil.NewTestRedis(t)
 
 	svc := &Service{
 		rdb:          rdb,
