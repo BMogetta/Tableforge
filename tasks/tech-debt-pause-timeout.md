@@ -49,7 +49,42 @@ Recommend option A.
 
 ---
 
+## Next: Investigate timeout handler + race conditions
+
+Priority for next session — these are the most likely cause of the pause/timeout instability.
+
+### `asynq_handlers.go` — 0% tested
+
+`onTimeout`, `onReadyTimeout`, `ReschedulePending` have zero test coverage.
+They run asynchronously via Asynq workers and interact with store, events, and hub.
+
+Key risk: `onTimeout` checks `session.FinishedAt != nil` but does NOT check
+`SuspendedAt`. If a timer fires on a paused session (e.g. Asynq cancel arrived
+late), the timeout handler processes a suspended session — skipping the turn or
+ending the game while it's supposed to be paused.
+
+**Plan:** Write tests using FakeStore + spy hub to verify:
+- onTimeout skips finished sessions ✓ (already coded)
+- onTimeout skips suspended sessions ✗ (NOT checked — likely bug)
+- onTimeout lose_turn advances to correct next player
+- onTimeout lose_game creates result and finishes session
+- onReadyTimeout with partial ready players
+- onReadyTimeout with all players timed out (draw)
+- ReschedulePending with expired sessions (fires immediately)
+- ReschedulePending with future sessions (reschedules)
+
+### Race condition: timer cancel vs timer fire
+
+`VotePause` does `timer.Cancel()` then `SuspendSession()`. If the Asynq worker
+is already executing `onTimeout` in another goroutine, the cancel is a no-op
+and `onTimeout` processes concurrently with the pause flow.
+
+**Plan:** Add `SuspendedAt` check to `onTimeout` (same as FinishedAt check).
+This is a 1-line fix but needs a test to prove the race exists.
+
+---
+
 ## What was already fixed
 
 - **FakeStore `checkAllVotedByID`** now excludes bots via `countHumanPlayers()`, matching PG behavior.
-- **FakeStore `ResumeSession`** now adjusts `LastMoveAt` to `NOW() - 60% * timeout`, matching PG penalty calculation.
+- **FakeStore `ResumeSession`** now adjusts `LastMoveAt` for 40% penalty (matching PG).
