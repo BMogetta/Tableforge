@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { getPair, patchEmptyBodyRoutes, type PlayerPair } from './helpers'
+import { getPair, type PlayerPair } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Bot helpers
@@ -53,7 +53,6 @@ test.describe('Bot gameplay', () => {
     const p1 = await p1Ctx.newPage()
     p1.on('console', msg => console.log('P1:', msg.text()))
     p1.on('pageerror', err => console.log('P1 ERROR:', err.message))
-    await patchEmptyBodyRoutes(p1)
     await p1.goto('/')
 
     await setupAndStartGameWithBot(p1, pair.p1Id)
@@ -131,7 +130,6 @@ test.describe('Bot gameplay', () => {
     const p1 = await p1Ctx.newPage()
     p1.on('console', msg => console.log('P1:', msg.text()))
     p1.on('pageerror', err => console.log('P1 ERROR:', err.message))
-    await patchEmptyBodyRoutes(p1)
     await p1.goto('/')
 
     await p1.getByTestId('game-option-tictactoe').click()

@@ -73,7 +73,7 @@ func (svc *Service) StartSession(ctx context.Context, session store.GameSession,
 	if err == nil {
 		hasHuman := false
 		for _, p := range players {
-			if _, isBot := svc.bots.get(p.PlayerID); isBot {
+			if svc.isBot(ctx, p.PlayerID) {
 				svc.store.VoteReady(ctx, session.ID, p.PlayerID)
 			} else {
 				hasHuman = true
@@ -516,7 +516,7 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 	}
 
 	for _, p := range players {
-		if _, isBot := svc.bots.get(p.PlayerID); isBot {
+		if svc.isBot(ctx, p.PlayerID) {
 			_ = svc.store.UpsertRematchVote(ctx, sessionID, p.PlayerID)
 		}
 	}

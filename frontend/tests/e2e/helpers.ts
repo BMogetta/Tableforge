@@ -70,22 +70,6 @@ export function getPair(projectName: string): PlayerPair {
 // --- Shared helpers ----------------------------------------------------------
 
 /**
- * Workaround: the frontend sends several POST endpoints without a body,
- * but the backend handlers decode `{}`. Intercept and inject an empty JSON body.
- * Affected: start, leave, surrender, rematch, ready, pause, resume.
- */
-export async function patchEmptyBodyRoutes(page: Page) {
-  await page.route('**/api/v1/**', async (route, request) => {
-    const method = request.method()
-    if ((method === 'POST' || method === 'DELETE') && !request.postData()) {
-      await route.continue({ postData: '{}' })
-    } else {
-      await route.continue()
-    }
-  })
-}
-
-/**
  * Cleans up any active game sessions and rooms for a player via the API.
  * Call before tests to prevent stale state from blocking room creation.
  */
@@ -118,9 +102,6 @@ export async function createPlayerContexts(browser: Browser, pair: PlayerPair) {
   p2.on('console', msg => console.log('P2:', msg.text()))
   p2.on('pageerror', err => console.log('P2 ERROR:', err.message))
 
-  // Patch routes that send no body (backend requires JSON body for decode).
-  await Promise.all([patchEmptyBodyRoutes(p1), patchEmptyBodyRoutes(p2)])
-
   await Promise.all([cleanupPlayer(p1, pair.p1Id), cleanupPlayer(p2, pair.p2Id)])
 
   await p1.goto('/')
@@ -136,7 +117,6 @@ export async function createSpectatorContext(browser: Browser, pair: PlayerPair)
   const p3 = await p3Ctx.newPage()
   p3.on('console', msg => console.log('P3:', msg.text()))
   p3.on('pageerror', err => console.log('P3 ERROR:', err.message))
-  await patchEmptyBodyRoutes(p3)
   await p3.goto('/')
   return { p3Ctx, p3 }
 }

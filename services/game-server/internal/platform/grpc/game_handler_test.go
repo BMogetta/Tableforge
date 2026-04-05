@@ -114,6 +114,34 @@ func TestGetMoveLog_InvalidSessionID(t *testing.T) {
 	}
 }
 
+// --- StartSession ------------------------------------------------------------
+
+func TestStartSession_MissingRoomID(t *testing.T) {
+	h, _ := newTestHandler()
+	_, err := h.StartSession(context.Background(), &gamev1.StartSessionRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing room_id")
+	}
+}
+
+func TestStartSession_InvalidRoomID(t *testing.T) {
+	h, _ := newTestHandler()
+	_, err := h.StartSession(context.Background(), &gamev1.StartSessionRequest{RoomId: "bad"})
+	if err == nil {
+		t.Fatal("expected error for invalid room_id")
+	}
+}
+
+func TestStartSession_RoomNotFound(t *testing.T) {
+	h, _ := newTestHandler()
+	_, err := h.StartSession(context.Background(), &gamev1.StartSessionRequest{RoomId: uuid.NewString()})
+	if err == nil {
+		t.Fatal("expected error for non-existent room")
+	}
+}
+
+// --- GetRoomPlayers ----------------------------------------------------------
+
 func TestGetRoomPlayers(t *testing.T) {
 	h, st := newTestHandler()
 
@@ -136,6 +164,14 @@ func TestGetRoomPlayers(t *testing.T) {
 	}
 	if resp.PlayerIds[0] != p1.String() {
 		t.Errorf("expected first player %s, got %s", p1, resp.PlayerIds[0])
+	}
+}
+
+func TestGetRoomPlayers_InvalidRoomID(t *testing.T) {
+	h, _ := newTestHandler()
+	_, err := h.GetRoomPlayers(context.Background(), &gamev1.GetRoomPlayersRequest{RoomId: "bad"})
+	if err == nil {
+		t.Fatal("expected error for invalid room_id")
 	}
 }
 

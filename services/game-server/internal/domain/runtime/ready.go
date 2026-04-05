@@ -45,8 +45,9 @@ func (svc *Service) VoteReady(ctx context.Context, sessionID, playerID uuid.UUID
 		return ReadyVoteResult{}, fmt.Errorf("VoteReady: store vote: %w", err)
 	}
 	// Auto-confirm bots — they live on the server and need no asset loading.
+	// Uses isBot() (store fallback) so bots are detected even after a server restart.
 	for _, p := range players {
-		if _, isBot := svc.bots.get(p.PlayerID); isBot {
+		if svc.isBot(ctx, p.PlayerID) {
 			ready, _ := svc.store.VoteReady(ctx, sessionID, p.PlayerID)
 			if ready {
 				allReady = true

@@ -23,6 +23,10 @@ type FakeStore struct {
 	ResumeVoteMap     map[uuid.UUID][]uuid.UUID
 	GameResults       map[uuid.UUID]store.GameResult
 	RematchVotes      map[uuid.UUID][]store.RematchVote
+
+	// Test hooks — when set, these override the default no-op implementations.
+	OnBulkCreateSessionEvents func(ctx context.Context, params []store.CreateSessionEventParams) error
+	OnListSessionEvents       func(ctx context.Context, sessionID uuid.UUID) ([]store.SessionEvent, error)
 }
 
 func NewFakeStore() *FakeStore {
@@ -493,11 +497,17 @@ func (f *FakeStore) DeleteRematchVotes(_ context.Context, sessionID uuid.UUID) e
 
 // --- Session events ----------------------------------------------------------
 
-func (f *FakeStore) BulkCreateSessionEvents(_ context.Context, _ []store.CreateSessionEventParams) error {
+func (f *FakeStore) BulkCreateSessionEvents(ctx context.Context, params []store.CreateSessionEventParams) error {
+	if f.OnBulkCreateSessionEvents != nil {
+		return f.OnBulkCreateSessionEvents(ctx, params)
+	}
 	return nil
 }
 
-func (f *FakeStore) ListSessionEvents(_ context.Context, _ uuid.UUID) ([]store.SessionEvent, error) {
+func (f *FakeStore) ListSessionEvents(ctx context.Context, sessionID uuid.UUID) ([]store.SessionEvent, error) {
+	if f.OnListSessionEvents != nil {
+		return f.OnListSessionEvents(ctx, sessionID)
+	}
 	return nil, nil
 }
 
