@@ -226,3 +226,51 @@ func TestStartSession_AllBotsAutoConfirmReachesConsensus(t *testing.T) {
 		t.Error("expected session to still be active after all bots confirmed")
 	}
 }
+
+// TestStartSession_HumanVsBotDoesNotAutoStart verifies that in a 1v1 human vs bot,
+// StartSession auto-confirms the bot but does NOT trigger consensus — the human
+// must call VoteReady before the game starts.
+func TestStartSession_HumanVsBotDoesNotAutoStart(t *testing.T) {
+	svc, fs := newRuntimeWithStore(t)
+	ctx := context.Background()
+
+	human, _ := fs.CreatePlayer(ctx, "ready8human")
+	botPlayer, _ := fs.CreateBotPlayer(ctx, "ready8bot")
+	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
+		Code: "REDY0008", GameID: "tictactoe", OwnerID: human.ID, MaxPlayers: 2,
+	})
+	fs.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
+	fs.AddPlayerToRoom(ctx, room.ID, botPlayer.ID, 1)
+	state := engine.GameState{CurrentPlayerID: engine.PlayerID(human.ID.String()), Data: map[string]any{}}
+	stateBytes, _ := json.Marshal(state)
+	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
+
+	bp := makeBotPlayer(t, botPlayer.ID)
+	svc.RegisterBot(bp)
+
+	svc.StartSession(ctx, session, nil, runtime.DefaultReadyTimeout)
+
+	refetched, _ := fs.GetGameSession(ctx, session.ID)
+
+	// Bot should be auto-confirmed.
+	botConfirmed := false
+	for _, id := range refetched.ReadyPlayers {
+		if id == botPlayer.ID.String() {
+			botConfirmed = true
+		}
+	}
+	if !botConfirmed {
+		t.Error("expected bot to be auto-confirmed")
+	}
+
+	// Human should NOT be ready yet — consensus must not fire from bot auto-confirm alone.
+	// Verify by calling VoteReady: if consensus was already reached, ReadyPlayers would
+	// have been cleared by OnAllReady. Instead, it should still contain the bot entry.
+	result, err := svc.VoteReady(ctx, session.ID, human.ID)
+	if err != nil {
+		t.Fatalf("VoteReady: %v", err)
+	}
+	if !result.AllReady {
+		t.Error("expected AllReady after human votes (bot was already ready)")
+	}
+}

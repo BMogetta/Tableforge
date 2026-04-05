@@ -56,7 +56,7 @@ func (svc *Service) VotePause(ctx context.Context, sessionID, playerID uuid.UUID
 		if p.PlayerID == playerID {
 			callerFound = true
 		}
-		if _, isBot := svc.bots.get(p.PlayerID); !isBot {
+		if !svc.isBot(ctx, p.PlayerID) {
 			humanCount++
 		}
 	}
@@ -122,7 +122,7 @@ func (svc *Service) VoteResume(ctx context.Context, sessionID, playerID uuid.UUI
 		if p.PlayerID == playerID {
 			callerFound = true
 		}
-		if _, isBot := svc.bots.get(p.PlayerID); !isBot {
+		if !svc.isBot(ctx, p.PlayerID) {
 			humanCount++
 		}
 	}

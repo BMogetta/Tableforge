@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -64,7 +65,7 @@ func parseSessionID(task *asynq.Task) (uuid.UUID, error) {
 func (h *TimerHandlers) onTimeout(sessionID uuid.UUID) {
 	ctx := context.Background()
 	session, err := h.st.GetGameSession(ctx, sessionID)
-	if err != nil || session.FinishedAt != nil {
+	if err != nil || session.FinishedAt != nil || session.SuspendedAt != nil {
 		return
 	}
 	cfg, err := h.st.GetGameConfig(ctx, session.GameID)
@@ -241,7 +242,7 @@ func (h *TimerHandlers) applyEngineTimeout(ctx context.Context, session store.Ga
 func (h *TimerHandlers) onReadyTimeout(sessionID uuid.UUID) {
 	ctx := context.Background()
 	session, err := h.st.GetGameSession(ctx, sessionID)
-	if err != nil || session.FinishedAt != nil {
+	if err != nil || session.FinishedAt != nil || session.SuspendedAt != nil {
 		return
 	}
 
@@ -367,25 +368,28 @@ type TimeoutResult struct {
 	IsOver         bool              `json:"is_over"`
 }
 
+// nextPlayerAfter returns the next player in seat order after current.
+// Players are sorted by seat number so the rotation works even when seats are
+// non-contiguous (e.g. 0, 3 after a player left). Using index-based wrap
+// instead of arithmetic on seat numbers avoids skipping to a vacant seat.
 func nextPlayerAfter(current engine.PlayerID, players []store.RoomPlayer) engine.PlayerID {
 	if len(players) == 0 {
 		return current
 	}
-	currentSeat := -1
-	for _, p := range players {
+	sorted := make([]store.RoomPlayer, len(players))
+	copy(sorted, players)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Seat < sorted[j].Seat })
+
+	currentIdx := -1
+	for i, p := range sorted {
 		if engine.PlayerID(p.PlayerID.String()) == current {
-			currentSeat = p.Seat
+			currentIdx = i
 			break
 		}
 	}
-	if currentSeat == -1 {
-		return engine.PlayerID(players[0].PlayerID.String())
+	if currentIdx == -1 {
+		return engine.PlayerID(sorted[0].PlayerID.String())
 	}
-	nextSeat := (currentSeat + 1) % len(players)
-	for _, p := range players {
-		if p.Seat == nextSeat {
-			return engine.PlayerID(p.PlayerID.String())
-		}
-	}
-	return current
+	nextIdx := (currentIdx + 1) % len(sorted)
+	return engine.PlayerID(sorted[nextIdx].PlayerID.String())
 }

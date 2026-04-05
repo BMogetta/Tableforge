@@ -297,43 +297,27 @@ func TestResume_BotExcludedFromVoteCount(t *testing.T) {
 	}
 }
 
-// BUG DOCUMENTATION: Runtime uses svc.bots.get() to determine if a player
-// is a bot, while the PG store uses players.is_bot column. If the server
-// restarts and bots are not re-registered, the runtime treats them as humans
-// and pause/resume consensus can never be reached (bot never votes).
-// This inconsistency between runtime and store is a latent reliability issue.
-// BUG DOCUMENTATION: Runtime uses svc.bots.get() to determine if a player is a
-// bot, while the PG store uses players.is_bot column. After a server restart,
-// bots that aren't re-registered are counted as humans by the runtime.
-//
-// This creates two problems:
-// 1. Required count in PauseVoteResult is wrong (counts bot as human)
-// 2. The store's allVoted can return true (using DB is_bot) while runtime
-//    reports Required=2, creating an inconsistent response.
-//
-// In a real 1v1 vs bot scenario after server restart, the store-level consensus
-// check (PG) correctly excludes the bot, but the runtime's humanCount is wrong.
-// The session DOES get suspended (store wins), but the API response is misleading.
-func TestPause_BotNotRegistered_InconsistentCount(t *testing.T) {
+// TestPause_BotNotRegistered_StoreFallback verifies that after a server restart
+// (bot not in runtime registry), isBot falls back to the store's is_bot column.
+// The bot is in the room but NOT registered in svc.bots — only detectable via store.
+func TestPause_BotNotRegistered_StoreFallback(t *testing.T) {
 	svc, fs, _ := newRuntimeWithTimer(t)
 	ctx := context.Background()
 
-	human, _ := fs.CreatePlayer(ctx, "unreg_human")
-	_, _ = fs.CreateBotPlayer(ctx, "unreg_bot")
-	// Note: we use makeSession which adds via FakeStore (no runtime bot registration)
-	session := makeSession(t, fs, human)
+	human, _ := fs.CreatePlayer(ctx, "fallback_human")
+	botPlayer, _ := fs.CreateBotPlayer(ctx, "fallback_bot")
+	// Bot is in the room but never registered in svc.bots (simulates server restart).
+	session := makeSession(t, fs, human, botPlayer)
 
-	// This test documents that with only 1 human in the room,
-	// pause consensus is reached immediately.
 	result, err := svc.VotePause(ctx, session.ID, human.ID)
 	if err != nil {
 		t.Fatalf("VotePause: %v", err)
 	}
 	if result.Required != 1 {
-		t.Errorf("expected required 1 (single player room), got %d", result.Required)
+		t.Errorf("expected required=1 (bot excluded via store fallback), got %d", result.Required)
 	}
 	if !result.AllVoted {
-		t.Error("expected consensus with single player")
+		t.Error("expected consensus with 1 human vote (bot excluded)")
 	}
 }
 

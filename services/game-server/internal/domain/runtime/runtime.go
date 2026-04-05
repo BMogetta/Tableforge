@@ -71,16 +71,19 @@ const DefaultReadyTimeout = 60 * time.Second
 func (svc *Service) StartSession(ctx context.Context, session store.GameSession, hub *ws.Hub, readyTimeout time.Duration) {
 	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
 	if err == nil {
-		allReady := false
+		hasHuman := false
 		for _, p := range players {
 			if _, isBot := svc.bots.get(p.PlayerID); isBot {
-				ready, _ := svc.store.VoteReady(ctx, session.ID, p.PlayerID)
-				if ready {
-					allReady = true
-				}
+				svc.store.VoteReady(ctx, session.ID, p.PlayerID)
+			} else {
+				hasHuman = true
 			}
 		}
-		if allReady {
+		// If no humans, all bots are ready — start immediately.
+		// If there are humans, let their VoteReady call trigger consensus.
+		// Evaluating here would let bot auto-confirms satisfy the threshold
+		// before any human has confirmed.
+		if !hasHuman {
 			svc.OnAllReady(ctx, session, hub)
 			goto appendEvent
 		}
@@ -91,6 +94,7 @@ func (svc *Service) StartSession(ctx context.Context, session store.GameSession,
 	}
 
 appendEvent:
+
 	if svc.events != nil {
 		svc.events.Append(ctx, session.ID, events.TypeGameStarted, nil, map[string]any{
 			"game_id":           session.GameID,

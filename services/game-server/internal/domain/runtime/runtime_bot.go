@@ -45,6 +45,19 @@ func (r *botRegistry) get(id uuid.UUID) (*bot.BotPlayer, bool) {
 	return bp, ok
 }
 
+// isBot returns true if the player is a bot. It checks the in-memory registry
+// first and falls back to the store's is_bot column (survives server restarts).
+func (svc *Service) isBot(ctx context.Context, playerID uuid.UUID) bool {
+	if _, ok := svc.bots.get(playerID); ok {
+		return true
+	}
+	p, err := svc.store.GetPlayer(ctx, playerID)
+	if err != nil {
+		return false
+	}
+	return p.IsBot
+}
+
 // RegisterBot adds a BotPlayer to the runtime registry.
 // Call this after creating the bot's store.Player row and before the game starts.
 func (svc *Service) RegisterBot(bp *bot.BotPlayer) {
