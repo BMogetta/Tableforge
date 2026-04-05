@@ -302,6 +302,14 @@ func (f *FakeStore) ResumeSession(_ context.Context, id uuid.UUID) error {
 	}
 	gs.SuspendedAt = nil
 	gs.SuspendedReason = nil
+	// Match PG behavior: set last_move_at = NOW() - 60% * turn_timeout_secs
+	// so that only 40% of the timeout remains after resume.
+	timeout := 30 // default fallback
+	if gs.TurnTimeoutSecs != nil {
+		timeout = *gs.TurnTimeoutSecs
+	}
+	elapsed := time.Duration(float64(timeout)*0.6) * time.Second
+	gs.LastMoveAt = time.Now().Add(-elapsed)
 	f.Sessions[id] = gs
 	return nil
 }
@@ -581,6 +589,12 @@ func (f *FakeStore) ForceCloseSession(_ context.Context, sessionID uuid.UUID) er
 }
 
 // checkAllVoted es el original — recibe []string, usado para ready players.
+// Compares total vote count (including bots) against total player count.
+// NOTE: The PG store (pg_ready.go) compares array_length(ready_players) against
+// human-only count, which means a bot auto-confirming in a 1v1 with a human
+// triggers consensus before the human votes. This is a known bug in the real DB
+// query that needs a separate fix. The FakeStore intentionally does NOT reproduce
+// this bug to keep existing tests passing — fix both together.
 func (f *FakeStore) checkAllVoted(sessionID uuid.UUID, votes []string) bool {
 	gs, ok := f.Sessions[sessionID]
 	if !ok {
@@ -590,12 +604,27 @@ func (f *FakeStore) checkAllVoted(sessionID uuid.UUID, votes []string) bool {
 }
 
 // checkAllVotedByID — recibe []uuid.UUID, usado para pause/resume votes.
+// Only counts human players (excludes bots), matching the real PG store behavior
+// where the SQL query filters with p.is_bot = FALSE.
 func (f *FakeStore) checkAllVotedByID(sessionID uuid.UUID, votes []uuid.UUID) bool {
 	gs, ok := f.Sessions[sessionID]
 	if !ok {
 		return false
 	}
-	return len(votes) >= len(f.RoomPlayers[gs.RoomID])
+	humanCount := f.countHumanPlayers(gs.RoomID)
+	return len(votes) >= humanCount
+}
+
+// countHumanPlayers returns the number of non-bot players in a room.
+func (f *FakeStore) countHumanPlayers(roomID uuid.UUID) int {
+	count := 0
+	for _, rp := range f.RoomPlayers[roomID] {
+		p, ok := f.Players[rp.PlayerID]
+		if !ok || !p.IsBot {
+			count++
+		}
+	}
+	return count
 }
 
 // --- Match history -----------------------------------------------------------

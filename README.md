@@ -134,15 +134,15 @@ _Last updated: 2026-04-04_
 
 | Service | Tests | Coverage |
 |---------|-------|----------|
-| auth-service | 30 passed | ![46.4%](https://img.shields.io/badge/coverage-46.4%25-yellow) |
+| auth-service | 41 passed | ![57.4%](https://img.shields.io/badge/coverage-57.4%25-yellow) |
 | chat-service | 33 passed | ![50.8%](https://img.shields.io/badge/coverage-50.8%25-yellow) |
-| game-server | 290 passed | ![48.3%](https://img.shields.io/badge/coverage-48.3%25-yellow) |
+| game-server | 318 passed | ![54.0%](https://img.shields.io/badge/coverage-54.0%25-yellow) |
 | match-service | 73 passed | ![64.7%](https://img.shields.io/badge/coverage-64.7%25-green) |
-| notification-service | 27 passed | ![48.5%](https://img.shields.io/badge/coverage-48.5%25-yellow) |
+| notification-service | 43 passed | ![57.3%](https://img.shields.io/badge/coverage-57.3%25-yellow) |
 | rating-service | 37 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
 | user-service | 95 passed | ![58.7%](https://img.shields.io/badge/coverage-58.7%25-yellow) |
-| ws-gateway | 50 passed | ![33.0%](https://img.shields.io/badge/coverage-33.0%25-red) |
-| frontend (vitest) | 399 passed | ![65.7%](https://img.shields.io/badge/coverage-65.7%25-green) |
+| ws-gateway | 61 passed | ![31.9%](https://img.shields.io/badge/coverage-31.9%25-red) |
+| frontend (vitest) | 472 passed | ![70.8%](https://img.shields.io/badge/coverage-70.8%25-green) |
 
 _Last updated: 2026-04-05_
 
