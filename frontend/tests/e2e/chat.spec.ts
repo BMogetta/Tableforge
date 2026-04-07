@@ -1,5 +1,6 @@
-import { test, expect, type Page } from '@playwright/test'
-import { getPair, createPlayerContexts, setupRoom } from './helpers'
+import { test, expect } from './fixtures'
+import type { Page } from '@playwright/test'
+import { setupRoom } from './helpers'
 
 const chatInput = 'input[placeholder="Message or /command..."]'
 
@@ -24,9 +25,8 @@ function chatMessage(page: Page, text: string) {
 // --- Tests -------------------------------------------------------------------
 
 test.describe('Room chat', () => {
-  test('message sent by P1 appears in P2 sidebar via WS', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('message sent by P1 appears in P2 sidebar via WS', async ({ players }) => {
+    const { p1, p2 } = players
     await setupRoom(p1, p2)
 
     await openChat(p1)
@@ -37,16 +37,10 @@ test.describe('Room chat', () => {
 
     await expect(chatMessage(p1, 'hello from p1')).toBeVisible({ timeout: 10_000 })
     await expect(chatMessage(p2, 'hello from p1')).toBeVisible({ timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('multiple messages from both players appear in correct order', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('multiple messages from both players appear in correct order', async ({ players }) => {
+    const { p1, p2 } = players
     await setupRoom(p1, p2)
 
     await openChat(p1)
@@ -67,14 +61,10 @@ test.describe('Room chat', () => {
     await expect(chatMessage(p1, 'msg-beta')).toBeVisible({ timeout: 10_000 })
     await expect(chatMessage(p2, 'msg-alpha')).toBeVisible()
     await expect(chatMessage(p2, 'msg-beta')).toBeVisible()
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('chat popover can be toggled open and closed', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('chat popover can be toggled open and closed', async ({ players }) => {
+    const { p1, p2 } = players
     await setupRoom(p1, p2)
 
     await openChat(p1)
@@ -82,14 +72,10 @@ test.describe('Room chat', () => {
 
     // Reopen to confirm it works a second time.
     await openChat(p1)
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('empty message cannot be sent', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('empty message cannot be sent', async ({ players }) => {
+    const { p1, p2 } = players
     await setupRoom(p1, p2)
 
     await openChat(p1)
@@ -101,14 +87,10 @@ test.describe('Room chat', () => {
 
     const messages = p1.locator('[class*="messageBubble"]')
     await expect(messages).toHaveCount(0)
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('messages persist after HTTP resync', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('messages persist after HTTP resync', async ({ players }) => {
+    const { p1, p2, p2Id } = players
     await setupRoom(p1, p2)
 
     await openChat(p1)
@@ -120,7 +102,7 @@ test.describe('Room chat', () => {
     // P2 leaves the room properly before navigating away.
     const roomId = p2.url().split('/rooms/')[1]
     await p2.request.post(`/api/v1/rooms/${roomId}/leave`, {
-      data: { player_id: pair.p2Id },
+      data: { player_id: p2Id },
     })
     await p2.goto('/')
 
@@ -133,8 +115,5 @@ test.describe('Room chat', () => {
     // Open chat on P2 and verify the message was loaded from HTTP.
     await openChat(p2)
     await expect(chatMessage(p2, 'persistent-msg')).toBeVisible({ timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 })

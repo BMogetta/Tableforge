@@ -1,30 +1,25 @@
-import { test, expect } from '@playwright/test'
-import { getPair, createPlayerContexts, setupRoom, setupAndStartGame } from './helpers'
+import { test, expect } from './fixtures'
+import { setupRoom, setupAndStartGame } from './helpers'
 
 test.describe('Player presence', () => {
-  test('presence dot shown in room player list', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('presence dot shown in room player list', async ({ players }) => {
+    const { p1, p2, p2Id } = players
 
     await setupRoom(p1, p2)
 
-    await expect(p1.locator(`[data-testid="presence-dot-${pair.p2Id}"]`)).toHaveAttribute(
+    await expect(p1.locator(`[data-testid="presence-dot-${p2Id}"]`)).toHaveAttribute(
       'data-online',
       'true',
       { timeout: 10_000 },
     )
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('presence dot goes offline when player leaves room', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('presence dot goes offline when player leaves room', async ({ players }) => {
+    const { p1, p2, p2Id } = players
 
     await setupRoom(p1, p2)
 
-    await expect(p1.locator(`[data-testid="presence-dot-${pair.p2Id}"]`)).toHaveAttribute(
+    await expect(p1.locator(`[data-testid="presence-dot-${p2Id}"]`)).toHaveAttribute(
       'data-online',
       'true',
       { timeout: 10_000 },
@@ -33,21 +28,17 @@ test.describe('Player presence', () => {
     // P2 navigates away — WS closes, presence deleted.
     await p2.goto('/')
 
-    await expect(p1.locator(`[data-testid="presence-dot-${pair.p2Id}"]`)).toHaveAttribute(
+    await expect(p1.locator(`[data-testid="presence-dot-${p2Id}"]`)).toHaveAttribute(
       'data-online',
       'false',
       { timeout: 30_000 },
     )
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('opponent presence indicator shown during game', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('opponent presence indicator shown during game', async ({ players }) => {
+    const { p1, p2, p1Id } = players
 
-    await setupAndStartGame(p1, p2, pair.p1Id)
+    await setupAndStartGame(p1, p2, p1Id)
 
     await expect(p1.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'true', {
       timeout: 10_000,
@@ -55,18 +46,14 @@ test.describe('Player presence', () => {
     await expect(p2.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'true', {
       timeout: 10_000,
     })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
   test('opponent presence goes offline when opponent disconnects during game', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    players,
+  }) => {
+    const { p1, p2, p1Id, p2Ctx } = players
 
-    await setupAndStartGame(p1, p2, pair.p1Id)
+    await setupAndStartGame(p1, p2, p1Id)
 
     await expect(p1.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'true', {
       timeout: 10_000,
@@ -78,15 +65,12 @@ test.describe('Player presence', () => {
     await expect(p1.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'false', {
       timeout: 20_000,
     })
-
-    await p1Ctx.close()
   })
 
-  test('opponent presence text updates correctly', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('opponent presence text updates correctly', async ({ players }) => {
+    const { p1, p2, p1Id, p2Ctx } = players
 
-    await setupAndStartGame(p1, p2, pair.p1Id)
+    await setupAndStartGame(p1, p2, p1Id)
 
     await expect(p1.getByTestId('opponent-presence-text')).toContainText('Opponent online', {
       timeout: 10_000,
@@ -98,7 +82,5 @@ test.describe('Player presence', () => {
     await expect(p1.getByTestId('opponent-presence-text')).toContainText('Opponent offline', {
       timeout: 30_000,
     })
-
-    await p1Ctx.close()
   })
 })

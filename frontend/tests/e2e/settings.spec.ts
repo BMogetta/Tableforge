@@ -1,9 +1,7 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from './fixtures'
+import type { Page } from '@playwright/test'
 import {
-  getPair,
-  createPlayerContexts,
   setupRoom,
-  setupAndStartGame,
   playFullGame,
   waitForSocketConnected,
 } from './helpers'
@@ -15,11 +13,8 @@ async function openSettings(page: Page) {
 }
 
 test.describe('LobbySettings UI', () => {
-  test('setting_updated WS event updates the read-only value shown to p2', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('setting_updated WS event updates the read-only value shown to p2', async ({ players }) => {
+    const { p1, p2 } = players
 
     await setupRoom(p1, p2)
 
@@ -38,16 +33,10 @@ test.describe('LobbySettings UI', () => {
     await expect(p2.getByTestId('setting-value-first_mover_policy')).not.toContainText('Random', {
       timeout: 10_000,
     })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('non-owner sees settings as read-only (no select element)', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('non-owner sees settings as read-only (no select element)', async ({ players }) => {
+    const { p1, p2 } = players
 
     await setupRoom(p1, p2)
 
@@ -57,18 +46,14 @@ test.describe('LobbySettings UI', () => {
       timeout: 10_000,
     })
     await expect(p2.getByTestId('setting-select-first_mover_policy')).not.toBeVisible()
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 })
 
 // ---------------------------------------------------------------------------
 
 test.describe('Turn order enforcement', () => {
-  test('first_mover_policy "fixed" with seat 0: p1 goes first', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('first_mover_policy "fixed" with seat 0: p1 goes first', async ({ players }) => {
+    const { p1, p2, p1Id } = players
 
     await p1.goto('/')
     await p2.goto('/')
@@ -81,10 +66,10 @@ test.describe('Turn order enforcement', () => {
     const code = await p1.getByTestId('room-code').textContent()
 
     await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-      data: { player_id: pair.p1Id, value: 'fixed' },
+      data: { player_id: p1Id, value: 'fixed' },
     })
     await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_seat`, {
-      data: { player_id: pair.p1Id, value: '0' },
+      data: { player_id: p1Id, value: '0' },
     })
 
     await p2.getByTestId('join-code-input').fill(code!)
@@ -101,14 +86,10 @@ test.describe('Turn order enforcement', () => {
 
     await expect(p1.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
     await expect(p2.getByTestId('game-status')).not.toContainText('Your turn', { timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
-  test('first_mover_policy "fixed" with seat 1: p2 goes first', async ({ browser }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+  test('first_mover_policy "fixed" with seat 1: p2 goes first', async ({ players }) => {
+    const { p1, p2, p1Id } = players
 
     await p1.goto('/')
     await p2.goto('/')
@@ -121,10 +102,10 @@ test.describe('Turn order enforcement', () => {
     const code = await p1.getByTestId('room-code').textContent()
 
     await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_policy`, {
-      data: { player_id: pair.p1Id, value: 'fixed' },
+      data: { player_id: p1Id, value: 'fixed' },
     })
     await p1.request.put(`/api/v1/rooms/${roomId}/settings/first_mover_seat`, {
-      data: { player_id: pair.p1Id, value: '1' },
+      data: { player_id: p1Id, value: '1' },
     })
 
     await p2.getByTestId('join-code-input').fill(code!)
@@ -141,9 +122,6 @@ test.describe('Turn order enforcement', () => {
 
     await expect(p2.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
     await expect(p1.getByTestId('game-status')).not.toContainText('Your turn', { timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 })
 
@@ -204,47 +182,35 @@ async function setupRematchLobby(
 
 test.describe('Rematch first mover policy', () => {
   test('winner_first: the winner of the previous game goes first in the rematch', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    players,
+  }) => {
+    const { p1, p2, p1Id } = players
 
-    await setupRematchLobby(p1, p2, pair.p1Id, 'winner_first')
+    await setupRematchLobby(p1, p2, p1Id, 'winner_first')
 
     await expect(p1.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
     await expect(p2.getByTestId('game-status')).not.toContainText('Your turn', { timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
   test('loser_first: the loser of the previous game goes first in the rematch', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    players,
+  }) => {
+    const { p1, p2, p1Id } = players
 
-    await setupRematchLobby(p1, p2, pair.p1Id, 'loser_first')
+    await setupRematchLobby(p1, p2, p1Id, 'loser_first')
 
     await expect(p2.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
     await expect(p1.getByTestId('game-status')).not.toContainText('Your turn', { timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 
   test('fixed: seat 0 goes first in the rematch regardless of previous result', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+    players,
+  }) => {
+    const { p1, p2, p1Id } = players
 
-    await setupRematchLobby(p1, p2, pair.p1Id, 'fixed')
+    await setupRematchLobby(p1, p2, p1Id, 'fixed')
 
     await expect(p1.getByTestId('game-status')).toContainText('Your turn', { timeout: 10_000 })
     await expect(p2.getByTestId('game-status')).not.toContainText('Your turn', { timeout: 10_000 })
-
-    await p1Ctx.close()
-    await p2Ctx.close()
   })
 })

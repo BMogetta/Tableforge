@@ -2,6 +2,7 @@ import { test as setup, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
+import { resetPool } from './player-pool'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const AUTH_DIR = path.join(__dirname, '.auth')
@@ -11,15 +12,13 @@ const PLAYERS_FILE = path.join(__dirname, '.players.json')
 const players: Record<string, string> = JSON.parse(fs.readFileSync(PLAYERS_FILE, 'utf-8'))
 const playerCount = Object.keys(players).length
 
-setup.beforeAll(() => {
+// Authenticate all players in a single serial test to avoid rate limiting.
+setup('authenticate all players', async ({ browser }) => {
   fs.mkdirSync(AUTH_DIR, { recursive: true })
-})
+  resetPool()
 
-// Authenticate each test player and save session cookies.
-for (let i = 1; i <= playerCount; i++) {
-  const playerId = players[`player${i}_id`]
-
-  setup(`authenticate player ${i}`, async ({ browser }) => {
+  for (let i = 1; i <= playerCount; i++) {
+    const playerId = players[`player${i}_id`]
     const context = await browser.newContext()
     const page = await context.newPage()
 
@@ -30,5 +29,5 @@ for (let i = 1; i <= playerCount; i++) {
 
     await context.storageState({ path: path.join(AUTH_DIR, `player${i}.json`) })
     await context.close()
-  })
-}
+  }
+})

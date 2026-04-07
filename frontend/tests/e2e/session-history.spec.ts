@@ -1,45 +1,55 @@
-import { test, expect } from '@playwright/test'
-import { getPair, createPlayerContexts, setupAndStartGame, playFullGame } from './helpers'
+import { test as base, expect } from '@playwright/test'
+import { acquirePlayers, releasePlayers, type PoolPlayer } from './player-pool'
+import { setupAndStartGame, playFullGame } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Session History & Replay tests
 //
 // The game-over transition test needs to observe the game-over screen,
-// so it plays its own game.
+// so it plays its own game using the pool fixture.
 //
 // All other tests share a single game played in beforeAll and navigate
 // directly to the history URL — avoiding ~15s of setup per test.
 // ---------------------------------------------------------------------------
 
-test.describe('Game-over transition', () => {
-  test('View Replay button appears and navigates to /sessions/:id/history', async ({
-    browser,
-  }, testInfo) => {
-    const pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+// Re-export test from fixtures for the first standalone test.
+import { test as fixtureTest } from './fixtures'
 
-    await setupAndStartGame(p1, p2, pair.p1Id)
-    await playFullGame(p1, p2)
+fixtureTest.describe('Game-over transition', () => {
+  fixtureTest(
+    'View Replay button appears and navigates to /sessions/:id/history',
+    async ({ players }) => {
+      const { p1, p2, p1Id } = players
 
-    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('view-replay-btn').click()
+      await setupAndStartGame(p1, p2, p1Id)
+      await playFullGame(p1, p2)
 
-    await expect(p1).toHaveURL(/\/sessions\/.*\/history/, { timeout: 10_000 })
+      await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
+      await p1.getByTestId('view-replay-btn').click()
 
-    await p1Ctx.close()
-    await p2Ctx.close()
-  })
+      await expect(p1).toHaveURL(/\/sessions\/.*\/history/, { timeout: 10_000 })
+    },
+  )
 })
 
-test.describe('Session history page', () => {
-  let historyUrl: string
-  let pair: ReturnType<typeof getPair>
+// For the shared session tests, we acquire players manually in beforeAll.
+let pool: PoolPlayer[] = []
+let historyUrl: string
+let p1StatePath: string
 
-  test.beforeAll(async ({ browser }, testInfo) => {
-    pair = getPair(testInfo.project.name)
-    const { p1Ctx, p1, p2Ctx, p2 } = await createPlayerContexts(browser, pair)
+base.describe('Session history page', () => {
+  base.beforeAll(async ({ browser }) => {
+    pool = acquirePlayers(2, 'session-history-beforeAll')
 
-    await setupAndStartGame(p1, p2, pair.p1Id)
+    const p1Ctx = await browser.newContext({ storageState: pool[0].statePath })
+    const p1 = await p1Ctx.newPage()
+    const p2Ctx = await browser.newContext({ storageState: pool[1].statePath })
+    const p2 = await p2Ctx.newPage()
+
+    await p1.goto('/')
+    await p2.goto('/')
+
+    await setupAndStartGame(p1, p2, pool[0].id)
     await playFullGame(p1, p2)
 
     await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
@@ -47,13 +57,18 @@ test.describe('Session history page', () => {
     await expect(p1).toHaveURL(/\/sessions\/.*\/history/, { timeout: 10_000 })
 
     historyUrl = p1.url()
+    p1StatePath = pool[0].statePath
 
     await p1Ctx.close()
     await p2Ctx.close()
   })
 
-  test('stats bar shows correct move count', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base.afterAll(() => {
+    if (pool.length > 0) releasePlayers(pool)
+  })
+
+  base('stats bar shows correct move count', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 
@@ -62,14 +77,14 @@ test.describe('Session history page', () => {
     await ctx.close()
   })
 
-  test('result badge shows WIN for winner and LOSS for loser', async ({ browser }) => {
-    const p1Ctx = await browser.newContext({ storageState: pair.p1State })
+  base('result badge shows WIN for winner and LOSS for loser', async ({ browser }) => {
+    const p1Ctx = await browser.newContext({ storageState: pool[0].statePath })
     const p1 = await p1Ctx.newPage()
     await p1.goto(historyUrl)
 
     await expect(p1.getByTestId('result-badge')).toContainText('WIN', { timeout: 10_000 })
 
-    const p2Ctx = await browser.newContext({ storageState: pair.p2State })
+    const p2Ctx = await browser.newContext({ storageState: pool[1].statePath })
     const p2 = await p2Ctx.newPage()
     await p2.goto(historyUrl)
     await expect(p2.getByTestId('result-badge')).toContainText('LOSS', { timeout: 10_000 })
@@ -78,8 +93,8 @@ test.describe('Session history page', () => {
     await p2Ctx.close()
   })
 
-  test('event log shows game_started and game_over events', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base('event log shows game_started and game_over events', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 
@@ -95,8 +110,8 @@ test.describe('Session history page', () => {
     await ctx.close()
   })
 
-  test('event log shows correct number of move_applied events', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base('event log shows correct number of move_applied events', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 
@@ -106,8 +121,8 @@ test.describe('Session history page', () => {
     await ctx.close()
   })
 
-  test('event row payload is expandable', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base('event row payload is expandable', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 
@@ -127,8 +142,8 @@ test.describe('Session history page', () => {
     await ctx.close()
   })
 
-  test('replay tab renders the board with all cells disabled', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base('replay tab renders the board with all cells disabled', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 
@@ -143,8 +158,8 @@ test.describe('Session history page', () => {
     await ctx.close()
   })
 
-  test('replay slider at step 0 shows empty board', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base('replay slider at step 0 shows empty board', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 
@@ -161,8 +176,8 @@ test.describe('Session history page', () => {
     await ctx.close()
   })
 
-  test('replay next button advances to move 1 and shows cell 0 filled', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base('replay next button advances to move 1 and shows cell 0 filled', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 
@@ -179,8 +194,8 @@ test.describe('Session history page', () => {
     await ctx.close()
   })
 
-  test('replay last button jumps to final state', async ({ browser }) => {
-    const ctx = await browser.newContext({ storageState: pair.p1State })
+  base('replay last button jumps to final state', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
 

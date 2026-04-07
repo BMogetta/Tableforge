@@ -1,4 +1,4 @@
-// seed-test creates test players and seed data for Playwright e2e tests.
+// seed-test creates a pool of test players for Playwright e2e tests.
 //
 // Usage:
 //
@@ -6,14 +6,8 @@
 //
 // Output: JSON with player IDs for all test players.
 //
-// Players are created in pairs — each Playwright project gets its own pair
-// so tests can run in parallel without sharing game state.
-//
-//	Pair 1 (players 1–2):  game-tests, session-history-tests, auth
-//	Pair 2 (players 3–4):  chat-tests
-//	Pair 3 (players 5–6):  settings-tests
-//	Pair 4 (players 7–8):  spectator-tests (+ player 9 as spectator)
-//	Pair 5 (players 10–11): presence-tests
+// Players are allocated dynamically at runtime — each test acquires players
+// from the pool and releases them when done, enabling full parallelism.
 package main
 
 import (
@@ -26,7 +20,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const playerCount = 11
+const playerCount = 30
 
 func main() {
 	ctx := context.Background()
@@ -46,10 +40,6 @@ func main() {
 	for i := range playerCount {
 		ids[i] = createPlayer(ctx, conn, fmt.Sprintf("test_player_%d", i+1))
 	}
-
-	// Seed ranked ratings for pair 1 (used by game-tests).
-	seedRating(ctx, conn, ids[0], 1536.0, 1, 1, 0)
-	seedRating(ctx, conn, ids[1], 1464.0, 1, 0, 1)
 
 	// Add emails to allowed_emails for test-login.
 	for i := range playerCount {
@@ -107,19 +97,4 @@ func createPlayer(ctx context.Context, conn *pgx.Conn, username string) string {
 		log.Fatalf("create player %s: %v", username, err)
 	}
 	return id
-}
-
-func seedRating(ctx context.Context, conn *pgx.Conn, playerID string, rating float64, games, wins, losses int) {
-	_, err := conn.Exec(ctx,
-		`INSERT INTO ratings (player_id, game_id, mmr, display_rating, games_played, win_streak, loss_streak)
-		 VALUES ($1, 'tictactoe', $2, $2, $3, $4, $5)
-		 ON CONFLICT (player_id, game_id) DO UPDATE
-		   SET mmr = EXCLUDED.mmr, display_rating = EXCLUDED.display_rating,
-		       games_played = EXCLUDED.games_played, win_streak = EXCLUDED.win_streak,
-		       loss_streak = EXCLUDED.loss_streak`,
-		playerID, rating, games, wins, losses,
-	)
-	if err != nil {
-		log.Printf("warn: upsert rating %s: %v", playerID, err)
-	}
 }
