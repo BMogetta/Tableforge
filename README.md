@@ -19,36 +19,34 @@ that's been saying "we should play something" for three weeks.
 | Observability| OpenTelemetry → Tempo, Loki, Prometheus, Grafana |
 | Infra        | Docker Compose, Traefik                   |
 
-## Prerequisites
-
-- [Make](https://www.gnu.org/software/make/)
-- [Docker](https://docs.docker.com/get-docker/) with `docker compose`
-- [Go](https://go.dev/dl/) 1.25+
-- [Node.js](https://nodejs.org/) 22+
-- [jq](https://jqlang.github.io/jq/download/)
-
-For code generation (`make gen-types`, `make gen-proto`):
-- [protoc](https://grpc.io/docs/protoc-installation/) + `protoc-gen-go` + `protoc-gen-go-grpc`
-
-## Setup
+## Quick Start
 
 ```bash
 git clone https://github.com/BMogetta/recess.git && cd recess
 make setup                 # verify tools + install frontend deps
 cp .env.example .env       # fill in GitHub OAuth + JWT secret
+make up-app                # start everything
 ```
 
-## Quick Start
+Open `http://localhost`. See [docs/getting-started.md](docs/getting-started.md) for prerequisites and environment variables.
 
-```bash
-make up                    # postgres + redis + game-server
-make up-app                # + traefik + frontend
-make up-all                # + full observability stack
-```
+## Documentation
 
-Everything goes through Traefik on port 80. Run `make test-routing` to verify.
-
-See `CLAUDE.md` for the full architecture, service map, and all available commands.
+| Topic | Link |
+|-------|------|
+| Setup, prerequisites, commands | [Getting Started](docs/getting-started.md) |
+| Service map, communication patterns, database | [Architecture](docs/architecture.md) |
+| Implement a new game (Go + React) | [Adding a Game](docs/adding-a-game.md) |
+| Traefik routes, priorities, rate limits | [API Routing](docs/api/routing.md) |
+| JSON Schema, gRPC, Pub/Sub contracts | [Service Contracts](docs/api/contracts.md) |
+| Frontend stack, routes, store, features | [Frontend Overview](docs/frontend/overview.md) |
+| Design tokens, themes, responsive, a11y | [Styling Guide](docs/frontend/styling.md) |
+| Game package boundaries, card UI kit | [Game Packages](docs/frontend/game-packages.md) |
+| Docker profiles, networks, volumes, init | [Docker Infrastructure](docs/infrastructure/docker.md) |
+| OTel, Tempo, Loki, Prometheus, Grafana | [Observability](docs/infrastructure/observability.md) |
+| Unleash setup, SDK integration | [Feature Flags](docs/infrastructure/feature-flags.md) |
+| Auth, ownership checks, injection prevention | [Security](docs/security.md) |
+| Unit tests, Playwright e2e, scripts | [Testing](docs/testing.md) |
 
 <!-- routing:start -->
 ## Routing
@@ -80,26 +78,6 @@ See `CLAUDE.md` for the full architecture, service map, and all available comman
 _Last updated: 2026-04-05_
 
 <!-- routing:end -->
-
-## Adding a Game
-
-Implement the `Game` interface in `services/game-server/games/` and register it
-in `registry.go`. The engine handles rooms, turns, timers, bots, and spectators.
-
-```go
-type Game interface {
-    ID() string
-    Name() string
-    MinPlayers() int
-    MaxPlayers() int
-    Init(players []Player) (GameState, error)
-    ValidateMove(state GameState, move Move) error
-    ApplyMove(state GameState, move Move) (GameState, error)
-    IsOver(state GameState) (bool, Result)
-}
-```
-
-Optional interfaces: `StateFilter` (hidden information), `TurnTimeoutHandler` (custom timeout moves).
 
 <!-- e2e:start -->
 ## E2E Tests
@@ -136,13 +114,13 @@ _Last updated: 2026-04-04_
 |---------|-------|----------|
 | auth-service | 41 passed | ![57.4%](https://img.shields.io/badge/coverage-57.4%25-yellow) |
 | chat-service | 33 passed | ![50.8%](https://img.shields.io/badge/coverage-50.8%25-yellow) |
-| game-server | 318 passed | ![54.0%](https://img.shields.io/badge/coverage-54.0%25-yellow) |
+| game-server | 415 passed | ![62.1%](https://img.shields.io/badge/coverage-62.1%25-green) |
 | match-service | 73 passed | ![64.7%](https://img.shields.io/badge/coverage-64.7%25-green) |
-| notification-service | 43 passed | ![57.3%](https://img.shields.io/badge/coverage-57.3%25-yellow) |
+| notification-service | 45 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
 | rating-service | 37 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
 | user-service | 95 passed | ![58.7%](https://img.shields.io/badge/coverage-58.7%25-yellow) |
-| ws-gateway | 61 passed | ![31.9%](https://img.shields.io/badge/coverage-31.9%25-red) |
-| frontend (vitest) | 472 passed | ![70.8%](https://img.shields.io/badge/coverage-70.8%25-green) |
+| ws-gateway | 78 passed | ![53.5%](https://img.shields.io/badge/coverage-53.5%25-yellow) |
+| frontend (vitest) | 569 passed | ![73.6%](https://img.shields.io/badge/coverage-73.6%25-green) |
 
 _Last updated: 2026-04-05_
 
