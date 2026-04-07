@@ -9,7 +9,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${RECESS_DB_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=auth-service
@@ -61,7 +61,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${RECESS_DB_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=user-service
@@ -124,7 +124,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${RECESS_DB_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=chat-service
@@ -238,7 +238,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${RECESS_DB_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=rating-service
@@ -346,7 +346,7 @@ services:
       - app_network
       - data_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${RECESS_DB_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=notification-service
@@ -387,13 +387,53 @@ services:
           memory: 256M
           cpus: '0.5'
 
+  # ── Feature flags ─────────────────────────────────────────────────────────────
+
+  unleash:
+    image: unleashorg/unleash-server:latest
+    container_name: unleash
+    profiles: [app]
+    networks:
+      - data_network
+      - app_network
+    environment:
+      DATABASE_URL: postgres://unleash:${UNLEASH_DB_PASSWORD}@postgres:5432/unleash
+      DATABASE_SSL: "false"
+      INIT_ADMIN_API_TOKENS: "*:development.unleash-insecure-api-token"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4242/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.unleash.rule=Host(`${UNLEASH_HOST:-unleash.localhost}`)"
+      - "traefik.http.routers.unleash.entrypoints=web"
+      - "traefik.http.routers.unleash.service=unleash-svc"
+      - "traefik.http.services.unleash-svc.loadbalancer.server.port=4242"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # ── Production profile ───────────────────────────────────────────────────────
 
   pgbouncer:
     image: edoburu/pgbouncer:latest
     profiles: ["production"]
     environment:
-      DATABASE_URL: postgres://recess:${POSTGRES_PASSWORD}@postgres:5432/recess
+      DATABASE_URL: postgres://recess:${RECESS_DB_PASSWORD}@postgres:5432/recess
       MAX_CLIENT_CONN: 200
       DEFAULT_POOL_SIZE: 20
     depends_on:
@@ -419,7 +459,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_DB: recess
       POSTGRES_USER: recess
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${RECESS_DB_PASSWORD}
       SCHEDULE: "@daily"
       BACKUP_KEEP_DAYS: 14
       BACKUP_KEEP_WEEKS: 4

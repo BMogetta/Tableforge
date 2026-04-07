@@ -35,16 +35,18 @@ services:
     image: postgres:16-alpine
     container_name: postgres
     environment:
-      POSTGRES_USER: recess
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: recess
+      RECESS_DB_PASSWORD: ${RECESS_DB_PASSWORD}
+      UNLEASH_DB_PASSWORD: ${UNLEASH_DB_PASSWORD}
     networks:
       - data_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./shared/db/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U recess"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -109,7 +111,7 @@ services:
       - data_network
       - app_network
     environment:
-      - DATABASE_URL=postgres://recess:${POSTGRES_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
+      - DATABASE_URL=postgres://recess:${RECESS_DB_PASSWORD}@${DB_HOST:-postgres}:5432/recess?sslmode=disable
       - REDIS_URL=redis://:${REDIS_PASSWORD:-recess}@redis:6379
       - USER_SERVICE_ADDR=user-service:9082
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317

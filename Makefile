@@ -56,7 +56,7 @@ seed-test:
 	docker build -t recess-seed-test tools/seed-test
 	docker run --rm \
 		--network data_network \
-		-e DATABASE_URL=postgres://recess:recess@postgres:5432/recess?sslmode=disable \
+		-e DATABASE_URL=postgres://recess:$${RECESS_DB_PASSWORD:-recess}@postgres:5432/recess?sslmode=disable \
 		recess-seed-test \
 	> frontend/tests/e2e/.players.json
 	@echo "Test players created:"
