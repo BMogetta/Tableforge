@@ -104,35 +104,51 @@ func TestNextPlayerAfter_NonContiguousSeats(t *testing.T) {
 	}
 }
 
-// --- ParseRedisAddr tests ----------------------------------------------------
+// --- ParseRedisOpt tests -----------------------------------------------------
 
-func TestParseRedisAddr_Standard(t *testing.T) {
-	addr, err := ParseRedisAddr("redis://localhost:6379")
+func TestParseRedisOpt_Standard(t *testing.T) {
+	addr, pass, err := ParseRedisOpt("redis://localhost:6379")
 	if err != nil {
-		t.Fatalf("ParseRedisAddr: %v", err)
+		t.Fatalf("ParseRedisOpt: %v", err)
 	}
 	if addr != "localhost:6379" {
 		t.Errorf("expected localhost:6379, got %s", addr)
 	}
+	if pass != "" {
+		t.Errorf("expected empty password, got %s", pass)
+	}
 }
 
-func TestParseRedisAddr_NoPort(t *testing.T) {
-	addr, err := ParseRedisAddr("redis://myhost")
+func TestParseRedisOpt_NoPort(t *testing.T) {
+	addr, _, err := ParseRedisOpt("redis://myhost")
 	if err != nil {
-		t.Fatalf("ParseRedisAddr: %v", err)
+		t.Fatalf("ParseRedisOpt: %v", err)
 	}
 	if addr != "myhost:6379" {
 		t.Errorf("expected myhost:6379, got %s", addr)
 	}
 }
 
-func TestParseRedisAddr_CustomPort(t *testing.T) {
-	addr, err := ParseRedisAddr("redis://redis.internal:6380")
+func TestParseRedisOpt_CustomPort(t *testing.T) {
+	addr, _, err := ParseRedisOpt("redis://redis.internal:6380")
 	if err != nil {
-		t.Fatalf("ParseRedisAddr: %v", err)
+		t.Fatalf("ParseRedisOpt: %v", err)
 	}
 	if addr != "redis.internal:6380" {
 		t.Errorf("expected redis.internal:6380, got %s", addr)
+	}
+}
+
+func TestParseRedisOpt_WithPassword(t *testing.T) {
+	addr, pass, err := ParseRedisOpt("redis://:secret@redis:6379")
+	if err != nil {
+		t.Fatalf("ParseRedisOpt: %v", err)
+	}
+	if addr != "redis:6379" {
+		t.Errorf("expected redis:6379, got %s", addr)
+	}
+	if pass != "secret" {
+		t.Errorf("expected password 'secret', got %s", pass)
 	}
 }
 

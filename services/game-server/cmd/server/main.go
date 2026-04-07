@@ -84,12 +84,12 @@ func main() {
 	hub := ws.NewHubWithRedis(rdb)
 
 	redisURL := config.Env("REDIS_URL", "redis://localhost:6379")
-	redisAddr, err := runtime.ParseRedisAddr(redisURL)
+	redisAddr, redisPass, err := runtime.ParseRedisOpt(redisURL)
 	if err != nil {
 		slog.Error("failed to parse redis url for asynq", "error", err)
 		os.Exit(1)
 	}
-	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr}
+	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr, Password: redisPass}
 
 	asynqClient := asynq.NewClient(asynqRedis)
 	defer asynqClient.Close()

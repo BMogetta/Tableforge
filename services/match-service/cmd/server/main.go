@@ -86,8 +86,8 @@ func main() {
 
 	// --- Asynq (match expiry tasks) ------------------------------------------
 	redisURL := config.MustEnv("REDIS_URL")
-	redisAddr := parseRedisAddr(redisURL)
-	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr}
+	redisAddr, redisPass := parseRedisOpt(redisURL)
+	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr, Password: redisPass}
 
 	asynqClient := asynq.NewClient(asynqRedis)
 	defer asynqClient.Close()
@@ -189,15 +189,18 @@ func main() {
 	}
 }
 
-func parseRedisAddr(rawURL string) string {
+func parseRedisOpt(rawURL string) (addr, password string) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return "localhost:6379"
+		return "localhost:6379", ""
 	}
 	host := u.Hostname()
 	port := u.Port()
 	if port == "" {
 		port = "6379"
 	}
-	return host + ":" + port
+	if u.User != nil {
+		password, _ = u.User.Password()
+	}
+	return host + ":" + port, password
 }

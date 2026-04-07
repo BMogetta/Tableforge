@@ -94,16 +94,19 @@ func (t *AsynqTimer) deleteTask(taskID string) {
 	}
 }
 
-// ParseRedisAddr extracts host:port from a redis:// URL for asynq.RedisClientOpt.
-func ParseRedisAddr(rawURL string) (string, error) {
+// ParseRedisOpt extracts addr and password from a redis:// URL for asynq.RedisClientOpt.
+func ParseRedisOpt(rawURL string) (addr, password string, err error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return "", fmt.Errorf("parse redis url: %w", err)
+		return "", "", fmt.Errorf("parse redis url: %w", err)
 	}
 	host := u.Hostname()
 	port := u.Port()
 	if port == "" {
 		port = "6379"
 	}
-	return host + ":" + port, nil
+	if u.User != nil {
+		password, _ = u.User.Password()
+	}
+	return host + ":" + port, password, nil
 }
