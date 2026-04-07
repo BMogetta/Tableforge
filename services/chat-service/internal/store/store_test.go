@@ -188,14 +188,14 @@ func TestSaveAndGetDMHistory(t *testing.T) {
 
 	dm2, _ := env.store.SaveDM(ctx, bob, alice, "hey alice")
 
-	history, err := env.store.GetDMHistory(ctx, alice, bob)
+	history, err := env.store.GetDMHistory(ctx, alice, bob, 50, 0)
 	if err != nil {
 		t.Fatalf("GetDMHistory: %v", err)
 	}
 	if len(history) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(history))
 	}
-	// Should be ordered by created_at ASC.
+	// Ordered by created_at ASC (chronological).
 	if history[0].ID != dm1.ID || history[1].ID != dm2.ID {
 		t.Error("expected messages in chronological order")
 	}
@@ -289,7 +289,7 @@ func TestReportDM(t *testing.T) {
 		t.Fatalf("ReportDM: %v", err)
 	}
 
-	history, _ := env.store.GetDMHistory(ctx, alice, bob)
+	history, _ := env.store.GetDMHistory(ctx, alice, bob, 50, 0)
 	if !history[0].Reported {
 		t.Error("expected DM to be reported")
 	}

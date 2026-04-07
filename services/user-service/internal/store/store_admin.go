@@ -45,12 +45,17 @@ type AddAllowedEmailParams struct {
 	InvitedBy *uuid.UUID
 }
 
-func (s *pgStore) ListPlayers(ctx context.Context) ([]Player, error) {
+func (s *pgStore) ListPlayers(ctx context.Context, limit, offset int) ([]Player, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
 	rows, err := s.db.Query(ctx,
 		`SELECT id, username, avatar_url, role, is_bot, created_at, deleted_at
 		 FROM players
 		 WHERE deleted_at IS NULL
-		 ORDER BY created_at DESC`,
+		 ORDER BY created_at DESC
+		 LIMIT $1 OFFSET $2`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ListPlayers: %w", err)

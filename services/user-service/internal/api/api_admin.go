@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -118,7 +119,19 @@ func handleRemoveAllowedEmail(st store.Store) http.HandlerFunc {
 // GET /api/v1/admin/players
 func handleListPlayers(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		players, err := st.ListPlayers(r.Context())
+		limit := 50
+		offset := 0
+		if v := r.URL.Query().Get("limit"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
+				limit = n
+			}
+		}
+		if v := r.URL.Query().Get("offset"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				offset = n
+			}
+		}
+		players, err := st.ListPlayers(r.Context(), limit, offset)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to list players")
 			return

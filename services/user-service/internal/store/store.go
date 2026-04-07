@@ -163,7 +163,7 @@ type Store interface {
 	FindPlayerByUsername(ctx context.Context, username string) (Player, error)
 
 	// Admin — players
-	ListPlayers(ctx context.Context) ([]Player, error)
+	ListPlayers(ctx context.Context, limit, offset int) ([]Player, error)
 	SetPlayerRole(ctx context.Context, playerID uuid.UUID, role PlayerRole) error
 
 	// Admin — allowed emails

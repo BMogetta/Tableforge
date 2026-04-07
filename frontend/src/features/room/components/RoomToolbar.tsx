@@ -45,7 +45,7 @@ export function RoomToolbar({ items, activePopover, onToggle, children }: Props)
 
       {activePopover && (
         <>
-          <div className={styles.popoverBackdrop} onClick={() => onToggle(activePopover)} />
+          <div className={styles.popoverBackdrop} role="button" tabIndex={0} aria-label="Close popover" onClick={() => onToggle(activePopover)} onKeyDown={e => e.key === 'Escape' && onToggle(activePopover)} />
           <div className={styles.popover}>{children}</div>
         </>
       )}

@@ -104,7 +104,7 @@ func (m *mockStore) SaveDM(_ context.Context, senderID, receiverID uuid.UUID, co
 	return msg, nil
 }
 
-func (m *mockStore) GetDMHistory(_ context.Context, playerA, playerB uuid.UUID) ([]store.DirectMessage, error) {
+func (m *mockStore) GetDMHistory(_ context.Context, playerA, playerB uuid.UUID, limit, offset int) ([]store.DirectMessage, error) {
 	var result []store.DirectMessage
 	for _, msg := range m.directMsgs {
 		if (msg.SenderID == playerA && msg.ReceiverID == playerB) ||

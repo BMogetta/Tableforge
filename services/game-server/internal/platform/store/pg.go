@@ -314,6 +314,22 @@ func (s *PGStore) RemovePlayerFromRoom(ctx context.Context, roomID, playerID uui
 	return nil
 }
 
+func (s *PGStore) IsPlayerInActiveRoom(ctx context.Context, playerID uuid.UUID) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM room_players rp
+			JOIN rooms r ON r.id = rp.room_id
+			WHERE rp.player_id = $1
+			AND r.status IN ('waiting', 'in_progress')
+			AND r.deleted_at IS NULL
+		)`, playerID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("IsPlayerInActiveRoom: %w", err)
+	}
+	return exists, nil
+}
+
 func (s *PGStore) ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]RoomPlayer, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT room_id, player_id, seat, joined_at

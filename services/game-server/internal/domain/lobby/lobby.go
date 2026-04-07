@@ -22,6 +22,7 @@ var (
 	ErrNotEnoughPlayer   = errors.New("not enough players to start")
 	ErrNotOwner          = errors.New("only the room owner can start the game")
 	ErrAlreadyInRoom     = errors.New("player is already in the room")
+	ErrPlayerBusy        = errors.New("player is already in an active room or game")
 	ErrGameNotFound      = errors.New("game not found")
 	ErrUnknownSetting    = errors.New("unknown setting key")
 	ErrInvalidSettingVal = errors.New("invalid setting value")
@@ -58,15 +59,16 @@ func New(s store.Store, registry GameRegistry) *Service {
 }
 
 // CreateRoom creates a new room and adds the owner as the first player.
-// TODO: CreateRoom and JoinRoom should reject human players who are already
-// in another waiting room or have an active (unfinished) game session.
-// Currently only the frontend blocks this via ActiveGameBanner; the backend
-// does not enforce it. Enforcement requires a store query like
-// "SELECT 1 FROM room_players rp JOIN rooms r ON r.id = rp.room_id
-//  WHERE rp.player_id = $1 AND r.status IN ('waiting','in_progress')
-//  AND r.deleted_at IS NULL" or checking ListActiveSessions.
-
+// Rejects players who are already in an active room or game session.
 func (svc *Service) CreateRoom(ctx context.Context, gameID string, ownerID uuid.UUID, turnTimeoutSecs *int) (RoomView, error) {
+	busy, err := svc.store.IsPlayerInActiveRoom(ctx, ownerID)
+	if err != nil {
+		return RoomView{}, fmt.Errorf("CreateRoom: check busy: %w", err)
+	}
+	if busy {
+		return RoomView{}, ErrPlayerBusy
+	}
+
 	game, err := svc.registry.Get(gameID)
 	if err != nil {
 		return RoomView{}, ErrGameNotFound
@@ -105,6 +107,14 @@ func (svc *Service) JoinRoom(ctx context.Context, code string, playerID uuid.UUI
 
 	if room.Status != store.RoomStatusWaiting {
 		return RoomView{}, ErrRoomNotWaiting
+	}
+
+	busy, err := svc.store.IsPlayerInActiveRoom(ctx, playerID)
+	if err != nil {
+		return RoomView{}, fmt.Errorf("JoinRoom: check busy: %w", err)
+	}
+	if busy {
+		return RoomView{}, ErrPlayerBusy
 	}
 
 	players, err := svc.store.ListRoomPlayers(ctx, room.ID)

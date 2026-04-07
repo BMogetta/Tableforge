@@ -427,7 +427,7 @@ func (m *mockStore) ListAchievements(_ context.Context, playerID uuid.UUID) ([]s
 
 // --- Admin: players ----------------------------------------------------------
 
-func (m *mockStore) ListPlayers(_ context.Context) ([]store.Player, error) {
+func (m *mockStore) ListPlayers(_ context.Context, limit, offset int) ([]store.Player, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.players, nil

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -127,7 +128,20 @@ func handleGetDMHistory(st store.Store) http.HandlerFunc {
 			}
 		}
 
-		messages, err := st.GetDMHistory(r.Context(), playerID, otherID)
+		limit := 50
+		offset := 0
+		if v := r.URL.Query().Get("limit"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
+				limit = n
+			}
+		}
+		if v := r.URL.Query().Get("offset"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				offset = n
+			}
+		}
+
+		messages, err := st.GetDMHistory(r.Context(), playerID, otherID, limit, offset)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to get messages")
 			return

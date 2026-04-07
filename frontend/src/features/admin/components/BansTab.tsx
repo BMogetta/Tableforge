@@ -111,7 +111,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
       </div>
 
       {showDialog && (
-        <div className={styles.dialogBackdrop} onClick={() => setShowDialog(false)}>
+        <div className={styles.dialogBackdrop} role="button" tabIndex={0} aria-label="Close dialog" onClick={() => setShowDialog(false)} onKeyDown={e => e.key === 'Escape' && setShowDialog(false)}>
           <div
             className={`card ${styles.dialog}`}
             role='dialog'

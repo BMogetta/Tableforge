@@ -463,7 +463,7 @@ func TestListPlayers(t *testing.T) {
 	env.seedPlayer(t, "alice")
 	env.seedPlayer(t, "bob")
 
-	players, err := env.store.ListPlayers(ctx)
+	players, err := env.store.ListPlayers(ctx, 50, 0)
 	if err != nil {
 		t.Fatalf("ListPlayers: %v", err)
 	}

@@ -209,6 +209,9 @@ type Store interface {
 	AddPlayerToRoom(ctx context.Context, roomID, playerID uuid.UUID, seat int) error
 	RemovePlayerFromRoom(ctx context.Context, roomID, playerID uuid.UUID) error
 	ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]RoomPlayer, error)
+	// IsPlayerInActiveRoom returns true if the player is in any room with
+	// status 'waiting' or 'in_progress'. Used to prevent joining multiple rooms.
+	IsPlayerInActiveRoom(ctx context.Context, playerID uuid.UUID) (bool, error)
 
 	// Game sessions
 	CreateGameSession(ctx context.Context, roomID uuid.UUID, gameID string, initialState []byte, turnTimeoutSecs *int, mode SessionMode) (GameSession, error)

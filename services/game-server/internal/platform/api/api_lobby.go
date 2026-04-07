@@ -269,7 +269,6 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 		session, err := svc.StartGame(r.Context(), roomID, playerID, store.SessionModeCasual)
 		if err != nil {
 
-			slog.Error("start game failed", "room_id", roomID, "error", err) // TODO REMOVE
 			writeLobbyError(w, err)
 			return
 		}

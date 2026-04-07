@@ -121,14 +121,18 @@ func (s *pgStore) SaveDM(ctx context.Context, senderID, receiverID uuid.UUID, co
 	return m, nil
 }
 
-func (s *pgStore) GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID) ([]DirectMessage, error) {
+func (s *pgStore) GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID, limit, offset int) ([]DirectMessage, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
 	rows, err := s.db.Query(ctx,
 		`SELECT id, sender_id, receiver_id, content, read_at, reported, hidden, created_at
 		 FROM direct_messages
 		 WHERE (sender_id = $1 AND receiver_id = $2)
 		    OR (sender_id = $2 AND receiver_id = $1)
-		 ORDER BY created_at ASC`,
-		playerA, playerB,
+		 ORDER BY created_at ASC
+		 LIMIT $3 OFFSET $4`,
+		playerA, playerB, limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("GetDMHistory: %w", err)

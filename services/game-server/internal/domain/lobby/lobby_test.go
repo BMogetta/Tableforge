@@ -103,8 +103,8 @@ func TestJoinRoom_AlreadyInRoom(t *testing.T) {
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 
 	_, err := svc.JoinRoom(context.Background(), view.Room.Code, owner.ID)
-	if err != lobby.ErrAlreadyInRoom {
-		t.Errorf("expected ErrAlreadyInRoom, got %v", err)
+	if err != lobby.ErrPlayerBusy {
+		t.Errorf("expected ErrPlayerBusy, got %v", err)
 	}
 }
 

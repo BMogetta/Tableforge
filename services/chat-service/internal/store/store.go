@@ -57,7 +57,7 @@ type Store interface {
 
 	// Direct messages
 	SaveDM(ctx context.Context, senderID, receiverID uuid.UUID, content string) (DirectMessage, error)
-	GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID) ([]DirectMessage, error)
+	GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID, limit, offset int) ([]DirectMessage, error)
 	MarkDMRead(ctx context.Context, messageID, receiverID uuid.UUID) error
 	GetUnreadDMCount(ctx context.Context, playerID uuid.UUID) (int, error)
 	ListDMConversations(ctx context.Context, playerID uuid.UUID) ([]DMConversation, error)

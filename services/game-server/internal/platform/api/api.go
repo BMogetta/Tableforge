@@ -180,6 +180,8 @@ func writeLobbyError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, lobby.ErrAlreadyInRoom):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, lobby.ErrPlayerBusy):
+		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, lobby.ErrRoomNotWaiting):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, lobby.ErrNotOwner):

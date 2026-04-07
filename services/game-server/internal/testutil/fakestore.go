@@ -222,6 +222,24 @@ func (f *FakeStore) ListRoomPlayers(_ context.Context, roomID uuid.UUID) ([]stor
 	return f.RoomPlayers[roomID], nil
 }
 
+func (f *FakeStore) IsPlayerInActiveRoom(_ context.Context, playerID uuid.UUID) (bool, error) {
+	for roomID, players := range f.RoomPlayers {
+		room, ok := f.Rooms[roomID]
+		if !ok {
+			continue
+		}
+		if room.Status != store.RoomStatusWaiting && room.Status != store.RoomStatusInProgress {
+			continue
+		}
+		for _, p := range players {
+			if p.PlayerID == playerID {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 // --- Game sessions -----------------------------------------------------------
 
 func (f *FakeStore) CreateGameSession(

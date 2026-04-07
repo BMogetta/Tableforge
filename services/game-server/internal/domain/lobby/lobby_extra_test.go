@@ -249,10 +249,11 @@ func TestListWaitingRooms_OnlyWaiting(t *testing.T) {
 	svc, s := newTestService()
 	owner := createPlayer(t, s, "alice")
 	guest := createPlayer(t, s, "bob")
+	other := createPlayer(t, s, "carol")
 
-	// Create two rooms.
+	// Create two rooms (different owners so nobody is blocked by IsPlayerInActiveRoom).
 	view1, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.CreateRoom(context.Background(), "chess", guest.ID, nil)
+	svc.CreateRoom(context.Background(), "chess", other.ID, nil)
 
 	// Start game in first room (transitions to in_progress).
 	svc.JoinRoom(context.Background(), view1.Room.Code, guest.ID)
