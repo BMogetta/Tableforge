@@ -174,7 +174,7 @@ func TestMoveStateAfterRoundTrip(t *testing.T) {
 	}
 
 	// Verify ListSessionMoves returns state_after.
-	moves, err := s.ListSessionMoves(ctx, session.ID)
+	moves, err := s.ListSessionMoves(ctx, session.ID, 50, 0)
 	if err != nil {
 		t.Fatalf("ListSessionMoves: %v", err)
 	}

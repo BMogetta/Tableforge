@@ -114,7 +114,7 @@ _Last updated: 2026-04-04_
 |---------|-------|----------|
 | auth-service | 45 passed | ![58.3%](https://img.shields.io/badge/coverage-58.3%25-yellow) |
 | chat-service | 36 passed | ![51.6%](https://img.shields.io/badge/coverage-51.6%25-yellow) |
-| game-server | 421 passed | ![66.1%](https://img.shields.io/badge/coverage-66.1%25-green) |
+| game-server | 430 passed | ![67.0%](https://img.shields.io/badge/coverage-67.0%25-green) |
 | match-service | 73 passed | ![64.7%](https://img.shields.io/badge/coverage-64.7%25-green) |
 | notification-service | 45 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |
 | rating-service | 37 passed | ![66.8%](https://img.shields.io/badge/coverage-66.8%25-green) |

@@ -49,6 +49,7 @@ type GameSessionFinished struct {
 	WinnerID     string         `json:"winner_id"`     // empty string if draw or suspended
 	IsDraw       bool           `json:"is_draw"`
 	DurationSecs int            `json:"duration_secs"`
+	MoveCount    int             `json:"move_count"`
 	Players      []SessionPlayer `json:"players"`
 }
 

@@ -9,6 +9,35 @@
 // the cache; until then the synchronous UA string fallback is used.
 // ---------------------------------------------------------------------------
 
+// --- Experimental browser API types ------------------------------------------
+
+interface UABrand {
+  brand: string
+  version: string
+}
+
+interface UAHighEntropyValues {
+  fullVersionList?: UABrand[]
+  platform?: string
+  platformVersion?: string
+}
+
+interface NavigatorUA {
+  mobile: boolean
+  platform: string
+  getHighEntropyValues?: (hints: string[]) => Promise<UAHighEntropyValues>
+}
+
+interface NetworkInformation {
+  effectiveType?: string
+}
+
+interface NavigatorExt extends Navigator {
+  userAgentData?: NavigatorUA
+  connection?: NetworkInformation
+  deviceMemory?: number
+}
+
 // --- Types -------------------------------------------------------------------
 
 export interface DeviceContext {
@@ -69,16 +98,16 @@ let cachedMobile = /Mobi|Android/i.test(UA)
 
 // Attempt high-entropy UA data (Chrome/Edge 90+). Resolves into cache.
 if (typeof navigator !== 'undefined' && 'userAgentData' in navigator) {
-  const uad = (navigator as any).userAgentData
+  const uad = (navigator as NavigatorExt).userAgentData!
   cachedMobile = uad.mobile ?? cachedMobile
   cachedPlatform = uad.platform ?? ''
   uad
     .getHighEntropyValues?.(['fullVersionList', 'platformVersion'])
-    .then((v: any) => {
+    .then((v) => {
       if (v.fullVersionList?.length) {
         // Pick the most specific brand (skip "Chromium", "Not…" brands).
         const brand =
-          v.fullVersionList.find((b: any) => !/Chromium|Not/i.test(b.brand)) ?? v.fullVersionList[0]
+          v.fullVersionList.find((b) => !/Chromium|Not/i.test(b.brand)) ?? v.fullVersionList[0]
         cachedBrowser = { name: brand.brand, version: brand.version }
       }
       if (v.platform) cachedOS = { name: v.platform, version: v.platformVersion ?? '' }
@@ -90,9 +119,9 @@ if (typeof navigator !== 'undefined' && 'userAgentData' in navigator) {
 // --- Public API --------------------------------------------------------------
 
 export function getDeviceContext(): DeviceContext {
-  const w = typeof window !== 'undefined' ? window : (undefined as any)
-  const nav = typeof navigator !== 'undefined' ? navigator : (undefined as any)
-  const conn = nav?.connection as any
+  const w = typeof window !== 'undefined' ? window : undefined
+  const nav: NavigatorExt | undefined = typeof navigator !== 'undefined' ? navigator : undefined
+  const conn = nav?.connection
 
   return {
     browser: { ...cachedBrowser },
@@ -111,7 +140,7 @@ export function getDeviceContext(): DeviceContext {
     },
     hardware: {
       cores: nav?.hardwareConcurrency ?? null,
-      memory: (nav as any)?.deviceMemory ?? null,
+      memory: nav?.deviceMemory ?? null,
     },
     network: {
       online: nav?.onLine ?? true,

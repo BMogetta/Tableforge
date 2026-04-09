@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -68,7 +69,19 @@ func handleCreateReport(st store.Store) http.HandlerFunc {
 
 func handleListPendingReports(st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		reports, err := st.ListPendingReports(r.Context())
+		limit := 50
+		offset := 0
+		if v := r.URL.Query().Get("limit"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
+				limit = n
+			}
+		}
+		if v := r.URL.Query().Get("offset"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+				offset = n
+			}
+		}
+		reports, err := st.ListPendingReports(r.Context(), limit, offset)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to list reports")
 			return

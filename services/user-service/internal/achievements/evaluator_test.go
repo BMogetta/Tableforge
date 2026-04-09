@@ -193,7 +193,7 @@ func TestComputeNewProgress_WinStreakReset(t *testing.T) {
 func TestEvaluate_TttPerfectGame(t *testing.T) {
 	evt := baseEvt("tictactoe")
 	evt.EndedBy = "win"
-	evt.DurationSecs = 20 // short game
+	evt.MoveCount = 5 // perfect: 3 winner + 2 loser
 
 	state := map[string]Progress{}
 	unlocks := Evaluate(evt, "win", state, 1)
@@ -205,21 +205,21 @@ func TestEvaluate_TttPerfectGame(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("expected ttt_perfect_game unlock for short TTT win")
+		t.Error("expected ttt_perfect_game unlock for 5-move TTT win")
 	}
 }
 
-func TestEvaluate_TttPerfectGameTooLong(t *testing.T) {
+func TestEvaluate_TttPerfectGameTooManyMoves(t *testing.T) {
 	evt := baseEvt("tictactoe")
 	evt.EndedBy = "win"
-	evt.DurationSecs = 120 // too long
+	evt.MoveCount = 7 // not perfect
 
 	state := map[string]Progress{}
 	unlocks := Evaluate(evt, "win", state, 1)
 
 	for _, u := range unlocks {
 		if u.Key == "ttt_perfect_game" {
-			t.Error("should not unlock ttt_perfect_game for long game")
+			t.Error("should not unlock ttt_perfect_game for 7-move game")
 		}
 	}
 }

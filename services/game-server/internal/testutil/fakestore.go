@@ -442,7 +442,7 @@ func (f *FakeStore) RecordMove(_ context.Context, params store.RecordMoveParams)
 	return m, nil
 }
 
-func (f *FakeStore) ListSessionMoves(_ context.Context, sessionID uuid.UUID) ([]store.Move, error) {
+func (f *FakeStore) ListSessionMoves(_ context.Context, sessionID uuid.UUID, _, _ int) ([]store.Move, error) {
 	return f.Moves[sessionID], nil
 }
 

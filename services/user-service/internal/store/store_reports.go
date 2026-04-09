@@ -38,14 +38,18 @@ func (s *pgStore) ReviewReport(ctx context.Context, params ReviewReportParams) e
 	return nil
 }
 
-func (s *pgStore) ListPendingReports(ctx context.Context) ([]PlayerReport, error) {
+func (s *pgStore) ListPendingReports(ctx context.Context, limit, offset int) ([]PlayerReport, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
 	rows, err := s.db.Query(ctx, `
 		SELECT id, reporter_id, reported_id, reason, context,
 		       status, reviewed_by, reviewed_at, resolution, ban_id, created_at
 		FROM users.player_reports
 		WHERE status = 'pending'
 		ORDER BY created_at ASC
-	`)
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
 	if err != nil {
 		return nil, err
 	}

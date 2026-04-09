@@ -57,18 +57,8 @@ func Evaluate(
 			if evt.GameID != "tictactoe" || playerOutcome != "win" {
 				continue
 			}
-			// Perfect game = 3 moves for the winner (seats alternate).
-			// Count moves by this player from the event duration isn't available,
-			// but we rely on the total duration: a perfect TTT win = 5 total moves
-			// (3 winner + 2 loser), so the winner used exactly 3.
-			// The caller should pass move count in the event, but since we only
-			// have duration_secs, we check if duration < a threshold indicating
-			// minimal moves. For now, we'll track this via a dedicated field
-			// that the consumer computes from session data.
-			// Simplified: if the session ended with "win" and DurationSecs is
-			// very short (< 30s for a 3-move game), count it.
-			// TODO: improve when move count is available in the event.
-			if evt.DurationSecs > 60 {
+			// Perfect game = exactly 5 total moves (3 winner + 2 loser).
+			if evt.MoveCount != 5 {
 				continue
 			}
 			newProgress = 1

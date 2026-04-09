@@ -329,7 +329,7 @@ func (svc *Service) GetStateAt(ctx context.Context, sessionID uuid.UUID, moveNum
 		return engine.GameState{}, fmt.Errorf("GetStateAt: init: %w", err)
 	}
 
-	moves, err := svc.store.ListSessionMoves(ctx, sessionID)
+	moves, err := svc.store.ListSessionMoves(ctx, sessionID, 200, 0)
 	if err != nil {
 		return engine.GameState{}, fmt.Errorf("GetStateAt: list moves: %w", err)
 	}
@@ -587,6 +587,7 @@ func (svc *Service) publishGameFinished(
 		WinnerID:     winnerIDStr(result.WinnerID),
 		IsDraw:       result.IsDraw,
 		DurationSecs: durationSecs(result.DurationSecs),
+		MoveCount:    session.MoveCount,
 		Players:      sessionPlayers,
 	}
 

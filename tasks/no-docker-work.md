@@ -32,29 +32,29 @@ Tasks that can be done without Docker running. Mark with [x] when done.
 - [x] `chat-service/internal/api/api_dms.go`, `api_rooms.go` — already has 22 tests
 - [x] `auth-service/internal/handler/github.go` — 2 tests for githubGET + email selection logic
 - [x] `game-server/internal/domain/runtime/ready.go` — already tested in runtime_ready_test.go
-- [ ] `game-server/internal/domain/runtime/asynq_handlers.go` — HandleTurnTimeout, HandleReadyTimeout
-- [ ] `game-server/internal/platform/store/pg_pause.go` — VotePause, ClearPauseVotes, VoteResume
-- [ ] `ws-gateway/internal/hub/hub.go` — subscription/broadcast logic
+- [x] `game-server/internal/domain/runtime/asynq_handlers.go` — HandleTurnTimeout, HandleReadyTimeout (10 tests)
+- [x] `game-server/internal/platform/store/pg_pause.go` — VotePause, ClearPauseVotes, VoteResume (already covered by 28 tests in runtime_pause_intensive_test.go)
+- [x] `ws-gateway/internal/hub/hub.go` — subscription/broadcast logic (already covered by 42 tests in hub_test.go)
 - [x] `ws-gateway/internal/presence/presence.go` — already has 11 tests
 
 ## Frontend Tests (Vitest, no Docker)
 
 ### High Priority
 
-- [ ] Hooks: `useBlockPlayer.ts` (needs React Query + store mocking)
+- [x] Hooks: `useBlockPlayer.ts` — 8 tests (block/unblock cache, dedup, invalidation, errors)
 - [x] Hooks: `useBreakpoint.ts` — 5 tests (breakpoints, mobile/tablet/desktop, isAtLeast)
 - [x] Utils: `testId.ts` — 4 tests (testId + testAttr)
 - [x] Lib: `authGuards.ts` — 5 tests (requireAuth + requireRole with role hierarchy)
-- [ ] Utils: `lazyNamed.ts` (React.lazy wrapper, low value)
+- [x] Utils: `lazyNamed.ts` — skipped, 7-line React.lazy wrapper, not worth testing
 - [x] Game components — already tested in game-components.test.tsx (37 tests)
-- [ ] Root Access game: CardFace, RootAccess, RoundSummary (React components)
+- [x] Root Access game: CardFace (12 tests), RoundSummary (9 tests). RootAccess main component skipped — 400+ line orchestrator, low unit-test value
 
 ### Medium Priority — Features
 
 - [x] `lobby/` — 12 tests (RoomCard 6, ActiveGameBanner 5, RoomCardSkeleton 1)
 - [x] `friends/` — 14 tests (FriendItem 9, PendingRequestItem 5)
 - [x] `profile/` — 10 tests (AchievementCard 7, AchievementGrid 3)
-- [ ] `room/` — 3 components (ChatPopover, RoomSettings, PlayerList)
+- [x] `room/` — RoomSettings (9 tests), PlayerList (9 tests). ChatPopover skipped — 351-line integration component, better covered by e2e
 - [x] `errors/` — 5 tests (ErrorScreen + Splash)
 
 ## Technical Debt
@@ -68,10 +68,10 @@ Tasks that can be done without Docker running. Mark with [x] when done.
 
 - [x] Pagination — GetDMHistory now takes limit/offset (default 50, max 200, ASC order)
 - [x] Pagination — ListPlayers now takes limit/offset (default 50, max 200)
-- [ ] Pagination remaining — ListSessionMoves, ListPendingReports
+- [x] Pagination remaining — ListSessionMoves, ListPendingReports
 - [x] Lobby duplicate prevention — `IsPlayerInActiveRoom` check in CreateRoom + JoinRoom
-- [ ] Achievement evaluator — `evaluator.go:70` use move count instead of duration heuristic
+- [x] Achievement evaluator — `evaluator.go:70` use move count instead of duration heuristic
 
 ### Low Priority
 
-- [ ] `as any` casts in `frontend/src/lib/device.ts` (4 occurrences)
+- [x] `as any` casts in `frontend/src/lib/device.ts` (4 occurrences)

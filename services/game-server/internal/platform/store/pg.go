@@ -575,11 +575,15 @@ func (s *PGStore) RecordMove(ctx context.Context, params RecordMoveParams) (Move
 	return m, nil
 }
 
-func (s *PGStore) ListSessionMoves(ctx context.Context, sessionID uuid.UUID) ([]Move, error) {
+func (s *PGStore) ListSessionMoves(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]Move, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, session_id, player_id, payload, state_after, move_number, applied_at
-		 FROM moves WHERE session_id = $1 ORDER BY move_number`,
-		sessionID,
+		 FROM moves WHERE session_id = $1 ORDER BY move_number
+		 LIMIT $2 OFFSET $3`,
+		sessionID, limit, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ListSessionMoves: %w", err)

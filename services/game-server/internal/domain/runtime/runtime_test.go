@@ -56,7 +56,7 @@ func (f *fakeStore) RemovePlayerFromRoom(_ context.Context, _ uuid.UUID, _ uuid.
 func (f *fakeStore) ListRoomPlayers(_ context.Context, _ uuid.UUID) ([]store.RoomPlayer, error) {
 	return nil, nil
 }
-func (f *fakeStore) ListSessionMoves(_ context.Context, sessionID uuid.UUID) ([]store.Move, error) {
+func (f *fakeStore) ListSessionMoves(_ context.Context, sessionID uuid.UUID, _, _ int) ([]store.Move, error) {
 	return f.Moves[sessionID], nil
 }
 

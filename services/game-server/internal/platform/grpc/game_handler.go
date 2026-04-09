@@ -113,7 +113,7 @@ func (h *GameHandler) GetMoveLog(ctx context.Context, req *gamev1.GetMoveLogRequ
 		return nil, status.Errorf(codes.NotFound, "session not found: %v", err)
 	}
 
-	moves, err := h.st.ListSessionMoves(ctx, sessionID)
+	moves, err := h.st.ListSessionMoves(ctx, sessionID, 200, 0)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list moves: %v", err)
 	}

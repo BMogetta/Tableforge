@@ -240,7 +240,7 @@ type Store interface {
 
 	// Moves
 	RecordMove(ctx context.Context, params RecordMoveParams) (Move, error)
-	ListSessionMoves(ctx context.Context, sessionID uuid.UUID) ([]Move, error)
+	ListSessionMoves(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]Move, error)
 	GetMoveAt(ctx context.Context, sessionID uuid.UUID, moveNumber int) (Move, error)
 
 	// Session events

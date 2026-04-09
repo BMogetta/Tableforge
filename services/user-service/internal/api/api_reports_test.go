@@ -28,7 +28,7 @@ func TestCreateReport(t *testing.T) {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	reports, _ := st.ListPendingReports(context.Background())
+	reports, _ := st.ListPendingReports(context.Background(), 50, 0)
 	if len(reports) != 1 {
 		t.Fatalf("expected 1 pending report, got %d", len(reports))
 	}
@@ -112,7 +112,7 @@ func TestReviewReport(t *testing.T) {
 	}
 
 	// Verify the report is now reviewed.
-	pending, _ := st.ListPendingReports(context.Background())
+	pending, _ := st.ListPendingReports(context.Background(), 50, 0)
 	if len(pending) != 0 {
 		t.Fatalf("expected 0 pending reports after review, got %d", len(pending))
 	}

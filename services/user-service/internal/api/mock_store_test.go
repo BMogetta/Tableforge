@@ -333,7 +333,7 @@ func (m *mockStore) ReviewReport(_ context.Context, params store.ReviewReportPar
 	return nil
 }
 
-func (m *mockStore) ListPendingReports(_ context.Context) ([]store.PlayerReport, error) {
+func (m *mockStore) ListPendingReports(_ context.Context, _, _ int) ([]store.PlayerReport, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var out []store.PlayerReport

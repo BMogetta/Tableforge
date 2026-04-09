@@ -302,7 +302,7 @@ func TestReportFlow(t *testing.T) {
 	}
 
 	// List pending.
-	pending, err := env.store.ListPendingReports(ctx)
+	pending, err := env.store.ListPendingReports(ctx, 50, 0)
 	if err != nil {
 		t.Fatalf("ListPendingReports: %v", err)
 	}
@@ -322,7 +322,7 @@ func TestReportFlow(t *testing.T) {
 	}
 
 	// No more pending.
-	pending, _ = env.store.ListPendingReports(ctx)
+	pending, _ = env.store.ListPendingReports(ctx, 50, 0)
 	if len(pending) != 0 {
 		t.Error("expected 0 pending after review")
 	}

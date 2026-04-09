@@ -148,7 +148,7 @@ type Store interface {
 	// Reports
 	CreateReport(ctx context.Context, params CreateReportParams) (PlayerReport, error)
 	ReviewReport(ctx context.Context, params ReviewReportParams) error
-	ListPendingReports(ctx context.Context) ([]PlayerReport, error)
+	ListPendingReports(ctx context.Context, limit, offset int) ([]PlayerReport, error)
 	ListReportsByPlayer(ctx context.Context, reportedID uuid.UUID) ([]PlayerReport, error)
 
 	// Profiles
