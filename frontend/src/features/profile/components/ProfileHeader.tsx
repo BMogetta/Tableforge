@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { testId } from '@/utils/testId'
 import styles from '../Profile.module.css'
 
 interface ProfileHeaderProps {
@@ -44,7 +45,7 @@ export function ProfileHeader({
       )}
 
       <div className={styles.headerInfo}>
-        <h1 className={styles.username}>{username ?? playerId.slice(0, 8)}</h1>
+        <h1 className={styles.username} {...testId('profile-username')}>{username ?? playerId.slice(0, 8)}</h1>
         {bio && <p className={styles.bio}>{bio}</p>}
         {country && <span className={styles.country}>{country}</span>}
       </div>

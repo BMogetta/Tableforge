@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { MatchHistoryEntry } from '@/lib/schema-generated.zod'
+import { testId } from '@/utils/testId'
 import styles from '../Profile.module.css'
 
 interface MatchHistoryProps {
@@ -56,6 +57,7 @@ export function MatchHistory({
         {matches.map((match, i) => (
           <div
             key={match.id}
+            {...testId(`match-row-${i}`)}
             className={styles.matchRow}
             style={{ animationDelay: `${i * 30}ms` }}
             onClick={() => onViewReplay(match.session_id)}

@@ -4,13 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppStore } from '@/stores/store'
 import { players } from '@/lib/api'
+import { testId } from '@/utils/testId'
 import { keys } from '@/lib/queryClient'
 import { useBlockPlayer } from '@/hooks/useBlockPlayer'
 import { ProfileHeader } from './components/ProfileHeader'
 import { MatchHistory } from './components/MatchHistory'
 import { AchievementGrid } from './AchievementGrid'
 import styles from './Profile.module.css'
-import { testId } from '@/utils/testId'
 
 const PAGE_SIZE = 20
 
@@ -92,7 +92,7 @@ export function Profile({ playerId }: { playerId: string }) {
         </header>
 
         {stats && (
-          <div className={styles.statsBar}>
+          <div className={styles.statsBar} {...testId('stats-bar')}>
             <div className={styles.stat}>
               <span className={styles.statLabel}>{t('profile.games')}</span>
               <span className={styles.statValue}>{stats.total_games}</span>
