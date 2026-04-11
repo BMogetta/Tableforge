@@ -72,6 +72,7 @@ export function DMInboxPanel({ onClose, initialTarget }: DMInboxPanelProps) {
             safeConversations.map((conv: DMConversationType) => (
               <button type="button"
                 key={conv.other_player_id}
+                {...testId(`dm-conversation-${conv.other_player_id}`)}
                 className={styles.convRow}
                 onClick={() => {
                   setSelectedId(conv.other_player_id)

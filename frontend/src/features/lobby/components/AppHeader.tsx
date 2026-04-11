@@ -95,6 +95,7 @@ export function AppHeader({ onLogout }: Props) {
           {/* DMs envelope */}
           <button type="button"
             className={styles.iconBtn}
+            {...testId('dm-envelope-btn')}
             title={t('header.messages')}
             onClick={() => useAppStore.getState().setDmTarget('__inbox__')}
           >

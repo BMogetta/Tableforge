@@ -119,6 +119,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
           safeMessages.map((msg: DirectMessage) => (
             <div
               key={msg.message_id}
+              {...testId(`dm-message-${msg.message_id}`)}
               className={`${styles.bubble} ${msg.sender_id === player.id ? styles.mine : styles.theirs}`}
             >
               <p className={styles.text}>{msg.content}</p>
