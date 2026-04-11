@@ -344,7 +344,11 @@ export class PlayerSocket {
   private static readonly MAX_ATTEMPTS = 10
   private static readonly MAX_BACKOFF_MS = 30_000
 
-  constructor(private url: string) {}
+  readonly url: string
+
+  constructor(url: string) {
+    this.url = url
+  }
 
   connect() {
     if (this.ws) return

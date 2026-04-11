@@ -299,11 +299,19 @@ describe('connectPlayerSocket', () => {
     expect(ps.url).toBe('wss://example.com/ws/players/p1')
   })
 
-  it('closes previous player socket when reconnecting', () => {
+  it('skips reconnect when URL is the same', () => {
+    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
+    const first = useAppStore.getState().playerSocket
+
+    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
+    expect(useAppStore.getState().playerSocket).toBe(first)
+  })
+
+  it('closes previous player socket when URL changes', () => {
     useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
     const first = useAppStore.getState().playerSocket as unknown as { closed: boolean }
 
-    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
+    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p2')
     expect(first.closed).toBe(true)
   })
 })

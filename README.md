@@ -85,16 +85,10 @@ _Last updated: 2026-04-11_
 
 | Project | Passed | Status |
 |---------|--------|--------|
-| chat-tests | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| chromium-parallel | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| game-tests | 10/15 | ![partial](https://img.shields.io/badge/-10_of_15-yellow) |
-| presence-tests | 2/5 | ![partial](https://img.shields.io/badge/-2_of_5-yellow) |
-| session-history-tests | 0/10 | ![skip](https://img.shields.io/badge/-skipped-lightgrey) |
-| settings-tests | 7/7 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| spectator-tests | 8/12 | ![partial](https://img.shields.io/badge/-8_of_12-yellow) |
-| **Total** | **33/55** | ![progress](https://img.shields.io/badge/-33_of_55-yellow) |
+| tests | 48/58 | ![partial](https://img.shields.io/badge/-48_of_58-yellow) |
+| **Total** | **48/58** | ![progress](https://img.shields.io/badge/-48_of_58-yellow) |
 
-_Last updated: 2026-04-04_
+_Last updated: 2026-04-11_
 <!-- e2e:end -->
 
 <!-- i18n:start -->

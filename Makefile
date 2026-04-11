@@ -20,7 +20,7 @@ up-prod: networks
 	docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml --profile production --profile app --profile monitoring up -d --build
 
 up-test: networks
-	TEST_MODE=true WS_RATE_LIMIT_AVG=300 WS_RATE_LIMIT_BURST=300 docker compose -f docker-compose.yml --profile app up --build -d
+	TEST_MODE=true RATE_LIMIT_AVG=9999 RATE_LIMIT_BURST=9999 docker compose -f docker-compose.yml --profile app up --build -d
 
 # Stop all services and remove containers.
 down:

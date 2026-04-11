@@ -180,7 +180,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   playerSocket: null,
   connectPlayerSocket: (url: string) => {
-    get().playerSocket?.close()
+    const existing = get().playerSocket
+    if (existing && existing.url === url) return
+    existing?.close()
     const playerSocket = new PlayerSocket(url)
     playerSocket.connect()
     set({ playerSocket })

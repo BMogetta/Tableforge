@@ -144,8 +144,8 @@ services:
       - "traefik.http.routers.game-server.service=game-server-svc"
       - "traefik.http.services.game-server-svc.loadbalancer.server.port=8080"
       - "traefik.http.routers.game-server.middlewares=security-headers@file,api-ratelimit"
-      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=100"
-      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=50"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=${RATE_LIMIT_AVG:-100}"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=${RATE_LIMIT_BURST:-50}"
     deploy:
       resources:
         limits:
