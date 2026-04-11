@@ -4,8 +4,8 @@
 
 GitHub OAuth via `auth-service`. JWT tokens stored in HTTP-only cookies:
 
-- `tf_session` -- access token (15 min TTL)
-- `tf_refresh` -- refresh token (7 day TTL)
+- `recess_session` -- access token (15 min TTL)
+- `recess_refresh` -- refresh token (7 day TTL)
 
 Single active session enforced via Redis key `session:active:{player_id}`.
 

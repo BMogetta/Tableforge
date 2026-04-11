@@ -36,14 +36,14 @@ auth_player() {
   local headers
   headers=$(curl -s -D - -o /dev/null "$BASE/auth/test-login?player_id=$player_id")
   local token
-  token=$(echo "$headers" | sed -n 's/.*tf_session=\([^;]*\).*/\1/p' | tr -d '\r')
+  token=$(echo "$headers" | sed -n 's/.*recess_session=\([^;]*\).*/\1/p' | tr -d '\r')
   echo "$token"
 }
 
 # Make an authenticated request. Usage: api TOKEN METHOD /path [body]
 api() {
   local token="$1" method="$2" path="$3" body="${4:-}"
-  local args=(-s -w '\n%{http_code}' -X "$method" -b "tf_session=$token" -H 'Content-Type: application/json')
+  local args=(-s -w '\n%{http_code}' -X "$method" -b "recess_session=$token" -H 'Content-Type: application/json')
   [[ -n "$body" ]] && args+=(-d "$body")
   curl "${args[@]}" "${BASE}${path}"
 }

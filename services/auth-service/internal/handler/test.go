@@ -3,18 +3,18 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
 	authjwt "github.com/recess/auth-service/internal/jwt"
+	"github.com/recess/shared/config"
 	"github.com/recess/shared/middleware"
 )
 
 // TestModeEnabled returns true when TEST_MODE=true.
 // Must never be enabled in production.
 func TestModeEnabled() bool {
-	return os.Getenv("TEST_MODE") == "true"
+	return config.Env("TEST_MODE", "false") == "true"
 }
 
 // HandleTestLogin is a test-only endpoint that sets a session cookie for any

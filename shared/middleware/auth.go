@@ -22,8 +22,8 @@ const (
 )
 
 const (
-	CookieName        = "tf_session"
-	RefreshCookieName = "tf_refresh"
+	CookieName        = "recess_session"
+	RefreshCookieName = "recess_refresh"
 	JWTTTL            = 15 * time.Minute
 	RefreshTTL        = 7 * 24 * time.Hour
 )

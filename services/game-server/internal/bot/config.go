@@ -2,9 +2,10 @@ package bot
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
+
+	"github.com/recess/shared/config"
 )
 
 // PersonalityProfile is a named preset that controls bot strength and style.
@@ -92,22 +93,22 @@ func DefaultConfig() BotConfig {
 		Personality:      profile,
 	}
 
-	if v := os.Getenv("BOT_ITERATIONS"); v != "" {
+	if v := config.Env("BOT_ITERATIONS", ""); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			cfg.Iterations = n
 		}
 	}
-	if v := os.Getenv("BOT_DETERMINIZATIONS"); v != "" {
+	if v := config.Env("BOT_DETERMINIZATIONS", ""); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			cfg.Determinizations = n
 		}
 	}
-	if v := os.Getenv("BOT_MAX_THINK_TIME"); v != "" {
+	if v := config.Env("BOT_MAX_THINK_TIME", ""); v != "" {
 		if d, err := time.ParseDuration(v); err == nil && d > 0 {
 			cfg.MaxThinkTime = d
 		}
 	}
-	if v := os.Getenv("BOT_EXPLORATION_C"); v != "" {
+	if v := config.Env("BOT_EXPLORATION_C", ""); v != "" {
 		if f, err := strconv.ParseFloat(v, 64); err == nil && f > 0 {
 			cfg.ExplorationC = f
 		}
@@ -133,7 +134,7 @@ func ConfigFromProfile(profileName string) (BotConfig, error) {
 		Personality:      profile,
 	}
 
-	if v := os.Getenv("BOT_MAX_THINK_TIME"); v != "" {
+	if v := config.Env("BOT_MAX_THINK_TIME", ""); v != "" {
 		if d, err := time.ParseDuration(v); err == nil && d > 0 {
 			cfg.MaxThinkTime = d
 		}

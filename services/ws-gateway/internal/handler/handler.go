@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/recess/services/ws-gateway/internal/hub"
 	"github.com/recess/services/ws-gateway/internal/presence"
+	"github.com/recess/shared/config"
 	"github.com/recess/shared/middleware"
 	gamev1 "github.com/recess/shared/proto/game/v1"
 	userv1 "github.com/recess/shared/proto/user/v1"
@@ -31,7 +31,7 @@ import (
 var allowedOrigins = parseAllowedOrigins()
 
 func parseAllowedOrigins() map[string]struct{} {
-	raw := os.Getenv("ALLOWED_ORIGINS")
+	raw := config.Env("ALLOWED_ORIGINS", "")
 	if raw == "" {
 		return nil
 	}

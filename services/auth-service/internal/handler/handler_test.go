@@ -205,13 +205,13 @@ func TestHandleLogout(t *testing.T) {
 	cookies := rec.Result().Cookies()
 	foundSession, foundRefresh := false, false
 	for _, c := range cookies {
-		if c.Name == "tf_session" {
+		if c.Name == "recess_session" {
 			foundSession = true
 			if c.MaxAge >= 0 {
 				t.Error("expected session cookie MaxAge < 0 (cleared)")
 			}
 		}
-		if c.Name == "tf_refresh" {
+		if c.Name == "recess_refresh" {
 			foundRefresh = true
 			if c.MaxAge >= 0 {
 				t.Error("expected refresh cookie MaxAge < 0 (cleared)")
@@ -219,10 +219,10 @@ func TestHandleLogout(t *testing.T) {
 		}
 	}
 	if !foundSession {
-		t.Error("expected tf_session cookie to be set (cleared)")
+		t.Error("expected recess_session cookie to be set (cleared)")
 	}
 	if !foundRefresh {
-		t.Error("expected tf_refresh cookie to be set (cleared)")
+		t.Error("expected recess_refresh cookie to be set (cleared)")
 	}
 
 	// Verify session was revoked in store.
@@ -255,18 +255,18 @@ func TestHandleRefresh_Success(t *testing.T) {
 	cookies := rec.Result().Cookies()
 	foundSession, foundRefresh := false, false
 	for _, c := range cookies {
-		if c.Name == "tf_session" && c.Value != "" {
+		if c.Name == "recess_session" && c.Value != "" {
 			foundSession = true
 		}
-		if c.Name == "tf_refresh" && c.Value != "" && c.Value != sessID.String() {
+		if c.Name == "recess_refresh" && c.Value != "" && c.Value != sessID.String() {
 			foundRefresh = true
 		}
 	}
 	if !foundSession {
-		t.Error("expected new tf_session cookie")
+		t.Error("expected new recess_session cookie")
 	}
 	if !foundRefresh {
-		t.Error("expected new tf_refresh cookie with rotated session ID")
+		t.Error("expected new recess_refresh cookie with rotated session ID")
 	}
 
 	// Old session should be revoked.
