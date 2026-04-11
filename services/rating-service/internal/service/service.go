@@ -101,7 +101,10 @@ func (s *Service) ProcessGameFinished(ctx context.Context, evt events.GameSessio
 	updates := make([]*store.PlayerRating, 0, len(playerIDs))
 	history := make([]store.HistoryEntry, 0, len(playerIDs))
 
-	resultID, _ := uuid.Parse(evt.SessionID) // session_id == game_results.id in current schema
+	resultID, err := uuid.Parse(evt.ResultID)
+	if err != nil {
+		return fmt.Errorf("invalid result_id %q: %w", evt.ResultID, err)
+	}
 
 	for _, id := range playerIDs {
 		rp := ratingPlayers[id]

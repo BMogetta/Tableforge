@@ -4,6 +4,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "tryAgain": "Try Again",
     "back": "Back",
     "close": "Close",
     "closeDialog": "Close dialog",
@@ -100,7 +101,9 @@
     "joiningMatch": "Joining...",
     "searchingForOpponent": "Searching for opponent",
     "matchFound": "\u2694 Match found!",
-    "matchFoundHint": "Check your notifications to accept.",
+    "matchFoundHint": "Accept to start the game.",
+    "acceptMatch": "Accept",
+    "declineMatch": "Decline",
     "rankedNote": "Ranked games affect your",
     "displayRating": "display rating",
     "backToLobby": "\u2190 Lobby"

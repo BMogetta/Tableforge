@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { testId } from '@/utils/testId'
 import { useAppStore } from '@/stores/store'
 import { sessions } from '@/lib/api/sessions'
 import { loadAssets, type LoadProgress } from '@/lib/assets'
@@ -81,25 +82,40 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
 
   // Phase 2 — listen for game_ready WS event.
   useEffect(() => {
-    if (!socket || phase !== 'waiting') return
+    if (phase !== 'waiting') return
 
-    const off = socket.on(event => {
-      if (event.type === 'player_ready') {
-        setWaitingPlayers(event.payload.ready_players)
-        setRequired(event.payload.required)
-      }
-      if (event.type === 'game_ready') {
-        setPhase('done')
-        onReady()
-      }
-      if (event.type === 'game_over') {
-        // Server forfeited someone due to ready_timeout.
-        onTimeout()
-      }
-    })
+    // If socket is available, listen for real-time events.
+    if (socket) {
+      const off = socket.on(event => {
+        if (event.type === 'player_ready') {
+          setWaitingPlayers(event.payload.ready_players)
+          setRequired(event.payload.required)
+        }
+        if (event.type === 'game_ready') {
+          setPhase('done')
+          onReady()
+        }
+        if (event.type === 'game_over') {
+          // Server forfeited someone due to ready_timeout.
+          onTimeout()
+        }
+      })
+      return () => off()
+    }
 
-    return () => off()
-  }, [socket, phase, onReady, onTimeout])
+    // Fallback: no socket available (e.g. ranked queue skipped room).
+    // Poll ready status so we don't get stuck on the waiting screen.
+    const interval = setInterval(() => {
+      sessions.ready(sessionId).then(res => {
+        if (res.all_ready) {
+          setPhase('done')
+          onReady()
+        }
+      }).catch(() => {})
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [socket, phase, sessionId, onReady, onTimeout])
 
   // Countdown timer shown during waiting phase.
   useEffect(() => {
@@ -146,6 +162,7 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
         <p className={styles.countdown}>{countdown}s</p>
         <button type="button"
           className='btn btn-ghost'
+          {...testId('loading-back-to-lobby-btn')}
           style={{ marginTop: 16, fontSize: 12 }}
           onClick={onTimeout}
         >

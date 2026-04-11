@@ -106,6 +106,8 @@ export interface RoomView {
   // Live spectator count. Kept in sync by spectator_joined / spectator_left
   // WS events in Room.tsx; may be absent on initial HTTP fetch.
   spectator_count?: number
+  // Present when room status is "in_progress" — the active game session ID.
+  active_session_id?: string
 }
 
 // --- Notification payload subtypes (frontend-only cast targets) --------------

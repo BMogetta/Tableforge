@@ -55,7 +55,7 @@ export type MatchHistoryEntry = z.infer<typeof matchHistoryEntrySchema>
 export const moveSchema = z.object({ "id": z.string(), "session_id": z.string(), "player_id": z.string(), "payload": z.any(), "state_after": z.string().optional(), "move_number": z.number().int(), "applied_at": z.string().datetime({ offset: true }) })
 export type Move = z.infer<typeof moveSchema>
 
-export const notificationSchema = z.object({ "id": z.string(), "player_id": z.string(), "type": z.enum(["friend_request","friend_request_accepted","room_invitation","ban_issued"]), "payload": z.any(), "read_at": z.string().datetime({ offset: true }).optional(), "action_taken": z.string().optional(), "action_expires_at": z.string().datetime({ offset: true }).optional(), "created_at": z.string().datetime({ offset: true }) })
+export const notificationSchema = z.object({ "id": z.string(), "player_id": z.string(), "type": z.enum(["friend_request","friend_request_accepted","room_invitation","ban_issued","achievement_unlocked"]), "payload": z.any(), "read_at": z.string().datetime({ offset: true }).optional(), "action_taken": z.string().optional(), "action_expires_at": z.string().datetime({ offset: true }).optional(), "created_at": z.string().datetime({ offset: true }) })
 export type Notification = z.infer<typeof notificationSchema>
 
 export const pauseVoteResultSchema = z.object({ "all_voted": z.boolean(), "votes": z.number().int(), "required": z.number().int() })
@@ -159,7 +159,8 @@ export type CreateRoomRequest = z.infer<typeof createRoomRequestSchema>
 export const createRoomResponseSchema = z.object({
   "room": roomSchema,
   "players": z.array(roomPlayerSchema),
-  "settings": z.record(z.string(), z.string())
+  "settings": z.record(z.string(), z.string()),
+  "active_session_id": z.string().optional()
 })
 export type CreateRoomResponse = z.infer<typeof createRoomResponseSchema>
 
@@ -194,7 +195,8 @@ export type GetPlayerStatsResponse = z.infer<typeof getPlayerStatsResponseSchema
 export const getRoomResponseSchema = z.object({
   "room": roomSchema,
   "players": z.array(roomPlayerSchema),
-  "settings": z.record(z.string(), z.string())
+  "settings": z.record(z.string(), z.string()),
+  "active_session_id": z.string().optional()
 })
 export type GetRoomResponse = z.infer<typeof getRoomResponseSchema>
 
@@ -220,7 +222,8 @@ export type JoinRoomRequest = z.infer<typeof joinRoomRequestSchema>
 export const joinRoomResponseSchema = z.object({
   "room": roomSchema,
   "players": z.array(roomPlayerSchema),
-  "settings": z.record(z.string(), z.string())
+  "settings": z.record(z.string(), z.string()),
+  "active_session_id": z.string().optional()
 })
 export type JoinRoomResponse = z.infer<typeof joinRoomResponseSchema>
 

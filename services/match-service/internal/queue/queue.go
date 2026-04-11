@@ -775,3 +775,19 @@ var (
 	ErrMatchNotFound       = fmt.Errorf("match not found or already expired")
 	ErrNotMatchParticipant = fmt.Errorf("player is not a participant in this match")
 )
+
+// ResetPlayer removes all queue state for a player: queue entry, metadata,
+// decline history, and bans. Intended for test cleanup only.
+func (s *Service) ResetPlayer(ctx context.Context, playerID uuid.UUID) error {
+	pipe := s.rdb.Pipeline()
+	pipe.ZRem(ctx, keyQueueSortedSet, playerID.String())
+	pipe.Del(ctx, metaKey(playerID))
+	pipe.Del(ctx, declinesKey(playerID))
+	pipe.Del(ctx, banKey(playerID))
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("ResetPlayer: %w", err)
+	}
+	slog.Info("queue: player state reset", "player_id", playerID)
+	return nil
+}

@@ -29,8 +29,15 @@ interface PoolState {
 
 // --- Lock helpers -----------------------------------------------------------
 
-const LOCK_TIMEOUT_MS = 10_000
+const LOCK_TIMEOUT_MS = 30_000
 const LOCK_RETRY_MS = 50
+
+function sleepSync(ms: number): void {
+  const end = Date.now() + ms
+  while (Date.now() < end) {
+    /* busy-wait — Playwright workers are separate processes, keeps it simple */
+  }
+}
 
 function acquireLock(): void {
   const deadline = Date.now() + LOCK_TIMEOUT_MS
@@ -39,12 +46,7 @@ function acquireLock(): void {
       fs.writeFileSync(LOCK_FILE, String(process.pid), { flag: 'wx' })
       return
     } catch {
-      // Lock exists — spin with jitter
-      const jitter = Math.random() * LOCK_RETRY_MS
-      const start = Date.now()
-      while (Date.now() - start < LOCK_RETRY_MS + jitter) {
-        // busy-wait (Playwright workers are separate processes, no async needed)
-      }
+      sleepSync(LOCK_RETRY_MS + Math.random() * LOCK_RETRY_MS)
     }
   }
   // Stale lock — force acquire
@@ -118,25 +120,25 @@ export function acquirePlayers(count: number, testId: string): PoolPlayer[] {
     }
 
     // Not enough available — wait and retry
-    const jitter = Math.random() * 100
-    const start = Date.now()
-    while (Date.now() - start < 200 + jitter) {
-      // busy-wait
-    }
+    sleepSync(200 + Math.random() * 100)
   }
 
   throw new Error(`Timed out waiting for ${count} available players from pool`)
 }
 
 /**
- * Release players back to the pool.
+ * Release players back to the pool. Only releases players still held by `testId`
+ * to prevent double-release from racing teardowns.
  */
-export function releasePlayers(players: PoolPlayer[]): void {
+export function releasePlayers(players: PoolPlayer[], testId?: string): void {
   acquireLock()
   try {
     const state = readPool()
     for (const p of players) {
-      delete state.locked[String(p.index)]
+      const key = String(p.index)
+      if (!testId || state.locked[key] === testId) {
+        delete state.locked[key]
+      }
     }
     writePool(state)
   } finally {

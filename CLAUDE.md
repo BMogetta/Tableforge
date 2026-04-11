@@ -49,6 +49,7 @@ npm run test:ui   # Vitest with UI
 ```bash
 make up-test           # Start in test mode
 make seed-test         # Create test players → frontend/tests/e2e/.players.json
+make smoke-test        # Fast API smoke test with curl (~5s, no browser)
 make test              # Run all Playwright tests
 make test-one NAME="partial test name"  # Run single test
 make test-ui           # Interactive Playwright UI

@@ -85,6 +85,7 @@ func TestProcessGameFinished_Ranked1v1(t *testing.T) {
 
 	evt := events.GameSessionFinished{
 		SessionID: uuid.NewString(),
+		ResultID:  uuid.NewString(),
 		GameID:    "tictactoe",
 		Mode:      "ranked",
 		Players: []events.SessionPlayer{
@@ -158,6 +159,7 @@ func TestProcessGameFinished_Draw(t *testing.T) {
 
 	evt := events.GameSessionFinished{
 		SessionID: uuid.NewString(),
+		ResultID:  uuid.NewString(),
 		GameID:    "tictactoe",
 		Mode:      "ranked",
 		Players: []events.SessionPlayer{
@@ -208,6 +210,7 @@ func TestProcessGameFinished_InvalidPlayerID(t *testing.T) {
 
 	evt := events.GameSessionFinished{
 		SessionID: uuid.NewString(),
+		ResultID:  uuid.NewString(),
 		GameID:    "tictactoe",
 		Mode:      "ranked",
 		Players: []events.SessionPlayer{

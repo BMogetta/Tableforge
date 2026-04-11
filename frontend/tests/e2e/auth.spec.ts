@@ -10,6 +10,6 @@ test.describe('Auth and access control', () => {
     await expect(p1.getByText('Test error triggered intentionally')).toBeVisible()
 
     await expect(p1.getByRole('button', { name: 'Try Again' })).toBeVisible()
-    await expect(p1.getByRole('button', { name: 'Go to Lobby' })).toBeVisible()
+    await expect(p1.getByRole('button', { name: 'Back to Lobby' })).toBeVisible()
   })
 })

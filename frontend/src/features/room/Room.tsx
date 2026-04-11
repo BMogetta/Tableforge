@@ -73,6 +73,9 @@ export function Room({ roomId }: { roomId: string }) {
     setMutedIds(new Set())
   }
 
+  // Track whether we're navigating to the game — socket must survive that transition.
+  const navigatingToGameRef = useRef(false)
+
   // --- Stable refs for socket handler ----------------------------------------
   const navigateRef = useRef(navigate)
   const toastRef = useRef(toast)
@@ -105,16 +108,38 @@ export function Room({ roomId }: { roomId: string }) {
     refreshRef.current = refresh
   }, [refresh])
 
+  // --- Initial fetch (independent of socket) ---------------------------------
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
   // --- WebSocket connection --------------------------------------------------
   useEffect(() => {
+    navigatingToGameRef.current = false
     joinRoom(roomId, wsRoomUrl(roomId, player.id))
-  }, [roomId, player.id, joinRoom])
+    return () => {
+      // Clean up socket when leaving the room flow entirely (browser back, URL change).
+      // Skip cleanup when navigating to /game — the socket must survive that transition.
+      if (!navigatingToGameRef.current) {
+        leaveRoom()
+      }
+    }
+  }, [roomId, player.id, joinRoom, leaveRoom])
 
   useEffect(() => {
     if (!view) return
     setOwnerId(view.room.owner_id)
-    setIsSpectator(!view.players.some(p => p.id === player.id))
-  }, [view, player.id, setIsSpectator])
+    const spectator = !view.players.some(p => p.id === player.id)
+    setIsSpectator(spectator)
+
+    // If the room already has an active game, navigate directly.
+    // This handles spectators arriving after game_started was broadcast,
+    // and participants reconnecting after a page refresh.
+    if (view.active_session_id) {
+      navigatingToGameRef.current = true
+      navigate({ to: '/game/$sessionId', params: { sessionId: view.active_session_id } })
+    }
+  }, [view, player.id, setIsSpectator, navigate])
 
   useEffect(() => {
     if (!view) return
@@ -155,6 +180,7 @@ export function Room({ roomId }: { roomId: string }) {
       if (event.type === 'player_joined' || event.type === 'player_left') refreshRef.current()
       if (event.type === 'game_started') {
         if (!startingRef.current) {
+          navigatingToGameRef.current = true
           navigateRef.current({
             to: '/game/$sessionId',
             params: { sessionId: event.payload.session.id },
@@ -197,6 +223,7 @@ export function Room({ roomId }: { roomId: string }) {
       return
     }
 
+    navigatingToGameRef.current = true
     navigate({ to: '/game/$sessionId', params: { sessionId: session.id } })
   }
 

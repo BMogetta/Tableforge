@@ -12,6 +12,10 @@
     "settings": {
       "type": "object",
       "additionalProperties": { "type": "string" }
+    },
+    "active_session_id": {
+      "type": "string",
+      "format": "uuid"
     }
   },
   "required": ["room", "players", "settings"]

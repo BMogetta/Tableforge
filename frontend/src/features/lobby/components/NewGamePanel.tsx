@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms } from '@/features/room/api'
 import { queue } from '@/features/lobby/api'
+import { wsRoomUrl } from '@/lib/api'
 import type { GameInfo } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
@@ -28,6 +29,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
   const setQueued = useAppStore(s => s.setQueued)
   const setMatchFound = useAppStore(s => s.setMatchFound)
   const clearQueue = useAppStore(s => s.clearQueue)
+  const connectRoomSocket = useAppStore(s => s.joinRoom)
 
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -71,6 +73,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
       if (event.type === 'match_ready') {
         const payload = event.payload
         clearQueue()
+        connectRoomSocket(payload.room_id, wsRoomUrl(payload.room_id, player.id))
         navigate({
           to: '/game/$sessionId',
           params: { sessionId: payload.session_id },
@@ -125,11 +128,24 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
     onSuccess: () => clearQueue(),
   })
 
+  const matchId = useAppStore(s => s.matchId)
+
+  const acceptMatch = useMutation({
+    mutationFn: () => queue.accept(player.id, matchId!),
+  })
+
+  const declineMatch = useMutation({
+    mutationFn: () => queue.decline(player.id, matchId!),
+    onSuccess: () => clearQueue(),
+  })
+
   const error =
     createRoom.error?.message ||
     joinRoom.error?.message ||
     joinQueue.error?.message ||
     leaveQueue.error?.message ||
+    acceptMatch.error?.message ||
+    declineMatch.error?.message ||
     ''
 
   const formatElapsed = (secs: number) => {
@@ -166,12 +182,14 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
       {/* Tabs */}
       <div className={styles.tabs}>
         <button type="button"
+          {...testId('tab-casual')}
           className={`${styles.tab} ${tab === 'casual' ? styles.tabActive : ''}`}
           onClick={() => setTab('casual')}
         >
           {t('lobby.casual')}
         </button>
         <button type="button"
+          {...testId('tab-ranked')}
           className={`${styles.tab} ${tab === 'ranked' ? styles.tabActive : ''}`}
           onClick={() => setTab('ranked')}
         >
@@ -219,6 +237,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
           <div className={styles.rankedBody}>
             {queueStatus === 'idle' && (
               <button type="button"
+                {...testId('find-match-btn')}
                 className='btn btn-primary'
                 onClick={() => joinQueue.mutate()}
                 disabled={disabled || joinQueue.isPending || !effectiveGame}
@@ -228,7 +247,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
             )}
 
             {queueStatus === 'queued' && (
-              <div className={styles.queueStatus}>
+              <div {...testId('queue-searching')} className={styles.queueStatus}>
                 <div className={styles.queueTop}>
                   <span className={styles.queueLabel}>
                     <span className={styles.spinner} />
@@ -237,6 +256,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                   <span className={styles.queueTimer}>{formatElapsed(elapsed)}</span>
                 </div>
                 <button type="button"
+                  {...testId('cancel-queue-btn')}
                   className='btn btn-ghost'
                   onClick={() => leaveQueue.mutate()}
                   disabled={leaveQueue.isPending}
@@ -248,9 +268,26 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
             )}
 
             {queueStatus === 'match_found' && (
-              <div className={styles.matchFound}>
+              <div {...testId('match-found')} className={styles.matchFound}>
                 <span className={styles.matchFoundLabel}>{t('lobby.matchFound')}</span>
-                <p className={styles.matchFoundHint}>{t('lobby.matchFoundHint')}</p>
+                <div className={styles.matchActions}>
+                  <button type="button"
+                    {...testId('accept-match-btn')}
+                    className='btn btn-primary'
+                    onClick={() => acceptMatch.mutate()}
+                    disabled={acceptMatch.isPending || declineMatch.isPending}
+                  >
+                    {t('lobby.acceptMatch')}
+                  </button>
+                  <button type="button"
+                    {...testId('decline-match-btn')}
+                    className='btn btn-ghost'
+                    onClick={() => declineMatch.mutate()}
+                    disabled={acceptMatch.isPending || declineMatch.isPending}
+                  >
+                    {t('lobby.declineMatch')}
+                  </button>
+                </div>
               </div>
             )}
 

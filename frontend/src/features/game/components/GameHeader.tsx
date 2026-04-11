@@ -56,7 +56,7 @@ export function GameHeader({
   return (
     <>
       <header className={styles.header}>
-        <button type="button" className='btn btn-ghost btn-sm' onClick={onLobby}>
+        <button type="button" className='btn btn-ghost btn-sm' {...testId('game-header-lobby-btn')} onClick={onLobby}>
           {t('lobby.backToLobby')}
         </button>
         <div className={styles.gameInfo}>

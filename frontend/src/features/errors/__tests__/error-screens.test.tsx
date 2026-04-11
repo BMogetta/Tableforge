@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { Splash } from '../Splash'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { ErrorScreen } from '../ErrorScreen'
+import { Splash } from '../Splash'
 
 describe('Splash', () => {
   it('renders logo and connecting label', () => {
@@ -30,7 +30,7 @@ describe('ErrorScreen', () => {
   it('calls onReset when confirm button is clicked', () => {
     const onReset = vi.fn()
     render(<ErrorScreen {...defaults} onReset={onReset} />)
-    fireEvent.click(screen.getByText('Confirm'))
+    fireEvent.click(screen.getByText('Try Again'))
     expect(onReset).toHaveBeenCalledTimes(1)
   })
 

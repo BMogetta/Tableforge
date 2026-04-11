@@ -31,6 +31,6 @@ http:
           style-src 'self' 'unsafe-inline';
           font-src 'self';
           img-src 'self' data: https://avatars.githubusercontent.com;
-          connect-src 'self' ws: wss:;
+          connect-src 'self' ws: wss: https://l4kdz58q3w.ufs.sh;
           media-src 'self' blob:;
           frame-ancestors 'none'

@@ -792,6 +792,52 @@ func TestKeyHelpers(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// ResetPlayer
+// ---------------------------------------------------------------------------
+
+func TestResetPlayer_ClearsAllState(t *testing.T) {
+	rdb, _ := testutil.NewTestRedis(t)
+	svc := New(rdb, &stubRatingClient{}, nil, nil, "", nil, nil)
+
+	ctx := context.Background()
+	playerID := uuid.New()
+
+	// Seed queue entry, meta, ban, and decline history.
+	rdb.ZAdd(ctx, keyQueueSortedSet, redis.Z{Score: 1500, Member: playerID.String()})
+	rdb.HSet(ctx, metaKey(playerID), "joined_at", time.Now().Unix(), "mmr", 1500)
+	rdb.Set(ctx, banKey(playerID), "1", 5*time.Minute)
+	rdb.RPush(ctx, declinesKey(playerID), time.Now().Format(time.RFC3339))
+
+	if err := svc.ResetPlayer(ctx, playerID); err != nil {
+		t.Fatalf("ResetPlayer: %v", err)
+	}
+
+	// All keys should be gone.
+	if n, _ := rdb.Exists(ctx, banKey(playerID)).Result(); n != 0 {
+		t.Error("ban key should be deleted")
+	}
+	if n, _ := rdb.Exists(ctx, declinesKey(playerID)).Result(); n != 0 {
+		t.Error("declines key should be deleted")
+	}
+	if n, _ := rdb.Exists(ctx, metaKey(playerID)).Result(); n != 0 {
+		t.Error("meta key should be deleted")
+	}
+	if score, err := rdb.ZScore(ctx, keyQueueSortedSet, playerID.String()).Result(); err == nil {
+		t.Errorf("player should not be in queue, got score %f", score)
+	}
+}
+
+func TestResetPlayer_NoopWhenClean(t *testing.T) {
+	rdb, _ := testutil.NewTestRedis(t)
+	svc := New(rdb, &stubRatingClient{}, nil, nil, "", nil, nil)
+
+	// Should not error even if no keys exist.
+	if err := svc.ResetPlayer(context.Background(), uuid.New()); err != nil {
+		t.Fatalf("ResetPlayer on clean state: %v", err)
+	}
+}
+
 func TestErrBanned_Error(t *testing.T) {
 	err := &ErrBanned{RetryAfterSecs: 300}
 	want := "queue ban active: retry after 300 seconds"

@@ -4,6 +4,7 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "confirm": "Confirmar",
+    "tryAgain": "Reintentar",
     "back": "Volver",
     "close": "Cerrar",
     "closeDialog": "Cerrar di\u00e1logo",
@@ -100,7 +101,9 @@
     "joiningMatch": "Buscando...",
     "searchingForOpponent": "Buscando oponente",
     "matchFound": "\u2694 \u00a1Partida encontrada!",
-    "matchFoundHint": "Revis\u00e1 tus notificaciones para aceptar.",
+    "matchFoundHint": "Aceptá para iniciar la partida.",
+    "acceptMatch": "Aceptar",
+    "declineMatch": "Rechazar",
     "rankedNote": "Las partidas competitivas afectan tu",
     "displayRating": "rating visible",
     "backToLobby": "\u2190 Lobby"

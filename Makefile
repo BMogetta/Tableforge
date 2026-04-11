@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing coverage check-i18n logs ps clean clean-test gen-types gen-proto setup lint
+.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing smoke-test coverage check-i18n logs ps clean clean-test gen-types gen-proto setup lint
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ up-prod: networks
 	docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml --profile production --profile app --profile monitoring up -d --build
 
 up-test: networks
-	TEST_MODE=true docker compose --profile app up --build -d
+	TEST_MODE=true WS_RATE_LIMIT_AVG=300 WS_RATE_LIMIT_BURST=300 docker compose -f docker-compose.yml --profile app up --build -d
 
 # Stop all services and remove containers.
 down:
@@ -78,6 +78,11 @@ test-routing:
 # Requires: make up-test && make seed-test first.
 test-e2e-readme:
 	@bash scripts/update-e2e-readme.sh
+
+# Fast API-level smoke test with curl (~5s). Validates core flows without Playwright.
+# Requires: make up-test && make seed-test first.
+smoke-test:
+	@bash scripts/smoke-test.sh
 
 # Run all Playwright tests.
 # Requires: make up-test && make seed-test first.

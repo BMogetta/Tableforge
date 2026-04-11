@@ -129,6 +129,7 @@ echo ""
 # -- match-service (priority 50) ----------------------------------------------
 echo "match-service (queue):"
 check     "POST /api/v1/queue"            401 POST "/api/v1/queue"            "POST /api/v1/queue"           "match-service"
+check     "DELETE /api/v1/queue/players/{id}/state" 401 DELETE "/api/v1/queue/players/$FAKE_UUID/state" "DELETE /api/v1/queue/players/{id}/state" "match-service"
 echo ""
 
 # -- ws-gateway (priority 150) ------------------------------------------------

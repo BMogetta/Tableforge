@@ -40,6 +40,7 @@ services:
       POSTGRES_DB: recess
       RECESS_DB_PASSWORD: ${RECESS_DB_PASSWORD}
       UNLEASH_DB_PASSWORD: ${UNLEASH_DB_PASSWORD}
+      CLAUDE_MCP_RO_PASSWORD: ${CLAUDE_MCP_RO_PASSWORD:-claude_ro}
     networks:
       - data_network
     volumes:

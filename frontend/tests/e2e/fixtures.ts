@@ -19,9 +19,13 @@ import { acquirePlayers, releasePlayers, type PoolPlayer } from './player-pool'
 
 export { expect }
 
-// --- Cleanup helper (same as old cleanupPlayer) -----------------------------
+// --- Cleanup helper ----------------------------------------------------------
 
-async function cleanupPlayer(page: Page, playerId: string) {
+export async function cleanupPlayer(page: Page, playerId: string) {
+  // Reset all queue state (queue entry, bans, decline history).
+  await page.request.delete(`/api/v1/queue/players/${playerId}/state`).catch(() => {})
+
+  // Surrender any active sessions
   const sessRes = await page.request.get(`/api/v1/players/${playerId}/sessions`)
   if (sessRes.ok()) {
     const sessions: { id: string; room_id: string }[] = await sessRes.json()
@@ -32,6 +36,20 @@ async function cleanupPlayer(page: Page, playerId: string) {
       await page.request.post(`/api/v1/rooms/${session.room_id}/leave`, {
         data: { player_id: playerId },
       })
+    }
+  }
+  // Leave any waiting rooms (no session yet — not covered above)
+  const roomsRes = await page.request.get('/api/v1/rooms')
+  if (roomsRes.ok()) {
+    const body = await roomsRes.json()
+    const items: { room: { id: string; status: string }; players: { id: string }[] }[] =
+      body.items ?? []
+    for (const item of items) {
+      if (item.players.some(p => p.id === playerId) && item.room.status === 'waiting') {
+        await page.request.post(`/api/v1/rooms/${item.room.id}/leave`, {
+          data: {},
+        })
+      }
     }
   }
 }
@@ -96,7 +114,7 @@ export const test = base.extend<{
 
     await p1Ctx.close().catch(() => {})
     await p2Ctx.close().catch(() => {})
-    releasePlayers(pool)
+    releasePlayers(pool, testId)
   },
 
   playersWithSpectator: async ({ browser }, use, testInfo) => {
@@ -143,7 +161,7 @@ export const test = base.extend<{
     await p1Ctx.close().catch(() => {})
     await p2Ctx.close().catch(() => {})
     await p3Ctx.close().catch(() => {})
-    releasePlayers(pool)
+    releasePlayers(pool, testId)
   },
 
   singlePlayer: async ({ browser }, use, testInfo) => {
@@ -165,6 +183,6 @@ export const test = base.extend<{
     })
 
     await p1Ctx.close().catch(() => {})
-    releasePlayers(pool)
+    releasePlayers(pool, testId)
   },
 })

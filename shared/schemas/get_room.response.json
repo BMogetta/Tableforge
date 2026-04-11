@@ -12,6 +12,11 @@
     "settings": {
       "type": "object",
       "additionalProperties": { "type": "string" }
+    },
+    "active_session_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Present when room status is in_progress — the active game session ID."
     }
   },
   "required": ["room", "players", "settings"]

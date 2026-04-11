@@ -1,6 +1,6 @@
-import { test as base, expect } from '@playwright/test'
 import { acquirePlayers, releasePlayers, type PoolPlayer } from './player-pool'
 import { setupAndStartGame, playFullGame } from './helpers'
+import { test, expect, cleanupPlayer } from './fixtures'
 
 // ---------------------------------------------------------------------------
 // Session History & Replay tests
@@ -10,13 +10,12 @@ import { setupAndStartGame, playFullGame } from './helpers'
 //
 // All other tests share a single game played in beforeAll and navigate
 // directly to the history URL — avoiding ~15s of setup per test.
+// Serial mode ensures beforeAll runs once (one worker) and pool players
+// don't race with the fixture-based tests.
 // ---------------------------------------------------------------------------
 
-// Re-export test from fixtures for the first standalone test.
-import { test as fixtureTest } from './fixtures'
-
-fixtureTest.describe('Game-over transition', () => {
-  fixtureTest(
+test.describe('Game-over transition', () => {
+  test(
     'View Replay button appears and navigates to /sessions/:id/history',
     async ({ players }) => {
       const { p1, p2, p1Id } = players
@@ -33,18 +32,24 @@ fixtureTest.describe('Game-over transition', () => {
 })
 
 // For the shared session tests, we acquire players manually in beforeAll.
+// Serial mode pins all tests to one worker so beforeAll/afterAll run once.
+const POOL_TEST_ID = 'session-history-shared'
 let pool: PoolPlayer[] = []
 let historyUrl: string
 let p1StatePath: string
 
-base.describe('Session history page', () => {
-  base.beforeAll(async ({ browser }) => {
-    pool = acquirePlayers(2, 'session-history-beforeAll')
+test.describe('Session history page', () => {
+  test.describe.configure({ mode: 'serial' })
+
+  test.beforeAll(async ({ browser }) => {
+    pool = acquirePlayers(2, POOL_TEST_ID)
 
     const p1Ctx = await browser.newContext({ storageState: pool[0].statePath })
     const p1 = await p1Ctx.newPage()
     const p2Ctx = await browser.newContext({ storageState: pool[1].statePath })
     const p2 = await p2Ctx.newPage()
+
+    await Promise.all([cleanupPlayer(p1, pool[0].id), cleanupPlayer(p2, pool[1].id)])
 
     await p1.goto('/')
     await p2.goto('/')
@@ -63,11 +68,11 @@ base.describe('Session history page', () => {
     await p2Ctx.close()
   })
 
-  base.afterAll(() => {
-    if (pool.length > 0) releasePlayers(pool)
+  test.afterAll(() => {
+    if (pool.length > 0) releasePlayers(pool, POOL_TEST_ID)
   })
 
-  base('stats bar shows correct move count', async ({ browser }) => {
+  test('stats bar shows correct move count', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
@@ -77,7 +82,7 @@ base.describe('Session history page', () => {
     await ctx.close()
   })
 
-  base('result badge shows WIN for winner and LOSS for loser', async ({ browser }) => {
+  test('result badge shows WIN for winner and LOSS for loser', async ({ browser }) => {
     const p1Ctx = await browser.newContext({ storageState: pool[0].statePath })
     const p1 = await p1Ctx.newPage()
     await p1.goto(historyUrl)
@@ -93,7 +98,7 @@ base.describe('Session history page', () => {
     await p2Ctx.close()
   })
 
-  base('event log shows game_started and game_over events', async ({ browser }) => {
+  test('event log shows game_started and game_over events', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
@@ -110,7 +115,7 @@ base.describe('Session history page', () => {
     await ctx.close()
   })
 
-  base('event log shows correct number of move_applied events', async ({ browser }) => {
+  test('event log shows correct number of move_applied events', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
@@ -121,7 +126,7 @@ base.describe('Session history page', () => {
     await ctx.close()
   })
 
-  base('event row payload is expandable', async ({ browser }) => {
+  test('event row payload is expandable', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
@@ -142,7 +147,7 @@ base.describe('Session history page', () => {
     await ctx.close()
   })
 
-  base('replay tab renders the board with all cells disabled', async ({ browser }) => {
+  test('replay tab renders the board with all cells disabled', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
@@ -158,7 +163,7 @@ base.describe('Session history page', () => {
     await ctx.close()
   })
 
-  base('replay slider at step 0 shows empty board', async ({ browser }) => {
+  test('replay slider at step 0 shows empty board', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
@@ -176,7 +181,7 @@ base.describe('Session history page', () => {
     await ctx.close()
   })
 
-  base('replay next button advances to move 1 and shows cell 0 filled', async ({ browser }) => {
+  test('replay next button advances to move 1 and shows cell 0 filled', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)
@@ -194,7 +199,7 @@ base.describe('Session history page', () => {
     await ctx.close()
   })
 
-  base('replay last button jumps to final state', async ({ browser }) => {
+  test('replay last button jumps to final state', async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: p1StatePath })
     const page = await ctx.newPage()
     await page.goto(historyUrl)

@@ -474,6 +474,78 @@ func TestUnknownRoute(t *testing.T) {
 // Method not allowed
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// DELETE /api/v1/queue/players/{id}/state — reset player (test-only)
+// ---------------------------------------------------------------------------
+
+func TestResetPlayer_NotInTestMode(t *testing.T) {
+	t.Setenv("TEST_MODE", "false")
+	router, _, _ := newTestRouterWithService(t)
+
+	playerID := uuid.New()
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/queue/players/"+playerID.String()+"/state", nil)
+	req = req.WithContext(sharedmw.ContextWithPlayer(req.Context(), playerID, "tester", "player"))
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 when TEST_MODE is off, got %d", rec.Code)
+	}
+}
+
+func TestResetPlayer_ClearsBanAndDeclines(t *testing.T) {
+	t.Setenv("TEST_MODE", "true")
+	router, _, mr := newTestRouterWithService(t)
+
+	playerID := uuid.New()
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	ctx := context.Background()
+	rdb.Set(ctx, "queue:ban:"+playerID.String(), "1", 5*time.Minute)
+	rdb.RPush(ctx, "queue:declines:"+playerID.String(), time.Now().Format(time.RFC3339))
+	rdb.ZAdd(ctx, "queue:ranked", redis.Z{Score: 1500, Member: playerID.String()})
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/queue/players/"+playerID.String()+"/state", nil)
+	req = req.WithContext(sharedmw.ContextWithPlayer(req.Context(), playerID, "tester", "player"))
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Verify everything was cleaned up.
+	if exists, _ := rdb.Exists(ctx, "queue:ban:"+playerID.String()).Result(); exists != 0 {
+		t.Error("ban key should have been deleted")
+	}
+	if exists, _ := rdb.Exists(ctx, "queue:declines:"+playerID.String()).Result(); exists != 0 {
+		t.Error("declines key should have been deleted")
+	}
+	if score, err := rdb.ZScore(ctx, "queue:ranked", playerID.String()).Result(); err == nil {
+		t.Errorf("player should not be in queue, got score %f", score)
+	}
+}
+
+func TestResetPlayer_InvalidID(t *testing.T) {
+	t.Setenv("TEST_MODE", "true")
+	router, _, _ := newTestRouterWithService(t)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/queue/players/not-a-uuid/state", nil)
+	req = req.WithContext(sharedmw.ContextWithPlayer(req.Context(), uuid.New(), "tester", "player"))
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+
 func TestJoinQueue_WrongMethod(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/queue", nil)
 	rec := httptest.NewRecorder()

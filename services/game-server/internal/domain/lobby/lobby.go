@@ -37,9 +37,10 @@ type RoomViewPlayer struct {
 
 // RoomView is the full state of a room as seen by clients.
 type RoomView struct {
-	Room     store.Room        `json:"room"`
-	Players  []RoomViewPlayer  `json:"players"`
-	Settings map[string]string `json:"settings"`
+	Room            store.Room        `json:"room"`
+	Players         []RoomViewPlayer  `json:"players"`
+	Settings        map[string]string `json:"settings"`
+	ActiveSessionID string            `json:"active_session_id,omitempty"`
 }
 
 // GameRegistry is a read-only view of the game plugin registry.
@@ -415,7 +416,15 @@ func (svc *Service) getRoomView(ctx context.Context, room store.Room) (RoomView,
 		return RoomView{}, fmt.Errorf("getRoomView: get settings: %w", err)
 	}
 
-	return RoomView{Room: room, Players: players, Settings: settings}, nil
+	view := RoomView{Room: room, Players: players, Settings: settings}
+
+	if room.Status == "in_progress" {
+		if session, err := svc.store.GetActiveSessionByRoom(ctx, room.ID); err == nil {
+			view.ActiveSessionID = session.ID.String()
+		}
+	}
+
+	return view, nil
 }
 
 // --- Settings ----------------------------------------------------------------

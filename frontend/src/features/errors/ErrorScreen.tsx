@@ -18,7 +18,7 @@ export function ErrorScreen({ error, onReset }: Props) {
       <code className={styles.codeBlock}>{error.message}</code>
       <div className={styles.actions}>
         <button type='button' className='btn btn-primary' onClick={onReset}>
-          {t('common.confirm')}
+          {t('common.tryAgain')}
         </button>
         <button type="button"
           className='btn btn-ghost'

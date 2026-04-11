@@ -197,6 +197,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSpectatorCount: count => set({ spectatorCount: count }),
 
   joinRoom: (roomId: string, wsUrl: string) => {
+    // Skip if already connected to this room (avoids duplicate sockets on StrictMode re-mount).
+    if (get().activeRoomId === roomId && get().socket) return
+
     // Close existing socket if switching rooms.
     // Reset spectator state so Game.tsx always reads fresh values for the new room.
     get().socket?.close()

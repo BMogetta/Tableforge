@@ -580,6 +580,7 @@ func (svc *Service) publishGameFinished(
 			Version:    1,
 		},
 		SessionID:    session.ID.String(),
+		ResultID:     result.ID.String(),
 		RoomID:       session.RoomID.String(),
 		GameID:       session.GameID,
 		Mode:         string(session.Mode),

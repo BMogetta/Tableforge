@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/recess/match-service/internal/queue"
+	"github.com/recess/shared/config"
 	apierrors "github.com/recess/shared/errors"
 	sharedmw "github.com/recess/shared/middleware"
 )
@@ -36,6 +37,7 @@ func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler, schem
 		r.Delete("/queue", handleLeaveQueue(svc))
 		r.With(validate("accept_match.request")).Post("/queue/accept", handleAcceptMatch(svc))
 		r.With(validate("decline_match.request")).Post("/queue/decline", handleDeclineMatch(svc))
+		r.Delete("/queue/players/{id}/state", handleResetPlayer(svc))
 	})
 
 	return r
@@ -177,6 +179,31 @@ func handleDeclineMatch(svc *queue.Service) http.HandlerFunc {
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "failed to decline match")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// DELETE /api/v1/queue/players/{id}/state
+// Resets all queue state for a player: queue entry, bans, decline history.
+// Only available when TEST_MODE=true. Returns 404 in production.
+func handleResetPlayer(svc *queue.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if config.Env("TEST_MODE", "false") != "true" {
+			http.NotFound(w, r)
+			return
+		}
+
+		playerID, err := uuid.Parse(chi.URLParam(r, "id"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid player id")
+			return
+		}
+
+		if err := svc.ResetPlayer(r.Context(), playerID); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to reset player state")
 			return
 		}
 

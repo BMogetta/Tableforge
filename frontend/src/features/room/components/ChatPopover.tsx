@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms, mutes } from '@/features/room/api'
-import type { RoomMessage } from '@/lib/schema-generated.zod'
-import type { RoomPlayer } from '@/lib/schema-generated.zod'
+import type { RoomMessage, RoomPlayer, GetRoomMessagesResponse } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
@@ -85,16 +84,23 @@ export function ChatPopover({
       if (event.type === 'chat_message') {
         const msg = event.payload
         if (msg.player_id !== player.id) sfx.play('chat.receive')
-        qc.setQueryData<RoomMessage[]>(keys.roomMessages(roomId), (prev = []) => {
-          if (prev.some(m => m.message_id === msg.message_id)) return prev
-          return [...prev, msg]
+        qc.setQueryData<GetRoomMessagesResponse>(keys.roomMessages(roomId), prev => {
+          if (!prev) return { items: [msg], total: 1 }
+          if (prev.items.some(m => m.message_id === msg.message_id)) return prev
+          return { ...prev, items: [...prev.items, msg], total: prev.total + 1 }
         })
       }
       if (event.type === 'chat_message_hidden') {
         const { message_id } = event.payload
-        qc.setQueryData<RoomMessage[]>(keys.roomMessages(roomId), (prev = []) =>
-          prev.map(m => (m.message_id === message_id ? { ...m, hidden: true } : m)),
-        )
+        qc.setQueryData<GetRoomMessagesResponse>(keys.roomMessages(roomId), prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            items: prev.items.map(m =>
+              m.message_id === message_id ? { ...m, hidden: true } : m,
+            ),
+          }
+        })
       }
     })
     return () => off()

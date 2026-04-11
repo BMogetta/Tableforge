@@ -42,6 +42,7 @@ type Meta struct {
 type GameSessionFinished struct {
 	Meta
 	SessionID    string         `json:"session_id"`
+	ResultID     string         `json:"result_id"`
 	RoomID       string         `json:"room_id"`
 	GameID       string         `json:"game_id"`
 	Mode         string         `json:"mode"`          // "casual" | "ranked"
