@@ -117,6 +117,13 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 		h.SubscribeRoom(roomID, c)
 		h.SubscribePlayer(playerID, c)
 
+		if spectator {
+			h.Publish(ctx, roomID, hub.Event{
+				Type:    sharedws.EventSpectatorJoined,
+				Payload: map[string]any{"spectator_count": h.SpectatorCount(roomID)},
+			})
+		}
+
 		if !spectator && ps != nil {
 			ps.Set(ctx, playerID)
 
@@ -147,6 +154,12 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 
 		go func() {
 			c.ReadPump()
+			if spectator {
+				h.Publish(context.Background(), roomID, hub.Event{
+					Type:    sharedws.EventSpectatorLeft,
+					Payload: map[string]any{"spectator_count": h.SpectatorCount(roomID)},
+				})
+			}
 			if !spectator && ps != nil {
 				// Use background context — the HTTP request context is already
 				// cancelled by the time the WS connection closes.

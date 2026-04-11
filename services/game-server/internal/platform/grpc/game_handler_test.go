@@ -236,7 +236,7 @@ func TestIsParticipant_SpectatorsAllowed(t *testing.T) {
 	roomID := uuid.New()
 	st.RoomPlayers[roomID] = []store.RoomPlayer{}
 	st.RoomSettings[roomID] = map[string]string{
-		"allow_spectators": "true",
+		"allow_spectators": "yes",
 	}
 
 	resp, err := h.IsParticipant(context.Background(), &gamev1.IsParticipantRequest{

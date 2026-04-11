@@ -95,7 +95,7 @@ func (h *GameHandler) IsParticipant(ctx context.Context, req *gamev1.IsParticipa
 
 	return &gamev1.IsParticipantResponse{
 		IsParticipant:     isParticipant,
-		SpectatorsAllowed: settings["allow_spectators"] == "true",
+		SpectatorsAllowed: settings["allow_spectators"] == "yes",
 	}, nil
 }
 

@@ -40,8 +40,9 @@ test.describe('Friends', () => {
     // P2 opens friends, goes to pending, accepts.
     await p2.getByTestId('friends-btn').click()
     await p2.getByTestId('pending-tab').click()
-    await expect(p2.getByTestId(`pending-${p1Id}`)).toBeVisible({ timeout: 10_000 })
-    await p2.getByTestId('accept-btn').click()
+    const pendingItem = p2.getByTestId(`pending-${p1Id}`)
+    await expect(pendingItem).toBeVisible({ timeout: 10_000 })
+    await pendingItem.getByTestId('accept-btn').click()
 
     // P2 switches to friends tab — P1 should be there.
     await p2.getByTestId('friends-tab').click()
@@ -64,8 +65,9 @@ test.describe('Friends', () => {
     // P1 opens pending, declines.
     await p1.getByTestId('friends-btn').click()
     await p1.getByTestId('pending-tab').click()
-    await expect(p1.getByTestId(`pending-${p2Id}`)).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('decline-btn').click()
+    const pendingItem = p1.getByTestId(`pending-${p2Id}`)
+    await expect(pendingItem).toBeVisible({ timeout: 10_000 })
+    await pendingItem.getByTestId('decline-btn').click()
 
     // Pending request should disappear.
     await expect(p1.getByTestId(`pending-${p2Id}`)).not.toBeVisible({ timeout: 5_000 })
@@ -83,8 +85,9 @@ test.describe('Friends', () => {
 
     // P1 opens friends, removes P2.
     await p1.getByTestId('friends-btn').click()
-    await expect(p1.getByTestId(`friend-${p2Id}`)).toBeVisible({ timeout: 10_000 })
-    await p1.getByTestId('remove-btn').click()
+    const friendItem = p1.getByTestId(`friend-${p2Id}`)
+    await expect(friendItem).toBeVisible({ timeout: 10_000 })
+    await friendItem.getByTestId('remove-btn').click()
 
     // P2 should disappear from P1's list.
     await expect(p1.getByTestId(`friend-${p2Id}`)).not.toBeVisible({ timeout: 5_000 })
