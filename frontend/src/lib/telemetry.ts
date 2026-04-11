@@ -1,13 +1,13 @@
 import { SeverityNumber } from '@opentelemetry/api-logs'
 import type { Tracer } from '@opentelemetry/api'
+import { isDev } from '@/lib/env'
 
 // ---------------------------------------------------------------------------
 // In test mode, disable all telemetry to avoid 405 spam from missing OTel
 // collector and to keep test output clean.
 // ---------------------------------------------------------------------------
 
-const TELEMETRY_DISABLED =
-  import.meta.env.VITE_TEST_MODE === 'true' || import.meta.env.DEV
+const TELEMETRY_DISABLED = isDev
 
 // ---------------------------------------------------------------------------
 // No-op stubs used when telemetry is disabled

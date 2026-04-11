@@ -11,6 +11,8 @@
  * @template S - The success value type.
  * @template E - The error object type. Must have a `reason` string discriminant.
  */
+import { isDev } from '@/lib/env'
+
 export type Result<S, E extends { reason: string }> = [E, null] | [null, S]
 
 /**
@@ -66,8 +68,6 @@ export interface AppError {
 // ---------------------------------------------------------------------------
 // Conversion helpers
 // ---------------------------------------------------------------------------
-
-const isDev = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
 
 /**
  * Maps an HTTP status code to a typed ApiErrorReason.

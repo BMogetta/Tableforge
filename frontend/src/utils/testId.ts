@@ -12,7 +12,9 @@
  *
  * In production builds both are false — testids are stripped from the DOM.
  */
-const enabled = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
+import { isDev } from '@/lib/env'
+
+const enabled = isDev
 
 export function testId(id: string): { 'data-testid'?: string } {
   return enabled ? { 'data-testid': id } : {}

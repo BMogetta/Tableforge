@@ -1,5 +1,6 @@
 // All types mirror the Go store models.
 
+import { isDev } from '@/lib/env'
 import { z } from 'zod'
 import {
   gameSessionSchema,
@@ -280,7 +281,6 @@ export async function validatedRequest<T extends z.ZodTypeAny>(
   const data = await request<unknown>(path, init)
   const result = schema.safeParse(data)
   if (!result.success) {
-    const isDev = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE
     const details = isDev
       ? result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`)
       : undefined

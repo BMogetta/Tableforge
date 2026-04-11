@@ -1,6 +1,9 @@
 import type { AppError } from '@/utils/errors'
 import styles from './ErrorMessage.module.css'
 
+// Evaluated at render time (not module scope) so tests can stub import.meta.env.DEV.
+const getIsDev = () => import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
+
 interface Props {
   error: AppError | null
   className?: string
@@ -17,11 +20,11 @@ interface Props {
 export function ErrorMessage({ error, className }: Props) {
   if (!error) return null
 
-  const isDev = import.meta.env.DEV
+  const devMode = getIsDev()
 
   return (
     <div className={`${styles.root} ${className ?? ''}`} role='alert'>
-      {isDev ? (
+      {devMode ? (
         <>
           <span className={styles.reason}>{error.reason}</span>
           {error.status && <span className={styles.status}>{error.status}</span>}

@@ -42,7 +42,7 @@ function DevtoolsCapture() {
   return null
 }
 
-const isDev = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
+import { isDev } from '@/lib/env'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
