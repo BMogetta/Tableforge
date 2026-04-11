@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -45,15 +46,23 @@ type NotificationStore interface {
 	SetAction(ctx context.Context, id uuid.UUID, action string) error
 }
 
-// Handler holds the API dependencies.
-type Handler struct {
-	store NotificationStore
-	pub   Publisher
-	log   *slog.Logger
+// ActionExecutor executes domain side effects when a notification action is
+// taken (e.g., accepting a friend request creates the friendship).
+type ActionExecutor interface {
+	// AcceptFriendRequest accepts a pending friend request on behalf of the addressee.
+	AcceptFriendRequest(ctx context.Context, requesterID, addresseeID uuid.UUID) error
 }
 
-func New(st NotificationStore, pub Publisher, log *slog.Logger) *Handler {
-	return &Handler{store: st, pub: pub, log: log}
+// Handler holds the API dependencies.
+type Handler struct {
+	store    NotificationStore
+	pub      Publisher
+	executor ActionExecutor
+	log      *slog.Logger
+}
+
+func New(st NotificationStore, pub Publisher, executor ActionExecutor, log *slog.Logger) *Handler {
+	return &Handler{store: st, pub: pub, executor: executor, log: log}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
@@ -188,7 +197,35 @@ func (h *Handler) takeAction(w http.ResponseWriter, r *http.Request, action stri
 		return
 	}
 	_ = h.store.MarkRead(r.Context(), notificationID)
+
+	// Execute domain side effects for the action.
+	if action == "accepted" {
+		if err := h.executeAcceptSideEffect(r.Context(), n); err != nil {
+			h.log.Error("execute accept side effect", "notification_id", notificationID, "type", n.Type, "error", err)
+			// Side effect failed but the action was already recorded.
+			// Don't fail the request — the friendship can be created manually.
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// executeAcceptSideEffect runs the domain mutation for an accepted notification.
+func (h *Handler) executeAcceptSideEffect(ctx context.Context, n store.Notification) error {
+	switch n.Type {
+	case store.NotificationTypeFriendRequest:
+		var payload store.PayloadFriendRequest
+		if err := json.Unmarshal(n.Payload, &payload); err != nil {
+			return fmt.Errorf("unmarshal friend_request payload: %w", err)
+		}
+		requesterID, err := uuid.Parse(payload.FromPlayerID)
+		if err != nil {
+			return fmt.Errorf("invalid from_player_id: %w", err)
+		}
+		return h.executor.AcceptFriendRequest(ctx, requesterID, n.PlayerID)
+	default:
+		return nil
+	}
 }
 
 // POST /internal/notifications

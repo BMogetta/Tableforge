@@ -47,7 +47,8 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
     },
   })
 
-  // Mark all unread as read when panel opens
+  // Mark all unread as read when panel opens — but don't invalidate yet.
+  // Invalidation happens on close so items remain visible for actions.
   const safeItems = items ?? []
   const markedRef = useRef(false)
   useEffect(() => {
@@ -57,8 +58,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
     for (const n of unread) {
       notifications.markRead(player.id, n.id).catch(() => {})
     }
-    invalidate()
-  }, [safeItems, invalidate, player.id])
+  }, [safeItems, player.id])
 
   function handleAccept(id: string) {
     setPendingId(id)
@@ -70,8 +70,13 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
     declineMut.mutate(id)
   }
 
+  function handleClose() {
+    invalidate()
+    onClose()
+  }
+
   return (
-    <ModalOverlay onClose={onClose} className={styles.overlay}>
+    <ModalOverlay onClose={handleClose} className={styles.overlay}>
       <div
         ref={trapRef}
         className={styles.panel}
@@ -84,7 +89,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
           <h2 className={styles.title} id='notifications-title'>
             {t('notifications.title')}
           </h2>
-          <button type="button" className={styles.closeBtn} onClick={onClose}>
+          <button type="button" className={styles.closeBtn} onClick={handleClose}>
             x
           </button>
         </div>

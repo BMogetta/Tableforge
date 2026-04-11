@@ -140,6 +140,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
         <form className={styles.addFriendRow} onSubmit={handleAddFriend}>
           <input
             className={styles.addFriendInput}
+            {...testId('add-friend-input')}
             aria-label={t('friends.addFriend')}
             value={addUsername}
             onChange={e => setAddUsername(e.target.value)}
@@ -148,6 +149,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
           />
           <button
             className='btn btn-primary btn-sm'
+            {...testId('add-friend-btn')}
             type='submit'
             disabled={addPending || !addUsername.trim()}
           >
@@ -157,12 +159,14 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
 
         <div className={styles.tabs}>
           <button type="button"
+            {...testId('friends-tab')}
             className={`${styles.tab} ${tab === 'friends' ? styles.tabActive : ''}`}
             onClick={() => setTab('friends')}
           >
             {t('friends.friendsCount', { count: safeFriends.length })}
           </button>
           <button type="button"
+            {...testId('pending-tab')}
             className={`${styles.tab} ${tab === 'pending' ? styles.tabActive : ''}`}
             onClick={() => setTab('pending')}
           >

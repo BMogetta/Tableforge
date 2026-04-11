@@ -16,8 +16,12 @@ import (
 	"github.com/recess/notification-service/internal/store"
 	"github.com/recess/shared/config"
 	sharedmw "github.com/recess/shared/middleware"
+	userv1 "github.com/recess/shared/proto/user/v1"
 	sharedredis "github.com/recess/shared/redis"
 	"github.com/recess/shared/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -51,10 +55,25 @@ func main() {
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer rdb.Close()
 
+	// ── user-service gRPC client ──────────────────────────────────────────────
+	userServiceAddr := config.Env("USER_SERVICE_ADDR", "user-service:9082")
+	userConn, err := grpc.NewClient(userServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+	if err != nil {
+		slog.Error("failed to connect to user-service", "error", err)
+		panic(err)
+	}
+	defer userConn.Close()
+	userClient := userv1.NewUserServiceClient(userConn)
+	slog.Info("user-service gRPC connected", "addr", userServiceAddr)
+
 	// ── Wire ──────────────────────────────────────────────────────────────────
 	log := slog.Default()
 	pub := publisher.New(rdb, log)
-	handler := api.New(st, pub, log)
+	executor := api.NewGRPCExecutor(userClient)
+	handler := api.New(st, pub, executor, log)
 	cons := consumer.New(rdb, st, pub, log)
 
 	// ── HTTP ──────────────────────────────────────────────────────────────────

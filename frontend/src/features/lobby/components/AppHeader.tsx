@@ -72,6 +72,7 @@ export function AppHeader({ onLogout }: Props) {
           {/* Notifications bell */}
           <button type="button"
             className={styles.iconBtn}
+            {...testId('notifications-btn')}
             title={t('header.notifications')}
             onClick={() => setNotifsOpen(true)}
           >

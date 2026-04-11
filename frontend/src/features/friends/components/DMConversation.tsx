@@ -95,7 +95,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
   return (
     <div className={styles.root}>
       <div className={styles.header}>
-        <button type="button" className={styles.backBtn} onClick={onBack}>
+        <button type="button" className={styles.backBtn} {...testId('dm-back-btn')} onClick={onBack}>
           &#8592;
         </button>
         <span className={styles.username}>{otherUsername}</span>
@@ -131,6 +131,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
       <form className={styles.inputRow} onSubmit={handleSend}>
         <input
           className={styles.input}
+          {...testId('dm-input')}
           aria-label='Direct message'
           value={text}
           onChange={e => setText(e.target.value)}
@@ -139,6 +140,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
         />
         <button
           className='btn btn-primary btn-sm'
+          {...testId('dm-send-btn')}
           type='submit'
           disabled={sendMut.isPending || !text.trim()}
         >

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -116,9 +117,14 @@ func (p *stubPublisher) PublishToPlayer(_ context.Context, _ uuid.UUID, event sh
 
 // --- helpers -----------------------------------------------------------------
 
+// noopExecutor is a no-op ActionExecutor for tests that don't test side effects.
+type noopExecutor struct{}
+
+func (noopExecutor) AcceptFriendRequest(_ context.Context, _, _ uuid.UUID) error { return nil }
+
 func newTestHandler(st NotificationStore, pub Publisher) http.Handler {
 	r := chi.NewRouter()
-	New(st, pub, nil).RegisterRoutes(r)
+	New(st, pub, noopExecutor{}, slog.Default()).RegisterRoutes(r)
 	return r
 }
 

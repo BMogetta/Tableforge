@@ -2,10 +2,11 @@
 // Used by: game-server (ban check on login + WS connect,
 //                        mute list for chat filtering,
 //                        friendship status for DM/room join validation)
+//          notification-service (accept friend request on notification action)
 //
-// Only exposes what other services need. Write operations (ban, report,
-// friendship mutations) are HTTP-only, handled by user-service REST API.
-// gRPC here is read-only + lightweight presence checks.
+// Read-only RPCs are the common case. Write RPCs are added only when another
+// service needs to mutate user-service state as a side effect of its own
+// domain operation (e.g., notification accept → friendship accept).
 
 syntax = "proto3";
 package user.v1;
@@ -24,6 +25,11 @@ service UserService {
   // GetMutes returns all player IDs muted by the given player.
   // Called by game-server on WS connect to populate the in-memory mute set.
   rpc GetMutes(GetMutesRequest) returns (GetMutesResponse);
+
+  // AcceptFriendRequest accepts a pending friend request on behalf of the
+  // addressee. Called by notification-service when a friend_request
+  // notification action is accepted.
+  rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
 }
 
 // --- Ban ---------------------------------------------------------------------
@@ -59,3 +65,12 @@ message GetMutesRequest {
 message GetMutesResponse {
   repeated string muted_player_ids = 1; // UUIDs
 }
+
+// --- Friendship mutations ----------------------------------------------------
+
+message AcceptFriendRequestRequest {
+  string requester_id = 1; // UUID — player who sent the request
+  string addressee_id = 2; // UUID — player who is accepting
+}
+
+message AcceptFriendRequestResponse {}

@@ -354,10 +354,13 @@ services:
       - OTEL_SERVICE_NAME=notification-service
       - JWT_SECRET=${JWT_SECRET}
       - HTTP_ADDR=:8086
+      - USER_SERVICE_ADDR=user-service:9082
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      user-service:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:

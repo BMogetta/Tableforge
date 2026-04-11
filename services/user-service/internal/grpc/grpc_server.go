@@ -78,6 +78,25 @@ func (s *Server) GetFriendship(ctx context.Context, req *userv1.GetFriendshipReq
 	return resp, nil
 }
 
+// AcceptFriendRequest is called by notification-service when a friend_request
+// notification action is accepted.
+func (s *Server) AcceptFriendRequest(ctx context.Context, req *userv1.AcceptFriendRequestRequest) (*userv1.AcceptFriendRequestResponse, error) {
+	requesterID, err := uuid.Parse(req.RequesterId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid requester_id: %v", err)
+	}
+	addresseeID, err := uuid.Parse(req.AddresseeId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid addressee_id: %v", err)
+	}
+
+	if _, err := s.store.AcceptFriendRequest(ctx, requesterID, addresseeID); err != nil {
+		return nil, status.Errorf(codes.Internal, "accept friend request: %v", err)
+	}
+
+	return &userv1.AcceptFriendRequestResponse{}, nil
+}
+
 // GetMutes is called by game-server on WS connect to populate the mute set.
 func (s *Server) GetMutes(ctx context.Context, req *userv1.GetMutesRequest) (*userv1.GetMutesResponse, error) {
 	playerID, err := uuid.Parse(req.PlayerId)

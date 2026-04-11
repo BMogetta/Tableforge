@@ -19,6 +19,7 @@ type mockStore struct {
 	ban        *store.Ban
 	friendship store.Friendship
 	mutes      []store.PlayerMute
+	acceptErr  error
 }
 
 func (m *mockStore) CheckActiveBan(_ context.Context, _ uuid.UUID) (*store.Ban, error) {
@@ -29,6 +30,16 @@ func (m *mockStore) GetFriendship(_ context.Context, _, _ uuid.UUID) (store.Frie
 }
 func (m *mockStore) GetMutedPlayers(_ context.Context, _ uuid.UUID) ([]store.PlayerMute, error) {
 	return m.mutes, nil
+}
+func (m *mockStore) AcceptFriendRequest(_ context.Context, requesterID, addresseeID uuid.UUID) (store.Friendship, error) {
+	if m.acceptErr != nil {
+		return store.Friendship{}, m.acceptErr
+	}
+	return store.Friendship{
+		RequesterID: requesterID,
+		AddresseeID: addresseeID,
+		Status:      store.FriendshipStatusAccepted,
+	}, nil
 }
 
 // --- CheckBan ----------------------------------------------------------------
@@ -242,5 +253,46 @@ func TestGetMutes_InvalidPlayerID(t *testing.T) {
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Errorf("expected InvalidArgument, got %s", status.Code(err))
+	}
+}
+
+// --- AcceptFriendRequest -----------------------------------------------------
+
+func TestAcceptFriendRequest_Success(t *testing.T) {
+	s := NewServer(&mockStore{})
+
+	_, err := s.AcceptFriendRequest(context.Background(), &userv1.AcceptFriendRequestRequest{
+		RequesterId: uuid.NewString(),
+		AddresseeId: uuid.NewString(),
+	})
+	if err != nil {
+		t.Fatalf("AcceptFriendRequest: %v", err)
+	}
+}
+
+func TestAcceptFriendRequest_InvalidRequesterID(t *testing.T) {
+	s := NewServer(&mockStore{})
+
+	_, err := s.AcceptFriendRequest(context.Background(), &userv1.AcceptFriendRequestRequest{
+		RequesterId: "bad",
+		AddresseeId: uuid.NewString(),
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("expected InvalidArgument, got %s", status.Code(err))
+	}
+}
+
+func TestAcceptFriendRequest_StoreError(t *testing.T) {
+	s := NewServer(&mockStore{acceptErr: context.DeadlineExceeded})
+
+	_, err := s.AcceptFriendRequest(context.Background(), &userv1.AcceptFriendRequestRequest{
+		RequesterId: uuid.NewString(),
+		AddresseeId: uuid.NewString(),
+	})
+	if err == nil {
+		t.Fatal("expected error when store fails")
+	}
+	if status.Code(err) != codes.Internal {
+		t.Errorf("expected Internal, got %s", status.Code(err))
 	}
 }
