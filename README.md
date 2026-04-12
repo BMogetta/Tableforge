@@ -83,12 +83,27 @@ _Last updated: 2026-04-12_
 <!-- e2e:start -->
 ## E2E Tests
 
-| Project | Passed | Status |
-|---------|--------|--------|
-| tests | 48/58 | ![partial](https://img.shields.io/badge/-48_of_58-yellow) |
-| **Total** | **48/58** | ![progress](https://img.shields.io/badge/-48_of_58-yellow) |
+| Spec | Passed | Status |
+|------|--------|--------|
+| admin.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| auth.setup.ts | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| auth.spec.ts | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| bot.spec.ts | 2/2 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| chat.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| dm.spec.ts | 4/4 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| friends.spec.ts | 4/4 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| game.spec.ts | 7/7 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| lobby.spec.ts | 6/6 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| notifications.spec.ts | 3/3 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| presence.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| profile.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| ranked.spec.ts | 3/3 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| session-history.spec.ts | 10/10 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| settings.spec.ts | 7/7 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| spectator.spec.ts | 12/12 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| **Total** | **80/80** | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 
-_Last updated: 2026-04-11_
+_Last updated: 2026-04-12_
 <!-- e2e:end -->
 
 <!-- i18n:start -->

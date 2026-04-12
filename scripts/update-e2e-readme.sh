@@ -19,42 +19,42 @@ cd "$REPO_ROOT/frontend"
 # Run tests and capture JSON output. Allow non-zero exit (test failures).
 JSON=$(npx playwright test --reporter=json 2>/dev/null || true)
 
-# Parse results per project.
-TABLE=$(echo "$JSON" | jq -r '
-  [ .suites[].suites[]? // .suites[] | .specs[]? |
+# Collect every spec via recursive descent so specs nested in describe()
+# blocks AND top-level specs (e.g. auth.setup.ts) are both counted. Each
+# spec is tagged with the spec file (basename, trailing "/suite" stripped).
+SPECS=$(echo "$JSON" | jq '
+  [ .. | objects | .specs? // empty | .[] |
     {
-      project: .tests[0].projectName,
+      file: (.file // .tests[0].location.file | tostring | split("/") | last),
       status: (.tests[0].results[0].status // "skipped"),
-      ran: ((.tests[0].results | length) > 0)
+      title: .title
     }
-  ] |
-  group_by(.project) |
+  ]
+')
+
+# Per-file rows, sorted alphabetically.
+TABLE=$(echo "$SPECS" | jq -r '
+  group_by(.file) |
   map({
-    project: .[0].project,
+    file: .[0].file,
     total: length,
     passed: ([.[] | select(.status == "passed")] | length),
-    failed: ([.[] | select(.status == "failed" or .status == "timedOut")] | length),
-    ran: ([.[] | select(.ran)] | length)
+    failed: ([.[] | select(.status == "failed" or .status == "timedOut")] | length)
   }) |
-  sort_by(.project) |
+  sort_by(.file) |
   .[] |
-  "| \(.project) | \(.passed)/\(.total) |" +
-  if .ran == 0 then " ![skip](https://img.shields.io/badge/-skipped-lightgrey) |"
-  elif .failed == 0 and .passed == .total then " ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |"
+  "| \(.file) | \(.passed)/\(.total) |" +
+  if .failed == 0 and .passed == .total then " ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |"
   elif .passed == 0 then " ![fail](https://img.shields.io/badge/-all_fail-red) |"
   else " ![partial](https://img.shields.io/badge/-\(.passed)_of_\(.total)-yellow) |"
   end
 ')
 
-# Also compute totals.
-TOTALS=$(echo "$JSON" | jq -r '
-  [ .suites[].suites[]? // .suites[] | .specs[]? |
-    { status: .tests[0].results[0].status }
-  ] |
+# Totals row.
+TOTALS=$(echo "$SPECS" | jq -r '
   { total: length,
     passed: ([.[] | select(.status == "passed")] | length),
-    failed: ([.[] | select(.status == "failed")] | length),
-    skipped: ([.[] | select(.status == "skipped" or .status == null)] | length)
+    failed: ([.[] | select(.status == "failed" or .status == "timedOut")] | length)
   } |
   "| **Total** | **\(.passed)/\(.total)** | \(
     if .failed == 0 then "![pass](https://img.shields.io/badge/-all_pass-brightgreen)"
@@ -63,11 +63,21 @@ TOTALS=$(echo "$JSON" | jq -r '
   ) |"
 ')
 
+# Failed specs — emit to stdout (not the README) so the user can retry them.
+FAILED=$(echo "$SPECS" | jq -r '
+  [.[] | select(.status == "failed" or .status == "timedOut")] |
+  if length == 0 then empty
+  else
+    "Failed specs (rerun with: npx playwright test --grep \"<title>\"):",
+    (.[] | "  - \(.file): \(.title)")
+  end
+')
+
 # Build the section content.
 SECTION="## E2E Tests
 
-| Project | Passed | Status |
-|---------|--------|--------|
+| Spec | Passed | Status |
+|------|--------|--------|
 ${TABLE}
 ${TOTALS}
 
@@ -101,3 +111,7 @@ fi
 echo ""
 echo "README.md updated with e2e results."
 echo "$SECTION"
+if [ -n "$FAILED" ]; then
+  echo ""
+  echo "$FAILED"
+fi
