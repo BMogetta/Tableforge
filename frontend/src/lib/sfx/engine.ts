@@ -39,6 +39,10 @@ const CATEGORY_MAP: Record<string, VolumeCategory> = {
   chat: 'volume_ui',
   notification: 'volume_notifications',
   game: 'volume_sfx',
+  card: 'volume_sfx',
+  chip: 'volume_sfx',
+  dice: 'volume_sfx',
+  die: 'volume_sfx',
   ui: 'volume_ui',
   queue: 'volume_notifications',
 }
