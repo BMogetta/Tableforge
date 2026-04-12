@@ -3,6 +3,7 @@ package hub
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +33,58 @@ type Client struct {
 
 	// Spectator is true when the client is watching but not a participant.
 	Spectator bool
+
+	// closeMu guards `closed` and serializes close/send so multiple goroutines
+	// (DisconnectPlayer, fanout*, BroadcastAll, gracefulShutdown) can never
+	// race to either double-close the send channel or send on a closed one.
+	closeMu sync.Mutex
+	closed  bool
+}
+
+// closeSend closes the send channel idempotently. Safe to call from any
+// goroutine — subsequent calls are no-ops.
+func (c *Client) closeSend() {
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+	if c.closed {
+		return
+	}
+	c.closed = true
+	close(c.send)
+}
+
+// trySend non-blockingly delivers data to the client. Returns true on success.
+// If the client is already closed, it is a no-op. If the send buffer is full,
+// the channel is closed (slow consumer) and false is returned.
+func (c *Client) trySend(data []byte) bool {
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+	if c.closed {
+		return false
+	}
+	select {
+	case c.send <- data:
+		return true
+	default:
+		c.closed = true
+		close(c.send)
+		return false
+	}
+}
+
+// trySendOrDrop is like trySend but never closes the channel on full buffer —
+// the message is simply dropped. Use for best-effort, fire-and-forget sends
+// (e.g. presence snapshots) where a slow consumer shouldn't tear down the WS.
+func (c *Client) trySendOrDrop(data []byte) {
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+	if c.closed {
+		return
+	}
+	select {
+	case c.send <- data:
+	default:
+	}
 }
 
 func NewClient(hub *Hub, roomID, playerID uuid.UUID, conn *websocket.Conn, spectator bool, ps *presence.Store) *Client {

@@ -128,10 +128,9 @@ func (h *Hub) DisconnectPlayer(playerID uuid.UUID) {
 	h.pmu.RUnlock()
 
 	for _, c := range clients {
-		select {
-		case c.send <- nil: // nil signals WritePump to close
-		default:
-			close(c.send)
+		// nil signals WritePump to close; if the buffer is full, close directly.
+		if !c.trySend(nil) {
+			c.closeSend()
 		}
 	}
 }
@@ -240,12 +239,10 @@ func (h *Hub) fanout(roomID uuid.UUID, eventType EventType, data []byte) {
 		if blocked && c.Spectator {
 			continue
 		}
-		select {
-		case c.send <- data:
+		if c.trySend(data) {
 			wsMessagesDelivered.WithLabelValues(string(eventType)).Inc()
-		default:
+		} else {
 			slog.Warn("hub: dropping slow client", "room_id", roomID)
-			close(c.send)
 		}
 	}
 }
@@ -262,12 +259,10 @@ func (h *Hub) fanoutSpectatorsOnly(roomID uuid.UUID, eventType EventType, data [
 		if !c.Spectator {
 			continue
 		}
-		select {
-		case c.send <- data:
+		if c.trySend(data) {
 			wsMessagesDelivered.WithLabelValues(string(eventType)).Inc()
-		default:
+		} else {
 			slog.Warn("hub: dropping slow spectator", "room_id", roomID)
-			close(c.send)
 		}
 	}
 }
@@ -278,12 +273,10 @@ func (h *Hub) fanoutPlayer(playerID uuid.UUID, data []byte) {
 	h.pmu.RUnlock()
 
 	for c := range clients {
-		select {
-		case c.send <- data:
+		if c.trySend(data) {
 			wsMessagesDelivered.WithLabelValues("player_event").Inc()
-		default:
+		} else {
 			slog.Warn("hub: dropping slow player client", "player_id", playerID)
-			close(c.send)
 		}
 	}
 }
@@ -300,12 +293,10 @@ func (h *Hub) BroadcastAll(data []byte) {
 				continue
 			}
 			sent[c] = struct{}{}
-			select {
-			case c.send <- data:
+			if c.trySend(data) {
 				wsMessagesDelivered.WithLabelValues(string(sharedws.EventBroadcast)).Inc()
-			default:
+			} else {
 				slog.Warn("hub: dropping slow client on broadcast")
-				close(c.send)
 			}
 		}
 	}
@@ -318,12 +309,10 @@ func (h *Hub) BroadcastAll(data []byte) {
 				continue
 			}
 			sent[c] = struct{}{}
-			select {
-			case c.send <- data:
+			if c.trySend(data) {
 				wsMessagesDelivered.WithLabelValues(string(sharedws.EventBroadcast)).Inc()
-			default:
+			} else {
 				slog.Warn("hub: dropping slow client on broadcast")
-				close(c.send)
 			}
 		}
 	}
@@ -332,22 +321,20 @@ func (h *Hub) BroadcastAll(data []byte) {
 
 // SendDirect delivers data directly to a client's send channel.
 // Used for presence snapshots on connect — bypasses Redis.
+// Silently drops on closed/full channels (best-effort).
 func (h *Hub) SendDirect(c *Client, data []byte) {
-	select {
-	case c.send <- data:
-	default:
-	}
+	c.trySendOrDrop(data)
 }
 
 // gracefulShutdown closes all client connections cleanly.
 // Called on service shutdown.
 func (h *Hub) gracefulShutdown(timeout time.Duration) {
 	deadline := time.Now().Add(timeout)
+	_ = deadline
 	h.mu.Lock()
 	for _, clients := range h.rooms {
 		for c := range clients {
-			_ = deadline
-			close(c.send)
+			c.closeSend()
 		}
 	}
 	h.mu.Unlock()
@@ -355,7 +342,7 @@ func (h *Hub) gracefulShutdown(timeout time.Duration) {
 	h.pmu.Lock()
 	for _, clients := range h.players {
 		for c := range clients {
-			close(c.send)
+			c.closeSend()
 		}
 	}
 	h.pmu.Unlock()
