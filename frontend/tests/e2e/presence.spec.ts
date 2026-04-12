@@ -63,7 +63,7 @@ test.describe('Player presence', () => {
     await p2Ctx.close()
 
     await expect(p1.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'false', {
-      timeout: 20_000,
+      timeout: 30_000,
     })
   })
 

@@ -82,12 +82,29 @@ function readPlayers(): Record<string, string> {
 // --- Public API -------------------------------------------------------------
 
 /**
+ * Indices reserved for ranked matchmaking tests. The general pool never hands
+ * these out, and only the `rankedPlayers` fixture acquires them — this
+ * prevents cross-spec interference (another worker enqueuing/dequeuing the
+ * same player while the ranked ticker is matching).
+ */
+export const RANKED_RESERVED_INDICES = [29, 30]
+
+function toPoolPlayer(idx: number, players: Record<string, string>): PoolPlayer {
+  return {
+    index: idx,
+    id: players[`player${idx}_id`],
+    statePath: path.join(__dirname, `.auth/player${idx}.json`),
+  }
+}
+
+/**
  * Acquire `count` players from the pool. Blocks until enough are available.
- * Returns an array of PoolPlayer objects.
+ * Returns an array of PoolPlayer objects. Skips reserved indices.
  */
 export function acquirePlayers(count: number, testId: string): PoolPlayer[] {
   const players = readPlayers()
   const totalPlayers = Object.keys(players).length
+  const reserved = new Set(RANKED_RESERVED_INDICES)
 
   const deadline = Date.now() + 30_000
   while (Date.now() < deadline) {
@@ -97,6 +114,7 @@ export function acquirePlayers(count: number, testId: string): PoolPlayer[] {
       const available: number[] = []
 
       for (let i = 1; i <= totalPlayers; i++) {
+        if (reserved.has(i)) continue
         if (!state.locked[String(i)]) {
           available.push(i)
         }
@@ -106,11 +124,7 @@ export function acquirePlayers(count: number, testId: string): PoolPlayer[] {
       if (available.length === count) {
         const result: PoolPlayer[] = available.map(idx => {
           state.locked[String(idx)] = testId
-          return {
-            index: idx,
-            id: players[`player${idx}_id`],
-            statePath: path.join(__dirname, `.auth/player${idx}.json`),
-          }
+          return toPoolPlayer(idx, players)
         })
         writePool(state)
         return result
@@ -124,6 +138,45 @@ export function acquirePlayers(count: number, testId: string): PoolPlayer[] {
   }
 
   throw new Error(`Timed out waiting for ${count} available players from pool`)
+}
+
+/**
+ * Acquire specific player indices from the pool, bypassing the reserved
+ * filter. Used by fixtures that need dedicated slots (e.g. ranked).
+ * Blocks if any requested index is held by another test.
+ */
+export function acquireSpecificPlayers(indices: number[], testId: string): PoolPlayer[] {
+  const players = readPlayers()
+  const totalPlayers = Object.keys(players).length
+
+  for (const idx of indices) {
+    if (idx < 1 || idx > totalPlayers) {
+      throw new Error(`Player index ${idx} out of range (pool has ${totalPlayers})`)
+    }
+  }
+
+  const deadline = Date.now() + 30_000
+  while (Date.now() < deadline) {
+    acquireLock()
+    try {
+      const state = readPool()
+      const allFree = indices.every(idx => !state.locked[String(idx)])
+
+      if (allFree) {
+        for (const idx of indices) {
+          state.locked[String(idx)] = testId
+        }
+        writePool(state)
+        return indices.map(idx => toPoolPlayer(idx, players))
+      }
+    } finally {
+      releaseLock()
+    }
+
+    sleepSync(200 + Math.random() * 100)
+  }
+
+  throw new Error(`Timed out waiting for specific players [${indices.join(',')}] from pool`)
 }
 
 /**

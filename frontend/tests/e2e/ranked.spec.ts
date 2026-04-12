@@ -73,6 +73,12 @@ async function queueAndPlayRankedGame(p1: Page, p2: Page, p1Id: string, p2Id: st
   // Ensure both players are on lobby before starting.
   await ensureLobby(p1, p2)
 
+  // Reset queue state from any previous run (test-mode only endpoint).
+  await Promise.all([
+    p1.request.delete(`/api/v1/queue/players/${p1Id}/state`),
+    p1.request.delete(`/api/v1/queue/players/${p2Id}/state`),
+  ])
+
   // Capture games_played BEFORE the game — avoids race with rating-service.
   const gamesBefore = await getGamesPlayed(p1, p1Id)
 
@@ -82,13 +88,23 @@ async function queueAndPlayRankedGame(p1: Page, p2: Page, p1Id: string, p2Id: st
   await p1.getByTestId('tab-ranked').click()
   await p2.getByTestId('tab-ranked').click()
 
-  // Join queue.
-  await p1.getByTestId('find-match-btn').click()
-  await p2.getByTestId('find-match-btn').click()
+  // Join queue — wait for both enqueue POSTs to complete so the ticker
+  // sees both players before firing. Otherwise the first tick can race
+  // between the two clicks.
+  const isEnqueue = (url: string, method: string) =>
+    method === 'POST' && /\/api\/v1\/queue(\?|$)/.test(url)
+  await Promise.all([
+    p1.waitForResponse(r => isEnqueue(r.url(), r.request().method()) && r.ok()),
+    p2.waitForResponse(r => isEnqueue(r.url(), r.request().method()) && r.ok()),
+    p1.getByTestId('find-match-btn').click(),
+    p2.getByTestId('find-match-btn').click(),
+  ])
 
-  // Wait for match found (ticker runs every 5s, may need several cycles).
-  await expect(p1.getByTestId('match-found')).toBeVisible({ timeout: 30_000 })
-  await expect(p2.getByTestId('match-found')).toBeVisible({ timeout: 30_000 })
+  // Wait for match found on both pages in parallel.
+  await Promise.all([
+    expect(p1.getByTestId('match-found')).toBeVisible({ timeout: 30_000 }),
+    expect(p2.getByTestId('match-found')).toBeVisible({ timeout: 30_000 }),
+  ])
 
   // Both accept — parallel to avoid match expiry between clicks.
   await Promise.all([
@@ -124,8 +140,8 @@ async function queueAndPlayRankedGame(p1: Page, p2: Page, p1Id: string, p2Id: st
 
 test.describe('Ranked matchmaking', () => {
   test.describe.configure({ mode: 'serial' })
-  test('two players queue, match, play, and ratings change', async ({ players }) => {
-    const { p1, p2, p1Id, p2Id } = players
+  test('two players queue, match, play, and ratings change', async ({ rankedPlayers }) => {
+    const { p1, p2, p1Id, p2Id } = rankedPlayers
 
     const [ratingP1Before, ratingP2Before] = await Promise.all([
       getRating(p1, p1Id),
@@ -145,10 +161,10 @@ test.describe('Ranked matchmaking', () => {
     ).not.toBe(ratingP2Before)
   })
 
-  test('five ranked games unlock leaderboard', async ({ players }) => {
+  test('five ranked games unlock leaderboard', async ({ rankedPlayers }) => {
     test.setTimeout(180_000)
 
-    const { p1, p2, p1Id, p2Id } = players
+    const { p1, p2, p1Id, p2Id } = rankedPlayers
 
     for (let i = 0; i < 5; i++) {
       await queueAndPlayRankedGame(p1, p2, p1Id, p2Id)
@@ -171,11 +187,17 @@ test.describe('Ranked matchmaking', () => {
     expect(ratingP1).not.toBe(ratingP2)
   })
 
-  test('player can decline a match', async ({ players }) => {
-    const { p1, p2 } = players
+  test('player can decline a match', async ({ rankedPlayers }) => {
+    const { p1, p2, p1Id, p2Id } = rankedPlayers
 
     // Ensure players are on the lobby (cleanup may leave them on game-over).
     await ensureLobby(p1, p2)
+
+    // Reset queue state from any previous run.
+    await Promise.all([
+      p1.request.delete(`/api/v1/queue/players/${p1Id}/state`),
+      p1.request.delete(`/api/v1/queue/players/${p2Id}/state`),
+    ])
 
     await p1.getByTestId('game-option-tictactoe').click()
     await p2.getByTestId('game-option-tictactoe').click()

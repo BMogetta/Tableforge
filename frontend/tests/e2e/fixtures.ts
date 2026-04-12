@@ -15,7 +15,13 @@
  *   })
  */
 import { test as base, expect, type Page, type BrowserContext } from '@playwright/test'
-import { acquirePlayers, releasePlayers, type PoolPlayer } from './player-pool'
+import {
+  acquirePlayers,
+  acquireSpecificPlayers,
+  RANKED_RESERVED_INDICES,
+  releasePlayers,
+  type PoolPlayer,
+} from './player-pool'
 
 export { expect }
 
@@ -83,6 +89,7 @@ export const test = base.extend<{
   players: Players2
   playersWithSpectator: Players3
   singlePlayer: Players1
+  rankedPlayers: Players2
 }>({
   players: async ({ browser }, use, testInfo) => {
     const testId = `${testInfo.workerIndex}-${testInfo.testId}`
@@ -161,6 +168,44 @@ export const test = base.extend<{
     await p1Ctx.close().catch(() => {})
     await p2Ctx.close().catch(() => {})
     await p3Ctx.close().catch(() => {})
+    releasePlayers(pool, testId)
+  },
+
+  /**
+   * Dedicated 2-player slot for ranked matchmaking tests. Uses reserved pool
+   * indices that no other fixture can hand out — prevents cross-spec
+   * interference with the ranked queue/ticker.
+   */
+  rankedPlayers: async ({ browser }, use, testInfo) => {
+    const testId = `${testInfo.workerIndex}-${testInfo.testId}`
+    const pool = acquireSpecificPlayers(RANKED_RESERVED_INDICES, testId)
+
+    const p1Ctx = await browser.newContext({ storageState: pool[0].statePath })
+    const p1 = await p1Ctx.newPage()
+    p1.on('console', msg => console.log('P1:', msg.text()))
+    p1.on('pageerror', err => console.log('P1 ERROR:', err.message))
+
+    const p2Ctx = await browser.newContext({ storageState: pool[1].statePath })
+    const p2 = await p2Ctx.newPage()
+    p2.on('console', msg => console.log('P2:', msg.text()))
+    p2.on('pageerror', err => console.log('P2 ERROR:', err.message))
+
+    await Promise.all([cleanupPlayer(p1, pool[0].id), cleanupPlayer(p2, pool[1].id)])
+
+    await p1.goto('/')
+    await p2.goto('/')
+
+    await use({
+      p1,
+      p2,
+      p1Ctx,
+      p2Ctx,
+      p1Id: pool[0].id,
+      p2Id: pool[1].id,
+    })
+
+    await p1Ctx.close().catch(() => {})
+    await p2Ctx.close().catch(() => {})
     releasePlayers(pool, testId)
   },
 

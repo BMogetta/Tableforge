@@ -69,9 +69,12 @@ export async function setupAndStartGame(p1: Page, p2: Page, p1Id: string) {
 
 /** Enables spectators for a room via the settings API. */
 export async function enableSpectators(p1: Page, roomId: string, p1Id: string) {
-  await p1.request.put(`/api/v1/rooms/${roomId}/settings/allow_spectators`, {
+  const res = await p1.request.put(`/api/v1/rooms/${roomId}/settings/allow_spectators`, {
     data: { player_id: p1Id, value: 'yes' },
   })
+  if (!res.ok()) throw new Error(`enableSpectators failed: ${res.status()}`)
+  // Brief wait for the DB write to be visible to other service connections.
+  await p1.waitForTimeout(150)
 }
 
 /** Sets room visibility to private via the settings API. */
