@@ -171,7 +171,9 @@ func (c *Client) postJSON(ctx context.Context, path string, body []byte, wantSta
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != wantStatus {
-		return fmt.Errorf("%s: got status %d, want %d", path, resp.StatusCode, wantStatus)
+		buf := new(bytes.Buffer)
+		_, _ = buf.ReadFrom(resp.Body)
+		return fmt.Errorf("%s: got status %d, want %d: %s", path, resp.StatusCode, wantStatus, strings.TrimSpace(buf.String()))
 	}
 	return nil
 }

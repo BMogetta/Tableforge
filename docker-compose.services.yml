@@ -304,6 +304,7 @@ services:
       - TEST_MODE=${TEST_MODE:-false}
       - MATCHMAKER_TICK_INTERVAL=${MATCHMAKER_TICK_INTERVAL:-5s}
       - MATCHMAKER_SPREAD_PER_SEC=${MATCHMAKER_SPREAD_PER_SEC:-}
+      - RANKED_GAME_ID=${RANKED_GAME_ID:-tictactoe}
     depends_on:
       redis:
         condition: service_healthy

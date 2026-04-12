@@ -265,11 +265,39 @@ func outcomeFromResult(result *engine.Result, bot engine.PlayerID) string {
 // Errors returned from DecideMove are logged but not fatal — a game should
 // continue even if a single turn fails to pick a move (shouldn't happen
 // under normal conditions, but do not kill the whole runner).
-func (r *Runner) takeTurn(ctx context.Context, sessionID string, state engine.GameState, log *slog.Logger) error {
+//
+// Before submitting, re-fetches authoritative state from the server. The
+// WS payload can lag the server when the opponent's reaction to our own
+// move races our event read — using it to decide what move to send risks
+// a "not your turn" 400 because the server already advanced.
+func (r *Runner) takeTurn(ctx context.Context, sessionID string, hintState engine.GameState, log *slog.Logger) error {
+	botID := engine.PlayerID(r.bot.ID.String())
+
+	raw, err := r.client.GetSession(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("refresh state: %w", err)
+	}
+	var fresh struct {
+		State  engine.GameState `json:"state"`
+		Result *engine.Result   `json:"result"`
+	}
+	if err := json.Unmarshal(raw, &fresh); err != nil {
+		return fmt.Errorf("decode fresh state: %w", err)
+	}
+	if fresh.Result != nil {
+		return nil
+	}
+	if fresh.State.CurrentPlayerID != botID {
+		log.Debug("skipped take turn — server says not our turn",
+			"server_turn", fresh.State.CurrentPlayerID,
+			"hint_turn", hintState.CurrentPlayerID)
+		return nil
+	}
+
 	searchCtx, cancel := context.WithTimeout(ctx, r.bot.Config.MaxThinkTime+2*time.Second)
 	defer cancel()
 
-	payload, err := r.bot.DecideMove(searchCtx, state)
+	payload, err := r.bot.DecideMove(searchCtx, fresh.State)
 	if err != nil {
 		if errors.Is(err, botpkg.ErrNoMoves) {
 			log.Warn("no moves available, skipping turn")
