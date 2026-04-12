@@ -76,7 +76,7 @@ Open `http://localhost`. See [docs/getting-started.md](docs/getting-started.md) 
 | `GET grafana.localhost` | grafana | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /` | frontend | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 
-_Last updated: 2026-04-11_
+_Last updated: 2026-04-12_
 
 <!-- routing:end -->
 
