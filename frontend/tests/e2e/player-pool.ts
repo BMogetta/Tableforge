@@ -89,6 +89,13 @@ function readPlayers(): Record<string, string> {
  */
 export const RANKED_RESERVED_INDICES = [29, 30]
 
+/**
+ * Index reserved for the admin e2e tests. seed-test promotes this player to
+ * the `manager` role; using a normal player slot would fail admin role checks.
+ * Kept out of the general pool so no other test ever logs in as this player.
+ */
+export const ADMIN_RESERVED_INDEX = 28
+
 function toPoolPlayer(idx: number, players: Record<string, string>): PoolPlayer {
   return {
     index: idx,
@@ -104,7 +111,7 @@ function toPoolPlayer(idx: number, players: Record<string, string>): PoolPlayer 
 export function acquirePlayers(count: number, testId: string): PoolPlayer[] {
   const players = readPlayers()
   const totalPlayers = Object.keys(players).length
-  const reserved = new Set(RANKED_RESERVED_INDICES)
+  const reserved = new Set<number>([...RANKED_RESERVED_INDICES, ADMIN_RESERVED_INDEX])
 
   const deadline = Date.now() + 30_000
   while (Date.now() < deadline) {

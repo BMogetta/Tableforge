@@ -18,6 +18,7 @@ import { test as base, expect, type Page, type BrowserContext } from '@playwrigh
 import {
   acquirePlayers,
   acquireSpecificPlayers,
+  ADMIN_RESERVED_INDEX,
   RANKED_RESERVED_INDICES,
   releasePlayers,
   type PoolPlayer,
@@ -90,6 +91,7 @@ export const test = base.extend<{
   playersWithSpectator: Players3
   singlePlayer: Players1
   rankedPlayers: Players2
+  adminPlayer: Players1
 }>({
   players: async ({ browser }, use, testInfo) => {
     const testId = `${testInfo.workerIndex}-${testInfo.testId}`
@@ -206,6 +208,32 @@ export const test = base.extend<{
 
     await p1Ctx.close().catch(() => {})
     await p2Ctx.close().catch(() => {})
+    releasePlayers(pool, testId)
+  },
+
+  /**
+   * Dedicated admin (manager-role) player for admin panel tests.
+   * seed-test promotes this pool slot to role='manager'.
+   */
+  adminPlayer: async ({ browser }, use, testInfo) => {
+    const testId = `${testInfo.workerIndex}-${testInfo.testId}`
+    const pool = acquireSpecificPlayers([ADMIN_RESERVED_INDEX], testId)
+
+    const p1Ctx = await browser.newContext({ storageState: pool[0].statePath })
+    const p1 = await p1Ctx.newPage()
+    p1.on('console', msg => console.log('Admin:', msg.text()))
+    p1.on('pageerror', err => console.log('Admin ERROR:', err.message))
+
+    await cleanupPlayer(p1, pool[0].id)
+    await p1.goto('/')
+
+    await use({
+      p1,
+      p1Ctx,
+      p1Id: pool[0].id,
+    })
+
+    await p1Ctx.close().catch(() => {})
     releasePlayers(pool, testId)
   },
 

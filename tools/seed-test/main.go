@@ -20,7 +20,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const playerCount = 30
+const (
+	playerCount       = 30
+	adminPlayerIndex  = 28 // 1-based; reserved for admin e2e tests
+)
 
 func main() {
 	ctx := context.Background()
@@ -74,6 +77,15 @@ func main() {
 		`UPDATE game_configs SET default_timeout_secs = 5, min_timeout_secs = 5`)
 	if err != nil {
 		log.Printf("warn: update game_configs timeouts: %v", err)
+	}
+
+	// Promote the dedicated admin slot so admin e2e tests have a caller with
+	// the manager role. All other players keep the default 'player' role.
+	if adminPlayerIndex >= 1 && adminPlayerIndex <= playerCount {
+		if _, err := conn.Exec(ctx,
+			`UPDATE players SET role = 'manager' WHERE id = $1`, ids[adminPlayerIndex-1]); err != nil {
+			log.Printf("warn: promote admin player: %v", err)
+		}
 	}
 
 	out := make(map[string]string, playerCount)
