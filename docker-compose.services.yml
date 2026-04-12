@@ -302,6 +302,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - HTTP_ADDR=:8087
       - TEST_MODE=${TEST_MODE:-false}
+      - MATCHMAKER_TICK_INTERVAL=${MATCHMAKER_TICK_INTERVAL:-5s}
+      - MATCHMAKER_SPREAD_PER_SEC=${MATCHMAKER_SPREAD_PER_SEC:-}
     depends_on:
       redis:
         condition: service_healthy

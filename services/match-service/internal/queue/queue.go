@@ -122,6 +122,7 @@ type Service struct {
 	lobbyClient    lobbyv1.LobbyServiceClient
 	gameClient     gamev1.GameServiceClient
 	matchmaker     *matchmaking.Matchmaker
+	queueCfg       matchmaking.QueueConfig
 	rankedGameID   string
 	asynqClient    *asynq.Client
 	asynqInspector *asynq.Inspector
@@ -138,20 +139,34 @@ func New(
 	gameID string,
 	asynqClient *asynq.Client,
 	asynqInspector *asynq.Inspector,
+	opts ...Option,
 ) *Service {
 	if gameID == "" {
 		gameID = DefaultRankedGameID
+	}
+	cfg := matchmaking.DefaultQueueConfig()
+	for _, o := range opts {
+		o(&cfg)
 	}
 	return &Service{
 		rdb:            rdb,
 		ratingClient:   ratingClient,
 		lobbyClient:    lobbyClient,
 		gameClient:     gameClient,
-		matchmaker:     matchmaking.NewMatchmaker(matchmaking.DefaultQueueConfig()),
+		matchmaker:     matchmaking.NewMatchmaker(cfg),
+		queueCfg:       cfg,
 		rankedGameID:   gameID,
 		asynqClient:    asynqClient,
 		asynqInspector: asynqInspector,
 	}
+}
+
+// Option configures the queue Service.
+type Option func(*matchmaking.QueueConfig)
+
+// WithSpreadPerSecond overrides the default spread relaxation rate.
+func WithSpreadPerSecond(v float64) Option {
+	return func(c *matchmaking.QueueConfig) { c.SpreadPerSecond = v }
 }
 
 // ---------------------------------------------------------------------------
@@ -384,7 +399,7 @@ func (s *Service) FindAndPropose(ctx context.Context) {
 	}
 
 	// Rebuild the in-memory matchmaker from the Redis snapshot.
-	mm := matchmaking.NewMatchmaker(matchmaking.DefaultQueueConfig())
+	mm := matchmaking.NewMatchmaker(s.queueCfg)
 
 	for _, z := range members {
 		playerIDStr := z.Member.(string)

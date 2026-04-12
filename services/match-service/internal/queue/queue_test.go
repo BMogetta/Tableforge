@@ -43,6 +43,7 @@ func newQueueTestService(t *testing.T, ratingClient ratingv1.RatingServiceClient
 		rdb:          rdb,
 		ratingClient: ratingClient,
 		rankedGameID: DefaultRankedGameID,
+		queueCfg:     matchmaking.DefaultQueueConfig(),
 	}
 	return svc, mr
 }

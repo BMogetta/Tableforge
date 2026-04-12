@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -96,7 +97,13 @@ func main() {
 
 	// --- Queue service -------------------------------------------------------
 	rankedGameID := config.Env("RANKED_GAME_ID", queue.DefaultRankedGameID)
-	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient, rankedGameID, asynqClient, asynqInspector)
+	var queueOpts []queue.Option
+	if v := config.Env("MATCHMAKER_SPREAD_PER_SEC", ""); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			queueOpts = append(queueOpts, queue.WithSpreadPerSecond(f))
+		}
+	}
+	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient, rankedGameID, asynqClient, asynqInspector, queueOpts...)
 
 	// --- Asynq server (match expiry handler) ---------------------------------
 	asynqSrv := asynq.NewServer(asynqRedis, asynq.Config{
@@ -118,9 +125,16 @@ func main() {
 		consErr <- cons.Run(ctx)
 	}()
 
+	tickInterval := 5 * time.Second
+	if v := config.Env("MATCHMAKER_TICK_INTERVAL", ""); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			tickInterval = d
+		}
+	}
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(tickInterval)
 		defer ticker.Stop()
+		slog.Info("matchmaker ticker started", "interval", tickInterval)
 		for {
 			select {
 			case <-ctx.Done():
