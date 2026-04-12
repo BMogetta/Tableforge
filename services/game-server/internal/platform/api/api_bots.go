@@ -113,7 +113,7 @@ func handleAddBot(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Handler
 			return
 		}
 
-		adapter, err := botadapter.New(room.GameID)
+		adapter, err := botadapter.NewWithProfile(room.GameID, cfg.Personality)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("no bot adapter for game %q", room.GameID))
 			return

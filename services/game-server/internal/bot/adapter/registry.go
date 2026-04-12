@@ -10,7 +10,7 @@ import (
 	tictactoe "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 )
 
-// New returns a BotAdapter for the given gameID.
+// New returns a BotAdapter for the given gameID with default (unbiased) rollouts.
 // Returns an error if no adapter is registered for that game.
 func New(gameID string) (bot.BotAdapter, error) {
 	switch gameID {
@@ -18,6 +18,20 @@ func New(gameID string) (bot.BotAdapter, error) {
 		return tictactoe.New(), nil
 	case "rootaccess":
 		return rootaccess.New(), nil
+	default:
+		return nil, fmt.Errorf("bot/adapter: no adapter registered for game %q", gameID)
+	}
+}
+
+// NewWithProfile returns a BotAdapter whose rollout policy is biased by the
+// given personality profile. Adapters without personality support (e.g.
+// tictactoe, which has no meaningful heuristic) silently ignore the profile.
+func NewWithProfile(gameID string, profile bot.PersonalityProfile) (bot.BotAdapter, error) {
+	switch gameID {
+	case "tictactoe":
+		return tictactoe.New(), nil
+	case "rootaccess":
+		return rootaccess.NewWithProfile(profile), nil
 	default:
 		return nil, fmt.Errorf("bot/adapter: no adapter registered for game %q", gameID)
 	}

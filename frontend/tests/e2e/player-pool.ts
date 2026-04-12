@@ -96,6 +96,14 @@ export const RANKED_RESERVED_INDICES = [29, 30]
  */
 export const ADMIN_RESERVED_INDEX = 28
 
+/**
+ * Indices reserved for bot accounts (tools/bot-runner). seed-test flags these
+ * slots with is_bot=true and assigns deterministic usernames
+ * (bot_easy_1 / bot_medium_1 / bot_hard_1 / bot_aggressive_1). Kept out of the
+ * general pool so no e2e test ever acquires a bot as a human player.
+ */
+export const BOT_RESERVED_INDICES = [24, 25, 26, 27]
+
 function toPoolPlayer(idx: number, players: Record<string, string>): PoolPlayer {
   return {
     index: idx,
@@ -111,7 +119,11 @@ function toPoolPlayer(idx: number, players: Record<string, string>): PoolPlayer 
 export function acquirePlayers(count: number, testId: string): PoolPlayer[] {
   const players = readPlayers()
   const totalPlayers = Object.keys(players).length
-  const reserved = new Set<number>([...RANKED_RESERVED_INDICES, ADMIN_RESERVED_INDEX])
+  const reserved = new Set<number>([
+    ...RANKED_RESERVED_INDICES,
+    ADMIN_RESERVED_INDEX,
+    ...BOT_RESERVED_INDICES,
+  ])
 
   const deadline = Date.now() + 30_000
   while (Date.now() < deadline) {

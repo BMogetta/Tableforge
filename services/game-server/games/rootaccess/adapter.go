@@ -18,6 +18,8 @@
 package rootaccess
 
 import (
+	"math/rand"
+
 	"github.com/recess/game-server/internal/bot"
 	"github.com/recess/game-server/internal/bot/mcts"
 	"github.com/recess/game-server/internal/domain/engine"
@@ -25,10 +27,26 @@ import (
 )
 
 // Adapter implements bot.BotAdapter for Root Access.
-type Adapter struct{}
+//
+// When personality has non-zero Aggressiveness or RiskAversion, RolloutPolicy
+// switches from uniform random to an epsilon-greedy scoring rule that biases
+// rollouts toward the configured playstyle. Zero-valued personality (the
+// default) preserves legacy behaviour.
+type Adapter struct {
+	personality bot.PersonalityProfile
+}
 
-// New returns a new Root Access BotAdapter.
+// New returns a Root Access BotAdapter with no personality (random rollouts).
+// Used by tests and code paths that do not care about bot strength tuning.
 func New() *Adapter { return &Adapter{} }
+
+// NewWithProfile returns a Root Access BotAdapter whose rollout policy is
+// biased by the given personality profile. Pass bot.Profiles["medium"] (or any
+// named profile) for a configured bot; pass a zero PersonalityProfile to get
+// the same behaviour as New().
+func NewWithProfile(profile bot.PersonalityProfile) *Adapter {
+	return &Adapter{personality: profile}
+}
 
 // GameID implements bot.BotAdapter.
 func (a *Adapter) GameID() string { return "rootaccess" }
@@ -367,7 +385,67 @@ func (a *Adapter) Result(state bot.BotGameState, playerID engine.PlayerID) float
 // RolloutPolicy
 // ---------------------------------------------------------------------------
 
-// RolloutPolicy delegates to the MCTS random rollout policy.
+// rolloutEpsilon is the probability of picking a uniformly random move during
+// a personality-biased rollout. Keeping it non-zero preserves MCTS exploration
+// breadth — a fully greedy rollout collapses the search to a single trajectory.
+const rolloutEpsilon = 0.3
+
+// RolloutPolicy selects a move for a simulation playout.
+//
+// With zero personality (default / tests) it behaves as uniform random —
+// identical to mcts.RandomRolloutPolicy. With a configured personality it
+// applies epsilon-greedy scoring: with probability rolloutEpsilon it picks
+// random (to preserve MCTS breadth), otherwise it picks the highest-scoring
+// move under scoreMove.
 func (a *Adapter) RolloutPolicy(state bot.BotGameState, moves []bot.BotMove) bot.BotMove {
-	return mcts.RandomRolloutPolicy(state, moves)
+	if a.personality.Aggressiveness == 0 && a.personality.RiskAversion == 0 {
+		return mcts.RandomRolloutPolicy(state, moves)
+	}
+
+	if rand.Float64() < rolloutEpsilon {
+		return moves[rand.Intn(len(moves))]
+	}
+
+	bestIdx := 0
+	bestScore := a.scoreMove(moves[0])
+	for i := 1; i < len(moves); i++ {
+		if s := a.scoreMove(moves[i]); s > bestScore {
+			bestScore = s
+			bestIdx = i
+		}
+	}
+	return moves[bestIdx]
+}
+
+// scoreMove ranks a single move under the current personality.
+//
+// Two weights interact:
+//   - Aggressiveness boosts target-requiring moves (attacks) and penalises
+//     targetless plays. 1.0 = always pick attacks when available.
+//   - RiskAversion rewards playing Firewall (defence) and penalises playing
+//     Encrypted Key (which forces a discard when paired with Swap / Reboot).
+//
+// Scores are unbounded in principle but kept in roughly [0, 1] for the built-in
+// profiles. Callers only consume relative ordering.
+func (a *Adapter) scoreMove(m bot.BotMove) float64 {
+	payload, err := m.Payload()
+	if err != nil {
+		return 0
+	}
+	cardStr, _ := payload["card"].(string)
+	_, hasTarget := payload["target_player_id"]
+
+	score := 0.5
+	if hasTarget {
+		score += 0.5 * a.personality.Aggressiveness
+	} else {
+		score -= 0.3 * a.personality.Aggressiveness
+	}
+	switch CardName(cardStr) {
+	case CardFirewall:
+		score += 0.4 * a.personality.RiskAversion
+	case CardEncryptedKey:
+		score -= 0.4 * a.personality.RiskAversion
+	}
+	return score
 }

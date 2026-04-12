@@ -21,9 +21,19 @@ import (
 )
 
 const (
-	playerCount       = 30
-	adminPlayerIndex  = 28 // 1-based; reserved for admin e2e tests
+	playerCount      = 30
+	adminPlayerIndex = 28 // 1-based; reserved for admin e2e tests
 )
+
+// botSlots maps 1-based pool indices to bot usernames. These slots are marked
+// is_bot=true in the players table and used by tools/bot-runner. Indices must
+// match BOT_RESERVED_INDICES in frontend/tests/e2e/player-pool.ts.
+var botSlots = map[int]string{
+	24: "bot_easy_1",
+	25: "bot_medium_1",
+	26: "bot_hard_1",
+	27: "bot_aggressive_1",
+}
 
 func main() {
 	ctx := context.Background()
@@ -41,7 +51,22 @@ func main() {
 
 	ids := make([]string, playerCount)
 	for i := range playerCount {
-		ids[i] = createPlayer(ctx, conn, fmt.Sprintf("test_player_%d", i+1))
+		username := fmt.Sprintf("test_player_%d", i+1)
+		if bot, ok := botSlots[i+1]; ok {
+			username = bot
+		}
+		ids[i] = createPlayer(ctx, conn, username)
+	}
+
+	// Flag bot slots so game-server / user-service / bot-runner can identify them.
+	for idx := range botSlots {
+		if idx < 1 || idx > playerCount {
+			continue
+		}
+		if _, err := conn.Exec(ctx,
+			`UPDATE players SET is_bot = TRUE WHERE id = $1`, ids[idx-1]); err != nil {
+			log.Printf("warn: flag bot slot %d: %v", idx, err)
+		}
 	}
 
 	// Add emails to allowed_emails for test-login.
