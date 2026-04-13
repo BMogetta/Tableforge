@@ -28,6 +28,7 @@ import './styles/fonts.css'
 import './styles/global.css'
 import { useWsDevtools } from './features/devtools/useWsDevtools'
 import { WsDevtools } from './features/devtools/WsDevtools'
+import { ScenarioPicker } from './features/devtools/ScenarioPicker'
 
 const router = createRouter({ routeTree })
 
@@ -65,6 +66,10 @@ createRoot(document.getElementById('root')!).render(
               {
                 name: 'WebSocket',
                 render: <WsDevtools />,
+              },
+              {
+                name: 'Scenarios',
+                render: <ScenarioPicker />,
               },
             ]}
           ></TanStackDevtools>

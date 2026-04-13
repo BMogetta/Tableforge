@@ -123,6 +123,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
       - TEST_MODE=${TEST_MODE:-false}
+      - ALLOW_DEBUG_SCENARIOS=${ALLOW_DEBUG_SCENARIOS:-false}
       - GRPC_ADDR=:9080
     depends_on:
       postgres:

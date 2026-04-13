@@ -54,4 +54,22 @@ export const sessions = {
     request<void>(`/sessions/${sessionId}`, { method: 'DELETE', body: JSON.stringify({}) }),
   events: (id: string) => validatedRequest(z.array(sessionEventSchema), `/sessions/${id}/events`),
   history: (id: string) => validatedRequest(z.array(moveSchema), `/sessions/${id}/history`),
+
+  // Debug-only: only registered on the server when ALLOW_DEBUG_SCENARIOS=true
+  // (auto-true under TEST_MODE). Used by the dev ScenarioPicker.
+  loadScenario: (sessionId: string, scenarioId: string) =>
+    request<unknown>(`/sessions/${sessionId}/debug/load-scenario`, {
+      method: 'POST',
+      body: JSON.stringify({ scenario_id: scenarioId }),
+    }),
+}
+
+export interface ScenarioSummary {
+  id: string
+  name: string
+  description: string
+}
+
+export const scenarios = {
+  list: (gameId: string) => request<ScenarioSummary[]>(`/games/${gameId}/scenarios`),
 }
