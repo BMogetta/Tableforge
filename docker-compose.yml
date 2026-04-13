@@ -212,6 +212,7 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_TEST_MODE=${TEST_MODE:-false}
+        - APP_VERSION=${APP_VERSION:-unknown}
     container_name: frontend
     profiles: [app]
     networks:

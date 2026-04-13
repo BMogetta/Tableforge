@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly MODE: string
   /** Set to "true" in Docker test builds for Playwright (enables testIds). */
   readonly VITE_TEST_MODE?: string
+  /** Build version injected by vite.config.ts from `git describe --tags --dirty`. */
+  readonly VITE_APP_VERSION: string
 }
 
 interface ImportMeta {

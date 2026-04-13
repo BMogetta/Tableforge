@@ -13,6 +13,7 @@ import { ErrorScreen } from '@/features/errors/ErrorScreen'
 import { NotFound } from '@/features/errors/NotFound'
 import { Splash } from '@/features/errors/Splash'
 import { ToastProvider } from '../ui/Toast'
+import { VersionBadge } from '../ui/VersionBadge'
 import { emitErrorLog } from '@/lib/telemetry'
 import { getDeviceContextAttrs } from '@/lib/device'
 
@@ -152,6 +153,8 @@ function RootComponent() {
             )}
           </>
         )}
+
+        <VersionBadge />
       </ErrorBoundary>
     </ToastProvider>
   )

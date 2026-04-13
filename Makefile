@@ -1,4 +1,15 @@
-.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing smoke-test coverage check-i18n logs ps clean clean-test gen-types gen-proto setup lint
+.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing smoke-test coverage check-i18n logs ps clean clean-test gen-types gen-proto setup lint version
+
+# ── Build metadata ────────────────────────────────────────────────────────────
+
+# Resolved from the nearest git tag + commits ahead + short SHA, with -dirty
+# suffix when the working tree has uncommitted changes. Injected into the
+# frontend build as APP_VERSION and shown in the VersionBadge component.
+APP_VERSION ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo unknown)
+export APP_VERSION
+
+version:
+	@echo $(APP_VERSION)
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 

@@ -3,8 +3,25 @@ import react from '@vitejs/plugin-react'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import { resolve } from 'path'
+import { execSync } from 'child_process'
+
+function resolveAppVersion(): string {
+  if (process.env.APP_VERSION) return process.env.APP_VERSION
+  try {
+    return execSync('git describe --tags --dirty --always', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+  } catch {
+    return 'unknown'
+  }
+}
+
+const appVersion = resolveAppVersion()
 
 export default defineConfig({
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
+  },
   plugins: [
     devtools(),
     // Please make sure that '@tanstack/router-plugin' is passed before '@vitejs/plugin-react'
