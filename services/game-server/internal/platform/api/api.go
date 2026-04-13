@@ -118,7 +118,9 @@ func NewRouter(
 		// Used to load specific game states for QA without playing through
 		// to them organically.
 		if debugScenariosEnabled() {
-			r.Post("/sessions/{sessionID}/debug/load-state", handleLoadScenario(rt, hub, st))
+			r.Get("/games/{gameID}/scenarios", handleListScenarios)
+			r.Post("/sessions/{sessionID}/debug/load-state", handleLoadState(rt, hub, st))
+			r.Post("/sessions/{sessionID}/debug/load-scenario", handleLoadScenario(rt, hub, st))
 		}
 	})
 

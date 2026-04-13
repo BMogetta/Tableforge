@@ -1,0 +1,26 @@
+{
+  "name": "Firewall standoff",
+  "description": "Player 1's turn. Player 2 is firewalled (in `protected`). Player 1 holds Ping + Sniffer — both are target-requiring cards with no legal target. Use this to verify the frontend skips the TargetPicker and the play resolves as a no-op end-to-end.",
+  "state": {
+    "current_player_id": "__PLAYER_1__",
+    "data": {
+      "round": 1,
+      "phase": "playing",
+      "players": ["__PLAYER_1__", "__PLAYER_2__"],
+      "tokens": { "__PLAYER_1__": 0, "__PLAYER_2__": 0 },
+      "eliminated": [],
+      "protected": ["__PLAYER_2__"],
+      "backdoor_played_by": [],
+      "discard_piles": { "__PLAYER_1__": [], "__PLAYER_2__": ["firewall"] },
+      "discard_order": [
+        { "player_id": "__PLAYER_2__", "card": "firewall" }
+      ],
+      "set_aside_visible": [],
+      "deck": ["backdoor", "encrypted_key", "swap", "reboot", "buffer_overflow"],
+      "hands": {
+        "__PLAYER_1__": ["ping", "sniffer"],
+        "__PLAYER_2__": ["backdoor"]
+      }
+    }
+  }
+}

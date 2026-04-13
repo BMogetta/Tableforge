@@ -11,6 +11,7 @@ import (
 	"github.com/recess/game-server/internal/domain/runtime"
 	"github.com/recess/game-server/internal/platform/store"
 	"github.com/recess/game-server/internal/platform/ws"
+	"github.com/recess/game-server/internal/scenarios"
 )
 
 // debugScenariosEnabled returns true when the debug scenario endpoints should
@@ -23,15 +24,46 @@ func debugScenariosEnabled() bool {
 	return strings.EqualFold(os.Getenv("TEST_MODE"), "true")
 }
 
-type loadScenarioRequest struct {
+type loadStateRequest struct {
 	State json.RawMessage `json:"state"`
+}
+
+type loadScenarioRequest struct {
+	ScenarioID string `json:"scenario_id"`
 }
 
 // POST /api/v1/sessions/{sessionID}/debug/load-state
 //
 // Replaces the persisted GameState of an active session with the provided
-// raw JSON. Intended for reproducing specific game scenarios in dev/test
-// without playing through to the desired state. Gated by
+// raw JSON. Lower-level primitive — usually you want load-scenario instead.
+// Gated by debugScenariosEnabled() at registration time.
+func handleLoadState(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid session id")
+			return
+		}
+
+		var req loadStateRequest
+		if err := decodeJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if len(req.State) == 0 {
+			writeError(w, http.StatusBadRequest, "state is required")
+			return
+		}
+
+		applyLoadedState(w, r, rt, hub, st, sessionID, req.State)
+	}
+}
+
+// POST /api/v1/sessions/{sessionID}/debug/load-scenario
+//
+// Looks up a fixture by id under internal/scenarios/data/{gameID}/, swaps
+// the __PLAYER_N__ placeholders for this session's actual player IDs (in
+// seat-order), and loads the resulting state. Gated by
 // debugScenariosEnabled() at registration time.
 func handleLoadScenario(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -46,31 +78,81 @@ func handleLoadScenario(rt *runtime.Service, hub *ws.Hub, st store.Store) http.H
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		if len(req.State) == 0 {
-			writeError(w, http.StatusBadRequest, "state is required")
+		if req.ScenarioID == "" {
+			writeError(w, http.StatusBadRequest, "scenario_id is required")
 			return
 		}
 
-		result, err := rt.LoadState(r.Context(), sessionID, req.State)
+		session, err := st.GetGameSession(r.Context(), sessionID)
 		if err != nil {
-			writeRuntimeError(w, err)
+			writeError(w, http.StatusNotFound, "session not found")
 			return
 		}
 
-		players, _ := st.ListRoomPlayers(r.Context(), result.Session.RoomID)
-		rt.BroadcastMove(r.Context(), hub, result, ws.EventMoveApplied, players)
-
-		// If the loaded state hands the turn to a bot, kick it off so the
-		// session doesn't sit idle waiting for a player.
-		if currentPlayerID, perr := uuid.Parse(string(result.State.CurrentPlayerID)); perr == nil {
-			rt.MaybeFireBot(r.Context(), hub, sessionID, currentPlayerID)
+		players, err := st.ListRoomPlayers(r.Context(), session.RoomID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "list players failed")
+			return
+		}
+		ids := make([]string, len(players))
+		for i, p := range players {
+			ids[i] = p.PlayerID.String()
 		}
 
-		writeJSON(w, http.StatusOK, MoveResponse{
-			Session: sessionToDTO(result.Session),
-			State:   result.State,
-			IsOver:  result.IsOver,
-			Result:  result.Result,
-		})
+		raw, err := scenarios.Resolve(session.GameID, req.ScenarioID, ids)
+		if err != nil {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
+
+		applyLoadedState(w, r, rt, hub, st, sessionID, raw)
 	}
+}
+
+// GET /api/v1/games/{gameID}/scenarios — lists fixtures available for a game.
+func handleListScenarios(w http.ResponseWriter, r *http.Request) {
+	gameID := chi.URLParam(r, "gameID")
+	if gameID == "" {
+		writeError(w, http.StatusBadRequest, "game id is required")
+		return
+	}
+	list, err := scenarios.List(gameID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+// applyLoadedState is the shared tail of load-state / load-scenario: persists
+// the new state via the runtime, broadcasts to clients, and pokes a bot if
+// the loaded state hands the turn to one.
+func applyLoadedState(
+	w http.ResponseWriter,
+	r *http.Request,
+	rt *runtime.Service,
+	hub *ws.Hub,
+	st store.Store,
+	sessionID uuid.UUID,
+	rawState []byte,
+) {
+	result, err := rt.LoadState(r.Context(), sessionID, rawState)
+	if err != nil {
+		writeRuntimeError(w, err)
+		return
+	}
+
+	players, _ := st.ListRoomPlayers(r.Context(), result.Session.RoomID)
+	rt.BroadcastMove(r.Context(), hub, result, ws.EventMoveApplied, players)
+
+	if currentPlayerID, perr := uuid.Parse(string(result.State.CurrentPlayerID)); perr == nil {
+		rt.MaybeFireBot(r.Context(), hub, sessionID, currentPlayerID)
+	}
+
+	writeJSON(w, http.StatusOK, MoveResponse{
+		Session: sessionToDTO(result.Session),
+		State:   result.State,
+		IsOver:  result.IsOver,
+		Result:  result.Result,
+	})
 }
