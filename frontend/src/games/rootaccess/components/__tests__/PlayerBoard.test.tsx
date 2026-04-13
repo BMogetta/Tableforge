@@ -1,14 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { PlayerBoard } from '../PlayerBoard'
-import type { CardName } from '../CardDisplay'
 
 const baseProps = {
   playerId: 'p1',
   username: 'Player 1',
   tokens: 0,
   tokensToWin: 7,
-  discardPile: [] as CardName[],
   isEliminated: false,
   isProtected: false,
   hasPlayedBackdoor: false,
@@ -75,14 +73,13 @@ describe('PlayerBoard', () => {
     expect(screen.getByText('Backdoor')).toBeInTheDocument()
   })
 
-  it('renders discard pile cards', () => {
-    render(<PlayerBoard {...baseProps} discardPile={['ping', 'sniffer'] as CardName[]} />)
-    expect(screen.getByText('PING')).toBeInTheDocument()
-    expect(screen.getByText('SNIFFER')).toBeInTheDocument()
+  it('renders opponent face-down hand when handSize > 0 and not local', () => {
+    render(<PlayerBoard {...baseProps} handSize={1} />)
+    expect(screen.getByLabelText("Player 1's hand")).toBeInTheDocument()
   })
 
-  it('renders empty discard indicator when pile is empty', () => {
-    render(<PlayerBoard {...baseProps} discardPile={[]} />)
-    expect(screen.getByText('—')).toBeInTheDocument()
+  it('does not render face-down hand for local player', () => {
+    render(<PlayerBoard {...baseProps} isLocal={true} handSize={1} />)
+    expect(screen.queryByLabelText("Player 1's hand")).not.toBeInTheDocument()
   })
 })

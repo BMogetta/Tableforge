@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs/rootaccess_state.json",
+  "title": "RootAccessState",
+  "description": "Filtered view of Root Access engine state sent to clients. Hands for non-local players are server-filtered (length-only or empty).",
+  "type": "object",
+  "properties": {
+    "round": { "type": "integer", "minimum": 1 },
+    "phase": {
+      "type": "string",
+      "enum": ["playing", "debugger_pending", "round_over", "game_over"]
+    },
+    "players": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "eliminated": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "protected": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "backdoor_played_by": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "discard_piles": {
+      "type": "object",
+      "description": "Per-player discard history in order (oldest first).",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "discard_order": {
+      "type": "array",
+      "description": "Global chronological discard order (oldest first). Populated by the backend in phase 2; absent means UI should fall back to per-player piles.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "player_id": { "type": "string" },
+          "card": { "type": "string" }
+        },
+        "required": ["player_id", "card"]
+      }
+    },
+    "set_aside_visible": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "deck": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "hands": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "round_winner_id": {
+      "type": ["string", "null"],
+      "description": "Winner of the most recently completed round. Persists across round transitions so the client can render a round summary during the hand-off to the new round."
+    },
+    "last_round_backdoor_bonus_by": {
+      "type": "array",
+      "description": "Snapshot of backdoor_played_by at round end. Used by the round summary UI; separate from backdoor_played_by which resets each round.",
+      "items": { "type": "string" }
+    },
+    "game_winner_id": { "type": ["string", "null"] },
+    "debugger_choices": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "private_reveals": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "required": [
+    "round",
+    "phase",
+    "players",
+    "tokens",
+    "eliminated",
+    "protected",
+    "backdoor_played_by",
+    "discard_piles",
+    "set_aside_visible",
+    "deck",
+    "hands"
+  ]
+}

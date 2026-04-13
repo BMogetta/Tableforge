@@ -366,9 +366,8 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 	if session.FinishedAt != nil {
 		return MoveResult{}, ErrGameOver
 	}
-	if session.SuspendedAt != nil {
-		return MoveResult{}, ErrSuspended
-	}
+	// Surrender is allowed even when the session is paused — a player should
+	// always be able to forfeit and leave.
 
 	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
 	if err != nil {

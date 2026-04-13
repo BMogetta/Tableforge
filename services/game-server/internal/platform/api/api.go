@@ -209,6 +209,10 @@ func writeRuntimeError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, err.Error())
 	case errors.Is(err, runtime.ErrGameOver):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, runtime.ErrSuspended):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, runtime.ErrNotParticipant):
+		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, runtime.ErrInvalidMove):
 		writeError(w, http.StatusBadRequest, err.Error())
 	default:

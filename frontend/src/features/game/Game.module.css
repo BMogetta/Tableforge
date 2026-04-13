@@ -8,17 +8,17 @@
 .root {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  padding: var(--space-6);
+  padding: var(--space-3);
 }
 
 .panel {
   width: 100%;
-  max-width: 480px;
+  max-width: 960px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-3);
 }
 
 .header {
@@ -351,7 +351,7 @@
   }
 
   .panel {
-    max-width: 420px;
+    max-width: 100%;
     gap: var(--space-4);
   }
 

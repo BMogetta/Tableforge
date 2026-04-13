@@ -1,7 +1,8 @@
+import { useCallback, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Card, dealVariants, springTransition } from '@/ui/cards'
+import { Card, dealVariants, getFlyOutTarget, springTransition } from '@/ui/cards'
 import { HintText, TooltipWrapper, useHintsEnabled } from '@/ui/hints'
 import { CARD_META, type CardName } from './CardDisplay'
 import { CardFace } from './CardFace'
@@ -15,6 +16,13 @@ interface Props {
   blockedCards?: CardName[]
   /** Ref to the zone where played cards should fly toward. */
   targetRef?: RefObject<HTMLElement | null>
+  /**
+   * When set, the matching card is animated flying to targetRef before the
+   * parent triggers the move mutation. onPlayComplete fires after the fly-out
+   * completes (or immediately if the target is unreachable).
+   */
+  playingCard?: CardName | null
+  onPlayComplete?: () => void
 }
 
 const SPREAD_ANGLE = 20
@@ -32,9 +40,59 @@ function getLift(index: number, count: number): number {
 }
 
 /** @package */
-export function HandDisplay({ cards, selectedCard, disabled, onSelect, blockedCards = [] }: Props) {
+export function HandDisplay({
+  cards,
+  selectedCard,
+  disabled,
+  onSelect,
+  blockedCards = [],
+  targetRef,
+  playingCard,
+  onPlayComplete,
+}: Props) {
   const { t } = useTranslation()
   const hintsEnabled = useHintsEnabled()
+  const slotRefs = useRef<Map<number, HTMLElement>>(new Map())
+
+  const setSlotRef = useCallback((index: number) => (el: HTMLElement | null) => {
+    if (el) slotRefs.current.set(index, el)
+    else slotRefs.current.delete(index)
+  }, [])
+
+  // Fly-out: when playingCard is set, animate the matching slot toward targetRef,
+  // then notify the parent so it can fire the mutation.
+  useEffect(() => {
+    if (!playingCard || !onPlayComplete) return
+    const idx = cards.findIndex(c => c === playingCard)
+    if (idx < 0) {
+      onPlayComplete()
+      return
+    }
+    const slot = slotRefs.current.get(idx)
+    const motionEl = slot?.querySelector('[data-testid="card"]') as HTMLElement | null
+    if (!slot || !motionEl) {
+      onPlayComplete()
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      const target = getFlyOutTarget(slot, targetRef?.current)
+      const { animate: motionAnimate } = await import('motion')
+      await motionAnimate(
+        motionEl,
+        { x: target.x, y: target.y, opacity: 0, scale: 0.7 },
+        { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
+      )
+      if (!cancelled) onPlayComplete()
+    })()
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playingCard])
+
   if (cards.length === 0) {
     return (
       <div className={styles.empty}>
@@ -55,6 +113,7 @@ export function HandDisplay({ cards, selectedCard, disabled, onSelect, blockedCa
           return (
             <motion.div
               key={`${card}-${i}`}
+              ref={setSlotRef(i)}
               className={styles.cardSlot}
               layout={true}
               variants={dealVariants}
@@ -66,7 +125,7 @@ export function HandDisplay({ cards, selectedCard, disabled, onSelect, blockedCa
                 translateY: isSelected ? lift - 12 : lift,
                 zIndex: isSelected ? 10 : i,
               }}
-              transition={springTransition}
+              transition={{ ...springTransition, delay: i * 0.35 }}
             >
               <div className={isSelected ? styles.selectedGlow : undefined}>
                 {hintsEnabled ? (

@@ -1,17 +1,18 @@
 /* =============================================================================
-   LoveLetter.module.css — Main game layout
+   RootAccess.module.css — Main game layout (table style)
    ============================================================================= */
 
 .root {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: 0;
   max-width: 960px;
   margin: 0 auto;
+  width: 100%;
 }
 
-/* Info bar — round, deck count, set-aside */
+/* Info bar — round badge + set-aside */
 
 .infoBar {
   display: flex;
@@ -30,25 +31,50 @@
   padding: 2px var(--space-2);
 }
 
-.deckCount {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
 .setAside {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
-/* Player boards grid */
+/* Opponents row — horizontal grid, one column per opponent */
 
-.boards {
+.opponents {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-4);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 220px);
+  gap: var(--space-3);
+  justify-content: center;
+  align-items: start;
 }
 
-/* Priest reveal notification */
+/* Central table — deck + discard pile side by side */
+
+.table {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--color-interactive) 6%, transparent) 0%,
+    transparent 70%
+  );
+  border-radius: var(--radius-lg, 12px);
+}
+
+.deckSlot {
+  display: flex;
+  align-items: flex-end;
+  perspective: 800px;
+}
+
+.deckSlot > * {
+  transform: rotateX(30deg);
+  transform-origin: center top;
+}
+
+/* Sniffer reveal notification */
 
 .priestReveal {
   display: flex;
@@ -58,6 +84,7 @@
   background: var(--color-interactive-glow);
   border: 1px solid color-mix(in srgb, var(--color-interactive) 20%, transparent);
   border-radius: var(--radius);
+  align-self: center;
 }
 
 .priestLabel {
@@ -72,41 +99,68 @@
   text-transform: capitalize;
 }
 
-/* Hand section */
+/* Local player area — hand in flow; info strip pinned to viewport bottom so
+   it sits at the same visual offset as the Friends FAB (bottom: 28px). The
+   padding-bottom reserves space so the hand doesn't hide behind the strip. */
 
-.handSection {
+.localArea {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  align-items: stretch;
+  padding-bottom: 72px;
 }
 
-.sectionLabel {
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+.localStripFixed {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  width: calc(100% - 2 * var(--space-3));
+  max-width: 560px;
+  z-index: var(--z-dropdown, 30);
 }
 
-/* Picker section — target + guess */
-
-.pickerSection {
-  padding: var(--space-3) 0;
+/* Floating action overlay — anchored above the hand area, lifted out of flow
+   so toggling a card selection never re-flows the page (no scroll, no shift). */
+.actionOverlay {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: var(--space-2);
+  z-index: var(--z-dropdown, 30);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  min-width: 280px;
+  max-width: min(560px, 90vw);
+  background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--color-border-bright);
+  border-radius: var(--radius-md);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.35);
+  animation: actionOverlayIn 180ms ease forwards;
 }
 
-/* Actions — play/cancel buttons */
+@keyframes actionOverlayIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
 
 .actions {
   display: flex;
   gap: var(--space-3);
   justify-content: center;
-}
-
-/* Deck area */
-
-.deckArea {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
 }
 
 /* --- Responsive ------------------------------------------------------------ */
@@ -117,9 +171,21 @@
     gap: var(--space-4);
   }
 
-  .boards {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--space-3);
+  .opponents {
+    grid-auto-columns: minmax(0, 180px);
+  }
+
+  .table {
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-3) var(--space-5);
+  }
+
+  .localStripFixed {
+    bottom: 16px;
+  }
+
+  .localArea {
+    padding-bottom: 64px;
   }
 }
 
@@ -129,9 +195,22 @@
     gap: var(--space-3);
   }
 
-  .boards {
-    grid-template-columns: 1fr 1fr;
+  .opponents {
     gap: var(--space-2);
+    grid-auto-columns: minmax(0, 140px);
+  }
+
+  .localStripFixed {
+    bottom: 12px;
+  }
+
+  .localArea {
+    padding-bottom: 56px;
+  }
+
+  .table {
+    gap: var(--space-3);
+    padding: var(--space-3);
   }
 
   .infoBar {
@@ -139,11 +218,6 @@
   }
 
   .actions {
-    gap: var(--space-2);
-    flex-wrap: wrap;
-  }
-
-  .deckArea {
     gap: var(--space-2);
     flex-wrap: wrap;
   }

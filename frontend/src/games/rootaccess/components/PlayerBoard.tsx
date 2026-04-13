@@ -1,8 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { CardZone, type CardZoneEntry } from '@/ui/cards'
+import { CardPile } from '@/ui/cards'
 import { DimOverlay, useHintsEnabled } from '@/ui/hints'
-import type { CardName } from './CardDisplay'
-import { CardFace } from './CardFace'
 import styles from './PlayerBoard.module.css'
 
 interface Props {
@@ -10,7 +8,8 @@ interface Props {
   username: string
   tokens: number
   tokensToWin: number
-  discardPile: CardName[]
+  /** Opponent hand size — for the face-down preview. Ignored when isLocal. */
+  handSize?: number
   isEliminated: boolean
   isProtected: boolean
   hasPlayedBackdoor: boolean
@@ -18,6 +17,8 @@ interface Props {
   isCurrentTurn: boolean
   /** When true and hints are enabled, dim this player (FIREWALL active, not targetable). */
   dimProtected?: boolean
+  /** Render a subtle "thinking..." indicator — used for bot opponents during their turn. */
+  isBotThinking?: boolean
 }
 
 /** @package */
@@ -25,20 +26,17 @@ export function PlayerBoard({
   username,
   tokens,
   tokensToWin,
-  discardPile,
+  handSize = 0,
   isEliminated,
   isProtected,
   hasPlayedBackdoor,
   isLocal,
   isCurrentTurn,
   dimProtected = false,
+  isBotThinking = false,
 }: Props) {
   const { t } = useTranslation()
   const hintsEnabled = useHintsEnabled()
-  const zoneCards: CardZoneEntry<CardName>[] = discardPile.map((card, i) => ({
-    key: `${card}-${i}`,
-    data: card,
-  }))
 
   return (
     <DimOverlay dimmed={dimProtected && hintsEnabled && isProtected && !isLocal}>
@@ -57,6 +55,13 @@ export function PlayerBoard({
             {isCurrentTurn && <span className={styles.turnIndicator}>▶</span>}
             <span className={styles.username}>{username}</span>
             {isLocal && <span className={styles.youBadge}>{t('common.you')}</span>}
+            {isBotThinking && (
+              <span className={styles.thinking} aria-label={t('rootaccess.botThinking')}>
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+                <span className={styles.dot} />
+              </span>
+            )}
           </div>
           <div className={styles.badges}>
             {isProtected && (
@@ -77,7 +82,7 @@ export function PlayerBoard({
           </div>
         </div>
 
-        <div className={styles.tokens}>
+        <div className={styles.tokens} aria-label={t('rootaccess.tokenCount', { current: tokens, total: tokensToWin })}>
           {Array.from({ length: tokensToWin }).map((_, i) => (
             <span
               key={i}
@@ -87,22 +92,11 @@ export function PlayerBoard({
           ))}
         </div>
 
-        <div className={styles.discardSection}>
-          <span className={styles.discardLabel}>{t('rootaccess.discards')}</span>
-          {discardPile.length === 0 ? (
-            <span className={styles.empty}>—</span>
-          ) : (
-            <CardZone<CardName>
-              cards={zoneCards}
-              renderCard={card => (
-                <div className={styles.discardFace}>
-                  <CardFace card={card} />
-                </div>
-              )}
-              layout='spread'
-            />
-          )}
-        </div>
+        {!isLocal && handSize > 0 && !isEliminated && (
+          <div className={styles.opponentHand} aria-label={t('rootaccess.opponentHand', { name: username })}>
+            <CardPile count={handSize} faceDown={true} />
+          </div>
+        )}
       </div>
     </DimOverlay>
   )

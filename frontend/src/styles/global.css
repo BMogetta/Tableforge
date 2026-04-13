@@ -377,6 +377,16 @@
   --z-toast: 400;
   --z-noise: 9999;
 
+  /* --------------------------------------------------------------------------
+     Cursor conventions
+     Pick one of these; do not invent ad-hoc cursors in component styles.
+     - pointer     → any actionable surface (button, link, card, pile-to-open)
+     - not-allowed → disabled actionable element
+     - help        → info / tooltip-only surface
+     - grab        → drag handle (grabbing while pressed)
+     - default     → non-interactive / decorative
+     -------------------------------------------------------------------------- */
+
   /* Layout constants */
   --layout-sidebar-width: 240px;
   --layout-navbar-height: 56px;

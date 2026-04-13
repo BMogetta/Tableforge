@@ -6,8 +6,8 @@ import type { Transition, Variants } from 'motion/react'
 
 export const springTransition: Transition = {
   type: 'spring',
-  stiffness: 300,
-  damping: 25,
+  stiffness: 180,
+  damping: 22,
 }
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ export const flipVariants: Variants = {
 }
 
 export const flipTransition: Transition = {
-  duration: 0.5,
+  duration: 0.8,
   ease: [0.4, 0, 0.2, 1],
 }
 

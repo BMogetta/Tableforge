@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { sfx } from '@/lib/sfx'
 import { CardPile } from '@/ui/cards'
+import { CentralDiscard } from './CentralDiscard'
 import type { CardName } from './CardDisplay'
 import { DebuggerModal } from './DebuggerModal'
 import { HandDisplay } from './HandDisplay'
@@ -15,6 +16,12 @@ import { TargetPicker } from './TargetPicker'
 // ---------------------------------------------------------------------------
 
 /** @package */
+export interface RootAccessDiscardEntry {
+  player_id: string
+  card: string
+}
+
+/** @package */
 export interface RootAccessState {
   round: number
   phase: 'playing' | 'debugger_pending' | 'round_over' | 'game_over'
@@ -24,14 +31,24 @@ export interface RootAccessState {
   protected: string[]
   backdoor_played_by: string[]
   discard_piles: Record<string, string[]>
+  /**
+   * Global chronological discard order (oldest first).
+   * Populated by the backend in phase 2; absent means UI falls back to per-player piles.
+   */
+  discard_order?: RootAccessDiscardEntry[]
   set_aside_visible: string[]
   deck: string[]
   hands: Record<string, string[]>
+  /**
+   * Winner of the most recently completed round. Persists across round
+   * transitions so the client can render a round summary during the hand-off
+   * to the new round. Null until the first round ends.
+   */
   round_winner_id: string | null
+  /** Snapshot of backdoor_played_by at round end, for the round summary UI. */
+  last_round_backdoor_bonus_by?: string[]
   game_winner_id: string | null
-  // Only present for the active player during debugger_pending.
   debugger_choices?: string[]
-  // Only present for the Sniffer caster on their turn.
   private_reveals?: Record<string, string>
 }
 
@@ -71,13 +88,10 @@ function tokensToWin(playerCount: number): number {
   return 3
 }
 
-// ---------------------------------------------------------------------------
-// Player username lookup — state only has IDs; we receive a map from parent.
-// ---------------------------------------------------------------------------
-
 interface PlayerInfo {
   id: string
   username: string
+  is_bot?: boolean
 }
 
 interface Props {
@@ -87,7 +101,6 @@ interface Props {
   onMove: (payload: Record<string, unknown>) => void
   disabled: boolean
   isOver: boolean
-  /** Map of player ID -> username for display. Provided by Game.tsx. */
   players?: PlayerInfo[]
 }
 
@@ -112,34 +125,54 @@ export function RootAccess({
   const [showRoundSummary, setShowRoundSummary] = useState(false)
   const [lastSeenRound, setLastSeenRound] = useState(state.round)
 
-  const discardZoneRef = useRef<HTMLElement>(null)
+  // Fly-out animation state — when set, HandDisplay animates this card toward
+  // the central discard pile before the parent fires the move mutation.
+  const [playingCard, setPlayingCard] = useState<CardName | null>(null)
+  const pendingPayloadRef = useRef<Record<string, unknown> | null>(null)
 
-  // Show round summary when a round completes.
+  const discardZoneRef = useRef<HTMLElement | null>(null)
+
+  // Show round summary when the round number advances. The engine applies the
+  // round result (tokens, round_winner_id, last_round_backdoor_bonus_by) and
+  // the next-round deal atomically in a single ApplyMove, so the client uses
+  // the round delta as the trigger rather than a discrete "round_over" phase.
   useEffect(() => {
-    if (state.phase === 'round_over' && state.round !== lastSeenRound) {
+    if (state.round > lastSeenRound) {
       sfx.play('game.round_end')
       setShowRoundSummary(true)
       setLastSeenRound(state.round)
     }
-  }, [state.phase, state.round, lastSeenRound])
+  }, [state.round, lastSeenRound])
 
-  // Reset selection when turn changes.
+  // Reset selection whenever the active player changes, so stale picks from
+  // a previous turn/round don't carry over to the next "Play <card>" button.
   useEffect(() => {
     setSelectedCard(null)
     setSelectedTarget(null)
     setSelectedGuess(null)
-  }, [])
+  }, [currentPlayerId])
 
   const localHand = (state.hands[localPlayerId] ?? []) as CardName[]
   const isMyTurn = currentPlayerId === localPlayerId && !disabled && !isOver
   const blockedCards = getBlockedCards(localHand)
   const target = tokensToWin(state.players.length)
 
-  // Track hand size for card draw SFX.
-  const prevHandSize = useRef(localHand.length)
+  // Track hand size for card deal/draw SFX.
+  // On mount, if we already have cards, play a deal SFX (initial hand). Subsequent
+  // growth in hand size means a card was drawn — play the draw SFX (timed to match
+  // the staggered card entry animation in HandDisplay so the sound lands with the
+  // second card appearing).
+  const prevHandSize = useRef(0)
   useEffect(() => {
-    if (localHand.length > prevHandSize.current) {
-      sfx.play('game.card_draw')
+    if (prevHandSize.current === 0 && localHand.length > 0) {
+      sfx.play('card.deal')
+      if (localHand.length > 1) {
+        const t = window.setTimeout(() => sfx.play('card.draw'), 350)
+        prevHandSize.current = localHand.length
+        return () => window.clearTimeout(t)
+      }
+    } else if (localHand.length > prevHandSize.current) {
+      sfx.play('card.draw')
     }
     prevHandSize.current = localHand.length
   }, [localHand.length])
@@ -153,6 +186,16 @@ export function RootAccess({
     prevEliminated.current = state.eliminated.length
   }, [state.eliminated.length])
 
+  // Token gain SFX — only for the local player to avoid end-of-round cacophony.
+  const localTokens = state.tokens[localPlayerId] ?? 0
+  const prevLocalTokens = useRef(localTokens)
+  useEffect(() => {
+    if (localTokens > prevLocalTokens.current) {
+      sfx.play('chip.place')
+    }
+    prevLocalTokens.current = localTokens
+  }, [localTokens])
+
   function getUsername(id: string): string {
     return players.find(p => p.id === id)?.username ?? id.slice(0, 8)
   }
@@ -161,14 +204,20 @@ export function RootAccess({
     .filter(id => id !== localPlayerId)
     .map(id => ({ id, username: getUsername(id) }))
 
-  // Determine whether a target picker should be shown for the selected card.
+  function opponentHandSize(id: string): number {
+    if (state.eliminated.includes(id)) return 0
+    const reported = state.hands[id]?.length
+    if (reported && reported > 0) return reported
+    // Server may filter opponent hands to empty. Assume 1 card as a safe default.
+    return 1
+  }
+
   const needsTarget = selectedCard
     ? requiresTarget(selectedCard) ||
       (canTargetSelf(selectedCard) &&
         opponents.some(o => !state.eliminated.includes(o.id) && !state.protected.includes(o.id)))
     : false
 
-  // Whether the current selection is ready to submit.
   function isReadyToSubmit(): boolean {
     if (!selectedCard || !isMyTurn) return false
     if (blockedCards.includes(selectedCard)) return false
@@ -181,11 +230,23 @@ export function RootAccess({
 
   function handleSubmit() {
     if (!isReadyToSubmit() || !selectedCard) return
-    sfx.play('game.card_play')
+    sfx.play('card.play')
     const payload: Record<string, unknown> = { card: selectedCard }
     if (selectedTarget) payload.target_player_id = selectedTarget
     if (selectedGuess) payload.guess = selectedGuess
-    onMove(payload)
+    // Trigger fly-out animation first; onMove fires when it completes.
+    pendingPayloadRef.current = payload
+    setPlayingCard(selectedCard)
+  }
+
+  function handlePlayComplete() {
+    const payload = pendingPayloadRef.current
+    pendingPayloadRef.current = null
+    setPlayingCard(null)
+    setSelectedCard(null)
+    setSelectedTarget(null)
+    setSelectedGuess(null)
+    if (payload) onMove(payload)
   }
 
   function handleDebuggerConfirm(keep: CardName, returnCards: [CardName, CardName]) {
@@ -196,16 +257,9 @@ export function RootAccess({
     })
   }
 
-  // ---------------------------------------------------------------------------
-  // Sniffer reveal
-  // ---------------------------------------------------------------------------
-
   const snifferReveal = state.private_reveals?.[localPlayerId]
 
-  // ---------------------------------------------------------------------------
-  // Round summary data
-  // ---------------------------------------------------------------------------
-
+  const backdoorBonusRecipients = state.last_round_backdoor_bonus_by ?? []
   const roundSummaryPlayers = state.players.map(id => ({
     id,
     username: getUsername(id),
@@ -213,8 +267,13 @@ export function RootAccess({
     tokensToWin: target,
     isWinner: id === state.round_winner_id,
     earnedBackdoorBonus:
-      state.backdoor_played_by.length === 1 && state.backdoor_played_by[0] === id,
+      backdoorBonusRecipients.length === 1 && backdoorBonusRecipients[0] === id,
   }))
+
+  const discardPilesTyped = state.discard_piles as Record<string, CardName[]>
+  const discardOrderTyped = state.discard_order as
+    | { player_id: string; card: CardName }[]
+    | undefined
 
   // ---------------------------------------------------------------------------
   // Render
@@ -222,12 +281,9 @@ export function RootAccess({
 
   return (
     <div className={styles.root}>
-      {/* Round / game info bar + deck */}
+      {/* Round / game info bar */}
       <div className={styles.infoBar}>
         <span className={styles.roundBadge}>{t('rootaccess.round', { n: state.round })}</span>
-        <div className={styles.deckArea}>
-          <CardPile count={state.deck.length} faceDown={true} />
-        </div>
         {state.set_aside_visible.length > 0 && (
           <span className={styles.setAside}>
             {t('rootaccess.setAside', { card: state.set_aside_visible.join(', ') })}
@@ -235,24 +291,42 @@ export function RootAccess({
         )}
       </div>
 
-      {/* Player boards */}
-      <div className={styles.boards}>
-        {state.players.map(id => (
-          <PlayerBoard
-            key={id}
-            playerId={id}
-            username={getUsername(id)}
-            tokens={state.tokens[id] ?? 0}
-            tokensToWin={target}
-            discardPile={(state.discard_piles[id] ?? []) as CardName[]}
-            isEliminated={state.eliminated.includes(id)}
-            isProtected={state.protected.includes(id)}
-            hasPlayedBackdoor={state.backdoor_played_by.includes(id)}
-            isLocal={id === localPlayerId}
-            isCurrentTurn={id === currentPlayerId}
-            dimProtected={selectedCard !== null && needsTarget}
-          />
-        ))}
+      {/* Opponents row */}
+      <div className={styles.opponents}>
+        {opponents.map(({ id }) => {
+          const p = players.find(pl => pl.id === id)
+          const isBotThinking = id === currentPlayerId && (p?.is_bot ?? false) && !isOver
+          return (
+            <PlayerBoard
+              key={id}
+              playerId={id}
+              username={getUsername(id)}
+              tokens={state.tokens[id] ?? 0}
+              tokensToWin={target}
+              handSize={opponentHandSize(id)}
+              isEliminated={state.eliminated.includes(id)}
+              isProtected={state.protected.includes(id)}
+              hasPlayedBackdoor={state.backdoor_played_by.includes(id)}
+              isLocal={false}
+              isCurrentTurn={id === currentPlayerId}
+              isBotThinking={isBotThinking}
+              dimProtected={selectedCard !== null && needsTarget}
+            />
+          )
+        })}
+      </div>
+
+      {/* Central table — deck + discard pile, same card size for visual parity. */}
+      <div className={styles.table}>
+        <div className={styles.deckSlot}>
+          <CardPile count={state.deck.length} faceDown={true} />
+        </div>
+        <CentralDiscard
+          discardOrder={discardOrderTyped}
+          discardPiles={discardPilesTyped}
+          getUsername={getUsername}
+          pileRef={discardZoneRef}
+        />
       </div>
 
       {/* Sniffer reveal notification */}
@@ -263,10 +337,10 @@ export function RootAccess({
         </div>
       )}
 
-      {/* Local player hand */}
-      {localHand.length > 0 && (
-        <div className={styles.handSection}>
-          <span className={styles.sectionLabel}>{t('rootaccess.yourHand')}</span>
+      {/* Local player area: hand above, info strip pinned to the viewport
+          bottom so it stays visually aligned with the Friends FAB. */}
+      <div className={styles.localArea}>
+        {localHand.length > 0 && (
           <HandDisplay
             cards={localHand}
             selectedCard={selectedCard}
@@ -274,44 +348,65 @@ export function RootAccess({
             onSelect={setSelectedCard}
             blockedCards={blockedCards}
             targetRef={discardZoneRef}
+            playingCard={playingCard}
+            onPlayComplete={handlePlayComplete}
+          />
+        )}
+
+        <div className={styles.localStripFixed}>
+          <PlayerBoard
+            playerId={localPlayerId}
+            username={getUsername(localPlayerId)}
+            tokens={localTokens}
+            tokensToWin={target}
+            isEliminated={state.eliminated.includes(localPlayerId)}
+            isProtected={state.protected.includes(localPlayerId)}
+            hasPlayedBackdoor={state.backdoor_played_by.includes(localPlayerId)}
+            isLocal={true}
+            isCurrentTurn={currentPlayerId === localPlayerId}
           />
         </div>
-      )}
 
-      {/* Target / guess picker */}
-      {isMyTurn && selectedCard && needsTarget && (
-        <div className={styles.pickerSection}>
-          <TargetPicker
-            opponents={opponents}
-            eliminatedIds={state.eliminated}
-            protectedIds={state.protected}
-            selectedTarget={selectedTarget}
-            cardBeingPlayed={selectedCard}
-            selectedGuess={selectedGuess}
-            onSelectTarget={setSelectedTarget}
-            onSelectGuess={setSelectedGuess}
-          />
-        </div>
-      )}
-
-      {/* Play button */}
-      {isMyTurn && selectedCard && (
-        <div className={styles.actions}>
-          <button type="button"
-            className='btn btn-ghost'
-            onClick={() => {
-              setSelectedCard(null)
-              setSelectedTarget(null)
-              setSelectedGuess(null)
-            }}
-          >
-            {t('common.cancel')}
-          </button>
-          <button type="button" className='btn btn-primary' onClick={handleSubmit} disabled={!isReadyToSubmit()}>
-            {t('rootaccess.play', { card: selectedCard })}
-          </button>
-        </div>
-      )}
+        {/* Floating action overlay — picker + play button, anchored above the hand
+            so it doesn't push content and cause a scroll. */}
+        {isMyTurn && selectedCard && (
+          <div className={styles.actionOverlay} role='dialog' aria-label={t('rootaccess.play', { card: selectedCard })}>
+            {needsTarget && (
+              <TargetPicker
+                opponents={opponents}
+                eliminatedIds={state.eliminated}
+                protectedIds={state.protected}
+                selectedTarget={selectedTarget}
+                cardBeingPlayed={selectedCard}
+                selectedGuess={selectedGuess}
+                onSelectTarget={setSelectedTarget}
+                onSelectGuess={setSelectedGuess}
+              />
+            )}
+            <div className={styles.actions}>
+              <button
+                type='button'
+                className='btn btn-ghost'
+                onClick={() => {
+                  setSelectedCard(null)
+                  setSelectedTarget(null)
+                  setSelectedGuess(null)
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type='button'
+                className='btn btn-primary'
+                onClick={handleSubmit}
+                disabled={!isReadyToSubmit()}
+              >
+                {t('rootaccess.play', { card: selectedCard })}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Debugger modal */}
       {state.phase === 'debugger_pending' &&

@@ -56,7 +56,7 @@ export function CardHand<T>({
         await motionAnimate(
           motionEl,
           { x: target.x, y: target.y, opacity: 0, scale: 0.7 },
-          { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+          { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
         )
       }
 

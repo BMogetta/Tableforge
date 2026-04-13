@@ -5,12 +5,23 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/recess/game-server/internal/bot"
 	"github.com/recess/game-server/internal/domain/engine"
 	"github.com/recess/game-server/internal/platform/ws"
+)
+
+// Minimum total time between the bot being fired and its move being applied.
+// MCTS on trivial states finishes in single-digit ms, which produces an
+// unplayable "instant response" experience. Padding to a floor + jitter gives
+// humans time to see the previous move's animation and read the board.
+const (
+	botMinMoveDelay    = 1200 * time.Millisecond
+	botMoveDelayJitter = 600 * time.Millisecond
 )
 
 // botRegistry holds the in-memory map of active bot players keyed by their
@@ -114,6 +125,7 @@ func (svc *Service) MaybeFireBot(ctx context.Context, hub *ws.Hub, sessionID uui
 			return
 		}
 
+		startedAt := time.Now()
 		payload, err := bp.DecideMove(botCtx, state)
 		if err != nil {
 			if errors.Is(err, bot.ErrNoMoves) {
@@ -121,6 +133,13 @@ func (svc *Service) MaybeFireBot(ctx context.Context, hub *ws.Hub, sessionID uui
 			}
 			slog.Error("bot: decide move failed", "session_id", sessionID, "player_id", bp.ID, "error", err)
 			return
+		}
+
+		// Pace the bot to at least botMinMoveDelay + random jitter so humans
+		// can perceive each move. DecideMove time counts against the budget.
+		target := botMinMoveDelay + time.Duration(rand.Int63n(int64(botMoveDelayJitter)))
+		if elapsed := time.Since(startedAt); elapsed < target {
+			time.Sleep(target - elapsed)
 		}
 
 		result, err := svc.ApplyMove(botCtx, sessionID, bp.ID, payload)

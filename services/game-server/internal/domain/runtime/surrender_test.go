@@ -104,7 +104,7 @@ func TestSurrender_NotParticipant(t *testing.T) {
 	}
 }
 
-func TestSurrender_Suspended(t *testing.T) {
+func TestSurrender_AllowedWhenSuspended(t *testing.T) {
 	svc, fs := newRuntimeWithStore(t)
 	ctx := context.Background()
 
@@ -118,9 +118,12 @@ func TestSurrender_Suspended(t *testing.T) {
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
 	fs.SuspendSession(ctx, session.ID, "test")
 
-	_, err := svc.Surrender(ctx, session.ID, p1.ID)
-	if !errors.Is(err, runtime.ErrSuspended) {
-		t.Errorf("expected ErrSuspended, got %v", err)
+	result, err := svc.Surrender(ctx, session.ID, p1.ID)
+	if err != nil {
+		t.Fatalf("expected surrender to succeed on suspended session, got %v", err)
+	}
+	if !result.IsOver {
+		t.Errorf("expected IsOver=true after surrender, got false")
 	}
 }
 

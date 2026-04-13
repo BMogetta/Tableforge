@@ -2,6 +2,9 @@
 
 .pile {
   position: relative;
+  /* Seal the layer z-indices inside a local stacking context so they never
+     leak up and compete with unrelated elements at the document root. */
+  z-index: 0;
   display: inline-block;
   cursor: pointer;
   width: 120px;

@@ -559,6 +559,11 @@ func resolveRound(state engine.GameState) (engine.GameState, error) {
 	state.Data["tokens"] = tokensToAny(tokens)
 	state.Data["round_winner_id"] = roundWinner
 
+	// Snapshot the backdoor bonus recipients for this round so the client can
+	// render the round summary even after dealRound resets backdoor_played_by
+	// for the next round.
+	state.Data["last_round_backdoor_bonus_by"] = append([]string{}, backdoorPlayed...)
+
 	// Check game over.
 	target := tokensToWin(len(players))
 	for _, id := range players {
@@ -734,7 +739,11 @@ func dealRound(state engine.GameState, players []string, firstPlayer engine.Play
 	state.Data["protected"] = []string{}
 	state.Data["backdoor_played_by"] = []string{}
 	state.Data["discard_piles"] = map[string]any{}
-	state.Data["round_winner_id"] = nil
+	state.Data["discard_order"] = []any{}
+	// Intentionally do NOT reset round_winner_id here: it persists as the
+	// "previous round's winner" so the client can display the round summary
+	// during the transition to the new round. resolveRound overwrites it the
+	// next time a round ends.
 
 	state.Data["phase"] = phasePlaying
 	state.CurrentPlayerID = firstPlayer
@@ -785,7 +794,18 @@ func appendDiscard(state engine.GameState, playerID string, card CardName) engin
 	piles := getDiscardPiles(state.Data)
 	piles[playerID] = append(piles[playerID], string(card))
 	state.Data["discard_piles"] = discardPilesToAny(piles)
+
+	order := getDiscardOrder(state.Data)
+	order = append(order, discardEntry{PlayerID: playerID, Card: string(card)})
+	state.Data["discard_order"] = discardOrderToAny(order)
 	return state
+}
+
+// discardEntry is a single entry in the global chronological discard log.
+// It mirrors the schema at shared/schemas/defs/rootaccess_state.json.
+type discardEntry struct {
+	PlayerID string `json:"player_id"`
+	Card     string `json:"card"`
 }
 
 func eliminatePlayer(state engine.GameState, playerID string) engine.GameState {
@@ -1022,6 +1042,42 @@ func discardPilesToAny(piles map[string][]string) map[string]any {
 	out := make(map[string]any, len(piles))
 	for k, v := range piles {
 		out[k] = v
+	}
+	return out
+}
+
+func getDiscardOrder(data map[string]any) []discardEntry {
+	raw, ok := data["discard_order"]
+	if !ok {
+		return []discardEntry{}
+	}
+	switch v := raw.(type) {
+	case []discardEntry:
+		return v
+	case []any:
+		out := make([]discardEntry, 0, len(v))
+		for _, item := range v {
+			switch entry := item.(type) {
+			case discardEntry:
+				out = append(out, entry)
+			case map[string]any:
+				playerID, _ := entry["player_id"].(string)
+				card, _ := entry["card"].(string)
+				out = append(out, discardEntry{PlayerID: playerID, Card: card})
+			}
+		}
+		return out
+	}
+	return []discardEntry{}
+}
+
+func discardOrderToAny(order []discardEntry) []any {
+	out := make([]any, len(order))
+	for i, e := range order {
+		out[i] = map[string]any{
+			"player_id": e.PlayerID,
+			"card":      e.Card,
+		}
 	}
 	return out
 }

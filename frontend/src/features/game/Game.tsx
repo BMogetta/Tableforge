@@ -74,8 +74,10 @@ export function Game({ sessionId }: { sessionId: string }) {
   // Preload game sounds + request notification permission + WakeLock.
   useEffect(() => {
     sfx.preload(
-      'game.card_play',
-      'game.card_draw',
+      'card.play',
+      'card.draw',
+      'card.deal',
+      'chip.place',
       'game.my_turn',
       'game.round_end',
       'game.win',
