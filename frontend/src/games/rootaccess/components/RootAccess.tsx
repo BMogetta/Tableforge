@@ -212,16 +212,22 @@ export function RootAccess({
     return 1
   }
 
+  // A target-requiring card resolves as a no-op when every opponent is
+  // firewalled or eliminated. In that case, skip the TargetPicker and let
+  // the play button submit immediately — the server accepts the move with
+  // no target_player_id (and, for Ping, no guess).
+  const hasValidTargets = opponents.some(
+    o => !state.eliminated.includes(o.id) && !state.protected.includes(o.id),
+  )
+
   const needsTarget = selectedCard
-    ? requiresTarget(selectedCard) ||
-      (canTargetSelf(selectedCard) &&
-        opponents.some(o => !state.eliminated.includes(o.id) && !state.protected.includes(o.id)))
+    ? (requiresTarget(selectedCard) || canTargetSelf(selectedCard)) && hasValidTargets
     : false
 
   function isReadyToSubmit(): boolean {
     if (!selectedCard || !isMyTurn) return false
     if (blockedCards.includes(selectedCard)) return false
-    if (requiresTarget(selectedCard)) {
+    if (requiresTarget(selectedCard) && hasValidTargets) {
       if (!selectedTarget) return false
       if (selectedCard === 'ping' && !selectedGuess) return false
     }

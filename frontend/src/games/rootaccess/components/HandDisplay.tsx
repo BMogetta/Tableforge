@@ -84,6 +84,12 @@ export function HandDisplay({
         { x: target.x, y: target.y, opacity: 0, scale: 0.7 },
         { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
       )
+      // Clear inline styles so if React reuses this DOM node for a
+      // different card (e.g. another copy of the same card remaining
+      // in hand under the same key), the next render isn't stuck at
+      // opacity:0 / translated offscreen.
+      motionEl.style.transform = ''
+      motionEl.style.opacity = ''
       if (!cancelled) onPlayComplete()
     })()
 

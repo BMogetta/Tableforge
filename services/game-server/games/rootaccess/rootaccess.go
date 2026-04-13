@@ -131,12 +131,17 @@ func validateStandardMove(state engine.GameState, move engine.Move) error {
 		if err := validateTarget(state, move.PlayerID, target, false); err != nil {
 			return err
 		}
-		guess := getCardFromPayload(move.Payload, "guess")
-		if guess == "" {
-			return errors.New("ping requires a 'guess' card name")
-		}
-		if !isValidGuess(guess) {
-			return fmt.Errorf("invalid ping guess: %q", guess)
+		// When there is no valid target (e.g. sole opponent is firewalled),
+		// Ping resolves as a no-op and the guess is irrelevant. Only require
+		// a guess when the caller picked a target.
+		if target != "" {
+			guess := getCardFromPayload(move.Payload, "guess")
+			if guess == "" {
+				return errors.New("ping requires a 'guess' card name")
+			}
+			if !isValidGuess(guess) {
+				return fmt.Errorf("invalid ping guess: %q", guess)
+			}
 		}
 	case CardSniffer, CardBufferOverflow, CardSwap:
 		if err := validateTarget(state, move.PlayerID, target, false); err != nil {
