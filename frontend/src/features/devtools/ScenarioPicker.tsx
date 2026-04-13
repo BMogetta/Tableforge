@@ -23,6 +23,66 @@ function useActiveSessionId(): string | null {
   return match ? match[1] : null
 }
 
+// Inherits CSS variables from the host devtools panel — no hardcoded colors,
+// matches the look of WsDevtools.
+const styles = {
+  panel: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 10,
+    padding: 12,
+    fontSize: 11,
+    fontFamily: 'var(--font-mono, monospace)',
+    color: 'var(--color-text-primary, #e8e4d9)',
+  },
+  meta: {
+    color: 'var(--color-text-muted, #555)',
+  },
+  hint: {
+    color: 'var(--color-text-muted, #555)',
+    padding: 12,
+    fontSize: 11,
+    fontFamily: 'var(--font-mono, monospace)',
+  },
+  description: {
+    margin: 0,
+    color: 'var(--color-text-secondary, #7a7568)',
+    fontSize: 11,
+    lineHeight: 1.4,
+  },
+  control: {
+    padding: '5px 8px',
+    fontSize: 11,
+    fontFamily: 'inherit',
+    background: 'var(--color-bg-surface, rgba(0,0,0,0.2))',
+    color: 'var(--color-text-primary, #e8e4d9)',
+    border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+    borderRadius: 3,
+  },
+  applyBtn: {
+    padding: '5px 12px',
+    fontSize: 11,
+    fontFamily: 'inherit',
+    background: 'transparent',
+    color: 'var(--color-interactive, #7b8cde)',
+    border: '1px solid var(--color-interactive, #7b8cde)',
+    borderRadius: 3,
+    cursor: 'pointer',
+    alignSelf: 'flex-start' as const,
+  },
+  applyBtnDisabled: {
+    color: 'var(--color-text-muted, #555)',
+    borderColor: 'var(--color-border, rgba(255,255,255,0.1))',
+    cursor: 'default' as const,
+  },
+  ok: {
+    color: 'var(--color-interactive, #7b8cde)',
+  },
+  err: {
+    color: 'var(--color-danger, #c33)',
+  },
+} as const
+
 export function ScenarioPicker() {
   const sessionId = useActiveSessionId()
 
@@ -60,32 +120,25 @@ export function ScenarioPicker() {
   }
 
   if (!sessionId) {
-    return (
-      <div style={{ padding: 12, fontSize: 12, color: 'var(--color-text-muted, #777)' }}>
-        Open a game session to load a scenario.
-      </div>
-    )
+    return <div style={styles.hint}>Open a game session to load a scenario.</div>
   }
 
+  const applyDisabled = !selectedId || status === 'applying'
+
   return (
-    <div
-      {...testId('scenario-picker')}
-      style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 12, fontSize: 12 }}
-    >
-      <div style={{ color: 'var(--color-text-muted, #777)' }}>
+    <div {...testId('scenario-picker')} style={styles.panel}>
+      <div style={styles.meta}>
         session <code>{sessionId.slice(0, 8)}…</code>
         {gameId && <> · game <code>{gameId}</code></>}
       </div>
 
-      {!gameId && <div>Loading session…</div>}
-      {gameId && isLoading && <div>Loading scenarios…</div>}
+      {!gameId && <div style={styles.meta}>Loading session…</div>}
+      {gameId && isLoading && <div style={styles.meta}>Loading scenarios…</div>}
       {gameId && !isLoading && error && (
-        <div style={{ color: 'var(--color-danger, #c33)' }}>
-          Failed to list scenarios: {String(error)}
-        </div>
+        <div style={styles.err}>Failed to list scenarios: {String(error)}</div>
       )}
       {gameId && !isLoading && !error && list.length === 0 && (
-        <div style={{ color: 'var(--color-text-muted, #777)' }}>
+        <div style={styles.meta}>
           No scenarios registered for <code>{gameId}</code>.
         </div>
       )}
@@ -95,7 +148,7 @@ export function ScenarioPicker() {
           <select
             value={selectedId}
             onChange={e => setSelectedId(e.target.value)}
-            style={{ padding: 6, fontFamily: 'inherit', fontSize: 12 }}
+            style={styles.control}
             {...testId('scenario-picker-select')}
           >
             <option value=''>— pick a scenario —</option>
@@ -106,30 +159,20 @@ export function ScenarioPicker() {
             ))}
           </select>
 
-          {selected && (
-            <p style={{ margin: 0, color: 'var(--color-text-secondary, #aaa)' }}>
-              {selected.description}
-            </p>
-          )}
+          {selected && <p style={styles.description}>{selected.description}</p>}
 
           <button
             type='button'
             onClick={apply}
-            disabled={!selectedId || status === 'applying'}
-            style={{
-              padding: '6px 12px',
-              cursor: !selectedId || status === 'applying' ? 'default' : 'pointer',
-              alignSelf: 'flex-start',
-            }}
+            disabled={applyDisabled}
+            style={{ ...styles.applyBtn, ...(applyDisabled ? styles.applyBtnDisabled : null) }}
             {...testId('scenario-picker-apply')}
           >
             {status === 'applying' ? 'Applying…' : 'Apply scenario'}
           </button>
 
-          {status === 'ok' && <div style={{ color: 'var(--color-success, #4c4)' }}>Applied.</div>}
-          {status === 'err' && (
-            <div style={{ color: 'var(--color-danger, #c33)' }}>Failed: {errMsg}</div>
-          )}
+          {status === 'ok' && <div style={styles.ok}>Applied.</div>}
+          {status === 'err' && <div style={styles.err}>Failed: {errMsg}</div>}
         </>
       )}
     </div>

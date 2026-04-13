@@ -48,9 +48,12 @@ export const useWsDevtoolsStore = create<WsDevtoolsState>(set => ({
         type: event.type,
         payload: event.payload,
       }
-      const events = [...state.events, next]
-      // Drop oldest events when cap is reached.
-      return { events: events.length > MAX_EVENTS ? events.slice(-MAX_EVENTS) : events }
+      // Newest first — the panel renders top-to-bottom and we want fresh
+      // events to land at the top without scrolling.
+      const events = [next, ...state.events]
+      // Drop oldest events when cap is reached (slice from the head, since
+      // oldest are now at the tail).
+      return { events: events.length > MAX_EVENTS ? events.slice(0, MAX_EVENTS) : events }
     }),
 
   clear: () => set({ events: [] }),

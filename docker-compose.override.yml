@@ -7,6 +7,13 @@ services:
     ports:
       - "9090:8080"  # Traefik dashboard (dev only)
 
+  game-server:
+    environment:
+      # Always-on in dev so the ScenarioPicker / debug load-state routes
+      # register without needing to remember the env var. Excluded from prod
+      # automatically because make up-prod uses -f and skips this override.
+      - ALLOW_DEBUG_SCENARIOS=true
+
   frontend:
     build:
       context: ./frontend

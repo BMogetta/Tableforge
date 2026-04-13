@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useWsDevtoolsStore, type CapturedEvent } from './store'
 import type { WsEventType } from '@/lib/ws'
+import { useClipboard } from '@/hooks/useClipboard'
 import { testId } from '@/utils/testId'
 
 // ---------------------------------------------------------------------------
@@ -48,6 +49,14 @@ interface EventRowProps {
 }
 
 function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
+  const { copy, copied } = useClipboard(1200)
+
+  function copyPayload(e: React.MouseEvent) {
+    // Don't toggle the row when clicking the copy button.
+    e.stopPropagation()
+    copy(JSON.stringify(event.payload, null, 2))
+  }
+
   return (
     <div
       {...testId('event-row')}
@@ -92,6 +101,27 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
           {sourceLabel(event.source)}
         </span>
         <span style={{ flex: 1, color: 'var(--color-text-primary, #e8e4d9)' }}>{event.type}</span>
+        <button
+          type='button'
+          onClick={copyPayload}
+          aria-label={copied ? 'Copied' : 'Copy payload'}
+          title={copied ? 'Copied!' : 'Copy payload'}
+          {...testId('event-copy')}
+          style={{
+            padding: '1px 6px',
+            fontSize: 10,
+            background: 'transparent',
+            border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+            color: copied
+              ? 'var(--color-interactive, #7b8cde)'
+              : 'var(--color-text-muted, #555)',
+            borderRadius: 3,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          {copied ? '✓' : 'copy'}
+        </button>
         <span style={{ color: 'var(--color-text-muted, #555)', fontSize: 10 }}>
           {isExpanded ? '▲' : '▼'}
         </span>
@@ -113,21 +143,6 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
           >
             {JSON.stringify(event.payload, null, 2)}
           </pre>
-          <button type="button"
-            style={{
-              margin: '0 10px 6px 24px',
-              padding: '2px 8px',
-              fontSize: 10,
-              background: 'transparent',
-              border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
-              color: 'var(--color-text-muted, #555)',
-              borderRadius: 3,
-              cursor: 'pointer',
-            }}
-            onClick={() => navigator.clipboard.writeText(JSON.stringify(event.payload, null, 2))}
-          >
-            Copy
-          </button>
         </div>
       )}
     </div>
@@ -166,18 +181,19 @@ export function WsDevtools() {
 
   const listRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom when new events arrive.
+  // Newest events render at the top of the list — auto-scroll keeps the
+  // newest in view by snapping to scrollTop = 0 whenever events change.
   useEffect(() => {
     if (!autoScroll || !listRef.current) return
-    listRef.current.scrollTop = listRef.current.scrollHeight
+    listRef.current.scrollTop = 0
   }, [autoScroll])
 
-  // Pause auto-scroll when user scrolls up.
+  // Pause auto-scroll when the user scrolls down to inspect older events.
   function handleScroll() {
     const el = listRef.current
     if (!el) return
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 32
-    setAutoScroll(atBottom)
+    const atTop = el.scrollTop < 32
+    setAutoScroll(atTop)
   }
 
   // Parse filter input — comma or space separated event type names.

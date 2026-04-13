@@ -50,26 +50,33 @@ var wsConnectionsActive = promauto.NewGauge(prometheus.GaugeOpts{
 // All broadcast operations go through Redis pub/sub — no direct in-memory
 // broadcast is supported. This ensures correctness across multiple instances.
 type Hub struct {
-	mu    sync.RWMutex
-	rooms map[uuid.UUID]map[*Client]struct{}
+	mu          sync.RWMutex
+	rooms       map[uuid.UUID]map[*Client]struct{}
+	roomCancels map[uuid.UUID]context.CancelFunc
 
-	pmu     sync.RWMutex
-	players map[uuid.UUID]map[*Client]struct{}
+	pmu           sync.RWMutex
+	players       map[uuid.UUID]map[*Client]struct{}
+	playerCancels map[uuid.UUID]context.CancelFunc
 
 	rdb *redis.Client
 }
 
 func New(rdb *redis.Client) *Hub {
 	return &Hub{
-		rooms:   make(map[uuid.UUID]map[*Client]struct{}),
-		players: make(map[uuid.UUID]map[*Client]struct{}),
-		rdb:     rdb,
+		rooms:         make(map[uuid.UUID]map[*Client]struct{}),
+		roomCancels:   make(map[uuid.UUID]context.CancelFunc),
+		players:       make(map[uuid.UUID]map[*Client]struct{}),
+		playerCancels: make(map[uuid.UUID]context.CancelFunc),
+		rdb:           rdb,
 	}
 }
 
 
 // SubscribeRoom adds a client to the room index and starts a Redis listener
-// if this is the first client in the room.
+// if this is the first client in the room. The listener is bound to a
+// per-channel context so it terminates deterministically when the room
+// empties — preventing zombie goroutines from accumulating across
+// connect/disconnect cycles.
 func (h *Hub) SubscribeRoom(roomID uuid.UUID, c *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -77,23 +84,31 @@ func (h *Hub) SubscribeRoom(roomID uuid.UUID, c *Client) {
 		h.rooms[roomID] = make(map[*Client]struct{})
 	}
 	h.rooms[roomID][c] = struct{}{}
-	if len(h.rooms[roomID]) == 1 && h.rdb != nil {
-		go h.listenRoom(roomID)
+	if _, running := h.roomCancels[roomID]; !running && h.rdb != nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		h.roomCancels[roomID] = cancel
+		go h.listenRoom(ctx, roomID)
 	}
 }
 
-// UnsubscribeRoom removes a client from the room index.
+// UnsubscribeRoom removes a client from the room index and cancels the
+// listener goroutine when the room is empty.
 func (h *Hub) UnsubscribeRoom(roomID uuid.UUID, c *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.rooms[roomID], c)
 	if len(h.rooms[roomID]) == 0 {
 		delete(h.rooms, roomID)
+		if cancel, ok := h.roomCancels[roomID]; ok {
+			cancel()
+			delete(h.roomCancels, roomID)
+		}
 	}
 }
 
 // SubscribePlayer adds a client to the player index and starts a Redis listener
-// if this is the first connection for that player.
+// if this is the first connection for that player. See SubscribeRoom for the
+// lifecycle invariant that prevents zombie listeners.
 func (h *Hub) SubscribePlayer(playerID uuid.UUID, c *Client) {
 	h.pmu.Lock()
 	defer h.pmu.Unlock()
@@ -101,18 +116,25 @@ func (h *Hub) SubscribePlayer(playerID uuid.UUID, c *Client) {
 		h.players[playerID] = make(map[*Client]struct{})
 	}
 	h.players[playerID][c] = struct{}{}
-	if len(h.players[playerID]) == 1 && h.rdb != nil {
-		go h.listenPlayer(playerID)
+	if _, running := h.playerCancels[playerID]; !running && h.rdb != nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		h.playerCancels[playerID] = cancel
+		go h.listenPlayer(ctx, playerID)
 	}
 }
 
-// UnsubscribePlayer removes a client from the player index.
+// UnsubscribePlayer removes a client from the player index and cancels the
+// listener goroutine when no connections remain for the player.
 func (h *Hub) UnsubscribePlayer(playerID uuid.UUID, c *Client) {
 	h.pmu.Lock()
 	defer h.pmu.Unlock()
 	delete(h.players[playerID], c)
 	if len(h.players[playerID]) == 0 {
 		delete(h.players, playerID)
+		if cancel, ok := h.playerCancels[playerID]; ok {
+			cancel()
+			delete(h.playerCancels, playerID)
+		}
 	}
 }
 
@@ -179,53 +201,59 @@ func (h *Hub) PublishToPlayer(ctx context.Context, playerID uuid.UUID, event Eve
 	}
 }
 
-// listenRoom subscribes to the Redis room channel and fans out to local clients.
-func (h *Hub) listenRoom(roomID uuid.UUID) {
-	ctx := context.Background()
+// listenRoom subscribes to the Redis room channel and fans out to local
+// clients. Exits when ctx is cancelled (i.e. the room emptied) so duplicate
+// listeners can't accumulate across reconnect cycles.
+func (h *Hub) listenRoom(ctx context.Context, roomID uuid.UUID) {
 	sub := h.rdb.Subscribe(ctx, sharedws.RoomChannelKey(roomID))
 	defer sub.Close()
+	ch := sub.Channel()
 
-	for msg := range sub.Channel() {
-		h.mu.RLock()
-		_, active := h.rooms[roomID]
-		h.mu.RUnlock()
-		if !active {
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			var env sharedws.FilteredEnvelope
+			if err := json.Unmarshal([]byte(msg.Payload), &env); err != nil {
+				slog.Error("hub: unmarshal room envelope", "error", err)
+				continue
+			}
 
-		var env sharedws.FilteredEnvelope
-		if err := json.Unmarshal([]byte(msg.Payload), &env); err != nil {
-			slog.Error("hub: unmarshal room envelope", "error", err)
-			continue
-		}
+			var header struct {
+				Type EventType `json:"type"`
+			}
+			_ = json.Unmarshal(env.Data, &header)
 
-		var header struct {
-			Type EventType `json:"type"`
-		}
-		_ = json.Unmarshal(env.Data, &header)
-
-		if env.Spectators {
-			h.fanoutSpectatorsOnly(roomID, header.Type, env.Data)
-		} else {
-			h.fanout(roomID, header.Type, env.Data)
+			if env.Spectators {
+				h.fanoutSpectatorsOnly(roomID, header.Type, env.Data)
+			} else {
+				h.fanout(roomID, header.Type, env.Data)
+			}
 		}
 	}
 }
 
-// listenPlayer subscribes to the Redis player channel and fans out to local clients.
-func (h *Hub) listenPlayer(playerID uuid.UUID) {
-	ctx := context.Background()
+// listenPlayer subscribes to the Redis player channel and fans out to local
+// clients. Exits when ctx is cancelled.
+func (h *Hub) listenPlayer(ctx context.Context, playerID uuid.UUID) {
 	sub := h.rdb.Subscribe(ctx, sharedws.PlayerChannelKey(playerID))
 	defer sub.Close()
+	ch := sub.Channel()
 
-	for msg := range sub.Channel() {
-		h.pmu.RLock()
-		_, active := h.players[playerID]
-		h.pmu.RUnlock()
-		if !active {
+	for {
+		select {
+		case <-ctx.Done():
 			return
+		case msg, ok := <-ch:
+			if !ok {
+				return
+			}
+			h.fanoutPlayer(playerID, []byte(msg.Payload))
 		}
-		h.fanoutPlayer(playerID, []byte(msg.Payload))
 	}
 }
 
