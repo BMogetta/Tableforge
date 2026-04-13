@@ -114,6 +114,12 @@ func NewRouter(
 		r.Get("/sessions/{sessionID}/history", handleGetSessionHistory(st))
 		r.With(moveLimiter, validate("apply_move.request")).Post("/sessions/{sessionID}/move", handleMove(rt, hub, st))
 
+		// Debug-only routes (TEST_MODE or ALLOW_DEBUG_SCENARIOS=true).
+		// Used to load specific game states for QA without playing through
+		// to them organically.
+		if debugScenariosEnabled() {
+			r.Post("/sessions/{sessionID}/debug/load-state", handleLoadScenario(rt, hub, st))
+		}
 	})
 
 	return r

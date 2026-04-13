@@ -465,6 +465,46 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 	}, nil
 }
 
+// LoadState replaces the persisted GameState of an active session with the
+// provided raw bytes. Dev-only — callers gate access (e.g. behind
+// ALLOW_DEBUG_SCENARIOS). The state is parsed once to validate it is
+// syntactically a GameState; field-level semantics (per-game schema) are
+// trusted to the caller. Active turn timers are cancelled so the loaded
+// state's current player has a fresh turn window.
+func (svc *Service) LoadState(ctx context.Context, sessionID uuid.UUID, rawState []byte) (MoveResult, error) {
+	session, err := svc.store.GetGameSession(ctx, sessionID)
+	if err != nil {
+		return MoveResult{}, ErrSessionNotFound
+	}
+	if session.FinishedAt != nil {
+		return MoveResult{}, ErrGameOver
+	}
+
+	var state engine.GameState
+	if err := json.Unmarshal(rawState, &state); err != nil {
+		return MoveResult{}, fmt.Errorf("LoadState: parse state: %w", err)
+	}
+
+	if svc.timer != nil {
+		svc.timer.Cancel(sessionID)
+	}
+
+	if err := svc.store.UpdateSessionState(ctx, sessionID, rawState); err != nil {
+		return MoveResult{}, fmt.Errorf("LoadState: persist state: %w", err)
+	}
+	session.State = rawState
+
+	if svc.timer != nil {
+		svc.timer.Schedule(session)
+	}
+
+	return MoveResult{
+		Session: session,
+		State:   state,
+		IsOver:  false,
+	}, nil
+}
+
 func (svc *Service) OnAllReady(ctx context.Context, session store.GameSession, hub *ws.Hub) {
 	if svc.timer != nil {
 		svc.timer.CancelReady(session.ID)
