@@ -10,13 +10,14 @@ import (
 
 // Player is a minimal player record for admin listing purposes.
 type Player struct {
-	ID        uuid.UUID  `json:"id"`
-	Username  string     `json:"username"`
-	Role      PlayerRole `json:"role"`
-	AvatarURL *string    `json:"avatar_url,omitempty"`
-	IsBot     bool       `json:"is_bot"`
-	CreatedAt time.Time  `json:"created_at"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	ID         uuid.UUID  `json:"id"`
+	Username   string     `json:"username"`
+	Role       PlayerRole `json:"role"`
+	AvatarURL  *string    `json:"avatar_url,omitempty"`
+	IsBot      bool       `json:"is_bot"`
+	BotProfile *string    `json:"bot_profile,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	DeletedAt  *time.Time `json:"deleted_at,omitempty"`
 }
 
 // PlayerRole identifies the access level of a player.
@@ -50,7 +51,7 @@ func (s *pgStore) ListPlayers(ctx context.Context, limit, offset int) ([]Player,
 		limit = 50
 	}
 	rows, err := s.db.Query(ctx,
-		`SELECT id, username, avatar_url, role, is_bot, created_at, deleted_at
+		`SELECT id, username, avatar_url, role, is_bot, bot_profile, created_at, deleted_at
 		 FROM players
 		 WHERE deleted_at IS NULL
 		 ORDER BY created_at DESC
@@ -65,7 +66,7 @@ func (s *pgStore) ListPlayers(ctx context.Context, limit, offset int) ([]Player,
 	players := []Player{}
 	for rows.Next() {
 		var p Player
-		if err := rows.Scan(&p.ID, &p.Username, &p.AvatarURL, &p.Role, &p.IsBot, &p.CreatedAt, &p.DeletedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.Username, &p.AvatarURL, &p.Role, &p.IsBot, &p.BotProfile, &p.CreatedAt, &p.DeletedAt); err != nil {
 			return nil, fmt.Errorf("ListPlayers scan: %w", err)
 		}
 		players = append(players, p)

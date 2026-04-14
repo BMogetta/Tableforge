@@ -17,7 +17,12 @@ interface RendererProps {
   onMove: (payload: Record<string, unknown>) => void
   disabled: boolean
   isOver: boolean
-  players: { id: string; username: string; is_bot?: boolean }[]
+  players: {
+    id: string
+    username: string
+    is_bot?: boolean
+    bot_profile?: 'easy' | 'medium' | 'hard' | 'aggressive'
+  }[]
 }
 
 type RendererComponent = React.FC<RendererProps>

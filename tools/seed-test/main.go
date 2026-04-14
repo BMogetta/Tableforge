@@ -25,14 +25,23 @@ const (
 	adminPlayerIndex = 28 // 1-based; reserved for admin e2e tests
 )
 
-// botSlots maps 1-based pool indices to bot usernames. These slots are marked
-// is_bot=true in the players table and used by tools/bot-runner. Indices must
-// match BOT_RESERVED_INDICES in frontend/tests/e2e/player-pool.ts.
-var botSlots = map[int]string{
-	24: "bot_easy_1",
-	25: "bot_medium_1",
-	26: "bot_hard_1",
-	27: "bot_aggressive_1",
+// botSlot describes a bot account seeded at a specific 1-based pool index.
+// profile must match the enum values allowed by the players_bot_profile_check
+// CHECK constraint (see migration 007).
+type botSlot struct {
+	username string
+	profile  string
+}
+
+// botSlots maps 1-based pool indices to bot metadata. These slots are marked
+// is_bot=true and bot_profile=<profile> in the players table and used by
+// tools/bot-runner. Indices must match BOT_RESERVED_INDICES in
+// frontend/tests/e2e/player-pool.ts.
+var botSlots = map[int]botSlot{
+	24: {"bot_easy_1", "easy"},
+	25: {"bot_medium_1", "medium"},
+	26: {"bot_hard_1", "hard"},
+	27: {"bot_aggressive_1", "aggressive"},
 }
 
 func main() {
@@ -53,18 +62,21 @@ func main() {
 	for i := range playerCount {
 		username := fmt.Sprintf("test_player_%d", i+1)
 		if bot, ok := botSlots[i+1]; ok {
-			username = bot
+			username = bot.username
 		}
 		ids[i] = createPlayer(ctx, conn, username)
 	}
 
-	// Flag bot slots so game-server / user-service / bot-runner can identify them.
-	for idx := range botSlots {
+	// Flag bot slots so game-server / user-service / bot-runner can identify
+	// them, and stamp the difficulty profile so UI badges and future param
+	// lookups can read it without parsing the username.
+	for idx, bot := range botSlots {
 		if idx < 1 || idx > playerCount {
 			continue
 		}
 		if _, err := conn.Exec(ctx,
-			`UPDATE players SET is_bot = TRUE WHERE id = $1`, ids[idx-1]); err != nil {
+			`UPDATE players SET is_bot = TRUE, bot_profile = $2 WHERE id = $1`,
+			ids[idx-1], bot.profile); err != nil {
 			log.Printf("warn: flag bot slot %d: %v", idx, err)
 		}
 	}

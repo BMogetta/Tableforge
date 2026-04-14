@@ -93,6 +93,9 @@
 }
 
 .botBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -101,6 +104,14 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 1px var(--space-1);
+}
+
+.botBadgeSep {
+  opacity: 0.5;
+}
+
+.botBadgeProfile {
+  color: var(--color-interactive-dim);
 }
 
 /* Bot "thinking..." indicator — three dots that pulse sequentially. */

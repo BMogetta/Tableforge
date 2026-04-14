@@ -15,6 +15,7 @@ func newTestStore(t *testing.T) store.Store {
 		testutil.MigrationInitial,
 		testutil.MigrationUserService,
 		testutil.MigrationRating,
+		testutil.MigrationBotProfile,
 	)
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {

@@ -27,6 +27,8 @@ interface Props {
   isOnline?: boolean
   /** Show a "BOT" badge next to the name. */
   isBot?: boolean
+  /** Bot difficulty profile — appended to the badge as `BOT · EASY`. */
+  botProfile?: 'easy' | 'medium' | 'hard' | 'aggressive'
 }
 
 /** @package */
@@ -44,6 +46,7 @@ export function PlayerBoard({
   isBotThinking = false,
   isOnline,
   isBot = false,
+  botProfile,
 }: Props) {
   const { t } = useTranslation()
   const hintsEnabled = useHintsEnabled()
@@ -75,6 +78,14 @@ export function PlayerBoard({
             {isBot && (
               <span className={styles.botBadge} aria-label={t('room.bot')}>
                 {t('room.bot')}
+                {botProfile && (
+                  <>
+                    <span className={styles.botBadgeSep} aria-hidden='true'>
+                      ·
+                    </span>
+                    <span className={styles.botBadgeProfile}>{botProfile}</span>
+                  </>
+                )}
               </span>
             )}
             {isLocal && <span className={styles.youBadge}>{t('common.you')}</span>}

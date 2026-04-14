@@ -16,9 +16,13 @@ type Player struct {
 	AvatarURL *string    `json:"avatar_url,omitempty"`
 	// IsBot is true for fill bots and named bots.
 	// Set at insert time via CreateBotPlayer — never mutated after creation.
-	IsBot     bool       `json:"is_bot"`
-	CreatedAt time.Time  `json:"created_at"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	IsBot bool `json:"is_bot"`
+	// BotProfile labels the bot's difficulty ("easy" | "medium" | "hard" |
+	// "aggressive") for UI badges and future param lookups. Nil for humans;
+	// a CHECK on the players table enforces that humans never carry one.
+	BotProfile *string    `json:"bot_profile,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	DeletedAt  *time.Time `json:"deleted_at,omitempty"`
 }
 
 type PlayerRole string

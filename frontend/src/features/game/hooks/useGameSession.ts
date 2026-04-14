@@ -14,7 +14,12 @@ interface UseGameSessionOptions {
 interface UseGameSessionReturn {
   session: GameSession | null
   gameData: GameData | null
-  roomPlayers: { id: string; username: string; is_bot: boolean }[]
+  roomPlayers: {
+    id: string
+    username: string
+    is_bot: boolean
+    bot_profile?: 'easy' | 'medium' | 'hard' | 'aggressive'
+  }[]
   loadError: Error | null
 }
 
@@ -73,6 +78,7 @@ export function useGameSession({
       id: p.id,
       username: p.username,
       is_bot: p.is_bot,
+      bot_profile: p.bot_profile,
     })) ?? []
 
   return {

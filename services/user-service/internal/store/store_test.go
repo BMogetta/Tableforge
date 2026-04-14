@@ -19,7 +19,7 @@ type testEnv struct {
 
 func newTestEnv(t *testing.T) testEnv {
 	t.Helper()
-	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.MigrationUserService, testutil.MigrationAchievements)
+	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.MigrationUserService, testutil.MigrationAchievements, testutil.MigrationBotProfile)
 
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {

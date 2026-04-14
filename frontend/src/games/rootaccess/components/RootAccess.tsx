@@ -97,6 +97,7 @@ interface PlayerInfo {
   id: string
   username: string
   is_bot?: boolean
+  bot_profile?: 'easy' | 'medium' | 'hard' | 'aggressive'
 }
 
 interface Props {
@@ -324,6 +325,7 @@ export function RootAccess({
               isCurrentTurn={id === currentPlayerId}
               isBotThinking={isBotThinking}
               isBot={isBot}
+              botProfile={p?.bot_profile}
               isOnline={isOnline}
               dimProtected={selectedCard !== null && needsTarget}
             />

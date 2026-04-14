@@ -30,6 +30,7 @@ const (
 	MigrationAdmin        Migration = "004_admin.sql"
 	MigrationRebrand      Migration = "005_rebrand_rootaccess.sql"
 	MigrationAchievements Migration = "006_achievements_update.sql"
+	MigrationBotProfile   Migration = "007_bot_profile.sql"
 )
 
 // NewTestDB spins up a Postgres container, runs the requested migrations,

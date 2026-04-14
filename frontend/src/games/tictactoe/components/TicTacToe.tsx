@@ -17,7 +17,12 @@ interface Props {
   onMove: (cell: number) => void
   disabled: boolean
   /** Roster, used to render the opponent label + presence dot. */
-  players?: { id: string; username: string; is_bot?: boolean }[]
+  players?: {
+    id: string
+    username: string
+    is_bot?: boolean
+    bot_profile?: 'easy' | 'medium' | 'hard' | 'aggressive'
+  }[]
 }
 
 /** @package */
@@ -37,6 +42,7 @@ export function TicTacToeBoard({
 
   const opponent = players.find(p => p.id !== localPlayerId) ?? null
   const opponentIsBot = opponent?.is_bot ?? false
+  const opponentBotProfile = opponent?.bot_profile
   // Bots are always "there" — presence is only meaningful for humans.
   const opponentOnline = opponent && !opponentIsBot ? (presenceMap[opponent.id] ?? false) : true
 
@@ -52,7 +58,19 @@ export function TicTacToeBoard({
             />
           )}
           <span className={styles.opponentName}>{opponent.username}</span>
-          {opponentIsBot && <span className={styles.botBadge}>{t('room.bot')}</span>}
+          {opponentIsBot && (
+            <span className={styles.botBadge}>
+              {t('room.bot')}
+              {opponentBotProfile && (
+                <>
+                  <span className={styles.botBadgeSep} aria-hidden='true'>
+                    ·
+                  </span>
+                  <span className={styles.botBadgeProfile}>{opponentBotProfile}</span>
+                </>
+              )}
+            </span>
+          )}
         </div>
       )}
       <div className={styles.board}>
