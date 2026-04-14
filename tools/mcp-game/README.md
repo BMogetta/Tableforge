@@ -23,10 +23,13 @@ npm install
 
 ## Configure Claude Code
 
-The MCP config ships committed in `.claude/settings.json` at the repo root,
-so any collaborator who clones the repo and runs `npm install` + seed gets
-it for free. The authenticated player is resolved automatically from the
-seeded JSON — no per-user setup needed.
+The MCP config ships committed in `.mcp.json` at the repo root (alongside
+the grafana/postgres MCPs), so any collaborator who clones the repo and
+runs `make setup` + seed gets it for free. The authenticated player is
+resolved automatically from the seeded JSON — no per-user setup needed.
+
+On first launch of Claude Code in the repo, you'll be prompted to approve
+the new MCP servers — tick `recess-game` to enable it.
 
 Restart Claude Code from inside the repo directory. The tools
 (`list_scenarios`, `load_scenario`, `get_session`, `apply_move`, etc.)

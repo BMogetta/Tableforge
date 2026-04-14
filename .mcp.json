@@ -15,6 +15,13 @@
         "@modelcontextprotocol/server-postgres",
         "postgresql://recess:recess@localhost:5432/recess"
       ]
+    },
+    "recess-game": {
+      "command": "npx",
+      "args": ["--yes", "tsx", "./tools/mcp-game/src/index.ts"],
+      "env": {
+        "RECESS_BASE_URL": "http://localhost"
+      }
     }
   }
 }
