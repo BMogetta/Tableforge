@@ -7,6 +7,7 @@ import { NotificationsPanel } from '@/features/notifications/components/Notifica
 import { dm } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
 import { useAppStore } from '@/stores/store'
+import { Dropdown } from '@/ui/Dropdown'
 import { ModalOverlay } from '@/ui/ModalOverlay'
 import { RulesModal } from '@/ui/RulesModal'
 import { Settings } from '@/ui/Settings'
@@ -132,26 +133,55 @@ export function AppHeader({ onLogout }: Props) {
 
           <div className={styles.divider} />
 
-          <Link
-            to='/profile/$playerId'
-            params={{ playerId: player.id }}
-            className={styles.playerInfo}
+          <Dropdown
+            align='end'
+            testId='user-menu'
+            ariaLabel={player.username}
+            triggerClassName={styles.avatarTrigger}
+            panelClassName={styles.userMenu}
+            hideCaret
+            trigger={
+              player.avatar_url ? (
+                <img src={player.avatar_url} alt='' className={styles.avatar} />
+              ) : (
+                <span className={styles.avatarFallback} aria-hidden='true'>
+                  {player.username.slice(0, 1).toUpperCase()}
+                </span>
+              )
+            }
           >
-            {player.avatar_url && <img src={player.avatar_url} alt='' className={styles.avatar} />}
-            <span {...testId('player-username')} className={styles.username}>
-              {player.username}
-            </span>
-          </Link>
-
-          {(player.role === 'manager' || player.role === 'owner') && (
-            <Link to='/admin' className='btn btn-ghost btn-sm'>
-              {t('header.admin')}
+            <div className={styles.menuHeader}>
+              <span {...testId('player-username')} className={styles.menuUsername}>
+                {player.username}
+              </span>
+              {(player.role === 'manager' || player.role === 'owner') && (
+                <span className={styles.menuRoleTag}>{player.role}</span>
+              )}
+            </div>
+            <div className={styles.menuSep} />
+            <Link
+              to='/profile/$playerId'
+              params={{ playerId: player.id }}
+              className={styles.menuItem}
+              role='menuitem'
+            >
+              {t('header.profile')}
             </Link>
-          )}
-
-          <button type="button" className='btn btn-ghost btn-sm' onClick={onLogout}>
-            {t('auth.logout')}
-          </button>
+            {(player.role === 'manager' || player.role === 'owner') && (
+              <Link to='/admin' className={styles.menuItem} role='menuitem'>
+                {t('header.admin')}
+              </Link>
+            )}
+            <div className={styles.menuSep} />
+            <button
+              type='button'
+              className={`${styles.menuItem} ${styles.menuItemDanger}`}
+              role='menuitem'
+              onClick={onLogout}
+            >
+              {t('auth.logout')}
+            </button>
+          </Dropdown>
         </div>
       </header>
 

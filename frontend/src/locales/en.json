@@ -173,7 +173,7 @@
     "rematchVotes": "Rematch ({{current}}/{{total}} voted)",
     "rematchWaiting": "Waiting for opponent\u2026 ({{current}}/{{total}})",
     "spectating": "Spectating",
-    "moveNumber": "Move {{n}}",
+    "turnNumber": "Turn {{n}}",
     "viewRules": "? Rules",
     "pauseGame": "\u23f8 Pause",
     "opponentOnline": "Opponent online",
@@ -258,7 +258,8 @@
     "notifications": "Notifications",
     "messages": "Messages",
     "settings": "Settings",
-    "admin": "Admin"
+    "admin": "Admin",
+    "profile": "Profile"
   },
   "rules": {
     "title": "Game Rules"
@@ -277,6 +278,7 @@
   "rootaccess": {
     "round": "Round {{n}}",
     "setAside": "Set aside: {{card}}",
+    "setAsideLabel": "Set aside",
     "yourHand": "Your hand",
     "play": "Play {{card}}",
     "noCards": "No cards in hand",

@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { useGameTopBarSlot } from '@/features/game/top-bar-slot'
 import { sfx } from '@/lib/sfx'
-import { CardPile } from '@/ui/cards'
+import { useAppStore } from '@/stores/store'
+import { Card, CardPile } from '@/ui/cards'
+import { ModalOverlay } from '@/ui/ModalOverlay'
+import { CardFace } from './CardFace'
 import { CentralDiscard } from './CentralDiscard'
 import type { CardName } from './CardDisplay'
 import { DebuggerModal } from './DebuggerModal'
@@ -119,11 +124,14 @@ export function RootAccess({
   players = [],
 }: Props) {
   const { t } = useTranslation()
+  const presenceMap = useAppStore(s => s.presenceMap)
+  const topBarSlot = useGameTopBarSlot()
   const [selectedCard, setSelectedCard] = useState<CardName | null>(null)
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
   const [selectedGuess, setSelectedGuess] = useState<CardName | null>(null)
   const [showRoundSummary, setShowRoundSummary] = useState(false)
   const [lastSeenRound, setLastSeenRound] = useState(state.round)
+  const [showSetAside, setShowSetAside] = useState(false)
 
   // Fly-out animation state — when set, HandDisplay animates this card toward
   // the central discard pile before the parent fires the move mutation.
@@ -285,23 +293,22 @@ export function RootAccess({
   // Render
   // ---------------------------------------------------------------------------
 
+  const topBarExtras = (
+    <span className={styles.roundBadge}>{t('rootaccess.round', { n: state.round })}</span>
+  )
+
   return (
     <div className={styles.root}>
-      {/* Round / game info bar */}
-      <div className={styles.infoBar}>
-        <span className={styles.roundBadge}>{t('rootaccess.round', { n: state.round })}</span>
-        {state.set_aside_visible.length > 0 && (
-          <span className={styles.setAside}>
-            {t('rootaccess.setAside', { card: state.set_aside_visible.join(', ') })}
-          </span>
-        )}
-      </div>
+      {topBarSlot && createPortal(topBarExtras, topBarSlot)}
 
       {/* Opponents row */}
       <div className={styles.opponents}>
         {opponents.map(({ id }) => {
           const p = players.find(pl => pl.id === id)
-          const isBotThinking = id === currentPlayerId && (p?.is_bot ?? false) && !isOver
+          const isBot = p?.is_bot ?? false
+          const isBotThinking = id === currentPlayerId && isBot && !isOver
+          // Presence dot only for human opponents — bots are always "there".
+          const isOnline = isBot ? undefined : (presenceMap[id] ?? false)
           return (
             <PlayerBoard
               key={id}
@@ -316,14 +323,57 @@ export function RootAccess({
               isLocal={false}
               isCurrentTurn={id === currentPlayerId}
               isBotThinking={isBotThinking}
+              isOnline={isOnline}
               dimProtected={selectedCard !== null && needsTarget}
             />
           )
         })}
       </div>
 
-      {/* Central table — deck + discard pile, same card size for visual parity. */}
+      {/* Central table — set-aside (left) + deck + discard pile. */}
       <div className={styles.table}>
+        <div className={styles.setAsideSlot}>
+          {state.set_aside_visible.length > 0 ? (
+            <>
+              <button
+                type='button'
+                className={styles.setAsideStack}
+                onClick={() => setShowSetAside(true)}
+                aria-label={t('rootaccess.setAsideLabel')}
+              >
+                {state.set_aside_visible.slice(0, 3).map((card, i, arr) => {
+                  const isTop = i === arr.length - 1
+                  return (
+                    <div
+                      key={`${card}-${i}`}
+                      className={styles.setAsideLayer}
+                      style={{ transform: `translate(${-i * 3}px, ${-i * 3}px)`, zIndex: i }}
+                    >
+                      <Card
+                        disabled
+                        front={
+                          isTop ? (
+                            <div className={styles.setAsideFace}>
+                              <CardFace card={card as CardName} />
+                            </div>
+                          ) : (
+                            <div className={styles.setAsideFace} />
+                          )
+                        }
+                      />
+                    </div>
+                  )
+                })}
+              </button>
+              <span className={styles.setAsideLabel}>{t('rootaccess.setAsideLabel')}</span>
+            </>
+          ) : (
+            <>
+              <div className={styles.setAsidePlaceholder} aria-hidden='true' />
+              <span className={styles.setAsideLabel}>{t('rootaccess.setAsideLabel')}</span>
+            </>
+          )}
+        </div>
         <div className={styles.deckSlot}>
           <CardPile count={state.deck.length} faceDown={true} />
         </div>
@@ -432,6 +482,39 @@ export function RootAccess({
           players={roundSummaryPlayers}
           onDismiss={() => setShowRoundSummary(false)}
         />
+      )}
+
+      {/* Set-aside reveal modal — matches the discard history modal style. */}
+      {showSetAside && state.set_aside_visible.length > 0 && (
+        <ModalOverlay onClose={() => setShowSetAside(false)}>
+          <div
+            className={styles.setAsideModal}
+            role='dialog'
+            aria-modal='true'
+            aria-labelledby='set-aside-title'
+          >
+            <header className={styles.setAsideHeader}>
+              <h2 id='set-aside-title' className={styles.setAsideTitle}>
+                {t('rootaccess.setAsideLabel')}
+              </h2>
+              <button
+                type='button'
+                className='btn btn-ghost btn-sm'
+                onClick={() => setShowSetAside(false)}
+                aria-label={t('common.closeDialog')}
+              >
+                ✕
+              </button>
+            </header>
+            <div className={styles.setAsideBody}>
+              {state.set_aside_visible.map((card, i) => (
+                <div key={`${card}-${i}`} className={styles.setAsideRevealCard}>
+                  <CardFace card={card as CardName} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </ModalOverlay>
       )}
     </div>
   )

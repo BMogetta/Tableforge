@@ -22,13 +22,20 @@ interface RendererProps {
 
 type RendererComponent = React.FC<RendererProps>
 
-const TicTacToeRenderer: RendererComponent = ({ gameData, localPlayerId, onMove, disabled }) => (
+const TicTacToeRenderer: RendererComponent = ({
+  gameData,
+  localPlayerId,
+  onMove,
+  disabled,
+  players,
+}) => (
   <TicTacToeBoard
     state={gameData.data as TicTacToeState}
     currentPlayerId={gameData.current_player_id}
     localPlayerId={localPlayerId}
     onMove={cell => onMove({ cell })}
     disabled={disabled}
+    players={players}
   />
 )
 

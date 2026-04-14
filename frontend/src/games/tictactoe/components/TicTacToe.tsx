@@ -1,3 +1,5 @@
+import { useAppStore } from '@/stores/store'
+import { testId } from '@/utils/testId'
 import styles from './TicTacToe.module.css'
 
 /** @package */
@@ -13,16 +15,40 @@ interface Props {
   localPlayerId: string
   onMove: (cell: number) => void
   disabled: boolean
+  /** Roster, used to render the opponent label + presence dot. */
+  players?: { id: string; username: string }[]
 }
 
 /** @package */
-export function TicTacToeBoard({ state, currentPlayerId, localPlayerId, onMove, disabled }: Props) {
+export function TicTacToeBoard({
+  state,
+  currentPlayerId,
+  localPlayerId,
+  onMove,
+  disabled,
+  players = [],
+}: Props) {
   const { board, marks } = state
   const localMark = marks[localPlayerId]
   const isMyTurn = currentPlayerId === localPlayerId && !disabled
+  const presenceMap = useAppStore(s => s.presenceMap)
+
+  const opponent = players.find(p => p.id !== localPlayerId) ?? null
+  const opponentOnline = opponent ? (presenceMap[opponent.id] ?? false) : false
 
   return (
-    <div className={styles.board}>
+    <div className={styles.stage}>
+      {opponent && (
+        <div className={styles.opponentStrip}>
+          <span
+            className={styles.presenceDot}
+            data-online={String(opponentOnline)}
+            {...testId('opponent-presence-dot')}
+          />
+          <span className={styles.opponentName}>{opponent.username}</span>
+        </div>
+      )}
+      <div className={styles.board}>
       {board.map((cell, i) => {
         const isEmpty = cell === ''
         const isClickable = isEmpty && isMyTurn
@@ -54,6 +80,7 @@ export function TicTacToeBoard({ state, currentPlayerId, localPlayerId, onMove, 
         <div className={styles.vLine} style={{ left: '66.66%' }} />
         <div className={styles.hLine} style={{ top: '33.33%' }} />
         <div className={styles.hLine} style={{ top: '66.66%' }} />
+      </div>
       </div>
     </div>
   )

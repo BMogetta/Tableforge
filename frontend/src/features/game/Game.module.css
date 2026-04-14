@@ -11,6 +11,9 @@
   align-items: stretch;
   justify-content: center;
   padding: var(--space-3);
+  /* min-height: 0 lets flex children respect overflow instead of growing
+     unbounded, so the board wrapper can claim the remaining viewport. */
+  min-height: 0;
 }
 
 .panel {
@@ -18,32 +21,8 @@
   max-width: 960px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.gameInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.gameId {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-interactive);
-}
-
-.moveCount {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
+  gap: var(--space-2);
+  min-height: 0;
 }
 
 .turnTimer {
@@ -72,69 +51,14 @@
   opacity: 0.5;
 }
 
-/* Status bar — shows current turn, win/loss, and pause state */
-.status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-
-.statusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-text-muted);
-  flex-shrink: 0;
-  transition: background 0.3s;
-}
-
-.dotActive {
-  background: var(--color-interactive);
-  box-shadow: 0 0 8px var(--color-interactive-glow);
-  animation: pulse 2s ease infinite;
-}
-
-.dotOver {
-  background: var(--color-text-muted);
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-
-.statusText {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.statusText.win {
-  color: var(--color-interactive);
-  font-weight: var(--font-weight-medium);
-}
-
-.statusText.lose {
-  color: var(--color-danger);
-}
-
-.statusText.suspended {
-  color: var(--color-interactive-dim);
-  font-style: italic;
-}
-
-/* Board wrapper — centers the game renderer */
+/* Board wrapper — takes the remaining vertical space left by the top bar so
+   the game renderer never pushes the hand off the viewport. */
 .boardWrapper {
+  flex: 1;
+  min-height: 0;
   display: flex;
   justify-content: center;
+  overflow: auto;
 }
 
 .board {
@@ -237,30 +161,6 @@
   gap: var(--space-2);
   padding-top: var(--space-2);
   flex-wrap: wrap;
-}
-
-/* Opponent presence indicator */
-.presenceDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--color-text-muted);
-  flex-shrink: 0;
-  transition: background 0.3s;
-}
-
-.presenceDot[data-online="true"] {
-  background: var(--color-success);
-  box-shadow: 0 0 4px var(--color-success);
-}
-
-.opponentPresence {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
 }
 
 /* ---------------------------------------------------------------------------
@@ -376,11 +276,6 @@
 
   .panel {
     max-width: 100%;
-    gap: var(--space-3);
-  }
-
-  .header {
-    flex-wrap: wrap;
     gap: var(--space-2);
   }
 
@@ -391,10 +286,6 @@
 
   .symbol {
     font-size: 40px;
-  }
-
-  .status {
-    padding: var(--space-2) var(--space-3);
   }
 
   .gameOver {

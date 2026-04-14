@@ -1,117 +1,72 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { GameHeader } from '../components/GameHeader'
-import { GameStatus } from '../components/GameStatus'
+import { GameTopBar } from '../components/GameTopBar'
 import { PauseVoteOverlay } from '../components/PauseVoteOverlay'
 import { SuspendedScreen } from '../components/SuspendedScreen'
 import { GameOverActions } from '../components/GameOverActions'
 
 // ---------------------------------------------------------------------------
-// GameHeader
+// GameTopBar — merges the former GameHeader + GameStatus into one row.
 // ---------------------------------------------------------------------------
 
-describe('GameHeader', () => {
+describe('GameTopBar', () => {
   const defaults = {
     gameId: 'tictactoe',
     moveCount: 5,
     turnTimeoutSecs: 30,
     lastMoveAt: new Date().toISOString(),
+    statusText: 'Your turn',
+    isOver: false,
     isSuspended: false,
     canPause: false,
     isPausePending: false,
-    isOver: false,
-    isSpectator: false,
     onLobby: vi.fn(),
     onPause: vi.fn(),
   }
 
-  it('renders game id and move count', () => {
-    render(<GameHeader {...defaults} />)
+  it('renders game id and turn count', () => {
+    render(<GameTopBar {...defaults} />)
     expect(screen.getByText('tictactoe')).toBeInTheDocument()
-    expect(screen.getByText('Move 5')).toBeInTheDocument()
+    expect(screen.getByText('Turn 5')).toBeInTheDocument()
   })
 
   it('calls onLobby when ← Lobby is clicked', () => {
     const onLobby = vi.fn()
-    render(<GameHeader {...defaults} onLobby={onLobby} />)
+    render(<GameTopBar {...defaults} onLobby={onLobby} />)
     fireEvent.click(screen.getByText('← Lobby'))
     expect(onLobby).toHaveBeenCalledTimes(1)
   })
 
   it('does not show pause button when canPause is false', () => {
-    render(<GameHeader {...defaults} canPause={false} />)
+    render(<GameTopBar {...defaults} canPause={false} />)
     expect(screen.queryByTestId('pause-btn')).not.toBeInTheDocument()
   })
 
   it('shows pause button when canPause is true', () => {
-    render(<GameHeader {...defaults} canPause={true} />)
+    render(<GameTopBar {...defaults} canPause={true} />)
     expect(screen.getByTestId('pause-btn')).toBeInTheDocument()
   })
 
   it('calls onPause when pause button is clicked', () => {
     const onPause = vi.fn()
-    render(<GameHeader {...defaults} canPause={true} onPause={onPause} />)
+    render(<GameTopBar {...defaults} canPause={true} onPause={onPause} />)
     fireEvent.click(screen.getByTestId('pause-btn'))
     expect(onPause).toHaveBeenCalledTimes(1)
   })
 
   it('disables pause button when isPausePending is true', () => {
-    render(<GameHeader {...defaults} canPause={true} isPausePending={true} />)
+    render(<GameTopBar {...defaults} canPause={true} isPausePending={true} />)
     expect(screen.getByTestId('pause-btn')).toBeDisabled()
   })
-})
 
-// ---------------------------------------------------------------------------
-// GameStatus
-// ---------------------------------------------------------------------------
-
-describe('GameStatus', () => {
-  const defaults = {
-    statusText: 'Your turn',
-    isMyTurn: true,
-    isOver: false,
-    isSuspended: false,
-    isSpectator: false,
-    winnerId: null,
-    playerId: 'player-1',
-    opponentId: 'player-2',
-    opponentOnline: true,
-  }
-
-  it('renders status text', () => {
-    render(<GameStatus {...defaults} />)
-    expect(screen.getByTestId('game-status')).toHaveTextContent('Your turn')
+  it('exposes status text via the game-status carrier (for a11y + e2e)', () => {
+    render(<GameTopBar {...defaults} statusText='You won!' />)
+    expect(screen.getByTestId('game-status')).toHaveTextContent('You won!')
   })
 
-  it('shows opponent presence when active', () => {
-    render(<GameStatus {...defaults} />)
-    expect(screen.getByTestId('opponent-presence')).toBeInTheDocument()
-    expect(screen.getByTestId('opponent-presence-text')).toHaveTextContent('Opponent online')
-  })
-
-  it('shows opponent offline text when opponentOnline is false', () => {
-    render(<GameStatus {...defaults} opponentOnline={false} />)
-    expect(screen.getByTestId('opponent-presence-text')).toHaveTextContent('Opponent offline')
-  })
-
-  it('hides presence indicator when isSpectator', () => {
-    render(<GameStatus {...defaults} isSpectator={true} />)
-    expect(screen.queryByTestId('opponent-presence')).not.toBeInTheDocument()
-  })
-
-  it('hides presence indicator when isSuspended', () => {
-    render(<GameStatus {...defaults} isSuspended={true} />)
-    expect(screen.queryByTestId('opponent-presence')).not.toBeInTheDocument()
-  })
-
-  it('hides presence indicator when opponentId is null', () => {
-    render(<GameStatus {...defaults} opponentId={null} />)
-    expect(screen.queryByTestId('opponent-presence')).not.toBeInTheDocument()
-  })
-
-  it('sets data-online correctly on presence dot', () => {
-    render(<GameStatus {...defaults} opponentOnline={false} />)
-    expect(screen.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'false')
+  it('does not render the Rules button (lives in the global navbar)', () => {
+    render(<GameTopBar {...defaults} />)
+    expect(screen.queryByTestId('rules-btn-ingame')).not.toBeInTheDocument()
   })
 })
 

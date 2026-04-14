@@ -67,19 +67,19 @@ test.describe('Player presence', () => {
     })
   })
 
-  test('opponent presence text updates correctly', async ({ players }) => {
+  test('opponent presence dot flips online/offline during disconnect', async ({ players }) => {
     const { p1, p2, p1Id, p2Ctx } = players
 
     await setupAndStartGame(p1, p2, p1Id)
 
-    await expect(p1.getByTestId('opponent-presence-text')).toContainText('Opponent online', {
+    await expect(p1.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'true', {
       timeout: 10_000,
     })
 
     // P2 disconnects.
     await p2Ctx.close()
 
-    await expect(p1.getByTestId('opponent-presence-text')).toContainText('Opponent offline', {
+    await expect(p1.getByTestId('opponent-presence-dot')).toHaveAttribute('data-online', 'false', {
       timeout: 30_000,
     })
   })

@@ -173,7 +173,7 @@
     "rematchVotes": "Revancha ({{current}}/{{total}} votaron)",
     "rematchWaiting": "Esperando al oponente\u2026 ({{current}}/{{total}})",
     "spectating": "Espectando",
-    "moveNumber": "Movimiento {{n}}",
+    "turnNumber": "Turno {{n}}",
     "viewRules": "? Reglas",
     "pauseGame": "\u23f8 Pausar",
     "opponentOnline": "Oponente en l\u00ednea",
@@ -258,7 +258,8 @@
     "notifications": "Notificaciones",
     "messages": "Mensajes",
     "settings": "Configuraci\u00f3n",
-    "admin": "Admin"
+    "admin": "Admin",
+    "profile": "Perfil"
   },
   "rules": {
     "title": "Reglas del juego"
@@ -277,6 +278,7 @@
   "rootaccess": {
     "round": "Ronda {{n}}",
     "setAside": "Apartada: {{card}}",
+    "setAsideLabel": "Apartadas",
     "yourHand": "Tu mano",
     "play": "Jugar {{card}}",
     "noCards": "Sin cartas en mano",

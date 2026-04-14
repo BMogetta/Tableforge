@@ -11,8 +11,8 @@ import { keys } from '@/lib/queryClient'
 import { sfx } from '@/lib/sfx'
 import styles from './Game.module.css'
 import { SurrenderModal } from './components/SurrenderModal'
-import { GameHeader } from './components/GameHeader'
-import { GameStatus } from './components/GameStatus'
+import { GameTopBar } from './components/GameTopBar'
+import { GameTopBarSlotContext } from './top-bar-slot'
 import { PauseVoteOverlay } from './components/PauseVoteOverlay'
 import { SuspendedScreen } from './components/SuspendedScreen'
 import { GameOverActions } from './components/GameOverActions'
@@ -33,7 +33,6 @@ export function Game({ sessionId }: { sessionId: string }) {
   const playerSocket = useAppStore(s => s.playerSocket)
   const leaveRoom = useAppStore(s => s.leaveRoom)
   const isSpectator = useAppStore(s => s.isSpectator)
-  const presenceMap = useAppStore(s => s.presenceMap)
   const setPlayerPresence = useAppStore(s => s.setPlayerPresence)
   // Game.tsx — initialize socket status from the store socket state.
   // The socket may already be connected when Game mounts (navigated from Room),
@@ -54,6 +53,7 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   const [showSurrenderModal, setShowSurrenderModal] = useState(false)
   const [moveError, setMoveError] = useState<AppError | null>(null)
+  const [topBarSlot, setTopBarSlot] = useState<HTMLElement | null>(null)
 
   // Block navigation (back button, logo click) during active game.
   // Shows surrender modal instead of navigating away.
@@ -252,40 +252,27 @@ export function Game({ sessionId }: { sessionId: string }) {
   }
 
   const Renderer = GAME_RENDERERS[session.game_id]
-  const opponentId = roomPlayers.find(p => p.id !== player.id)?.id ?? null
-  const opponentOnline = opponentId ? (presenceMap[opponentId] ?? false) : false
 
   // --- Render ----------------------------------------------------------------
 
   return (
     <div className={`${styles.root} page-enter`} {...testAttr('socket-status', socketStatus)}>
       <div className={styles.panel}>
-        <GameHeader
+        <GameTopBar
           gameId={session.game_id}
           moveCount={session.move_count}
           turnTimeoutSecs={session.turn_timeout_secs}
           lastMoveAt={session.last_move_at ?? session.started_at ?? ''}
+          statusText={statusText}
+          isOver={gameOver.isOver}
           isSuspended={pauseResume.isSuspended}
           canPause={canPause}
           isPausePending={pauseResume.isPausePending}
-          isOver={gameOver.isOver}
-          isSpectator={isSpectator}
+          slotRef={setTopBarSlot}
           onLobby={() =>
             gameOver.isOver || isSpectator ? handleBackToLobby() : setShowSurrenderModal(true)
           }
           onPause={pauseResume.votePause}
-        />
-
-        <GameStatus
-          statusText={statusText}
-          isMyTurn={isMyTurn}
-          isOver={gameOver.isOver}
-          isSuspended={pauseResume.isSuspended}
-          isSpectator={isSpectator}
-          winnerId={gameOver.winnerId}
-          playerId={player.id}
-          opponentId={opponentId}
-          opponentOnline={opponentOnline}
         />
 
         {!pauseResume.isSuspended && pauseResume.pauseVotes.length > 0 && (
@@ -312,15 +299,17 @@ export function Game({ sessionId }: { sessionId: string }) {
         ) : (
           <div className={styles.boardWrapper}>
             {Renderer ? (
-              <Renderer
-                gameId={session.game_id}
-                gameData={gameData}
-                localPlayerId={player.id}
-                onMove={payload => move.mutate(payload)}
-                disabled={isSpectator || !isMyTurn || move.isPending}
-                isOver={gameOver.isOver}
-                players={roomPlayers}
-              />
+              <GameTopBarSlotContext.Provider value={topBarSlot}>
+                <Renderer
+                  gameId={session.game_id}
+                  gameData={gameData}
+                  localPlayerId={player.id}
+                  onMove={payload => move.mutate(payload)}
+                  disabled={isSpectator || !isMyTurn || move.isPending}
+                  isOver={gameOver.isOver}
+                  players={roomPlayers}
+                />
+              </GameTopBarSlotContext.Provider>
             ) : (
               <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                 No renderer available for game: {session.game_id}

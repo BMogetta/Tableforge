@@ -83,23 +83,133 @@
   line-height: 1;
 }
 
-.playerInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-1);
+/* Avatar dropdown — compact trigger button with no border/caret, just the
+   circle. Hover/open grows the ring to signal interactivity. */
+.avatarTrigger {
+  padding: 0;
+  border: none;
+  background: transparent;
+  line-height: 0;
+  border-radius: 50%;
+}
+
+.avatarTrigger:hover {
+  background: transparent;
+  border: none;
+}
+
+.avatarTrigger[aria-expanded='true'] {
+  background: transparent;
+  border: none;
+}
+
+.avatarTrigger:hover .avatar,
+.avatarTrigger[aria-expanded='true'] .avatar,
+.avatarTrigger:hover .avatarFallback,
+.avatarTrigger[aria-expanded='true'] .avatarFallback {
+  border-color: var(--color-interactive);
+  box-shadow: 0 0 0 2px var(--color-interactive-glow);
 }
 
 .avatar {
-  width: 28px;
-  height: 28px;
+  display: block;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid var(--color-border-bright);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
-.username {
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-bright);
+  background: var(--color-bg-surface);
+  color: var(--color-interactive);
   font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+/* Dropdown panel — override defaults for a wider, richer user menu. */
+.userMenu {
+  min-width: 200px;
+  padding: var(--space-1);
+}
+
+.menuHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-1);
+}
+
+.menuUsername {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.menuRoleTag {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-interactive);
+  border: 1px solid color-mix(in srgb, var(--color-interactive) 30%, transparent);
+  border-radius: var(--radius);
+  padding: 1px var(--space-1);
+  margin-left: auto;
+}
+
+.menuSep {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-1) 0;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-family: inherit;
   color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.menuItem:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.menuItem:focus-visible {
+  outline: none;
+  background: var(--color-bg-hover);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.menuItemDanger {
+  color: var(--color-danger);
+}
+
+.menuItemDanger:hover {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
 }
 
 /* ---------------------------------------------------------------------------
@@ -177,10 +287,6 @@
   .logoText {
     font-size: var(--text-base);
     letter-spacing: 0.15em;
-  }
-
-  .username {
-    display: none;
   }
 
   .divider {

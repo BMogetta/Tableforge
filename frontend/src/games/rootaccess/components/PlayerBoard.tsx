@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { CardPile } from '@/ui/cards'
 import { DimOverlay, useHintsEnabled } from '@/ui/hints'
+import { testId } from '@/utils/testId'
 import styles from './PlayerBoard.module.css'
 
 interface Props {
@@ -19,6 +20,11 @@ interface Props {
   dimProtected?: boolean
   /** Render a subtle "thinking..." indicator — used for bot opponents during their turn. */
   isBotThinking?: boolean
+  /**
+   * Presence indicator next to the name. Undefined means "don't render a dot"
+   * (used for the local player and bots where the signal isn't meaningful).
+   */
+  isOnline?: boolean
 }
 
 /** @package */
@@ -34,6 +40,7 @@ export function PlayerBoard({
   isCurrentTurn,
   dimProtected = false,
   isBotThinking = false,
+  isOnline,
 }: Props) {
   const { t } = useTranslation()
   const hintsEnabled = useHintsEnabled()
@@ -53,6 +60,14 @@ export function PlayerBoard({
         <div className={styles.header}>
           <div className={styles.nameRow}>
             {isCurrentTurn && <span className={styles.turnIndicator}>▶</span>}
+            {isOnline !== undefined && (
+              <span
+                className={styles.presenceDot}
+                data-online={String(isOnline)}
+                aria-label={isOnline ? t('game.opponentOnline') : t('game.opponentOffline')}
+                {...testId('opponent-presence-dot')}
+              />
+            )}
             <span className={styles.username}>{username}</span>
             {isLocal && <span className={styles.youBadge}>{t('common.you')}</span>}
             {isBotThinking && (

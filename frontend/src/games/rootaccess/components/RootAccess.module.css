@@ -12,14 +12,8 @@
   width: 100%;
 }
 
-/* Info bar — round badge + set-aside */
-
-.infoBar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
+/* Round badge + set-aside list items — now rendered inside the GameTopBar
+   via a portal, so they don't need an enclosing .infoBar in RootAccess. */
 
 .roundBadge {
   font-size: 10px;
@@ -29,11 +23,6 @@
   border: 1px solid color-mix(in srgb, var(--color-interactive) 30%, transparent);
   border-radius: var(--radius);
   padding: 2px var(--space-2);
-}
-
-.setAside {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
 }
 
 /* Opponents row — horizontal grid, one column per opponent */
@@ -72,6 +61,148 @@
 .deckSlot > * {
   transform: rotateX(30deg);
   transform-origin: center top;
+}
+
+/* Set-aside zone — mirrors CentralDiscard in size/tilt so the three table
+   slots (set-aside, deck, discards) read as a coherent row. */
+
+.setAsideSlot {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  perspective: 800px;
+}
+
+.setAsideStack {
+  position: relative;
+  z-index: 0;
+  width: 120px;
+  height: 168px;
+  transform: rotateX(30deg);
+  transform-origin: center top;
+  /* Button reset */
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.setAsideStack:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-radius: var(--radius-lg);
+}
+
+.setAsideLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.setAsidePlaceholder {
+  width: 120px;
+  height: 168px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-surface) 60%, transparent);
+  transform: rotateX(30deg);
+  transform-origin: center top;
+  opacity: 0.5;
+}
+
+.setAsideLabel {
+  position: absolute;
+  bottom: -22px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1px 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.setAsideLayer > * {
+  width: 100%;
+  height: 100%;
+}
+
+.setAsideFace {
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .setAsideStack,
+  .setAsidePlaceholder {
+    width: 96px;
+    height: 134px;
+  }
+}
+
+/* Set-aside reveal modal — mirrors the discard history modal. */
+
+.setAsideModal {
+  position: relative;
+  width: calc(100vw - 2 * var(--space-4));
+  max-width: 480px;
+  max-height: calc(100vh - 2 * var(--space-6));
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-bright);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  z-index: calc(var(--z-modal) + 1);
+}
+
+.setAsideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.setAsideTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-interactive);
+  margin: 0;
+}
+
+.setAsideBody {
+  padding: var(--space-5);
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.setAsideRevealCard {
+  width: 96px;
+  height: 134px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-base);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  user-select: none;
 }
 
 /* Sniffer reveal notification */
@@ -211,10 +342,6 @@
   .table {
     gap: var(--space-3);
     padding: var(--space-3);
-  }
-
-  .infoBar {
-    gap: var(--space-2);
   }
 
   .actions {
