@@ -1,8 +1,8 @@
 {
-  "name": "tf-mcp-game",
+  "name": "recess-mcp-game",
   "version": "0.1.0",
   "private": true,
-  "description": "MCP server that exposes tableforge game-server HTTP API as tools for Claude Code.",
+  "description": "MCP server that exposes recess game-server HTTP API as tools for Claude Code.",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {

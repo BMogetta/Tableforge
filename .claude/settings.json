@@ -2,5 +2,14 @@
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "playwright@claude-plugins-official": true
+  },
+  "mcpServers": {
+    "recess-game": {
+      "command": "npx",
+      "args": ["--yes", "tsx", "./tools/mcp-game/src/index.ts"],
+      "env": {
+        "RECESS_BASE_URL": "http://localhost"
+      }
+    }
   }
 }

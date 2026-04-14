@@ -192,6 +192,9 @@ setup:
 	@echo ""
 	@echo "Installing frontend dependencies..."
 	@cd frontend && npm install
+	@echo ""
+	@echo "Installing MCP game-server tool dependencies..."
+	@cd tools/mcp-game && npm install
 
 # ── Lint ──────────────────────────────────────────────────────────────────────
 

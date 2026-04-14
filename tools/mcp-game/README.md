@@ -1,18 +1,18 @@
-# tf-mcp-game
+# recess-mcp-game
 
-Local MCP server that exposes tableforge game-server operations as tools for
+Local MCP server that exposes recess game-server operations as tools for
 Claude Code. Lets Claude apply scenario fixtures, load arbitrary game states,
 submit moves, and read current state — all against the local dev stack.
 
 ## Prereqs
 
-- The stack is running (`make up-all`) with dev mode enabled:
-  - `auth-service` runs with `TEST_MODE=true` (automatic under the override).
-  - `game-server` runs with `ALLOW_DEBUG_SCENARIOS=true` (automatic under the
+- Dev stack running with `TEST_MODE=true` (e.g. `make up-test`):
+  - `auth-service` exposes `/auth/test-login`.
+  - `game-server` has `ALLOW_DEBUG_SCENARIOS=true` (automatic under the dev
     override).
+- `make seed-test` has been run at least once — the MCP auto-reads
+  `frontend/tests/e2e/.players.json` to find a player UUID to authenticate as.
 - Node 20+ (the MCP SDK needs it).
-- A seeded test player UUID — e.g. one of the `bot_easy_1` / `bot_hard_1`
-  rows created by `make seed-test`, or your own GitHub-logged player.
 
 ## Install
 
@@ -21,36 +21,40 @@ cd tools/mcp-game
 npm install
 ```
 
-## Configure Claude Code (project-scoped)
+## Configure Claude Code
 
-The MCP only makes sense when tableforge's local stack is running — keep
-it scoped to this project, not your global Claude config.
-
-Create `.claude/settings.local.json` at the repo root (gitignored by
-default, holds your personal `TF_PLAYER_ID`):
-
-```json
-{
-  "mcpServers": {
-    "tf-game": {
-      "command": "npx",
-      "args": ["--yes", "tsx", "./tools/mcp-game/src/index.ts"],
-      "env": {
-        "TF_BASE_URL": "http://localhost",
-        "TF_PLAYER_ID": "<your-player-uuid>"
-      }
-    }
-  }
-}
-```
+The MCP config ships committed in `.claude/settings.json` at the repo root,
+so any collaborator who clones the repo and runs `npm install` + seed gets
+it for free. The authenticated player is resolved automatically from the
+seeded JSON — no per-user setup needed.
 
 Restart Claude Code from inside the repo directory. The tools
 (`list_scenarios`, `load_scenario`, `get_session`, `apply_move`, etc.)
 become available in the next session.
 
-> If you want to share the MCP config with collaborators (e.g. CI or
-> teammates), use `.claude/settings.json` instead — commit it but keep
-> `TF_PLAYER_ID` blank and override it in `settings.local.json`.
+### Overriding the player
+
+By default the MCP logs in as `player1_id` from the seed. To override:
+
+- `RECESS_PLAYER_KEY=player28_id` → pick a different seeded player by key
+  (e.g. `player28_id` for the admin slot, `player24_id` for `bot_easy_1`).
+- `RECESS_PLAYER_ID=<uuid>` → explicit UUID, bypasses the seed file
+  entirely.
+
+Put the override in `.claude/settings.local.json` (gitignored) so it
+doesn't leak into shared config:
+
+```json
+{
+  "mcpServers": {
+    "recess-game": {
+      "env": {
+        "RECESS_PLAYER_KEY": "player28_id"
+      }
+    }
+  }
+}
+```
 
 ## Tools
 

@@ -1,18 +1,61 @@
-// MCP server exposing tableforge game-server operations as callable tools.
+// MCP server exposing recess game-server operations as callable tools.
 // Consumes the same HTTP API the frontend does, authenticated via the
 // TEST_MODE-only /auth/test-login endpoint (cookie-based). Intended for
 // local dev only — do not point it at production.
 
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 
-const BASE_URL = process.env.TF_BASE_URL ?? 'http://localhost'
-const PLAYER_ID = process.env.TF_PLAYER_ID
-if (!PLAYER_ID) {
-  console.error('TF_PLAYER_ID env var is required (UUID of the player to log in as).')
-  process.exit(1)
+const BASE_URL = process.env.RECESS_BASE_URL ?? 'http://localhost'
+
+// Resolve the player UUID in this order:
+// 1. RECESS_PLAYER_ID env var (explicit override).
+// 2. RECESS_PLAYER_KEY (e.g. "player1_id") looked up in the seed JSON.
+// 3. The first player UUID in frontend/tests/e2e/.players.json (written by
+//    `make seed-test`). Defaults to player1_id so zero config works after
+//    seeding.
+function resolvePlayerId(): string {
+  if (process.env.RECESS_PLAYER_ID) return process.env.RECESS_PLAYER_ID
+
+  // Walk up from this file to find the repo root (where .players.json lives).
+  // The MCP is spawned from the repo via Claude Code, so cwd is usually the
+  // repo root — but resolve relative to __dirname to be robust.
+  const candidates = [
+    resolve(process.cwd(), 'frontend/tests/e2e/.players.json'),
+    resolve(import.meta.dirname, '../../../frontend/tests/e2e/.players.json'),
+  ]
+  let seedPath: string | null = null
+  let raw: string | null = null
+  for (const p of candidates) {
+    try {
+      raw = readFileSync(p, 'utf8')
+      seedPath = p
+      break
+    } catch {
+      /* try next */
+    }
+  }
+  if (!raw) {
+    console.error(
+      'Could not resolve a player UUID. Either set RECESS_PLAYER_ID explicitly, or ' +
+        `run \`make seed-test\` so ${candidates[0]} exists.`,
+    )
+    process.exit(1)
+  }
+  const seed = JSON.parse(raw) as Record<string, string>
+  const key = process.env.RECESS_PLAYER_KEY ?? 'player1_id'
+  const id = seed[key]
+  if (!id) {
+    console.error(`Seed file ${seedPath} has no key "${key}". Known keys: ${Object.keys(seed).join(', ')}`)
+    process.exit(1)
+  }
+  return id
 }
+
+const PLAYER_ID = resolvePlayerId()
 
 // ---------------------------------------------------------------------------
 // Minimal cookie-backed HTTP client
@@ -65,7 +108,7 @@ async function login(): Promise<void> {
   if (res.status !== 200 && res.status !== 204) {
     throw new Error(
       `test-login failed (${res.status}): ${typeof res.body === 'string' ? res.body : JSON.stringify(res.body)}. ` +
-        'Ensure auth-service is running with TEST_MODE=true and TF_PLAYER_ID is a seeded test player UUID.',
+        'Ensure auth-service is running with TEST_MODE=true and RECESS_PLAYER_ID (or the seed fallback) is a seeded test player UUID.',
     )
   }
 }
@@ -101,7 +144,7 @@ async function callApi(
 // MCP server
 // ---------------------------------------------------------------------------
 
-const server = new McpServer({ name: 'tf-game', version: '0.1.0' })
+const server = new McpServer({ name: 'recess-game', version: '0.1.0' })
 
 server.tool(
   'list_games',
@@ -183,10 +226,10 @@ server.tool(
   'list_player_sessions',
   'Lists active sessions for a player. Defaults to the authenticated player.',
   {
-    player_id: z.string().optional().describe('Defaults to TF_PLAYER_ID'),
+    player_id: z.string().optional().describe('Defaults to the authenticated player'),
   },
   async ({ player_id }) =>
-    callApi(`/api/v1/players/${encodeURIComponent(player_id ?? PLAYER_ID!)}/sessions`),
+    callApi(`/api/v1/players/${encodeURIComponent(player_id ?? PLAYER_ID)}/sessions`),
 )
 
 // ---------------------------------------------------------------------------
