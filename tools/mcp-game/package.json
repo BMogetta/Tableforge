@@ -1,0 +1,22 @@
+{
+  "name": "tf-mcp-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server that exposes tableforge game-server HTTP API as tools for Claude Code.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.19.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
