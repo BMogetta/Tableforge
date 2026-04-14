@@ -20,6 +20,9 @@ hub.go, hub_player.go, events/events.go, ratelimit/script_runner.go).
 | `queue:declines:` | HASH          | ~30s         | queue            |
 | `queue:ban:`      | STRING        | ban duration | queue            |
 | `queue:lock`      | STRING        | short (~5s)  | queue            |
+| `bot:known`       | SET           | none         | bot backfill     |
+| `bot:available`   | SET           | none         | bot backfill     |
+| `bot.activate`    | PUB/SUB chan  | ephemeral    | bot backfill     |
 | `ws:room:`        | PUB/SUB chan  | ephemeral    | ws hub           |
 | `ws:player:`      | PUB/SUB chan  | ephemeral    | ws hub           |
 | `rl:`             | ZSET          | sliding      | ratelimit        |
@@ -171,6 +174,56 @@ hub.go, hub_player.go, events/events.go, ratelimit/script_runner.go).
 - **Purpose:** Distributed lock preventing concurrent matchmaking runs.
   Ensures only one instance of `FindMatches` runs at a time across
   multiple server instances.
+
+---
+
+### `bot:known`
+- **Type:** SET
+- **Value:** member = `{player_id}` (UUID) for every bot-runner instance currently up
+- **TTL:** None — bot-runner removes itself via `SREM` on graceful shutdown
+- **Set by:** bot-runner at startup (`--mode=backfill`)
+- **Read by:** `queue.Service.BackfillScan` — anything in `queue:ranked` that
+  is NOT in `bot:known` is treated as a human.
+- **Purpose:** Lets match-service classify queued IDs without hitting Postgres
+  on every tick. Stale entries (bot-runner killed ungracefully) are benign:
+  the detector still works because the bot also won't appear in `bot:available`
+  and therefore won't be activated again.
+- **Cleanup note:** Crash-left entries are not auto-evicted. A periodic
+  `SDIFF bot:known bot:available` + presence check could age them out if the
+  set grows unbounded, but at expected bot counts (<100) this is not urgent.
+
+---
+
+### `bot:available`
+- **Type:** SET
+- **Value:** member = `{player_id}` for bots currently idle and eligible for backfill
+- **TTL:** None
+- **Set by:**
+  - bot-runner at startup (SADD alongside `bot:known`)
+  - bot-runner after a match ends (SADD to return to the pool)
+- **Deleted by:**
+  - `BackfillScan` (SREM when the bot is activated — doubles as an atomic claim)
+  - bot-runner on graceful shutdown
+- **Read by:** `BackfillScan` — candidate pool for closest-MMR pick.
+- **Invariant:** `bot:available ⊆ bot:known`. A bot is never in `available`
+  without also being in `known`; the scan relies on this to count active bots
+  as `SCARD(known) - SCARD(available)`.
+
+---
+
+### `bot.activate` (Pub/Sub channel)
+- **Type:** PUB/SUB channel (no persistence)
+- **Payload:** `{"player_id": "<uuid>"}` — JSON
+- **Published by:** `queue.Service.BackfillScan` when a lone human has
+  waited past `BACKFILL_THRESHOLD_SECS`
+- **Subscribed by:** every bot-runner in `--mode=backfill`; each filters by
+  its own `player_id` and joins the queue when activated.
+- **Purpose:** Fire-and-forget activation signal. Detection + claim
+  (SREM on `bot:available`) happen before the publish so at most one bot
+  reacts per message.
+- **Note:** The dot in `bot.activate` (vs the colon-separated key prefixes
+  above) is intentional — dots separate PUB/SUB channel name components in
+  the rest of the codebase.
 
 ---
 

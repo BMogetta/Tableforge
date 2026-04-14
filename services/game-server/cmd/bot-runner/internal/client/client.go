@@ -84,6 +84,26 @@ func (c *Client) JoinQueue(ctx context.Context) error {
 	return c.postNoBody(ctx, "/api/v1/queue")
 }
 
+// LeaveQueue issues DELETE /api/v1/queue. Used by backfill-mode bots to
+// withdraw when no match materialized within the wait window (typically
+// because a second human arrived and got paired with the first).
+func (c *Client) LeaveQueue(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/api/v1/queue", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("leave queue: %w", err)
+	}
+	defer resp.Body.Close()
+	// 204 (dequeued) and 404 (already out) are both success for the caller.
+	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("leave queue: status %d", resp.StatusCode)
+	}
+	return nil
+}
+
 // AcceptMatch issues POST /api/v1/queue/accept with the given match ID.
 func (c *Client) AcceptMatch(ctx context.Context, matchID string) error {
 	body, _ := json.Marshal(map[string]string{"match_id": matchID})

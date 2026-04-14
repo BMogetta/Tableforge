@@ -30,6 +30,23 @@
 //   - auth-service running with TEST_MODE=true (/auth/test-login enabled)
 //   - seed-test executed — the bot accounts must exist with is_bot=TRUE
 //   - match-service + game-server + ws-gateway reachable via baseURL
+//
+// Usage (Phase 3, backfill mode):
+//
+// In backfill mode the bots do NOT self-queue. They register in Redis
+// (bot:known + bot:available), subscribe to the bot.activate channel, and
+// wait for match-service to pick them when a lone human has been waiting
+// past BACKFILL_THRESHOLD_SECS. match-service must run with
+// BACKFILL_ENABLED=true. Redis must be reachable from the host.
+//
+//	export REDIS_URL=redis://:recess@localhost:6379
+//	go run ./cmd/bot-runner \
+//	    --mode backfill \
+//	    --base-url http://localhost \
+//	    --game-id rootaccess \
+//	    --bots <easy-uuid>:easy,<medium-uuid>:medium,<hard-uuid>:hard
+//
+// --games is ignored in backfill mode — bots stay resident until SIGINT.
 package main
 
 import (
@@ -45,6 +62,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/recess/game-server/cmd/bot-runner/internal/client"
 	"github.com/recess/game-server/cmd/bot-runner/internal/runner"
@@ -65,7 +83,9 @@ func main() {
 		baseURL  = flag.String("base-url", "http://localhost", "HTTP origin for API + WS (through Traefik)")
 		gameID   = flag.String("game-id", "rootaccess", "game to queue for (rootaccess | tictactoe)")
 		botsFlag = flag.String("bots", "", "comma-separated username:profile pairs, e.g. bot_easy_1:easy,bot_hard_1:hard")
-		numGames = flag.Int("games", 1, "games per bot (0 = unbounded until SIGINT)")
+		numGames = flag.Int("games", 1, "games per bot (0 = unbounded until SIGINT); ignored in backfill mode")
+		mode     = flag.String("mode", "autonomous", "autonomous = self-queue Phase 1 behavior; backfill = wait for match-service activation on Redis channel bot.activate")
+		redisURL = flag.String("redis-url", "", "Redis URL (backfill mode only); falls back to $REDIS_URL")
 	)
 	flag.Parse()
 
@@ -81,8 +101,38 @@ func main() {
 		os.Exit(2)
 	}
 
+	if *mode != "autonomous" && *mode != "backfill" {
+		log.Error("--mode must be 'autonomous' or 'backfill'", "got", *mode)
+		os.Exit(2)
+	}
+
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
+
+	// Backfill mode needs a shared Redis client so every bot can write to
+	// bot:known/bot:available and subscribe to bot.activate.
+	var rdb *redis.Client
+	if *mode == "backfill" {
+		url := *redisURL
+		if url == "" {
+			url = os.Getenv("REDIS_URL")
+		}
+		if url == "" {
+			log.Error("backfill mode requires --redis-url or $REDIS_URL")
+			os.Exit(2)
+		}
+		opt, err := redis.ParseURL(url)
+		if err != nil {
+			log.Error("parse redis url", "error", err)
+			os.Exit(2)
+		}
+		rdb = redis.NewClient(opt)
+		defer rdb.Close()
+		if err := rdb.Ping(ctx).Err(); err != nil {
+			log.Error("redis ping failed", "error", err)
+			os.Exit(1)
+		}
+	}
 
 	// Resolve any specs that carry a username into UUIDs via DB lookup.
 	// Specs already carrying a UUID (identifier==uuid parsed successfully)
@@ -143,7 +193,14 @@ func main() {
 		wg.Add(1)
 		go func(label string) {
 			defer wg.Done()
-			if err := r.Run(ctx, *numGames); err != nil && ctx.Err() == nil {
+			var err error
+			switch *mode {
+			case "backfill":
+				err = r.RunBackfill(ctx, rdb)
+			default:
+				err = r.Run(ctx, *numGames)
+			}
+			if err != nil && ctx.Err() == nil {
 				log.Error("runner exited with error", "bot", label, "error", err)
 			}
 		}(label)

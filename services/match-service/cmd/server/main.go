@@ -105,6 +105,11 @@ func main() {
 	}
 	queueSvc := queue.New(rdb, ratingClient, lobbyClient, gameClient, rankedGameID, asynqClient, asynqInspector, queueOpts...)
 
+	// Backfill detector — when enabled, injects idle bots into queue for
+	// lonely humans. See queue/backfill.go for the full design and the
+	// note on the Asynq-based alternative we did not take.
+	queueSvc.SetBackfillConfig(loadBackfillConfig())
+
 	// --- Asynq server (match expiry handler) ---------------------------------
 	asynqSrv := asynq.NewServer(asynqRedis, asynq.Config{
 		Concurrency: 5,
@@ -141,6 +146,8 @@ func main() {
 				return
 			case <-ticker.C:
 				queueSvc.FindAndPropose(ctx)
+				// Runs on every tick; no-op when BACKFILL_ENABLED is false.
+				queueSvc.BackfillScan(ctx)
 			}
 		}
 	}()
@@ -201,6 +208,34 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("HTTP shutdown error", "error", err)
 	}
+}
+
+// loadBackfillConfig reads BACKFILL_* env vars into a BackfillConfig.
+// Unknown / malformed values fall back to defaults so a misconfigured env
+// never bricks the service — at worst backfill stays disabled.
+func loadBackfillConfig() queue.BackfillConfig {
+	cfg := queue.DefaultBackfillConfig()
+	if v := config.Env("BACKFILL_ENABLED", ""); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			cfg.Enabled = b
+		}
+	}
+	if v := config.Env("BACKFILL_THRESHOLD_SECS", ""); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			cfg.Threshold = time.Duration(n) * time.Second
+		}
+	}
+	if v := config.Env("BACKFILL_MAX_ACTIVE", ""); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			cfg.MaxActive = n
+		}
+	}
+	slog.Info("backfill config",
+		"enabled", cfg.Enabled,
+		"threshold", cfg.Threshold,
+		"max_active", cfg.MaxActive,
+	)
+	return cfg
 }
 
 func parseRedisOpt(rawURL string) (addr, password string) {

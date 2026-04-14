@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/recess/game-server/cmd/bot-runner/internal/client"
 	botpkg "github.com/recess/game-server/internal/bot"
@@ -22,6 +23,27 @@ import (
 	"github.com/recess/game-server/internal/bot/mcts"
 	"github.com/recess/game-server/internal/domain/engine"
 )
+
+// Redis keys and channel mirrored from match-service/internal/queue/backfill.go.
+// Duplicated as constants here rather than importing the match-service package
+// to keep bot-runner free of match-service dependencies.
+const (
+	keyBotKnown        = "bot:known"
+	keyBotAvailable    = "bot:available"
+	channelBotActivate = "bot.activate"
+
+	// backfillJoinTimeout bounds how long a backfill bot stays in the queue
+	// after activation before it withdraws. If a second human arrived between
+	// detection and the bot's join, the matchmaker pairs both humans and our
+	// bot would otherwise sit there forever.
+	backfillJoinTimeout = 45 * time.Second
+)
+
+// activateMessage is the payload the match-service publishes on
+// bot.activate. Mirrors queue.activatePayload.
+type activateMessage struct {
+	PlayerID string `json:"player_id"`
+}
 
 // Event types we care about on the wire. Duplicated as untyped constants
 // rather than imported from shared/ws so bot-runner stays free of the
@@ -139,6 +161,113 @@ func (r *Runner) Run(ctx context.Context, numGames int) error {
 		}
 	}
 	return nil
+}
+
+// RunBackfill authenticates once, registers the bot in bot:known + bot:available,
+// subscribes to the bot.activate channel, and plays a match every time the
+// match-service picks this bot to fill in for a lonely human.
+//
+// Between matches the bot sits idle in bot:available so the detector can pick
+// a different bot for parallel activations. The bot never self-queues — if the
+// activation signal never arrives, RunBackfill blocks until ctx is cancelled.
+//
+// The caller owns rdb; it should be a shared *redis.Client passed from main.
+func (r *Runner) RunBackfill(ctx context.Context, rdb *redis.Client) error {
+	if err := r.client.Login(ctx); err != nil {
+		return fmt.Errorf("login: %w", err)
+	}
+	r.log.Info("authenticated (backfill mode)")
+
+	playerWS, err := r.client.DialPlayerWS(ctx)
+	if err != nil {
+		return fmt.Errorf("dial player ws: %w", err)
+	}
+	defer playerWS.Close()
+
+	botID := r.bot.ID.String()
+
+	// Register in the known + available sets atomically so the detector sees
+	// a consistent view: a bot is never counted as "known but not available"
+	// by virtue of the registration step itself.
+	pipe := rdb.Pipeline()
+	pipe.SAdd(ctx, keyBotKnown, botID)
+	pipe.SAdd(ctx, keyBotAvailable, botID)
+	if _, err := pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("register bot sets: %w", err)
+	}
+
+	// Deregister on exit using a fresh context — ctx is likely already
+	// cancelled by the time we defer-run, and we still need the SREMs to
+	// land so the detector stops considering us.
+	defer func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := rdb.SRem(cleanupCtx, keyBotKnown, botID).Err(); err != nil {
+			r.log.Warn("srem bot:known on shutdown", "error", err)
+		}
+		if err := rdb.SRem(cleanupCtx, keyBotAvailable, botID).Err(); err != nil {
+			r.log.Warn("srem bot:available on shutdown", "error", err)
+		}
+	}()
+
+	sub := rdb.Subscribe(ctx, channelBotActivate)
+	defer sub.Close()
+	ch := sub.Channel()
+
+	r.log.Info("awaiting activation", "channel", channelBotActivate)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case msg, ok := <-ch:
+			if !ok {
+				return fmt.Errorf("subscription channel closed")
+			}
+			var am activateMessage
+			if err := json.Unmarshal([]byte(msg.Payload), &am); err != nil {
+				continue
+			}
+			if am.PlayerID != botID {
+				continue // another bot was picked
+			}
+			r.log.Info("activated — joining queue")
+
+			gameLog := r.log.With("trigger", "backfill")
+			if err := r.playOneBackfill(ctx, playerWS, gameLog); err != nil {
+				gameLog.Error("backfill game failed", "error", err)
+			}
+
+			// Back into the available pool regardless of outcome — a failed
+			// game should not evict the bot permanently. The detector's
+			// SREM-on-claim already guarantees we won't be re-selected mid-game.
+			if err := rdb.SAdd(ctx, keyBotAvailable, botID).Err(); err != nil {
+				r.log.Error("re-add bot:available", "error", err)
+			}
+		}
+	}
+}
+
+// playOneBackfill wraps playOne with a bounded wait for match_found. If the
+// timeout fires, the bot leaves the queue so it doesn't sit forever when a
+// second human paired with the first before the bot's POST /queue landed.
+func (r *Runner) playOneBackfill(ctx context.Context, playerWS *websocket.Conn, log *slog.Logger) error {
+	joinCtx, cancel := context.WithTimeout(ctx, backfillJoinTimeout)
+	defer cancel()
+
+	err := r.playOne(joinCtx, playerWS, log)
+	if err == nil {
+		return nil
+	}
+	// Timeout path — withdraw from the queue using the outer ctx so the
+	// DELETE still flies if the join ctx deadline triggered the failure.
+	if errors.Is(err, context.DeadlineExceeded) {
+		log.Warn("match_found did not arrive in time — withdrawing")
+		if leaveErr := r.client.LeaveQueue(ctx); leaveErr != nil {
+			log.Warn("leave queue after timeout", "error", leaveErr)
+		}
+	}
+	return err
 }
 
 // playOne runs one full queue → match → game → result cycle.

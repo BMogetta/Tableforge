@@ -126,6 +126,7 @@ type Service struct {
 	rankedGameID   string
 	asynqClient    *asynq.Client
 	asynqInspector *asynq.Inspector
+	backfillCfg    BackfillConfig
 }
 
 // New creates a new queue Service. gameID is the game used for ranked
@@ -158,6 +159,7 @@ func New(
 		rankedGameID:   gameID,
 		asynqClient:    asynqClient,
 		asynqInspector: asynqInspector,
+		backfillCfg:    DefaultBackfillConfig(),
 	}
 }
 
