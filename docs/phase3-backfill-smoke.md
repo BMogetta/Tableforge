@@ -9,7 +9,9 @@ activation via `match-service` + `bot-runner --mode=backfill`.
 
 ## 1. Prepare env and temporary redis override
 
-Append the backfill vars to `.env`:
+Append the backfill vars to `.env`. `BOT_SERVICE_SECRET` is optional —
+set it to exercise the production-style `/auth/bot-login` endpoint,
+leave it unset to fall back to `/auth/test-login` (TEST_MODE only).
 
 ```bash
 cat >> .env <<'EOF'
@@ -19,6 +21,7 @@ BACKFILL_ENABLED=true
 BACKFILL_THRESHOLD_SECS=5
 BACKFILL_MAX_ACTIVE=3
 RANKED_GAME_ID=rootaccess
+BOT_SERVICE_SECRET=smoke-phase3-secret
 EOF
 ```
 
@@ -76,8 +79,15 @@ echo "HUMAN_ID=$HUMAN_ID"
 
 ## 5. Terminal A — start `bot-runner` in backfill mode
 
+Export `BOT_SERVICE_SECRET` to use `/auth/bot-login` (must match the value
+in `.env`). Leave it unset to fall back to `/auth/test-login`.
+
 ```bash
-REDIS_URL=redis://:recess@localhost:6379 go run ./services/game-server/cmd/bot-runner --mode=backfill --base-url http://localhost --game-id rootaccess --bots "$BOTS"
+REDIS_URL=redis://:recess@localhost:6379 \
+BOT_SERVICE_SECRET=smoke-phase3-secret \
+  go run ./services/game-server/cmd/bot-runner \
+    --mode=backfill --base-url http://localhost \
+    --game-id rootaccess --bots "$BOTS"
 ```
 
 Expected output (one block per bot):
@@ -204,4 +214,5 @@ make down
 rm docker-compose.smoke.yml
 ```
 
-Then manually remove the `# --- Smoke Phase 3 ---` block from `.env`.
+Then manually remove the `# --- Smoke Phase 3 ---` block from `.env`
+(including `BOT_SERVICE_SECRET`).

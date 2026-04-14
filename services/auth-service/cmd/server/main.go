@@ -83,6 +83,10 @@ func main() {
 		if handler.TestModeEnabled() {
 			r.Get("/test-login", h.HandleTestLogin)
 		}
+		// Bot login is always mounted. The handler itself returns 401 when
+		// BOT_SERVICE_SECRET is unset, so forgetting to configure the secret
+		// is a safe default (endpoint refuses everything).
+		r.Post("/bot-login", h.HandleBotLogin)
 	})
 
 	addr := config.Env("ADDR", ":8081")

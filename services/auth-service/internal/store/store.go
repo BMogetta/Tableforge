@@ -209,9 +209,9 @@ func (s *Store) GetPlayer(ctx context.Context, id uuid.UUID) (handler.Player, er
 	var p handler.Player
 	var role string
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, username, role FROM players WHERE id = $1 AND deleted_at IS NULL`,
+		`SELECT id, username, role, is_bot FROM players WHERE id = $1 AND deleted_at IS NULL`,
 		id,
-	).Scan(&p.ID, &p.Username, &role)
+	).Scan(&p.ID, &p.Username, &role, &p.IsBot)
 	if err != nil {
 		return p, fmt.Errorf("get player: %w", err)
 	}

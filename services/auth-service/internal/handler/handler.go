@@ -58,6 +58,7 @@ type Player struct {
 	ID       uuid.UUID `json:"id"`
 	Username string    `json:"username"`
 	Role     string    `json:"role"`
+	IsBot    bool      `json:"is_bot"`
 }
 
 // Session represents an active refresh session.

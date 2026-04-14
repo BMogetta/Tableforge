@@ -18,6 +18,7 @@ services:
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
       - ENV=${ENV:-development}
       - TEST_MODE=${TEST_MODE:-false}
+      - BOT_SERVICE_SECRET=${BOT_SERVICE_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy

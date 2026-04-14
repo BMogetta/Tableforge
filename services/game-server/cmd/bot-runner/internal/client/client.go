@@ -25,10 +25,19 @@ import (
 // Client is the per-bot API client. It is not safe for concurrent use by
 // multiple goroutines; each bot goroutine owns its own Client.
 type Client struct {
-	baseURL  string
-	wsURL    string
-	playerID uuid.UUID
-	http     *http.Client
+	baseURL   string
+	wsURL     string
+	playerID  uuid.UUID
+	botSecret string // when set, Login uses /auth/bot-login instead of test-login
+	http      *http.Client
+}
+
+// Options configures optional Client behavior.
+type Options struct {
+	// BotSecret, when non-empty, makes Login call /auth/bot-login with an
+	// X-Bot-Secret header. Empty falls back to /auth/test-login, which only
+	// works when the auth-service runs with TEST_MODE=true.
+	BotSecret string
 }
 
 // New constructs a Client for a single bot player.
@@ -36,7 +45,7 @@ type Client struct {
 // baseURL is the HTTP origin (e.g. http://localhost). The WS URL is derived
 // by swapping the scheme (http→ws, https→wss). The cookie jar is fresh per
 // Client — bots do not share session state.
-func New(baseURL string, playerID uuid.UUID) (*Client, error) {
+func New(baseURL string, playerID uuid.UUID, opts ...Options) (*Client, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, fmt.Errorf("bot-runner/client: cookie jar: %w", err)
@@ -45,10 +54,16 @@ func New(baseURL string, playerID uuid.UUID) (*Client, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	wsURL := "ws" + strings.TrimPrefix(baseURL, "http") // http→ws, https→wss
 
+	var o Options
+	if len(opts) > 0 {
+		o = opts[0]
+	}
+
 	return &Client{
-		baseURL:  baseURL,
-		wsURL:    wsURL,
-		playerID: playerID,
+		baseURL:   baseURL,
+		wsURL:     wsURL,
+		playerID:  playerID,
+		botSecret: o.BotSecret,
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 			Jar:     jar,
@@ -59,9 +74,36 @@ func New(baseURL string, playerID uuid.UUID) (*Client, error) {
 // PlayerID returns the bot's player UUID.
 func (c *Client) PlayerID() uuid.UUID { return c.playerID }
 
-// Login calls /auth/test-login?player_id=... to obtain a session cookie.
-// Only available when the auth-service runs with TEST_MODE=true.
+// Login obtains a session cookie for the bot. Prefers /auth/bot-login when
+// a BotSecret is configured; otherwise falls back to /auth/test-login (only
+// works when the auth-service runs with TEST_MODE=true).
 func (c *Client) Login(ctx context.Context) error {
+	if c.botSecret != "" {
+		return c.botLogin(ctx)
+	}
+	return c.testLogin(ctx)
+}
+
+func (c *Client) botLogin(ctx context.Context) error {
+	body, _ := json.Marshal(map[string]string{"player_id": c.playerID.String()})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/auth/bot-login", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Bot-Secret", c.botSecret)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("bot-login: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bot-login: unexpected status %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func (c *Client) testLogin(ctx context.Context) error {
 	u := fmt.Sprintf("%s/auth/test-login?player_id=%s", c.baseURL, c.playerID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {

@@ -179,7 +179,9 @@ func main() {
 		if label == "" {
 			label = id.String()[:8]
 		}
-		c, err := client.New(*baseURL, id)
+		c, err := client.New(*baseURL, id, client.Options{
+			BotSecret: os.Getenv("BOT_SERVICE_SECRET"),
+		})
 		if err != nil {
 			log.Error("client init", "bot", label, "error", err)
 			continue
