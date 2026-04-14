@@ -179,12 +179,6 @@ func (r *Runner) RunBackfill(ctx context.Context, rdb *redis.Client) error {
 	}
 	r.log.Info("authenticated (backfill mode)")
 
-	playerWS, err := r.client.DialPlayerWS(ctx)
-	if err != nil {
-		return fmt.Errorf("dial player ws: %w", err)
-	}
-	defer playerWS.Close()
-
 	botID := r.bot.ID.String()
 
 	// Register in the known + available sets atomically so the detector sees
@@ -235,7 +229,17 @@ func (r *Runner) RunBackfill(ctx context.Context, rdb *redis.Client) error {
 			r.log.Info("activated — joining queue")
 
 			gameLog := r.log.With("trigger", "backfill")
-			if err := r.playOneBackfill(ctx, playerWS, gameLog); err != nil {
+			// Dial player WS per activation — keeping it open between
+			// activations lets intermediaries close it on idle, which then
+			// surfaces as match_found: unexpected EOF right after join.
+			if err := func() error {
+				playerWS, err := r.client.DialPlayerWS(ctx)
+				if err != nil {
+					return fmt.Errorf("dial player ws: %w", err)
+				}
+				defer playerWS.Close()
+				return r.playOneBackfill(ctx, playerWS, gameLog)
+			}(); err != nil {
 				gameLog.Error("backfill game failed", "error", err)
 			}
 
