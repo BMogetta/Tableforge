@@ -5,9 +5,16 @@
   "type": "object",
   "properties": {
     "player_id": { "type": "string" },
+    "username": { "type": "string" },
+    "avatar_url": { "type": "string" },
+    "is_bot": { "type": "boolean" },
+    "bot_profile": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard", "aggressive"]
+    },
     "bio": { "type": "string" },
     "country": { "type": "string" },
     "updated_at": { "type": "string", "format": "date-time" }
   },
-  "required": ["player_id", "updated_at"]
+  "required": ["player_id", "username", "is_bot", "updated_at"]
 }

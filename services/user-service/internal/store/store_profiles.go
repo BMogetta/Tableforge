@@ -27,35 +27,40 @@ func (s *pgStore) FindPlayerByUsername(ctx context.Context, username string) (Pl
 }
 
 func (s *pgStore) GetProfile(ctx context.Context, playerID uuid.UUID) (PlayerProfile, error) {
+	// LEFT JOIN on user_profiles so rows that never upserted a profile still
+	// return identity fields (username, is_bot, bot_profile). This lets the
+	// profile page render bots even though they will never fill in bio/country.
 	row := s.db.QueryRow(ctx, `
-		SELECT player_id, bio, country, updated_at
-		FROM users.player_profiles
-		WHERE player_id = $1
+		SELECT p.id, p.username, p.avatar_url, p.is_bot, p.bot_profile,
+		       pp.bio, pp.country, COALESCE(pp.updated_at, p.created_at)
+		FROM players p
+		LEFT JOIN users.player_profiles pp ON pp.player_id = p.id
+		WHERE p.id = $1 AND p.deleted_at IS NULL
 	`, playerID)
 
 	var p PlayerProfile
-	err := row.Scan(&p.PlayerID, &p.Bio, &p.Country, &p.UpdatedAt)
+	err := row.Scan(&p.PlayerID, &p.Username, &p.AvatarURL, &p.IsBot, &p.BotProfile, &p.Bio, &p.Country, &p.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		// Return an empty profile — not an error.
-		return PlayerProfile{PlayerID: playerID}, nil
+		// Caller navigated to a player that does not exist (or is soft-deleted).
+		return PlayerProfile{}, fmt.Errorf("player not found")
 	}
 	return p, err
 }
 
 func (s *pgStore) UpsertProfile(ctx context.Context, params UpsertProfileParams) (PlayerProfile, error) {
-	row := s.db.QueryRow(ctx, `
+	if _, err := s.db.Exec(ctx, `
 		INSERT INTO users.player_profiles (player_id, bio, country)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (player_id) DO UPDATE
 		SET bio        = EXCLUDED.bio,
 		    country    = EXCLUDED.country,
 		    updated_at = NOW()
-		RETURNING player_id, bio, country, updated_at
-	`, params.PlayerID, params.Bio, params.Country)
-
-	var p PlayerProfile
-	err := row.Scan(&p.PlayerID, &p.Bio, &p.Country, &p.UpdatedAt)
-	return p, err
+	`, params.PlayerID, params.Bio, params.Country); err != nil {
+		return PlayerProfile{}, fmt.Errorf("upsert profile: %w", err)
+	}
+	// Re-read via GetProfile so identity fields (username, avatar, is_bot,
+	// bot_profile) come back in the same shape every caller expects.
+	return s.GetProfile(ctx, params.PlayerID)
 }
 
 func (s *pgStore) UpsertAchievement(ctx context.Context, playerID uuid.UUID, key string, tier, progress int) (PlayerAchievement, error) {

@@ -55,10 +55,14 @@ export function Profile({ playerId }: { playerId: string }) {
         <header className={styles.header}>
           <ProfileHeader
             playerId={playerId}
-            username={currentPlayer && isOwnProfile ? currentPlayer.username : undefined}
-            avatarUrl={currentPlayer && isOwnProfile ? currentPlayer.avatar_url : undefined}
+            username={profile?.username ?? (isOwnProfile ? currentPlayer?.username : undefined)}
+            avatarUrl={
+              profile?.avatar_url ?? (isOwnProfile ? currentPlayer?.avatar_url : undefined)
+            }
             bio={profile?.bio}
             country={profile?.country}
+            isBot={profile?.is_bot}
+            botProfile={profile?.bot_profile}
             isLoading={isLoading}
           />
           {!isOwnProfile && currentPlayer && (

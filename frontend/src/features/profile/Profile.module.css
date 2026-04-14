@@ -54,12 +54,41 @@
   min-width: 0;
 }
 
+.usernameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .username {
   font-family: var(--font-display);
   font-size: var(--text-lg);
   letter-spacing: 0.1em;
   color: var(--color-text-primary);
   margin: 0;
+}
+
+.botBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+}
+
+.botBadgeSep {
+  opacity: 0.5;
+}
+
+.botBadgeProfile {
+  color: var(--color-interactive-dim);
 }
 
 .bio {

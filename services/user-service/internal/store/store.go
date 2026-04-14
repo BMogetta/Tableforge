@@ -76,9 +76,15 @@ type PlayerReport struct {
 
 type PlayerProfile struct {
 	PlayerID  uuid.UUID `json:"player_id"`
-	Bio       *string   `json:"bio,omitempty"`
-	Country   *string   `json:"country,omitempty"` // ISO 3166-1 alpha-2
-	UpdatedAt time.Time `json:"updated_at"`
+	// Username + AvatarURL + IsBot + BotProfile are denormalised from players
+	// so the profile page can render identity + badges without a second fetch.
+	Username   string    `json:"username"`
+	AvatarURL  *string   `json:"avatar_url,omitempty"`
+	IsBot      bool      `json:"is_bot"`
+	BotProfile *string   `json:"bot_profile,omitempty"`
+	Bio        *string   `json:"bio,omitempty"`
+	Country    *string   `json:"country,omitempty"` // ISO 3166-1 alpha-2
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type PlayerAchievement struct {

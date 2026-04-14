@@ -9,6 +9,8 @@ interface ProfileHeaderProps {
   bio?: string
   country?: string
   isLoading: boolean
+  isBot?: boolean
+  botProfile?: 'easy' | 'medium' | 'hard' | 'aggressive'
 }
 
 export function ProfileHeader({
@@ -18,6 +20,8 @@ export function ProfileHeader({
   bio,
   country,
   isLoading,
+  isBot = false,
+  botProfile,
 }: ProfileHeaderProps) {
   const { t } = useTranslation()
 
@@ -45,7 +49,24 @@ export function ProfileHeader({
       )}
 
       <div className={styles.headerInfo}>
-        <h1 className={styles.username} {...testId('profile-username')}>{username ?? playerId.slice(0, 8)}</h1>
+        <div className={styles.usernameRow}>
+          <h1 className={styles.username} {...testId('profile-username')}>
+            {username ?? playerId.slice(0, 8)}
+          </h1>
+          {isBot && (
+            <span className={styles.botBadge} {...testId('profile-bot-badge')}>
+              {t('room.bot')}
+              {botProfile && (
+                <>
+                  <span className={styles.botBadgeSep} aria-hidden='true'>
+                    ·
+                  </span>
+                  <span className={styles.botBadgeProfile}>{botProfile}</span>
+                </>
+              )}
+            </span>
+          )}
+        </div>
         {bio && <p className={styles.bio}>{bio}</p>}
         {country && <span className={styles.country}>{country}</span>}
       </div>

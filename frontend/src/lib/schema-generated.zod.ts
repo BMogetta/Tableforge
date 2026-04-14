@@ -70,7 +70,7 @@ export type PlayerAchievement = z.infer<typeof playerAchievementSchema>
 export const playerMuteSchema = z.object({ "muter_id": z.string(), "muted_id": z.string(), "created_at": z.string().datetime({ offset: true }) })
 export type PlayerMute = z.infer<typeof playerMuteSchema>
 
-export const playerProfileSchema = z.object({ "player_id": z.string(), "bio": z.string().optional(), "country": z.string().optional(), "updated_at": z.string().datetime({ offset: true }) })
+export const playerProfileSchema = z.object({ "player_id": z.string(), "username": z.string(), "avatar_url": z.string().optional(), "is_bot": z.boolean(), "bot_profile": z.enum(["easy","medium","hard","aggressive"]).optional(), "bio": z.string().optional(), "country": z.string().optional(), "updated_at": z.string().datetime({ offset: true }) })
 export type PlayerProfile = z.infer<typeof playerProfileSchema>
 
 export const playerReportSchema = z.object({ "id": z.string(), "reporter_id": z.string(), "reported_id": z.string(), "reason": z.string(), "context": z.any(), "status": z.enum(["pending","reviewed"]), "reviewed_by": z.string().optional(), "reviewed_at": z.string().datetime({ offset: true }).optional(), "resolution": z.string().optional(), "ban_id": z.string().optional(), "created_at": z.string().datetime({ offset: true }) })

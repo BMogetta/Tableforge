@@ -43,4 +43,17 @@ describe('ProfileHeader', () => {
     render(<ProfileHeader playerId='abcd1234-rest' isLoading={false} />)
     expect(screen.getByText('abcd1234')).toBeInTheDocument()
   })
+
+  it('renders BOT badge with profile when isBot is true', () => {
+    render(
+      <ProfileHeader playerId='bot1' username='bot_easy_1' isBot botProfile='easy' isLoading={false} />,
+    )
+    expect(screen.getByTestId('profile-bot-badge')).toBeInTheDocument()
+    expect(screen.getByTestId('profile-bot-badge')).toHaveTextContent('easy')
+  })
+
+  it('does not render BOT badge when isBot is false', () => {
+    render(<ProfileHeader playerId='p1' username='alice' isLoading={false} />)
+    expect(screen.queryByTestId('profile-bot-badge')).not.toBeInTheDocument()
+  })
 })
