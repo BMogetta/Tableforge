@@ -95,6 +95,9 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=${GRAFANA_ANON_ENABLED:-false}
       - GF_AUTH_ANONYMOUS_ORG_ROLE=${GRAFANA_ANON_ROLE:-Viewer}
       - GF_AUTH_DISABLE_LOGIN_FORM=${GRAFANA_DISABLE_LOGIN:-false}
+      # Password for the claude_mcp_ro Postgres role — consumed by the
+      # provisioned Postgres datasource (see infra/grafana-datasources.yaml).
+      - GRAFANA_DB_PASSWORD=${CLAUDE_MCP_RO_PASSWORD:-claude_ro}
     volumes:
       - ./infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
@@ -102,6 +105,7 @@ services:
     networks:
       - monitoring_network
       - app_network
+      - data_network # read-only queries for the bot analytics dashboard
     depends_on:
       - tempo
       - loki
