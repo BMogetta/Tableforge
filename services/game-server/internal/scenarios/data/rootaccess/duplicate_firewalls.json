@@ -1,0 +1,24 @@
+{
+  "name": "Duplicate firewalls in hand",
+  "description": "Player 1 holds two firewalls and gets the turn. Exercises HandDisplay's fly-out on duplicate cards — verify both copies can be played and neither leaves a stale transform on the reused DOM slot.",
+  "state": {
+    "current_player_id": "__PLAYER_1__",
+    "data": {
+      "round": 1,
+      "phase": "playing",
+      "players": ["__PLAYER_1__", "__PLAYER_2__"],
+      "tokens": { "__PLAYER_1__": 0, "__PLAYER_2__": 0 },
+      "eliminated": [],
+      "protected": [],
+      "backdoor_played_by": [],
+      "discard_piles": { "__PLAYER_1__": [], "__PLAYER_2__": [] },
+      "discard_order": [],
+      "set_aside_visible": [],
+      "deck": ["backdoor", "encrypted_key", "ping", "sniffer"],
+      "hands": {
+        "__PLAYER_1__": ["firewall", "firewall"],
+        "__PLAYER_2__": ["backdoor"]
+      }
+    }
+  }
+}

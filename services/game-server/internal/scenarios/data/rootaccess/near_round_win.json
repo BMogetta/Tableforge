@@ -1,0 +1,31 @@
+{
+  "name": "Near round win",
+  "description": "Round 2, player 1 is one token away from winning the round. Use to quickly exercise RoundSummary / token track transitions — play any card that survives to round-end.",
+  "state": {
+    "current_player_id": "__PLAYER_1__",
+    "data": {
+      "round": 2,
+      "phase": "playing",
+      "players": ["__PLAYER_1__", "__PLAYER_2__"],
+      "tokens": { "__PLAYER_1__": 1, "__PLAYER_2__": 0 },
+      "eliminated": [],
+      "protected": [],
+      "backdoor_played_by": [],
+      "discard_piles": {
+        "__PLAYER_1__": ["ping"],
+        "__PLAYER_2__": ["sniffer"]
+      },
+      "discard_order": [
+        { "player_id": "__PLAYER_2__", "card": "sniffer" },
+        { "player_id": "__PLAYER_1__", "card": "ping" }
+      ],
+      "set_aside_visible": [],
+      "deck": ["backdoor", "encrypted_key", "swap"],
+      "hands": {
+        "__PLAYER_1__": ["root", "sniffer"],
+        "__PLAYER_2__": ["backdoor"]
+      },
+      "round_winner_id": null
+    }
+  }
+}
