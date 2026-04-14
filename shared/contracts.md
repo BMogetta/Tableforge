@@ -214,6 +214,21 @@ is_draw, duration_secs, players[]
 
 ---
 
+### `bot.activate`
+**Publisher:** match-service (backfill detector, when a lone human has
+waited past `BACKFILL_THRESHOLD_SECS`)
+**Consumers:** bot-runner in `--mode=backfill` → the selected bot joins
+the ranked queue so the human gets a match.
+
+**Payload:** `{"player_id": "<bot-uuid>"}`
+
+> Unlike the other events on this map, `bot.activate` is a thin
+> pub/sub signal (no `event_id` envelope) because bot-runner is a
+> sidecar that shares state with match-service via Redis sets
+> (`bot:known`, `bot:available`), not a durable consumer.
+
+---
+
 ## What stays internal (no contract needed)
 
 | Call | Service | Why internal |

@@ -46,8 +46,32 @@ Fire-and-forget events. Channel naming: `{domain}.{entity}.{verb}`. All events c
 | `player.banned` | user-service | auth-service, match-service, game-server, notification-service |
 | `friendship.accepted` | user-service | notification-service |
 | `player.session.revoked` | auth-service | ws-gateway |
+| `bot.activate` | match-service | bot-runner |
 
 Full contract map: `shared/contracts.md`.
+
+## Ranked bot backfill
+
+When a lone human has been waiting in the ranked queue past
+`BACKFILL_THRESHOLD_SECS`, match-service picks the bot from
+`bot:available` (set populated by bot-runner) whose MMR is closest and
+publishes `{"player_id": "<bot-uuid>"}` on the Redis `bot.activate`
+channel. bot-runner, running with `--mode=backfill`, receives the
+signal, authenticates via `POST /auth/bot-login` (header
+`X-Bot-Secret: $BOT_SERVICE_SECRET`), and joins the ranked queue. The
+regular match proposal / accept / session flow takes over from there.
+
+Relevant env vars (see `.env.example`):
+
+| Variable | Consumer | Purpose |
+|----------|----------|---------|
+| `BACKFILL_ENABLED` | match-service | Toggle backfill detector |
+| `BACKFILL_THRESHOLD_SECS` | match-service | Wait time before backfill fires |
+| `BACKFILL_MAX_ACTIVE` | match-service | Cap on active bot sessions |
+| `RANKED_GAME_ID` | match-service | Game id used for ranked rooms |
+| `BOT_SERVICE_SECRET` | auth-service + bot-runner | Shared secret for `/auth/bot-login` |
+
+Smoke recipe: `docs/phase3-backfill-smoke.md`.
 
 ## Database
 
