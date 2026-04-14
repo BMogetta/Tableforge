@@ -25,6 +25,8 @@ interface Props {
    * (used for the local player and bots where the signal isn't meaningful).
    */
   isOnline?: boolean
+  /** Show a "BOT" badge next to the name. */
+  isBot?: boolean
 }
 
 /** @package */
@@ -41,6 +43,7 @@ export function PlayerBoard({
   dimProtected = false,
   isBotThinking = false,
   isOnline,
+  isBot = false,
 }: Props) {
   const { t } = useTranslation()
   const hintsEnabled = useHintsEnabled()
@@ -69,6 +72,11 @@ export function PlayerBoard({
               />
             )}
             <span className={styles.username}>{username}</span>
+            {isBot && (
+              <span className={styles.botBadge} aria-label={t('room.bot')}>
+                {t('room.bot')}
+              </span>
+            )}
             {isLocal && <span className={styles.youBadge}>{t('common.you')}</span>}
             {isBotThinking && (
               <span className={styles.thinking} aria-label={t('rootaccess.botThinking')}>

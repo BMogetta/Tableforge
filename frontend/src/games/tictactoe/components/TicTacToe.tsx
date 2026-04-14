@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/store'
 import { testId } from '@/utils/testId'
 import styles from './TicTacToe.module.css'
@@ -16,7 +17,7 @@ interface Props {
   onMove: (cell: number) => void
   disabled: boolean
   /** Roster, used to render the opponent label + presence dot. */
-  players?: { id: string; username: string }[]
+  players?: { id: string; username: string; is_bot?: boolean }[]
 }
 
 /** @package */
@@ -32,20 +33,26 @@ export function TicTacToeBoard({
   const localMark = marks[localPlayerId]
   const isMyTurn = currentPlayerId === localPlayerId && !disabled
   const presenceMap = useAppStore(s => s.presenceMap)
+  const { t } = useTranslation()
 
   const opponent = players.find(p => p.id !== localPlayerId) ?? null
-  const opponentOnline = opponent ? (presenceMap[opponent.id] ?? false) : false
+  const opponentIsBot = opponent?.is_bot ?? false
+  // Bots are always "there" — presence is only meaningful for humans.
+  const opponentOnline = opponent && !opponentIsBot ? (presenceMap[opponent.id] ?? false) : true
 
   return (
     <div className={styles.stage}>
       {opponent && (
         <div className={styles.opponentStrip}>
-          <span
-            className={styles.presenceDot}
-            data-online={String(opponentOnline)}
-            {...testId('opponent-presence-dot')}
-          />
+          {!opponentIsBot && (
+            <span
+              className={styles.presenceDot}
+              data-online={String(opponentOnline)}
+              {...testId('opponent-presence-dot')}
+            />
+          )}
           <span className={styles.opponentName}>{opponent.username}</span>
+          {opponentIsBot && <span className={styles.botBadge}>{t('room.bot')}</span>}
         </div>
       )}
       <div className={styles.board}>

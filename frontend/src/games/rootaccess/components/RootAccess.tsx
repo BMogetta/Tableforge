@@ -323,6 +323,7 @@ export function RootAccess({
               isLocal={false}
               isCurrentTurn={id === currentPlayerId}
               isBotThinking={isBotThinking}
+              isBot={isBot}
               isOnline={isOnline}
               dimProtected={selectedCard !== null && needsTarget}
             />

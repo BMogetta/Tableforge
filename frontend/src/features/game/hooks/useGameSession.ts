@@ -14,7 +14,7 @@ interface UseGameSessionOptions {
 interface UseGameSessionReturn {
   session: GameSession | null
   gameData: GameData | null
-  roomPlayers: { id: string; username: string }[]
+  roomPlayers: { id: string; username: string; is_bot: boolean }[]
   loadError: Error | null
 }
 
@@ -72,6 +72,7 @@ export function useGameSession({
     roomData?.players.map(p => ({
       id: p.id,
       username: p.username,
+      is_bot: p.is_bot,
     })) ?? []
 
   return {

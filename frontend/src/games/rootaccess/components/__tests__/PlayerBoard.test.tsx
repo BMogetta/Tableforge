@@ -82,4 +82,14 @@ describe('PlayerBoard', () => {
     render(<PlayerBoard {...baseProps} isLocal={true} handSize={1} />)
     expect(screen.queryByLabelText("Player 1's hand")).not.toBeInTheDocument()
   })
+
+  it('renders BOT badge when isBot is true', () => {
+    render(<PlayerBoard {...baseProps} isBot={true} />)
+    expect(screen.getByText('Bot')).toBeInTheDocument()
+  })
+
+  it('does not render BOT badge when isBot is false', () => {
+    render(<PlayerBoard {...baseProps} />)
+    expect(screen.queryByText('Bot')).not.toBeInTheDocument()
+  })
 })

@@ -92,6 +92,17 @@
   padding: 1px var(--space-1);
 }
 
+.botBadge {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1px var(--space-1);
+}
+
 /* Bot "thinking..." indicator — three dots that pulse sequentially. */
 .thinking {
   display: inline-flex;
