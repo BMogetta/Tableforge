@@ -21,28 +21,36 @@ cd tools/mcp-game
 npm install
 ```
 
-## Configure Claude Code
+## Configure Claude Code (project-scoped)
 
-Add to your Claude Code settings (`~/.claude/settings.json` or
-`~/.config/claude/claude_desktop_config.json`, depending on platform):
+The MCP only makes sense when tableforge's local stack is running — keep
+it scoped to this project, not your global Claude config.
+
+Create `.claude/settings.local.json` at the repo root (gitignored by
+default, holds your personal `TF_PLAYER_ID`):
 
 ```json
 {
   "mcpServers": {
     "tf-game": {
       "command": "npx",
-      "args": ["--yes", "tsx", "/absolute/path/to/tableforge/tools/mcp-game/src/index.ts"],
+      "args": ["--yes", "tsx", "./tools/mcp-game/src/index.ts"],
       "env": {
         "TF_BASE_URL": "http://localhost",
-        "TF_PLAYER_ID": "<player-uuid>"
+        "TF_PLAYER_ID": "<your-player-uuid>"
       }
     }
   }
 }
 ```
 
-Restart Claude Code. The tools (`list_scenarios`, `load_scenario`,
-`get_session`, `apply_move`, etc.) become available in the next session.
+Restart Claude Code from inside the repo directory. The tools
+(`list_scenarios`, `load_scenario`, `get_session`, `apply_move`, etc.)
+become available in the next session.
+
+> If you want to share the MCP config with collaborators (e.g. CI or
+> teammates), use `.claude/settings.json` instead — commit it but keep
+> `TF_PLAYER_ID` blank and override it in `settings.local.json`.
 
 ## Tools
 
