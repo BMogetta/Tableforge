@@ -6,8 +6,14 @@
   "properties": {
     "rank": { "type": "integer" },
     "player_id": { "type": "string" },
+    "username": { "type": "string" },
+    "is_bot": { "type": "boolean" },
+    "bot_profile": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard", "aggressive"]
+    },
     "display_rating": { "type": "number" },
     "games_played": { "type": "integer" }
   },
-  "required": ["rank", "player_id", "display_rating", "games_played"]
+  "required": ["rank", "player_id", "username", "is_bot", "display_rating", "games_played"]
 }

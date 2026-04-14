@@ -97,7 +97,10 @@ func (h *Handler) GetLeaderboard(ctx context.Context, req *ratingv1.GetLeaderboa
 		offset = 0
 	}
 
-	rows, err := h.store.GetLeaderboard(ctx, req.GameId, limit, offset, leaderboardMinGames)
+	// gRPC leaderboard has no internal callers today; match the public HTTP
+	// default (bots excluded). If an internal use case emerges, add an
+	// include_bots field to the proto and thread it through.
+	rows, err := h.store.GetLeaderboard(ctx, req.GameId, limit, offset, leaderboardMinGames, false)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get leaderboard: %v", err)
 	}
@@ -112,7 +115,7 @@ func (h *Handler) GetLeaderboard(ctx context.Context, req *ratingv1.GetLeaderboa
 		}
 	}
 
-	total, err := h.store.CountLeaderboard(ctx, req.GameId, leaderboardMinGames)
+	total, err := h.store.CountLeaderboard(ctx, req.GameId, leaderboardMinGames, false)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "count leaderboard: %v", err)
 	}

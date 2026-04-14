@@ -24,6 +24,15 @@ type PlayerRating struct {
 	UpdatedAt     time.Time
 }
 
+// LeaderboardRow enriches a rating with player identity so the frontend
+// can render names + bot indicators without a follow-up fetch.
+type LeaderboardRow struct {
+	PlayerRating
+	Username   string
+	IsBot      bool
+	BotProfile *string
+}
+
 // HistoryEntry is a single row to insert into rating_history.
 type HistoryEntry struct {
 	PlayerID  uuid.UUID
@@ -46,11 +55,14 @@ type Store interface {
 	GetRatings(ctx context.Context, playerIDs []uuid.UUID, gameID string) (map[uuid.UUID]*PlayerRating, error)
 
 	// GetLeaderboard returns up to limit rows ordered by display_rating DESC.
-	// Only players with at least minGames games are included.
-	GetLeaderboard(ctx context.Context, gameID string, limit, offset, minGames int) ([]*PlayerRating, error)
+	// Only players with at least minGames games are included. When includeBots
+	// is false, rows for bot accounts are filtered out so human rankings are
+	// not distorted by the always-on backfill pool.
+	GetLeaderboard(ctx context.Context, gameID string, limit, offset, minGames int, includeBots bool) ([]*LeaderboardRow, error)
 
-	// CountLeaderboard returns the total number of players eligible for the leaderboard.
-	CountLeaderboard(ctx context.Context, gameID string, minGames int) (int, error)
+	// CountLeaderboard returns the total number of players eligible for the
+	// leaderboard. Mirrors GetLeaderboard's includeBots semantics.
+	CountLeaderboard(ctx context.Context, gameID string, minGames int, includeBots bool) (int, error)
 
 	// UpsertRatings writes updated ratings and inserts history rows in one transaction.
 	UpsertRatings(ctx context.Context, updates []*PlayerRating, history []HistoryEntry) error
@@ -143,41 +155,56 @@ func (s *pgStore) GetRatings(ctx context.Context, playerIDs []uuid.UUID, gameID 
 	return result, rows.Err()
 }
 
-func (s *pgStore) GetLeaderboard(ctx context.Context, gameID string, limit, offset, minGames int) ([]*PlayerRating, error) {
+func (s *pgStore) GetLeaderboard(ctx context.Context, gameID string, limit, offset, minGames int, includeBots bool) ([]*LeaderboardRow, error) {
+	// JOIN players so we can show username + bot indicators on the list
+	// without a second round-trip. The WHERE clause filters bots out by
+	// default; opting in is a $5 bool so the same prepared statement path
+	// covers both modes.
 	const q = `
-		SELECT player_id, game_id, mmr, display_rating, games_played,
-		       win_streak, loss_streak, updated_at
-		FROM ratings.ratings
-		WHERE game_id = $1
-		  AND games_played >= $2
-		ORDER BY display_rating DESC
+		SELECT r.player_id, r.game_id, r.mmr, r.display_rating, r.games_played,
+		       r.win_streak, r.loss_streak, r.updated_at,
+		       p.username, p.is_bot, p.bot_profile
+		FROM ratings.ratings r
+		JOIN players p ON p.id = r.player_id
+		WHERE r.game_id = $1
+		  AND r.games_played >= $2
+		  AND p.deleted_at IS NULL
+		  AND ($5::bool OR p.is_bot = FALSE)
+		ORDER BY r.display_rating DESC
 		LIMIT $3 OFFSET $4`
 
-	rows, err := s.db.Query(ctx, q, gameID, minGames, limit, offset)
+	rows, err := s.db.Query(ctx, q, gameID, minGames, limit, offset, includeBots)
 	if err != nil {
 		return nil, fmt.Errorf("get leaderboard: %w", err)
 	}
 	defer rows.Close()
 
-	var out []*PlayerRating
+	var out []*LeaderboardRow
 	for rows.Next() {
-		pr := &PlayerRating{}
+		row := &LeaderboardRow{}
 		if err := rows.Scan(
-			&pr.PlayerID, &pr.GameID, &pr.MMR, &pr.DisplayRating,
-			&pr.GamesPlayed, &pr.WinStreak, &pr.LossStreak, &pr.UpdatedAt,
+			&row.PlayerID, &row.GameID, &row.MMR, &row.DisplayRating,
+			&row.GamesPlayed, &row.WinStreak, &row.LossStreak, &row.UpdatedAt,
+			&row.Username, &row.IsBot, &row.BotProfile,
 		); err != nil {
 			return nil, fmt.Errorf("scan leaderboard row: %w", err)
 		}
-		out = append(out, pr)
+		out = append(out, row)
 	}
 	return out, rows.Err()
 }
 
-func (s *pgStore) CountLeaderboard(ctx context.Context, gameID string, minGames int) (int, error) {
+func (s *pgStore) CountLeaderboard(ctx context.Context, gameID string, minGames int, includeBots bool) (int, error) {
 	var count int
 	err := s.db.QueryRow(ctx,
-		`SELECT COUNT(*) FROM ratings.ratings WHERE game_id = $1 AND games_played >= $2`,
-		gameID, minGames,
+		`SELECT COUNT(*)
+		 FROM ratings.ratings r
+		 JOIN players p ON p.id = r.player_id
+		 WHERE r.game_id = $1
+		   AND r.games_played >= $2
+		   AND p.deleted_at IS NULL
+		   AND ($3::bool OR p.is_bot = FALSE)`,
+		gameID, minGames, includeBots,
 	).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count leaderboard: %w", err)

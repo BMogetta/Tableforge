@@ -17,7 +17,7 @@ type testEnv struct {
 
 func newTestEnv(t *testing.T) testEnv {
 	t.Helper()
-	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.MigrationRating)
+	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.MigrationRating, testutil.MigrationBotProfile)
 
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {
@@ -217,7 +217,7 @@ func TestLeaderboard(t *testing.T) {
 	}, nil)
 
 	// minGames=3 should exclude carol (2 games).
-	lb, err := env.store.GetLeaderboard(ctx, "tictactoe", 10, 0, 3)
+	lb, err := env.store.GetLeaderboard(ctx, "tictactoe", 10, 0, 3, false)
 	if err != nil {
 		t.Fatalf("GetLeaderboard: %v", err)
 	}
@@ -227,13 +227,67 @@ func TestLeaderboard(t *testing.T) {
 	if lb[0].PlayerID != p1 {
 		t.Error("expected alice first (highest display_rating)")
 	}
+	if lb[0].Username == "" {
+		t.Error("expected username populated from JOIN")
+	}
 
-	count, err := env.store.CountLeaderboard(ctx, "tictactoe", 3)
+	count, err := env.store.CountLeaderboard(ctx, "tictactoe", 3, false)
 	if err != nil {
 		t.Fatalf("CountLeaderboard: %v", err)
 	}
 	if count != 2 {
 		t.Errorf("expected count 2, got %d", count)
+	}
+}
+
+func TestLeaderboardExcludesBotsByDefault(t *testing.T) {
+	env := newTestEnv(t)
+	ctx := context.Background()
+
+	human := env.seedPlayer(t, "alice")
+	botID := uuid.New()
+	if _, err := env.pool.Exec(ctx,
+		`INSERT INTO players (id, username, is_bot, bot_profile) VALUES ($1, 'bot_easy_x', TRUE, 'easy')`,
+		botID,
+	); err != nil {
+		t.Fatalf("seed bot: %v", err)
+	}
+
+	env.store.UpsertRatings(ctx, []*store.PlayerRating{
+		{PlayerID: human, GameID: "tictactoe", MMR: 1600, DisplayRating: 1600, GamesPlayed: 10},
+		{PlayerID: botID, GameID: "tictactoe", MMR: 1800, DisplayRating: 1800, GamesPlayed: 50},
+	}, nil)
+
+	// Default path (includeBots=false): bot filtered out even though its
+	// rating is higher.
+	human_only, err := env.store.GetLeaderboard(ctx, "tictactoe", 10, 0, 0, false)
+	if err != nil {
+		t.Fatalf("GetLeaderboard: %v", err)
+	}
+	if len(human_only) != 1 || human_only[0].PlayerID != human {
+		t.Fatalf("default should hide bots; got %d rows", len(human_only))
+	}
+
+	// includeBots=true: both rows, bot first (higher rating) with profile set.
+	all, err := env.store.GetLeaderboard(ctx, "tictactoe", 10, 0, 0, true)
+	if err != nil {
+		t.Fatalf("GetLeaderboard(include): %v", err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("include_bots=true should return 2 rows, got %d", len(all))
+	}
+	if !all[0].IsBot || all[0].BotProfile == nil || *all[0].BotProfile != "easy" {
+		t.Errorf("expected bot row first with profile=easy, got is_bot=%v profile=%v", all[0].IsBot, all[0].BotProfile)
+	}
+
+	// Count mirrors the filter.
+	n, _ := env.store.CountLeaderboard(ctx, "tictactoe", 0, false)
+	if n != 1 {
+		t.Errorf("CountLeaderboard default: got %d, want 1", n)
+	}
+	n, _ = env.store.CountLeaderboard(ctx, "tictactoe", 0, true)
+	if n != 2 {
+		t.Errorf("CountLeaderboard include_bots: got %d, want 2", n)
 	}
 }
 
@@ -250,13 +304,13 @@ func TestLeaderboardPagination(t *testing.T) {
 	}, nil)
 
 	// Page 1: limit 1.
-	page1, _ := env.store.GetLeaderboard(ctx, "tictactoe", 1, 0, 0)
+	page1, _ := env.store.GetLeaderboard(ctx, "tictactoe", 1, 0, 0, false)
 	if len(page1) != 1 || page1[0].PlayerID != p1 {
 		t.Error("page 1 should have alice")
 	}
 
 	// Page 2: offset 1.
-	page2, _ := env.store.GetLeaderboard(ctx, "tictactoe", 1, 1, 0)
+	page2, _ := env.store.GetLeaderboard(ctx, "tictactoe", 1, 1, 0, false)
 	if len(page2) != 1 || page2[0].PlayerID != p2 {
 		t.Error("page 2 should have bob")
 	}

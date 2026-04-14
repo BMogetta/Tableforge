@@ -42,8 +42,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 // GET /api/v1/ratings/{game_id}/leaderboard
 // Query params:
 //
-//	limit  int  (default 100, max 500)
-//	offset int  (default 0)
+//	limit        int   (default 100, max 500)
+//	offset       int   (default 0)
+//	include_bots bool  (default false — bots are hidden from the public list)
 func (h *Handler) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "game_id")
 	if gameID == "" {
@@ -57,8 +58,9 @@ func (h *Handler) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	offset := max(queryInt(r, "offset", 0), 0)
+	includeBots := r.URL.Query().Get("include_bots") == "true"
 
-	rows, err := h.store.GetLeaderboard(r.Context(), gameID, limit, offset, leaderboardMinGames)
+	rows, err := h.store.GetLeaderboard(r.Context(), gameID, limit, offset, leaderboardMinGames, includeBots)
 	if err != nil {
 		h.log.Error("handler: get leaderboard", "game_id", gameID, "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -68,6 +70,9 @@ func (h *Handler) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 	type entry struct {
 		Rank          int     `json:"rank"`
 		PlayerID      string  `json:"player_id"`
+		Username      string  `json:"username"`
+		IsBot         bool    `json:"is_bot"`
+		BotProfile    *string `json:"bot_profile,omitempty"`
 		DisplayRating float64 `json:"display_rating"`
 		GamesPlayed   int     `json:"games_played"`
 	}
@@ -77,12 +82,15 @@ func (h *Handler) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
 		entries[i] = entry{
 			Rank:          offset + i + 1,
 			PlayerID:      row.PlayerID.String(),
+			Username:      row.Username,
+			IsBot:         row.IsBot,
+			BotProfile:    row.BotProfile,
 			DisplayRating: row.DisplayRating,
 			GamesPlayed:   row.GamesPlayed,
 		}
 	}
 
-	total, err := h.store.CountLeaderboard(r.Context(), gameID, leaderboardMinGames)
+	total, err := h.store.CountLeaderboard(r.Context(), gameID, leaderboardMinGames, includeBots)
 	if err != nil {
 		h.log.Error("handler: count leaderboard", "game_id", gameID, "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)

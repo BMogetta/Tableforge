@@ -56,11 +56,11 @@ func (m *mockStore) GetRatings(_ context.Context, playerIDs []uuid.UUID, gameID 
 	return result, nil
 }
 
-func (m *mockStore) GetLeaderboard(_ context.Context, gameID string, limit, offset, minGames int) ([]*store.PlayerRating, error) {
+func (m *mockStore) GetLeaderboard(_ context.Context, _ string, _, _, _ int, _ bool) ([]*store.LeaderboardRow, error) {
 	return nil, nil
 }
 
-func (m *mockStore) CountLeaderboard(_ context.Context, gameID string, minGames int) (int, error) {
+func (m *mockStore) CountLeaderboard(_ context.Context, _ string, _ int, _ bool) (int, error) {
 	return 0, nil
 }
 

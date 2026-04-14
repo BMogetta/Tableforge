@@ -10,8 +10,9 @@ import { z } from 'zod'
 // --- Leaderboard -------------------------------------------------------------
 
 export const leaderboard = {
-  get: async (gameId: string, limit = 20) => {
+  get: async (gameId: string, limit = 20, includeBots = false) => {
     const params = new URLSearchParams({ limit: String(limit) })
+    if (includeBots) params.set('include_bots', 'true')
     const res = await validatedRequest(
       getLeaderboardResponseSchema,
       `/ratings/${gameId}/leaderboard?${params}`,

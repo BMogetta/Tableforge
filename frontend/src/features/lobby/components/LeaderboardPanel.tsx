@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { leaderboard } from '@/features/lobby/api'
 import type { LeaderboardEntry } from '@/lib/schema-generated.zod'
 import { keys } from '@/lib/queryClient'
@@ -12,16 +14,28 @@ interface Props {
 }
 
 export function LeaderboardPanel({ gameId }: Props) {
+  const { t } = useTranslation()
+  const [includeBots, setIncludeBots] = useState(false)
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: keys.leaderboard(gameId),
-    queryFn: () => leaderboard.get(gameId, 20),
+    queryKey: keys.leaderboard(gameId, includeBots),
+    queryFn: () => leaderboard.get(gameId, 20, includeBots),
     enabled: !!gameId,
     refetchInterval: 60_000, // poll every 60s
   })
 
   return (
     <section className={styles.section}>
-      <h2 className={styles.title}>Leaderboard</h2>
+      <header className={styles.header}>
+        <h2 className={styles.title}>Leaderboard</h2>
+        <label className={styles.toggle} {...testId('leaderboard-include-bots')}>
+          <input
+            type='checkbox'
+            checked={includeBots}
+            onChange={e => setIncludeBots(e.target.checked)}
+          />
+          <span>Show bots</span>
+        </label>
+      </header>
 
       {isLoading ? (
         <LeaderboardSkeleton />
@@ -48,7 +62,20 @@ export function LeaderboardPanel({ gameId }: Props) {
                     params={{ playerId: e.player_id }}
                     className={styles.player}
                   >
-                    <span>{e.player_id}</span>
+                    <span className={styles.playerName}>{e.username}</span>
+                    {e.is_bot && (
+                      <span className={styles.botBadge}>
+                        {t('room.bot')}
+                        {e.bot_profile && (
+                          <>
+                            <span className={styles.botBadgeSep} aria-hidden='true'>
+                              ·
+                            </span>
+                            <span className={styles.botBadgeProfile}>{e.bot_profile}</span>
+                          </>
+                        )}
+                      </span>
+                    )}
                   </Link>
                 </td>
                 <td className={styles.rating}>{Math.round(e.display_rating)}</td>

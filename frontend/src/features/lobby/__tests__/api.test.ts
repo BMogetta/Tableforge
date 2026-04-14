@@ -28,10 +28,17 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('leaderboard', () => {
   it('get fetches with game_id and limit', async () => {
-    mockFetch.mockResolvedValue(json({ game_id: 'tictactoe', entries: [{ rank: 1, player_id: 'p1', display_rating: 1500, games_played: 10 }], total: 1 }))
+    mockFetch.mockResolvedValue(json({ game_id: 'tictactoe', entries: [{ rank: 1, player_id: 'p1', username: 'alice', is_bot: false, display_rating: 1500, games_played: 10 }], total: 1 }))
     const entries = await leaderboard.get('tictactoe', 5)
     expect(lastCall().url).toContain('/ratings/tictactoe/leaderboard?limit=5')
     expect(entries).toHaveLength(1)
+    expect(entries[0].username).toBe('alice')
+  })
+
+  it('get appends include_bots=true when requested', async () => {
+    mockFetch.mockResolvedValue(json({ game_id: 'tictactoe', entries: [], total: 0 }))
+    await leaderboard.get('tictactoe', 5, true)
+    expect(lastCall().url).toContain('include_bots=true')
   })
 })
 

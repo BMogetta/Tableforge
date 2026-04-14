@@ -43,7 +43,7 @@ export type GameResultRecord = z.infer<typeof gameResultRecordSchema>
 export const gameSessionSchema = z.object({ "id": z.string(), "room_id": z.string(), "game_id": z.string(), "name": z.string().optional(), "mode": z.string(), "move_count": z.number().int(), "suspend_count": z.number().int(), "suspended_at": z.string().datetime({ offset: true }).optional(), "suspended_reason": z.string().optional(), "ready_players": z.array(z.string()), "turn_timeout_secs": z.number().int().optional(), "last_move_at": z.string().datetime({ offset: true }), "started_at": z.string().datetime({ offset: true }), "finished_at": z.string().datetime({ offset: true }).optional() })
 export type GameSession = z.infer<typeof gameSessionSchema>
 
-export const leaderboardEntrySchema = z.object({ "rank": z.number().int(), "player_id": z.string(), "display_rating": z.number(), "games_played": z.number().int() })
+export const leaderboardEntrySchema = z.object({ "rank": z.number().int(), "player_id": z.string(), "username": z.string(), "is_bot": z.boolean(), "bot_profile": z.enum(["easy","medium","hard","aggressive"]).optional(), "display_rating": z.number(), "games_played": z.number().int() })
 export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>
 
 export const lobbySettingSchema = z.object({ "key": z.string(), "label": z.string(), "description": z.string().optional(), "type": z.enum(["select","int"]), "default": z.string(), "options": z.array(z.object({ "value": z.string(), "label": z.string() })).optional(), "min": z.number().int().optional(), "max": z.number().int().optional() })

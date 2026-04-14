@@ -15,7 +15,7 @@ import (
 
 type mockStore struct {
 	ratings     map[uuid.UUID]*store.PlayerRating
-	leaderboard []*store.PlayerRating
+	leaderboard []*store.LeaderboardRow
 	lbCount     int
 }
 
@@ -42,7 +42,7 @@ func (m *mockStore) GetRatings(_ context.Context, playerIDs []uuid.UUID, gameID 
 	return result, nil
 }
 
-func (m *mockStore) GetLeaderboard(_ context.Context, _ string, limit, offset, _ int) ([]*store.PlayerRating, error) {
+func (m *mockStore) GetLeaderboard(_ context.Context, _ string, limit, offset, _ int, _ bool) ([]*store.LeaderboardRow, error) {
 	end := offset + limit
 	if end > len(m.leaderboard) {
 		end = len(m.leaderboard)
@@ -53,7 +53,7 @@ func (m *mockStore) GetLeaderboard(_ context.Context, _ string, limit, offset, _
 	return m.leaderboard[offset:end], nil
 }
 
-func (m *mockStore) CountLeaderboard(_ context.Context, _ string, _ int) (int, error) {
+func (m *mockStore) CountLeaderboard(_ context.Context, _ string, _ int, _ bool) (int, error) {
 	return m.lbCount, nil
 }
 
@@ -189,9 +189,9 @@ func TestGetRatings_InvalidPlayerID(t *testing.T) {
 func TestGetLeaderboard(t *testing.T) {
 	ms := newMockStore()
 	p1, p2 := uuid.New(), uuid.New()
-	ms.leaderboard = []*store.PlayerRating{
-		{PlayerID: p1, GameID: "tictactoe", DisplayRating: 1700, GamesPlayed: 20},
-		{PlayerID: p2, GameID: "tictactoe", DisplayRating: 1600, GamesPlayed: 15},
+	ms.leaderboard = []*store.LeaderboardRow{
+		{PlayerRating: store.PlayerRating{PlayerID: p1, GameID: "tictactoe", DisplayRating: 1700, GamesPlayed: 20}, Username: "p1"},
+		{PlayerRating: store.PlayerRating{PlayerID: p2, GameID: "tictactoe", DisplayRating: 1600, GamesPlayed: 15}, Username: "p2"},
 	}
 	ms.lbCount = 2
 	h := New(ms)
@@ -254,9 +254,9 @@ func TestGetLeaderboard_MissingGameID(t *testing.T) {
 func TestGetLeaderboard_Pagination(t *testing.T) {
 	ms := newMockStore()
 	p1, p2 := uuid.New(), uuid.New()
-	ms.leaderboard = []*store.PlayerRating{
-		{PlayerID: p1, GameID: "tictactoe", DisplayRating: 1700, GamesPlayed: 20},
-		{PlayerID: p2, GameID: "tictactoe", DisplayRating: 1600, GamesPlayed: 15},
+	ms.leaderboard = []*store.LeaderboardRow{
+		{PlayerRating: store.PlayerRating{PlayerID: p1, GameID: "tictactoe", DisplayRating: 1700, GamesPlayed: 20}, Username: "p1"},
+		{PlayerRating: store.PlayerRating{PlayerID: p2, GameID: "tictactoe", DisplayRating: 1600, GamesPlayed: 15}, Username: "p2"},
 	}
 	ms.lbCount = 2
 	h := New(ms)

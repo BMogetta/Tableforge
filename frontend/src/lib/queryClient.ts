@@ -23,7 +23,8 @@ export const keys = {
   roomMessages: (roomId: string) => ['rooms', roomId, 'messages'] as const,
   games: () => ['games'] as const,
   gameConfig: (id: string) => ['games', id, 'config'] as const,
-  leaderboard: (gameId?: string) => ['leaderboard', gameId ?? 'all'] as const,
+  leaderboard: (gameId?: string, includeBots?: boolean) =>
+    ['leaderboard', gameId ?? 'all', includeBots ? 'with-bots' : 'humans'] as const,
   session: (id: string) => ['sessions', id] as const,
   player: (id: string) => ['players', id] as const,
   adminEmails: () => ['admin', 'emails'] as const,

@@ -18,7 +18,7 @@ import (
 
 type mockStore struct {
 	ratings     map[string]*store.PlayerRating // key: "playerID:gameID"
-	leaderboard []*store.PlayerRating
+	leaderboard []*store.LeaderboardRow
 }
 
 func newMockStore() *mockStore {
@@ -58,19 +58,37 @@ func (m *mockStore) GetRatings(_ context.Context, playerIDs []uuid.UUID, gameID 
 	return result, nil
 }
 
-func (m *mockStore) GetLeaderboard(_ context.Context, _ string, limit, offset, _ int) ([]*store.PlayerRating, error) {
-	if offset >= len(m.leaderboard) {
+func (m *mockStore) GetLeaderboard(_ context.Context, _ string, limit, offset, _ int, includeBots bool) ([]*store.LeaderboardRow, error) {
+	filtered := m.leaderboard
+	if !includeBots {
+		filtered = filtered[:0:0]
+		for _, r := range m.leaderboard {
+			if !r.IsBot {
+				filtered = append(filtered, r)
+			}
+		}
+	}
+	if offset >= len(filtered) {
 		return nil, nil
 	}
 	end := offset + limit
-	if end > len(m.leaderboard) {
-		end = len(m.leaderboard)
+	if end > len(filtered) {
+		end = len(filtered)
 	}
-	return m.leaderboard[offset:end], nil
+	return filtered[offset:end], nil
 }
 
-func (m *mockStore) CountLeaderboard(_ context.Context, _ string, _ int) (int, error) {
-	return len(m.leaderboard), nil
+func (m *mockStore) CountLeaderboard(_ context.Context, _ string, _ int, includeBots bool) (int, error) {
+	if includeBots {
+		return len(m.leaderboard), nil
+	}
+	n := 0
+	for _, r := range m.leaderboard {
+		if !r.IsBot {
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (m *mockStore) UpsertRatings(_ context.Context, _ []*store.PlayerRating, _ []store.HistoryEntry) error {
@@ -164,11 +182,14 @@ func TestHandlePlayerRating_InvalidID(t *testing.T) {
 func TestHandleLeaderboard(t *testing.T) {
 	st := newMockStore()
 	for i := range 3 {
-		st.leaderboard = append(st.leaderboard, &store.PlayerRating{
-			PlayerID:      uuid.New(),
-			GameID:        "tictactoe",
-			DisplayRating: float64(1600 - i*50),
-			GamesPlayed:   10 + i,
+		st.leaderboard = append(st.leaderboard, &store.LeaderboardRow{
+			PlayerRating: store.PlayerRating{
+				PlayerID:      uuid.New(),
+				GameID:        "tictactoe",
+				DisplayRating: float64(1600 - i*50),
+				GamesPlayed:   10 + i,
+			},
+			Username: "human_" + string(rune('a'+i)),
 		})
 	}
 
@@ -190,6 +211,47 @@ func TestHandleLeaderboard(t *testing.T) {
 	first := entries[0].(map[string]any)
 	if first["rank"].(float64) != 1 {
 		t.Errorf("first entry rank should be 1, got %v", first["rank"])
+	}
+	if first["username"].(string) == "" {
+		t.Errorf("expected username in entry, got empty")
+	}
+	if first["is_bot"].(bool) {
+		t.Errorf("expected is_bot=false for human fixture, got true")
+	}
+}
+
+func TestHandleLeaderboard_ExcludesBotsByDefault(t *testing.T) {
+	st := newMockStore()
+	st.leaderboard = []*store.LeaderboardRow{
+		{PlayerRating: store.PlayerRating{PlayerID: uuid.New(), GameID: "tictactoe", DisplayRating: 1800, GamesPlayed: 20}, Username: "alice", IsBot: false},
+		{PlayerRating: store.PlayerRating{PlayerID: uuid.New(), GameID: "tictactoe", DisplayRating: 1700, GamesPlayed: 30}, Username: "bot_hard_1", IsBot: true},
+		{PlayerRating: store.PlayerRating{PlayerID: uuid.New(), GameID: "tictactoe", DisplayRating: 1600, GamesPlayed: 15}, Username: "bob", IsBot: false},
+	}
+
+	router := newTestRouter(st)
+
+	// Default (bots hidden): expect 2 humans.
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/ratings/tictactoe/leaderboard", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	body := decodeJSON[map[string]any](t, rec)
+	if got := len(body["entries"].([]any)); got != 2 {
+		t.Errorf("default should hide bots; got %d entries, want 2", got)
+	}
+	if got := body["total"].(float64); got != 2 {
+		t.Errorf("default total should be 2 (humans only), got %v", got)
+	}
+
+	// include_bots=true: all 3 rows.
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/ratings/tictactoe/leaderboard?include_bots=true", nil)
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	body = decodeJSON[map[string]any](t, rec)
+	if got := len(body["entries"].([]any)); got != 3 {
+		t.Errorf("include_bots=true should return 3 entries, got %d", got)
+	}
+	if got := body["total"].(float64); got != 3 {
+		t.Errorf("include_bots=true total should be 3, got %v", got)
 	}
 }
 
