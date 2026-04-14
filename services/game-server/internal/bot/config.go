@@ -24,6 +24,17 @@ type PersonalityProfile struct {
 	// Interpreted per game adapter — the MCTS engine itself ignores them.
 	Aggressiveness float64 // 0.0 = passive, 1.0 = aggressive
 	RiskAversion   float64 // 0.0 = risk-loving, 1.0 = risk-averse
+
+	// Response-time envelope used by the bot-runner to pace moves so humans
+	// perceive the bot as thinking rather than reacting instantly. Total
+	// delay is drawn from [MinMoveDelay, MinMoveDelay+MoveDelayJitter] and
+	// MCTS compute time counts against it — fast MCTS fills the rest with
+	// sleep, slow MCTS submits immediately.
+	//
+	// Consumers that don't care about pacing (integrated server-side bot,
+	// benchmarks) can ignore these fields.
+	MinMoveDelay    time.Duration
+	MoveDelayJitter time.Duration
 }
 
 // Profiles contains the built-in personality presets.
@@ -36,6 +47,9 @@ var Profiles = map[string]PersonalityProfile{
 		ExplorationC:     2.0,
 		Aggressiveness:   0.3,
 		RiskAversion:     0.7,
+		// Beginners hesitate — longer floor, wider jitter so rhythm varies.
+		MinMoveDelay:    900 * time.Millisecond,
+		MoveDelayJitter: 1200 * time.Millisecond,
 	},
 	"medium": {
 		Name:             "medium",
@@ -44,6 +58,8 @@ var Profiles = map[string]PersonalityProfile{
 		ExplorationC:     1.41,
 		Aggressiveness:   0.5,
 		RiskAversion:     0.5,
+		MinMoveDelay:    1500 * time.Millisecond,
+		MoveDelayJitter: 1500 * time.Millisecond,
 	},
 	"hard": {
 		Name:             "hard",
@@ -52,6 +68,9 @@ var Profiles = map[string]PersonalityProfile{
 		ExplorationC:     1.0,
 		Aggressiveness:   0.7,
 		RiskAversion:     0.3,
+		// "Thoughtful" feel — slower floor, comparable jitter.
+		MinMoveDelay:    2200 * time.Millisecond,
+		MoveDelayJitter: 1800 * time.Millisecond,
 	},
 	"aggressive": {
 		Name:             "aggressive",
@@ -60,6 +79,9 @@ var Profiles = map[string]PersonalityProfile{
 		ExplorationC:     0.8,
 		Aggressiveness:   1.0,
 		RiskAversion:     0.1,
+		// Impulsive — snap decisions, narrow jitter.
+		MinMoveDelay:    500 * time.Millisecond,
+		MoveDelayJitter: 500 * time.Millisecond,
 	},
 }
 

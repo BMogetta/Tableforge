@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"time"
 
 	"github.com/google/uuid"
@@ -426,6 +427,7 @@ func (r *Runner) takeTurn(ctx context.Context, sessionID string, hintState engin
 	searchCtx, cancel := context.WithTimeout(ctx, r.bot.Config.MaxThinkTime+2*time.Second)
 	defer cancel()
 
+	startedAt := time.Now()
 	payload, err := r.bot.DecideMove(searchCtx, fresh.State)
 	if err != nil {
 		if errors.Is(err, botpkg.ErrNoMoves) {
@@ -434,10 +436,50 @@ func (r *Runner) takeTurn(ctx context.Context, sessionID string, hintState engin
 		}
 		return fmt.Errorf("decide move: %w", err)
 	}
+
+	// Profile-based pacing: if MCTS finished before the "thinking" floor,
+	// sleep out the remainder so humans perceive a deliberate move. MCTS
+	// time counts against the budget — slow profiles with short searches
+	// get sleep, strong profiles with long searches submit as soon as they
+	// decide. Zero MinMoveDelay disables pacing.
+	if target := pickThinkTime(r.bot.Config.Personality); target > 0 {
+		if remaining := target - time.Since(startedAt); remaining > 0 {
+			if err := sleepCtx(ctx, remaining); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := r.client.Move(ctx, sessionID, payload); err != nil {
 		return fmt.Errorf("submit move: %w", err)
 	}
 	return nil
+}
+
+// pickThinkTime returns a random duration in
+// [MinMoveDelay, MinMoveDelay+MoveDelayJitter) or 0 if pacing is disabled
+// for the profile.
+func pickThinkTime(p botpkg.PersonalityProfile) time.Duration {
+	if p.MinMoveDelay <= 0 {
+		return 0
+	}
+	if p.MoveDelayJitter <= 0 {
+		return p.MinMoveDelay
+	}
+	return p.MinMoveDelay + time.Duration(rand.Int64N(int64(p.MoveDelayJitter)))
+}
+
+// sleepCtx blocks for d or until ctx is cancelled, whichever comes first.
+// Returns ctx.Err() on cancellation so the caller stops the game loop.
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
 }
 
 // --- wire helpers -----------------------------------------------------------
