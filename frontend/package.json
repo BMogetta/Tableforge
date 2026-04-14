@@ -42,7 +42,7 @@
     "@biomejs/biome": "^2.4.7",
     "@playwright/test": "^1.58.2",
     "@tanstack/devtools-vite": "^0.6.0",
-    "@tanstack/react-devtools": "^0.10.0",
+    "@tanstack/react-devtools": "^0.10.2",
     "@tanstack/react-pacer-devtools": "^0.5.4",
     "@tanstack/react-router-devtools": "^1.166.9",
     "@tanstack/router-plugin": "^1.166.12",
