@@ -257,7 +257,29 @@
 .matchGame {
   font-size: var(--text-sm);
   color: var(--color-text-primary);
+}
+
+.matchOpponent {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
   flex: 1;
+  min-width: 0;
+}
+
+.matchVs {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.matchOpponentName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .matchMeta {

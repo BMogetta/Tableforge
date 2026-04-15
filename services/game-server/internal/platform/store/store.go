@@ -146,13 +146,17 @@ type GameResult struct {
 
 // MatchHistoryEntry is a GameResult enriched with the queried player's outcome.
 type MatchHistoryEntry struct {
-	ID           uuid.UUID `json:"id"`
-	SessionID    uuid.UUID `json:"session_id"`
-	GameID       string    `json:"game_id"`
-	Outcome      Outcome   `json:"outcome"`
-	EndedBy      EndedBy   `json:"ended_by"`
-	DurationSecs *int      `json:"duration_secs,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID                 uuid.UUID  `json:"id"`
+	SessionID          uuid.UUID  `json:"session_id"`
+	GameID             string     `json:"game_id"`
+	Outcome            Outcome    `json:"outcome"`
+	EndedBy            EndedBy    `json:"ended_by"`
+	DurationSecs       *int       `json:"duration_secs,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+	OpponentID         *uuid.UUID `json:"opponent_id,omitempty"`
+	OpponentUsername   *string    `json:"opponent_username,omitempty"`
+	OpponentIsBot      *bool      `json:"opponent_is_bot,omitempty"`
+	OpponentBotProfile *string    `json:"opponent_bot_profile,omitempty"`
 }
 
 type Outcome string

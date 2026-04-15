@@ -210,7 +210,9 @@
     "loadingMatches": "Loading matches...",
     "loadingAchievements": "Loading achievements...",
     "noMatches": "No matches played yet.",
-    "pageInfo": "{{current}} / {{total}}"
+    "pageInfo": "{{current}} / {{total}}",
+    "vs": "vs",
+    "unknownOpponent": "Unknown"
   },
   "notifications": {
     "title": "Notifications",

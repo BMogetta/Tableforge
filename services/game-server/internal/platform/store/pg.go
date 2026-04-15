@@ -711,9 +711,18 @@ func (s *PGStore) ListPlayerHistory(ctx context.Context, playerID uuid.UUID, lim
 func (s *PGStore) ListPlayerMatches(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]MatchHistoryEntry, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT gr.id, gr.session_id, gr.game_id, grp.outcome,
-		        gr.ended_by, gr.duration_secs, gr.created_at
+		        gr.ended_by, gr.duration_secs, gr.created_at,
+		        op.id, op.username, op.is_bot, op.bot_profile
 		 FROM game_results gr
 		 JOIN game_result_players grp ON grp.result_id = gr.id
+		 LEFT JOIN LATERAL (
+		   SELECT p.id, p.username, p.is_bot, p.bot_profile
+		   FROM game_result_players g2
+		   JOIN players p ON p.id = g2.player_id
+		   WHERE g2.result_id = gr.id AND g2.player_id <> $1
+		   ORDER BY g2.seat
+		   LIMIT 1
+		 ) op ON TRUE
 		 WHERE grp.player_id = $1
 		 ORDER BY gr.created_at DESC
 		 LIMIT $2 OFFSET $3`,
@@ -727,7 +736,10 @@ func (s *PGStore) ListPlayerMatches(ctx context.Context, playerID uuid.UUID, lim
 	entries := []MatchHistoryEntry{}
 	for rows.Next() {
 		var e MatchHistoryEntry
-		if err := rows.Scan(&e.ID, &e.SessionID, &e.GameID, &e.Outcome, &e.EndedBy, &e.DurationSecs, &e.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&e.ID, &e.SessionID, &e.GameID, &e.Outcome, &e.EndedBy, &e.DurationSecs, &e.CreatedAt,
+			&e.OpponentID, &e.OpponentUsername, &e.OpponentIsBot, &e.OpponentBotProfile,
+		); err != nil {
 			return nil, fmt.Errorf("ListPlayerMatches scan: %w", err)
 		}
 		entries = append(entries, e)

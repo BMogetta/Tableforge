@@ -49,7 +49,7 @@ export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>
 export const lobbySettingSchema = z.object({ "key": z.string(), "label": z.string(), "description": z.string().optional(), "type": z.enum(["select","int"]), "default": z.string(), "options": z.array(z.object({ "value": z.string(), "label": z.string() })).optional(), "min": z.number().int().optional(), "max": z.number().int().optional() })
 export type LobbySetting = z.infer<typeof lobbySettingSchema>
 
-export const matchHistoryEntrySchema = z.object({ "id": z.string(), "session_id": z.string(), "game_id": z.string(), "outcome": z.enum(["win","loss","draw","forfeit"]), "ended_by": z.enum(["win","draw","forfeit","timeout","ready_timeout","suspended"]), "duration_secs": z.number().int().optional(), "created_at": z.string().datetime({ offset: true }) })
+export const matchHistoryEntrySchema = z.object({ "id": z.string(), "session_id": z.string(), "game_id": z.string(), "outcome": z.enum(["win","loss","draw","forfeit"]), "ended_by": z.enum(["win","draw","forfeit","timeout","ready_timeout","suspended"]), "duration_secs": z.number().int().optional(), "created_at": z.string().datetime({ offset: true }), "opponent_id": z.string().optional(), "opponent_username": z.string().optional(), "opponent_is_bot": z.boolean().optional(), "opponent_bot_profile": z.enum(["easy","medium","hard","aggressive"]).optional() })
 export type MatchHistoryEntry = z.infer<typeof matchHistoryEntrySchema>
 
 export const moveSchema = z.object({ "id": z.string(), "session_id": z.string(), "player_id": z.string(), "payload": z.any(), "state_after": z.string().optional(), "move_number": z.number().int(), "applied_at": z.string().datetime({ offset: true }) })

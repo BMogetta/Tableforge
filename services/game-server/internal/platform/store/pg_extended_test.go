@@ -671,6 +671,15 @@ func TestListPlayerMatchesAndCount(t *testing.T) {
 	if matches[0].Outcome != store.OutcomeWin {
 		t.Errorf("expected outcome win, got %s", matches[0].Outcome)
 	}
+	if matches[0].OpponentID == nil || *matches[0].OpponentID != guest.ID {
+		t.Errorf("expected opponent_id=%s, got %+v", guest.ID, matches[0].OpponentID)
+	}
+	if matches[0].OpponentUsername == nil || *matches[0].OpponentUsername != guest.Username {
+		t.Errorf("expected opponent_username=%s, got %+v", guest.Username, matches[0].OpponentUsername)
+	}
+	if matches[0].OpponentIsBot == nil || *matches[0].OpponentIsBot {
+		t.Errorf("expected opponent_is_bot=false, got %+v", matches[0].OpponentIsBot)
+	}
 
 	count, err := s.CountPlayerMatches(ctx, owner.ID)
 	if err != nil {

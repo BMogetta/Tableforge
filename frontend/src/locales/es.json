@@ -210,7 +210,9 @@
     "loadingMatches": "Cargando partidas...",
     "loadingAchievements": "Cargando logros...",
     "noMatches": "No hay partidas a\u00fan.",
-    "pageInfo": "{{current}} / {{total}}"
+    "pageInfo": "{{current}} / {{total}}",
+    "vs": "vs",
+    "unknownOpponent": "Desconocido"
   },
   "notifications": {
     "title": "Notificaciones",

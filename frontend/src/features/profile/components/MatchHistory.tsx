@@ -74,6 +74,30 @@ export function MatchHistory({
               {match.outcome}
             </span>
             <span className={styles.matchGame}>{match.game_id}</span>
+            <span className={styles.matchOpponent} {...testId(`match-opponent-${i}`)}>
+              <span className={styles.matchVs}>{t('profile.vs')}</span>
+              <span className={styles.matchOpponentName}>
+                {match.opponent_username ?? t('profile.unknownOpponent')}
+              </span>
+              {match.opponent_is_bot && (
+                <span
+                  className={styles.botBadge}
+                  {...testId(`match-opponent-bot-${i}`)}
+                >
+                  {t('room.bot')}
+                  {match.opponent_bot_profile && (
+                    <>
+                      <span className={styles.botBadgeSep} aria-hidden='true'>
+                        ·
+                      </span>
+                      <span className={styles.botBadgeProfile}>
+                        {match.opponent_bot_profile}
+                      </span>
+                    </>
+                  )}
+                </span>
+              )}
+            </span>
             <span className={styles.matchMeta}>
               <span>{formatDuration(match.duration_secs)}</span>
               <span>{formatDate(match.created_at)}</span>

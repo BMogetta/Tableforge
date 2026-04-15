@@ -16,7 +16,14 @@
       "enum": ["win", "draw", "forfeit", "timeout", "ready_timeout", "suspended"]
     },
     "duration_secs": { "type": "integer" },
-    "created_at": { "type": "string", "format": "date-time" }
+    "created_at": { "type": "string", "format": "date-time" },
+    "opponent_id": { "type": "string" },
+    "opponent_username": { "type": "string" },
+    "opponent_is_bot": { "type": "boolean" },
+    "opponent_bot_profile": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard", "aggressive"]
+    }
   },
   "required": ["id", "session_id", "game_id", "outcome", "ended_by", "created_at"]
 }
