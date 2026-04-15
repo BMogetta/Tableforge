@@ -493,3 +493,28 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # Egress-only tunnel to Cloudflare's edge. Terminates TLS at Cloudflare and
+  # speaks HTTP to traefik:80 over the tunnel, so the Pi never needs an open
+  # port or public IP. Configure the public hostname in the Cloudflare
+  # dashboard to target http://traefik:80 (container DNS, shared app_network).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    profiles: ["production"]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - app_network
+    depends_on:
+      - traefik
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

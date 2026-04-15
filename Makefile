@@ -28,7 +28,14 @@ up-all: networks
 	docker compose --profile app --profile monitoring up --build -d
 
 up-prod: networks
-	docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml --profile production --profile app --profile monitoring up -d --build
+	@ENV_FILE=$$( [ -f .env.prod ] && echo .env.prod || echo .env ); \
+	set -a; [ -f $$ENV_FILE ] && . ./$$ENV_FILE; set +a; \
+	test -n "$$CLOUDFLARE_TUNNEL_TOKEN" || { \
+	  echo "CLOUDFLARE_TUNNEL_TOKEN is required for up-prod (see tasks/cloudflared-prod.md)"; \
+	  exit 1; \
+	}; \
+	echo "Using env file: $$ENV_FILE"; \
+	docker compose --env-file $$ENV_FILE -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml --profile production --profile app --profile monitoring up -d --build
 
 up-test: networks
 	TEST_MODE=true RATE_LIMIT_AVG=9999 RATE_LIMIT_BURST=9999 MATCHMAKER_TICK_INTERVAL=1s MATCHMAKER_SPREAD_PER_SEC=20 docker compose -f docker-compose.yml --profile app up --build -d

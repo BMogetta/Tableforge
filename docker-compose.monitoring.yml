@@ -113,7 +113,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_HOST:-grafana.recess.bmogetta.com}`)"
+      - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_HOST:-grafana.localhost}`)"
       - "traefik.http.routers.grafana.entrypoints=web"
       # Grafana is excluded from security-headers — it requires 'unsafe-eval'
       # for table panels and transformations, and manages its own CSP.

@@ -50,10 +50,16 @@ Both application users are created automatically on first Postgres startup by `s
 make up          # postgres + redis + game-server
 make up-app      # + traefik + frontend + all backend services
 make up-all      # + full observability stack (Grafana, Tempo, Loki, Prometheus)
-make up-prod     # + PgBouncer + pg-backup (production profile)
+make up-prod     # + PgBouncer + pg-backup + cloudflared (production profile)
 ```
 
 Everything goes through Traefik on port 80. Open `http://localhost` to access the frontend.
+
+## Production Deploy
+
+Production goes online behind a Cloudflare Tunnel — no open ports, no public IP. `make up-prod` starts the `cloudflared` connector alongside the rest of the stack; the connector dials Cloudflare over outbound 443 and routes your configured public hostname to `traefik:80`.
+
+Setup is a one-time Cloudflare dashboard step (tunnel + public hostname pointing at `http://traefik:80`) plus setting `CLOUDFLARE_TUNNEL_TOKEN` in `.env`. The Makefile fails fast if the token is empty. Full walkthrough: [`docs/infrastructure/docker.md`](infrastructure/docker.md#production-profile).
 
 ### Useful Commands
 
