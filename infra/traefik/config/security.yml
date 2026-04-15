@@ -32,5 +32,5 @@ http:
           font-src 'self';
           img-src 'self' data: https://avatars.githubusercontent.com;
           connect-src 'self' ws: wss: https://l4kdz58q3w.ufs.sh;
-          media-src 'self' blob:;
+          media-src 'self' blob: https://l4kdz58q3w.ufs.sh;
           frame-ancestors 'none'
