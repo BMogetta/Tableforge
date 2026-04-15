@@ -524,19 +524,30 @@ func (svc *Service) OnAllReady(ctx context.Context, session store.GameSession, h
 // ErrNotFinished is returned when a rematch is requested on an active session.
 var ErrNotFinished = errors.New("game is not finished yet")
 
+// ErrRematchNotAllowedRanked is returned when a player tries to rematch a
+// finished ranked session. Ranked matches must go back through matchmaking so
+// MMR pairs are recomputed — a same-room rematch would bypass seeding.
+var ErrRematchNotAllowedRanked = errors.New("rematch not allowed in ranked matches")
+
 // VoteRematch registers a rematch vote for playerID on the given session.
-func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UUID) ([]store.RematchVote, int, uuid.UUID, bool, error) {
+// Returns the session's Mode alongside the vote state so the caller can start
+// the next session in the same mode — protects against silent ranked→casual
+// downgrades if the ranked guard is ever relaxed.
+func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UUID) ([]store.RematchVote, int, uuid.UUID, bool, store.SessionMode, error) {
 	session, err := svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
-		return nil, 0, uuid.Nil, false, ErrSessionNotFound
+		return nil, 0, uuid.Nil, false, "", ErrSessionNotFound
 	}
 	if session.FinishedAt == nil {
-		return nil, 0, uuid.Nil, false, ErrNotFinished
+		return nil, 0, uuid.Nil, false, session.Mode, ErrNotFinished
+	}
+	if session.Mode == store.SessionModeRanked {
+		return nil, 0, uuid.Nil, false, session.Mode, ErrRematchNotAllowedRanked
 	}
 
 	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
 	if err != nil {
-		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: list players: %w", err)
+		return nil, 0, uuid.Nil, false, session.Mode, fmt.Errorf("VoteRematch: list players: %w", err)
 	}
 
 	callerFound := false
@@ -547,11 +558,11 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 		}
 	}
 	if !callerFound {
-		return nil, 0, uuid.Nil, false, ErrNotParticipant
+		return nil, 0, uuid.Nil, false, session.Mode, ErrNotParticipant
 	}
 
 	if err := svc.store.UpsertRematchVote(ctx, sessionID, playerID); err != nil {
-		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: upsert vote: %w", err)
+		return nil, 0, uuid.Nil, false, session.Mode, fmt.Errorf("VoteRematch: upsert vote: %w", err)
 	}
 
 	for _, p := range players {
@@ -568,15 +579,15 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 
 	votes, err := svc.store.ListRematchVotes(ctx, sessionID)
 	if err != nil {
-		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: list votes: %w", err)
+		return nil, 0, uuid.Nil, false, session.Mode, fmt.Errorf("VoteRematch: list votes: %w", err)
 	}
 
 	if len(votes) < len(players) {
-		return votes, len(players), session.RoomID, false, nil
+		return votes, len(players), session.RoomID, false, session.Mode, nil
 	}
 
 	if err := svc.store.DeleteRematchVotes(ctx, sessionID); err != nil {
-		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: delete votes: %w", err)
+		return nil, 0, uuid.Nil, false, session.Mode, fmt.Errorf("VoteRematch: delete votes: %w", err)
 	}
 
 	if svc.timer != nil {
@@ -584,10 +595,10 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 	}
 
 	if err := svc.store.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusWaiting); err != nil {
-		return nil, 0, uuid.Nil, false, fmt.Errorf("VoteRematch: reset room status: %w", err)
+		return nil, 0, uuid.Nil, false, session.Mode, fmt.Errorf("VoteRematch: reset room status: %w", err)
 	}
 
-	return votes, len(players), session.RoomID, true, nil
+	return votes, len(players), session.RoomID, true, session.Mode, nil
 }
 
 // --- Rating ------------------------------------------------------------------

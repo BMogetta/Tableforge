@@ -183,6 +183,7 @@
     "forfeiting": "Forfeiting...",
     "forfeit": "Forfeit",
     "backToLobby": "Back to Lobby",
+    "backToQueue": "Back to Queue",
     "viewReplay": "View Replay",
     "pauseRequested": "Pause requested",
     "pauseVotes": "{{current}} / {{total}} voted",

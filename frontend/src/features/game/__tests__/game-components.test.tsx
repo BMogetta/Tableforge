@@ -191,6 +191,7 @@ describe('SuspendedScreen', () => {
 describe('GameOverActions', () => {
   const defaults = {
     isSpectator: false,
+    isRanked: false,
     votedRematch: false,
     rematchVotes: 0,
     totalPlayers: 2,
@@ -198,6 +199,7 @@ describe('GameOverActions', () => {
     onBackToLobby: vi.fn(),
     onViewReplay: vi.fn(),
     onRematch: vi.fn(),
+    onBackToQueue: vi.fn(),
   }
 
   it('renders back to lobby and view replay buttons', () => {
@@ -255,5 +257,29 @@ describe('GameOverActions', () => {
   it('shows plain Rematch text when no votes', () => {
     render(<GameOverActions {...defaults} rematchVotes={0} />)
     expect(screen.getByTestId('rematch-btn')).toHaveTextContent('Rematch')
+  })
+
+  it('hides rematch and shows back-to-queue when ranked', () => {
+    render(<GameOverActions {...defaults} isRanked={true} />)
+    expect(screen.queryByTestId('rematch-btn')).not.toBeInTheDocument()
+    expect(screen.getByTestId('back-to-queue-btn')).toBeInTheDocument()
+  })
+
+  it('calls onBackToQueue when the ranked button is clicked', () => {
+    const onBackToQueue = vi.fn()
+    render(<GameOverActions {...defaults} isRanked={true} onBackToQueue={onBackToQueue} />)
+    fireEvent.click(screen.getByTestId('back-to-queue-btn'))
+    expect(onBackToQueue).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables back-to-queue while pending', () => {
+    render(<GameOverActions {...defaults} isRanked={true} isBackToQueuePending={true} />)
+    expect(screen.getByTestId('back-to-queue-btn')).toBeDisabled()
+  })
+
+  it('hides both rematch and back-to-queue for ranked spectators', () => {
+    render(<GameOverActions {...defaults} isRanked={true} isSpectator={true} />)
+    expect(screen.queryByTestId('rematch-btn')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('back-to-queue-btn')).not.toBeInTheDocument()
   })
 })

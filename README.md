@@ -111,8 +111,8 @@ _Last updated: 2026-04-14_
 
 | Language | Keys | Coverage |
 |----------|------|----------|
-| English | 312 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
-| Español | 312 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
+| English | 313 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
+| Español | 313 | ![100%](https://img.shields.io/badge/translated-100%25-brightgreen) |
 
 _Last updated: 2026-04-15_
 <!-- i18n:end -->

@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/recess/game-server/internal/domain/lobby"
+	"github.com/recess/game-server/internal/platform/store"
 	sharedmw "github.com/recess/shared/middleware"
 )
 
@@ -584,6 +585,33 @@ func TestRematch_SessionNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestRematch_ForbiddenOnRanked(t *testing.T) {
+	router, s := newTestRouter(t)
+	ctx := context.Background()
+
+	owner, _ := s.CreatePlayer(ctx, "alice")
+	guest, _ := s.CreatePlayer(ctx, "bob")
+	room, _ := s.CreateRoom(ctx, store.CreateRoomParams{
+		Code: "RANKED", GameID: "chess", OwnerID: owner.ID, MaxPlayers: 2,
+	})
+	_ = s.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
+	_ = s.AddPlayerToRoom(ctx, room.ID, guest.ID, 1)
+
+	session, err := s.CreateGameSession(ctx, room.ID, "chess", []byte(`{}`), nil, store.SessionModeRanked)
+	if err != nil {
+		t.Fatalf("create ranked session: %v", err)
+	}
+	if err := s.FinishSession(ctx, session.ID); err != nil {
+		t.Fatalf("finish session: %v", err)
+	}
+
+	w := postJSONAs(t, router, "/api/v1/sessions/"+session.ID.String()+"/rematch", owner.ID, "player", map[string]string{})
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
 	}
 }
 

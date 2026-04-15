@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/store'
 import { sessions } from '@/lib/api/sessions'
+import { queue } from '@/features/lobby/api'
 import { catchToAppError, type AppError } from '@/utils/errors'
 import { testAttr } from '@/utils/testId'
 import { useToast } from '@/ui/Toast'
@@ -32,6 +33,7 @@ export function Game({ sessionId }: { sessionId: string }) {
   const socket = useAppStore(s => s.socket)
   const playerSocket = useAppStore(s => s.playerSocket)
   const leaveRoom = useAppStore(s => s.leaveRoom)
+  const setQueued = useAppStore(s => s.setQueued)
   const isSpectator = useAppStore(s => s.isSpectator)
   const setPlayerPresence = useAppStore(s => s.setPlayerPresence)
   // Game.tsx — initialize socket status from the store socket state.
@@ -191,6 +193,18 @@ export function Game({ sessionId }: { sessionId: string }) {
     },
   })
 
+  const backToQueue = useMutation({
+    mutationFn: () => queue.join(player.id),
+    onSuccess: () => {
+      setQueued(Date.now())
+      leaveRoom()
+      navigate({ to: '/' })
+    },
+    onError: e => {
+      toast.showError(catchToAppError(e))
+    },
+  })
+
   // --- Handlers --------------------------------------------------------------
 
   function handleBackToLobby() {
@@ -201,6 +215,10 @@ export function Game({ sessionId }: { sessionId: string }) {
   function handleViewReplay() {
     leaveRoom()
     navigate({ to: '/sessions/$sessionId/history', params: { sessionId } })
+  }
+
+  function handleBackToQueue() {
+    backToQueue.mutate()
   }
 
   // --- Loading state ---------------------------------------------------------
@@ -323,13 +341,16 @@ export function Game({ sessionId }: { sessionId: string }) {
         {gameOver.isOver && (
           <GameOverActions
             isSpectator={isSpectator}
+            isRanked={session.mode === 'ranked'}
             votedRematch={rematch.votedRematch}
             rematchVotes={rematch.rematchVotes}
             totalPlayers={rematch.totalPlayers}
             isRematchPending={rematch.isPending}
+            isBackToQueuePending={backToQueue.isPending}
             onBackToLobby={handleBackToLobby}
             onViewReplay={handleViewReplay}
             onRematch={rematch.voteRematch}
+            onBackToQueue={handleBackToQueue}
           />
         )}
       </div>

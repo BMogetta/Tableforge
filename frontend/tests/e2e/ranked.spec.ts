@@ -123,6 +123,13 @@ async function queueAndPlayRankedGame(p1: Page, p2: Page, p1Id: string, p2Id: st
   await expect(p1.getByTestId('game-status')).toContainText(/won|lost|Draw/, { timeout: 10_000 })
   await expect(p2.getByTestId('game-status')).toContainText(/won|lost|Draw/, { timeout: 10_000 })
 
+  // Ranked game-over UI contract: no rematch button (would bypass MMR seeding),
+  // "back to queue" is offered instead so players re-match with fresh pairing.
+  await expect(p1.getByTestId('rematch-btn')).toHaveCount(0)
+  await expect(p2.getByTestId('rematch-btn')).toHaveCount(0)
+  await expect(p1.getByTestId('back-to-queue-btn')).toBeVisible()
+  await expect(p2.getByTestId('back-to-queue-btn')).toBeVisible()
+
   // Wait for rating-service to process (async via Redis Pub/Sub).
   await expect.poll(
     async () => getGamesPlayed(p1, p1Id),

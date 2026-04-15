@@ -4,13 +4,16 @@ import { testId } from '@/utils/testId'
 
 interface Props {
   isSpectator: boolean
+  isRanked: boolean
   votedRematch: boolean
   rematchVotes: number
   totalPlayers: number
   isRematchPending: boolean
+  isBackToQueuePending?: boolean
   onBackToLobby: () => void
   onViewReplay: () => void
   onRematch: () => void
+  onBackToQueue?: () => void
 }
 
 /**
@@ -19,26 +22,23 @@ interface Props {
  * Contains:
  * - Back to Lobby: closes the room socket and navigates to /.
  * - View Replay: navigates to the session history page.
- * - Rematch (participants only): votes for a rematch. Shows vote progress
- *   while waiting for the opponent, and disables after the local player votes.
- *
- * @testability
- * - Assert "Back to Lobby" calls onBackToLobby.
- * - Assert "View Replay" calls onViewReplay.
- * - Assert "Rematch" button calls onRematch.
- * - Assert rematch button is disabled when votedRematch is true.
- * - Assert rematch button shows vote count when rematchVotes > 0.
- * - Assert rematch button is absent when isSpectator is true.
+ * - Rematch (casual participants only): votes for a rematch. Ranked players
+ *   never see this — rematch in ranked would bypass MMR-based seeding.
+ * - Back to Queue (ranked participants only): re-enqueues the player for
+ *   matchmaking, so a fresh MMR-matched opponent is found.
  */
 export function GameOverActions({
   isSpectator,
+  isRanked,
   votedRematch,
   rematchVotes,
   totalPlayers,
   isRematchPending,
+  isBackToQueuePending = false,
   onBackToLobby,
   onViewReplay,
   onRematch,
+  onBackToQueue,
 }: Props) {
   const { t } = useTranslation()
   return (
@@ -49,7 +49,7 @@ export function GameOverActions({
       <button type="button" className='btn btn-ghost' {...testId('view-replay-btn')} onClick={onViewReplay}>
         {t('game.viewReplay')}
       </button>
-      {!isSpectator && (
+      {!isSpectator && !isRanked && (
         <button type="button"
           className='btn btn-primary'
           {...testId('rematch-btn')}
@@ -61,6 +61,16 @@ export function GameOverActions({
             : rematchVotes > 0
               ? t('game.rematchVotes', { current: rematchVotes, total: totalPlayers })
               : t('game.rematch')}
+        </button>
+      )}
+      {!isSpectator && isRanked && onBackToQueue && (
+        <button type="button"
+          className='btn btn-primary'
+          {...testId('back-to-queue-btn')}
+          onClick={onBackToQueue}
+          disabled={isBackToQueuePending}
+        >
+          {t('game.backToQueue')}
         </button>
       )}
     </div>

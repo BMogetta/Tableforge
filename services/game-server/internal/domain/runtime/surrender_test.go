@@ -131,7 +131,7 @@ func TestSurrender_AllowedWhenSuspended(t *testing.T) {
 
 func TestVoteRematch_SessionNotFound(t *testing.T) {
 	svc, _ := newRuntimeWithStore(t)
-	_, _, _, _, err := svc.VoteRematch(context.Background(), uuid.New(), uuid.New())
+	_, _, _, _, _, err := svc.VoteRematch(context.Background(), uuid.New(), uuid.New())
 	if !errors.Is(err, runtime.ErrSessionNotFound) {
 		t.Errorf("expected ErrSessionNotFound, got %v", err)
 	}
@@ -150,7 +150,7 @@ func TestVoteRematch_NotFinished(t *testing.T) {
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
 
-	_, _, _, _, err := svc.VoteRematch(ctx, session.ID, p1.ID)
+	_, _, _, _, _, err := svc.VoteRematch(ctx, session.ID, p1.ID)
 	if !errors.Is(err, runtime.ErrNotFinished) {
 		t.Errorf("expected ErrNotFinished, got %v", err)
 	}
@@ -171,7 +171,7 @@ func TestVoteRematch_NotParticipant(t *testing.T) {
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
 	fs.FinishSession(ctx, session.ID)
 
-	_, _, _, _, err := svc.VoteRematch(ctx, session.ID, outsider.ID)
+	_, _, _, _, _, err := svc.VoteRematch(ctx, session.ID, outsider.ID)
 	if !errors.Is(err, runtime.ErrNotParticipant) {
 		t.Errorf("expected ErrNotParticipant, got %v", err)
 	}
@@ -191,7 +191,7 @@ func TestVoteRematch_SinglePlayer_Consensus(t *testing.T) {
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
 	fs.FinishSession(ctx, session.ID)
 
-	_, total, roomID, unanimous, err := svc.VoteRematch(ctx, session.ID, p1.ID)
+	_, total, roomID, unanimous, mode, err := svc.VoteRematch(ctx, session.ID, p1.ID)
 	if err != nil {
 		t.Fatalf("VoteRematch: %v", err)
 	}
@@ -203,6 +203,41 @@ func TestVoteRematch_SinglePlayer_Consensus(t *testing.T) {
 	}
 	if !unanimous {
 		t.Error("expected unanimous true with single player")
+	}
+	if mode != store.SessionModeCasual {
+		t.Errorf("expected mode casual, got %s", mode)
+	}
+}
+
+// TestVoteRematch_RejectsRanked guards the silent ranked→casual downgrade bug.
+// A ranked session must always short-circuit with ErrRematchNotAllowedRanked
+// so callers never reach the "start new session" path with a stale mode.
+func TestVoteRematch_RejectsRanked(t *testing.T) {
+	svc, fs := newRuntimeWithStore(t)
+	ctx := context.Background()
+
+	p1, _ := fs.CreatePlayer(ctx, "rankedRematch1")
+	p2, _ := fs.CreatePlayer(ctx, "rankedRematch2")
+	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
+		Code: "REMA0099", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
+	})
+	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
+	stateBytes, _ := json.Marshal(state)
+	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeRanked)
+	fs.FinishSession(ctx, session.ID)
+
+	_, _, _, unanimous, mode, err := svc.VoteRematch(ctx, session.ID, p1.ID)
+	if !errors.Is(err, runtime.ErrRematchNotAllowedRanked) {
+		t.Fatalf("expected ErrRematchNotAllowedRanked, got %v", err)
+	}
+	if unanimous {
+		t.Error("unanimous must be false when rematch is rejected")
+	}
+	// Mode is still surfaced on rejection so the caller can log/audit the attempt.
+	if mode != store.SessionModeRanked {
+		t.Errorf("expected mode ranked, got %s", mode)
 	}
 }
 
@@ -223,7 +258,7 @@ func TestVoteRematch_TwoPlayers_PartialThenConsensus(t *testing.T) {
 	fs.FinishSession(ctx, session.ID)
 
 	// First vote — not unanimous
-	_, total, _, unanimous, err := svc.VoteRematch(ctx, session.ID, p1.ID)
+	_, total, _, unanimous, _, err := svc.VoteRematch(ctx, session.ID, p1.ID)
 	if err != nil {
 		t.Fatalf("VoteRematch p1: %v", err)
 	}
@@ -235,7 +270,7 @@ func TestVoteRematch_TwoPlayers_PartialThenConsensus(t *testing.T) {
 	}
 
 	// Second vote — unanimous
-	_, _, _, unanimous, err = svc.VoteRematch(ctx, session.ID, p2.ID)
+	_, _, _, unanimous, _, err = svc.VoteRematch(ctx, session.ID, p2.ID)
 	if err != nil {
 		t.Fatalf("VoteRematch p2: %v", err)
 	}

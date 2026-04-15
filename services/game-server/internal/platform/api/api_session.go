@@ -298,14 +298,16 @@ func handleRematch(lobbySvc *lobby.Service, rt *runtime.Service, hub *ws.Hub) ht
 			return
 		}
 
-		votes, totalPlayers, roomID, rematchReady, err := rt.VoteRematch(r.Context(), sessionID, playerID)
+		votes, totalPlayers, roomID, rematchReady, sessionMode, err := rt.VoteRematch(r.Context(), sessionID, playerID)
 		if err != nil {
 			writeRuntimeError(w, err)
 			return
 		}
 		if rematchReady {
-			// Auto-start a new session with the same settings.
-			newSession, err := lobbySvc.StartGame(r.Context(), roomID, playerID, store.SessionModeCasual)
+			// Auto-start a new session preserving the original mode. Ranked is
+			// already rejected upstream in VoteRematch; passing sessionMode
+			// through protects us if that guard is ever relaxed.
+			newSession, err := lobbySvc.StartGame(r.Context(), roomID, playerID, sessionMode)
 			if err != nil {
 				slog.Error("rematch: auto-start failed", "room_id", roomID, "error", err)
 				// Fall back to sending players to the room.
