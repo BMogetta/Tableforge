@@ -76,7 +76,7 @@ if (!TELEMETRY_DISABLED) {
   registerInstrumentations({
     instrumentations: [
       new FetchInstrumentation({
-        propagateTraceHeaderCorsUrls: [/.*/],
+        propagateTraceHeaderCorsUrls: [],
         ignoreUrls: [/\/auth\//, /\/otlp\//],
       }),
     ],
