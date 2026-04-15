@@ -17,34 +17,37 @@ interface Props {
 export function DebuggerModal({ choices, onConfirm }: Props) {
   const { t } = useTranslation()
   const trapRef = useFocusTrap<HTMLDivElement>()
-  const [kept, setKept] = useState<CardName | null>(null)
-  // returnOrder holds the 2 cards to return, in the order they'll go to the
-  // bottom of the Repository. Index 0 = first at bottom, index 1 = second at bottom.
-  const [returnOrder, setReturnOrder] = useState<CardName[]>([])
+  // Track selection by index into `choices`, not by card name. Choices may
+  // contain duplicates (e.g. two identical cards); tracking by value would
+  // conflate them and prevent independently selecting each copy.
+  const [keptIdx, setKeptIdx] = useState<number | null>(null)
+  // returnOrder holds indices of the 2 cards to return, in the order they'll
+  // go to the bottom of the Repository. [0] = first, [1] = second.
+  const [returnOrder, setReturnOrder] = useState<number[]>([])
 
-  const remaining = choices.filter(c => c !== kept)
-
-  function handleKeep(card: CardName) {
-    setKept(card)
+  function handleKeep(idx: number) {
+    setKeptIdx(idx)
     setReturnOrder([])
   }
 
-  function handleReturn(card: CardName) {
-    if (returnOrder.includes(card)) {
-      // Deselect — remove from return order.
-      setReturnOrder(returnOrder.filter(c => c !== card))
+  function handleReturn(idx: number) {
+    if (returnOrder.includes(idx)) {
+      setReturnOrder(returnOrder.filter(i => i !== idx))
       return
     }
     if (returnOrder.length < 2) {
-      setReturnOrder([...returnOrder, card])
+      setReturnOrder([...returnOrder, idx])
     }
   }
 
-  const canConfirm = kept !== null && returnOrder.length === 2
+  const canConfirm = keptIdx !== null && returnOrder.length === 2
 
   function handleConfirm() {
     if (!canConfirm) return
-    onConfirm(kept!, [returnOrder[0], returnOrder[1]] as [CardName, CardName])
+    onConfirm(
+      choices[keptIdx!],
+      [choices[returnOrder[0]], choices[returnOrder[1]]] as [CardName, CardName],
+    )
   }
 
   return (
@@ -64,48 +67,53 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
         <div className={styles.section}>
           <span className={styles.label}>{t('rootaccess.yourChoices')}</span>
           <div className={styles.cards}>
-            {choices.map((card, i) => (
-              <div key={`${card}-${i}`} className={styles.cardSlot}>
-                <Card
-                  front={
-                    <div className={styles.face}>
-                      <CardFace card={card} />
-                    </div>
-                  }
-                  onClick={() => handleKeep(card)}
-                  disabled={kept !== null && kept !== card && !remaining.includes(card)}
-                />
-                {kept === card && <span className={styles.tagKeep}>{t('rootaccess.keep')}</span>}
-                {kept !== null && returnOrder.includes(card) && (
-                  <span
-                    className={styles.tagReturn}
-                    {...testId(`return-order-${returnOrder.indexOf(card) + 1}`)}
-                  >
-                    {returnOrder.indexOf(card) + 1}
-                  </span>
-                )}
-              </div>
-            ))}
+            {choices.map((card, i) => {
+              const returnPos = returnOrder.indexOf(i)
+              return (
+                <div key={i} className={styles.cardSlot}>
+                  <Card
+                    front={
+                      <div className={styles.face}>
+                        <CardFace card={card} />
+                      </div>
+                    }
+                    onClick={() => handleKeep(i)}
+                  />
+                  {keptIdx === i && (
+                    <span className={styles.tagKeep}>{t('rootaccess.keep')}</span>
+                  )}
+                  {keptIdx !== null && returnPos !== -1 && (
+                    <span
+                      className={styles.tagReturn}
+                      {...testId(`return-order-${returnPos + 1}`)}
+                    >
+                      {returnPos + 1}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {kept !== null && (
+        {keptIdx !== null && (
           <div className={styles.section}>
             <span className={styles.label}>
               {t('rootaccess.returnOrder', { count: `${returnOrder.length}/2` })}
             </span>
             <div className={styles.cards}>
-              {remaining.map((card, i) => {
-                const pos = returnOrder.indexOf(card)
+              {choices.map((card, i) => {
+                if (i === keptIdx) return null
+                const pos = returnOrder.indexOf(i)
                 return (
-                  <div key={`${card}-${i}`} className={styles.cardSlot}>
+                  <div key={i} className={styles.cardSlot}>
                     <Card
                       front={
                         <div className={styles.face}>
                           <CardFace card={card} />
                         </div>
                       }
-                      onClick={() => handleReturn(card)}
+                      onClick={() => handleReturn(i)}
                     />
                     {pos !== -1 && (
                       <span className={styles.tagReturn} {...testId(`return-order-${pos + 1}`)}>

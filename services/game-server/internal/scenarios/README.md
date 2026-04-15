@@ -69,3 +69,7 @@ Keep fixtures honest.
   inline styles on reused DOM slots).
 - `near_round_win` — Round 2, player 1 is one token from winning the round.
   Fast path to RoundSummary / token-track transition UI.
+- `debugger_duplicate_choices` — Player 1 is in `debugger_pending` with two
+  identical choices (ping, ping, sniffer). Exercises DebuggerModal selection
+  when choices contain duplicates — independent picks per copy and return
+  order assignable even for identical return cards.

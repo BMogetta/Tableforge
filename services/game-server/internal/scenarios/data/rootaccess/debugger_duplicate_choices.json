@@ -1,0 +1,27 @@
+{
+  "name": "Debugger with duplicate choices",
+  "description": "Player 1 is in debugger_pending with two identical cards among the 3 choices (ping, ping, sniffer). Exercises DebuggerModal selection when choices contain duplicates — verify each copy can be independently picked as keep or return, and that return order 1/2 is assignable even when both returned cards are identical.",
+  "state": {
+    "current_player_id": "__PLAYER_1__",
+    "data": {
+      "round": 1,
+      "phase": "debugger_pending",
+      "players": ["__PLAYER_1__", "__PLAYER_2__"],
+      "tokens": { "__PLAYER_1__": 0, "__PLAYER_2__": 0 },
+      "eliminated": [],
+      "protected": [],
+      "backdoor_played_by": [],
+      "discard_piles": { "__PLAYER_1__": ["debugger"], "__PLAYER_2__": [] },
+      "discard_order": [
+        { "player_id": "__PLAYER_1__", "card": "debugger" }
+      ],
+      "set_aside_visible": [],
+      "deck": ["backdoor", "encrypted_key", "reboot"],
+      "hands": {
+        "__PLAYER_1__": [],
+        "__PLAYER_2__": ["backdoor"]
+      },
+      "debugger_choices": ["ping", "ping", "sniffer"]
+    }
+  }
+}

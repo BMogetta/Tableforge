@@ -82,6 +82,53 @@ describe('DebuggerModal', () => {
     expect(screen.getAllByTestId('return-order-2')).toHaveLength(2)
   })
 
+  it('handles duplicate choices: independent selection per copy', async () => {
+    const user = userEvent.setup()
+    const onConfirm = vi.fn()
+    const dupChoices: CardName[] = ['ping', 'ping', 'sniffer']
+    render(<DebuggerModal choices={dupChoices} onConfirm={onConfirm} />)
+
+    // Keep sniffer (index 2) — the distinct one.
+    const allCards = screen.getAllByTestId('card')
+    await user.click(allCards[2])
+
+    // Return section shows both identical pings. Click each independently.
+    const returnCards = screen.getAllByTestId('card')
+    // After keep: [ping, ping, sniffer] in top + [ping, ping] in return section.
+    // Return cards live at indices 3 and 4.
+    await user.click(returnCards[3]) // first ping → position 1
+    await user.click(returnCards[4]) // second ping → position 2
+
+    // Both positions must be assigned — not collapsed by value equality.
+    expect(screen.getAllByTestId('return-order-1')).toHaveLength(2)
+    expect(screen.getAllByTestId('return-order-2')).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: /confirm/i }))
+    expect(onConfirm).toHaveBeenCalledWith('sniffer', ['ping', 'ping'])
+  })
+
+  it('handles duplicate choices: keeping one of two identicals leaves the other available', async () => {
+    const user = userEvent.setup()
+    const onConfirm = vi.fn()
+    const dupChoices: CardName[] = ['ping', 'ping', 'sniffer']
+    render(<DebuggerModal choices={dupChoices} onConfirm={onConfirm} />)
+
+    // Keep the first ping (index 0). The other ping + sniffer must remain.
+    const allCards = screen.getAllByTestId('card')
+    await user.click(allCards[0])
+
+    // Return section: exactly 2 cards (the other ping + sniffer), not 1.
+    // Total cards = 3 (top) + 2 (return) = 5.
+    const returnCards = screen.getAllByTestId('card')
+    expect(returnCards).toHaveLength(5)
+
+    await user.click(returnCards[3]) // other ping → position 1
+    await user.click(returnCards[4]) // sniffer → position 2
+
+    await user.click(screen.getByRole('button', { name: /confirm/i }))
+    expect(onConfirm).toHaveBeenCalledWith('ping', ['ping', 'sniffer'])
+  })
+
   it('deselects a return card when clicked again', async () => {
     const user = userEvent.setup()
     render(<DebuggerModal choices={choices} onConfirm={vi.fn()} />)
