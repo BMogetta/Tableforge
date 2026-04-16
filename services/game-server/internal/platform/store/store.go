@@ -293,6 +293,12 @@ type Store interface {
 	// waitingMaxAge and finished rooms older than finishedMaxAge.
 	// Returns the number of rooms cleaned up.
 	CleanupOrphanRooms(ctx context.Context, waitingMaxAge, finishedMaxAge time.Duration) (int, error)
+
+	// Transactions
+	// WithTx executes fn inside a database transaction. The Store passed to fn
+	// routes all queries through the transaction. If fn returns an error or
+	// panics, the transaction is rolled back; otherwise it is committed.
+	WithTx(ctx context.Context, fn func(Store) error) error
 }
 
 // --- Params ------------------------------------------------------------------

@@ -7,12 +7,31 @@ import (
 
 	"github.com/exaring/otelpgx"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// querier is the common interface satisfied by both *pgxpool.Pool and pgx.Tx.
+type querier interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
 
 // PGStore is the PostgreSQL implementation of Store.
 type PGStore struct {
 	pool *pgxpool.Pool
+	tx   pgx.Tx // non-nil when inside a WithTx callback
+}
+
+// db returns the active querier — the transaction if inside WithTx, otherwise
+// the connection pool.
+func (s *PGStore) db() querier {
+	if s.tx != nil {
+		return s.tx
+	}
+	return s.pool
 }
 
 // New creates a new PGStore and verifies the connection.
@@ -37,6 +56,23 @@ func New(ctx context.Context, databaseURL string) (*PGStore, error) {
 // Close releases the connection pool.
 func (s *PGStore) Close() {
 	s.pool.Close()
+}
+
+// WithTx executes fn inside a database transaction. The Store passed to fn
+// routes all queries through the transaction. If fn returns an error, the
+// transaction is rolled back; otherwise it is committed.
+func (s *PGStore) WithTx(ctx context.Context, fn func(Store) error) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("WithTx begin: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	txStore := &PGStore{pool: s.pool, tx: tx}
+	if err := fn(txStore); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // Exec runs a raw SQL statement. Used for applying migrations in tests.
@@ -195,7 +231,7 @@ func (s *PGStore) GetRoomByCode(ctx context.Context, code string) (Room, error) 
 }
 
 func (s *PGStore) UpdateRoomStatus(ctx context.Context, id uuid.UUID, status RoomStatus) error {
-	_, err := s.pool.Exec(ctx,
+	_, err := s.db().Exec(ctx,
 		`UPDATE rooms SET status = $1, updated_at = NOW() WHERE id = $2`,
 		status, id,
 	)
@@ -331,7 +367,7 @@ func (s *PGStore) IsPlayerInActiveRoom(ctx context.Context, playerID uuid.UUID) 
 }
 
 func (s *PGStore) ListRoomPlayers(ctx context.Context, roomID uuid.UUID) ([]RoomPlayer, error) {
-	rows, err := s.pool.Query(ctx,
+	rows, err := s.db().Query(ctx,
 		`SELECT room_id, player_id, seat, joined_at
 		 FROM room_players WHERE room_id = $1 ORDER BY seat`,
 		roomID,
@@ -404,7 +440,7 @@ func (s *PGStore) GetActiveSessionByRoom(ctx context.Context, roomID uuid.UUID) 
 }
 
 func (s *PGStore) UpdateSessionState(ctx context.Context, id uuid.UUID, state []byte) error {
-	_, err := s.pool.Exec(ctx,
+	_, err := s.db().Exec(ctx,
 		`UPDATE game_sessions SET state = $1, move_count = move_count + 1 WHERE id = $2`,
 		state, id,
 	)
@@ -415,7 +451,7 @@ func (s *PGStore) UpdateSessionState(ctx context.Context, id uuid.UUID, state []
 }
 
 func (s *PGStore) FinishSession(ctx context.Context, id uuid.UUID) error {
-	_, err := s.pool.Exec(ctx,
+	_, err := s.db().Exec(ctx,
 		`UPDATE game_sessions SET finished_at = NOW() WHERE id = $1`,
 		id,
 	)
@@ -523,7 +559,7 @@ func (s *PGStore) GetGameConfig(ctx context.Context, gameID string) (GameConfig,
 
 // TouchLastMoveAt updates last_move_at to now for the given session.
 func (s *PGStore) TouchLastMoveAt(ctx context.Context, sessionID uuid.UUID) error {
-	_, err := s.pool.Exec(ctx,
+	_, err := s.db().Exec(ctx,
 		`UPDATE game_sessions SET last_move_at = NOW() WHERE id = $1`,
 		sessionID,
 	)
@@ -562,7 +598,7 @@ func (s *PGStore) GetLastFinishedSession(ctx context.Context, roomID uuid.UUID) 
 // --- Moves -------------------------------------------------------------------
 
 func (s *PGStore) RecordMove(ctx context.Context, params RecordMoveParams) (Move, error) {
-	row := s.pool.QueryRow(ctx,
+	row := s.db().QueryRow(ctx,
 		`INSERT INTO moves (session_id, player_id, payload, state_after, move_number)
 		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, session_id, player_id, payload, state_after, move_number, applied_at`,
@@ -617,14 +653,24 @@ func (s *PGStore) GetMoveAt(ctx context.Context, sessionID uuid.UUID, moveNumber
 // --- Results -----------------------------------------------------------------
 
 func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultParams) (GameResult, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return GameResult{}, fmt.Errorf("CreateGameResult begin tx: %w", err)
+	// When called inside WithTx, use the existing transaction.
+	// Otherwise, start a dedicated transaction for atomicity.
+	q := s.db()
+	needsCommit := s.tx == nil
+
+	var ownTx pgx.Tx
+	if needsCommit {
+		var err error
+		ownTx, err = s.pool.Begin(ctx)
+		if err != nil {
+			return GameResult{}, fmt.Errorf("CreateGameResult begin tx: %w", err)
+		}
+		defer ownTx.Rollback(ctx)
+		q = ownTx
 	}
-	defer tx.Rollback(ctx)
 
 	var durationSecs *int
-	row := tx.QueryRow(ctx,
+	row := q.QueryRow(ctx,
 		`SELECT EXTRACT(EPOCH FROM (NOW() - started_at))::INT FROM game_sessions WHERE id = $1`,
 		params.SessionID,
 	)
@@ -634,7 +680,7 @@ func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultP
 	}
 
 	var gr GameResult
-	row = tx.QueryRow(ctx,
+	row = q.QueryRow(ctx,
 		`INSERT INTO game_results (session_id, game_id, winner_id, is_draw, ended_by, duration_secs)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id, session_id, game_id, winner_id, is_draw, ended_by, duration_secs, created_at`,
@@ -645,7 +691,7 @@ func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultP
 	}
 
 	for _, p := range params.Players {
-		_, err := tx.Exec(ctx,
+		_, err := q.Exec(ctx,
 			`INSERT INTO game_result_players (result_id, player_id, seat, outcome)
 			 VALUES ($1, $2, $3, $4)`,
 			gr.ID, p.PlayerID, p.Seat, p.Outcome,
@@ -655,14 +701,16 @@ func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultP
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return GameResult{}, fmt.Errorf("CreateGameResult commit: %w", err)
+	if needsCommit {
+		if err := ownTx.Commit(ctx); err != nil {
+			return GameResult{}, fmt.Errorf("CreateGameResult commit: %w", err)
+		}
 	}
 	return gr, nil
 }
 
 func (s *PGStore) UpdateGameResultEndedBy(ctx context.Context, sessionID uuid.UUID, endedBy EndedBy) error {
-	_, err := s.pool.Exec(ctx,
+	_, err := s.db().Exec(ctx,
 		`UPDATE game_results SET ended_by = $1 WHERE session_id = $2`,
 		endedBy, sessionID,
 	)

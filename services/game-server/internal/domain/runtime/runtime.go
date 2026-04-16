@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"time"
 
@@ -47,6 +48,9 @@ type Service struct {
 
 // New creates a new runtime Service.
 func New(st store.Store, registry engine.Registry, ev *events.Store, rdb *redis.Client, log *slog.Logger) *Service {
+	if log == nil {
+		log = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
 	return &Service{
 		store:    st,
 		registry: registry,
@@ -191,50 +195,63 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 	}
 
 	moveNumber := session.MoveCount + 1
-	if _, err := svc.store.RecordMove(ctx, store.RecordMoveParams{
-		SessionID:  sessionID,
-		PlayerID:   playerID,
-		Payload:    payloadJSON,
-		StateAfter: stateJSON,
-		MoveNumber: moveNumber,
+	over, result := game.IsOver(newState)
+
+	// Persist all DB writes atomically: move recording, state update,
+	// and (if game over) session finish + room status + game result.
+	var gameResult store.GameResult
+	if err := svc.store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.RecordMove(ctx, store.RecordMoveParams{
+			SessionID:  sessionID,
+			PlayerID:   playerID,
+			Payload:    payloadJSON,
+			StateAfter: stateJSON,
+			MoveNumber: moveNumber,
+		}); err != nil {
+			return fmt.Errorf("record move: %w", err)
+		}
+		if err := tx.UpdateSessionState(ctx, sessionID, stateJSON); err != nil {
+			return fmt.Errorf("update state: %w", err)
+		}
+		if err := tx.TouchLastMoveAt(ctx, sessionID); err != nil {
+			return fmt.Errorf("touch last_move_at: %w", err)
+		}
+
+		if over {
+			if err := tx.FinishSession(ctx, sessionID); err != nil {
+				return fmt.Errorf("finish session: %w", err)
+			}
+			// Non-fatal: stale room status is a minor inconsistency.
+			if err := tx.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
+				svc.log.Error("ApplyMove: update room status", "room_id", session.RoomID, "error", err)
+			}
+			players, err := tx.ListRoomPlayers(ctx, session.RoomID)
+			if err != nil {
+				return fmt.Errorf("list room players: %w", err)
+			}
+			resultParams := buildGameResultParams(session, result, players)
+			gameResult, err = tx.CreateGameResult(ctx, resultParams)
+			if err != nil {
+				return fmt.Errorf("create game result: %w", err)
+			}
+		}
+		return nil
 	}); err != nil {
-		return MoveResult{}, fmt.Errorf("ApplyMove: record move: %w", err)
+		return MoveResult{}, fmt.Errorf("ApplyMove: %w", err)
 	}
 
-	if err := svc.store.UpdateSessionState(ctx, sessionID, stateJSON); err != nil {
-		return MoveResult{}, fmt.Errorf("ApplyMove: update state: %w", err)
-	}
-	if err := svc.store.TouchLastMoveAt(ctx, sessionID); err != nil {
-		return MoveResult{}, fmt.Errorf("ApplyMove: touch last_move_at: %w", err)
-	}
-
+	// Reload session after commit to get updated state/move_count/finished_at.
 	session, err = svc.store.GetGameSession(ctx, sessionID)
 	if err != nil {
 		return MoveResult{}, fmt.Errorf("ApplyMove: reload session: %w", err)
 	}
 
-	over, result := game.IsOver(newState)
 	if over {
 		if svc.timer != nil {
 			svc.timer.Cancel(sessionID)
 		}
 
-		if err := svc.store.FinishSession(ctx, sessionID); err != nil {
-			return MoveResult{}, fmt.Errorf("ApplyMove: finish session: %w", err)
-		}
-		session.FinishedAt = timePtr(time.Now())
-
-		if err := svc.store.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
-			svc.log.Error("ApplyMove: finish room", "room_id", session.RoomID, "error", err)
-		}
-
 		players, _ := svc.store.ListRoomPlayers(ctx, session.RoomID)
-		resultParams := buildGameResultParams(session, result, players)
-		gameResult, err := svc.store.CreateGameResult(ctx, resultParams)
-		if err != nil {
-			svc.log.Error("ApplyMove: record game result", "session_id", sessionID, "error", err)
-		}
-
 		if session.Mode == store.SessionModeRanked {
 			svc.publishGameFinished(ctx, session, players, gameResult)
 		}

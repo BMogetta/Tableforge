@@ -930,3 +930,43 @@ func TestApplyMove_Ping_NoValidTarget_NoEffect(t *testing.T) {
 		t.Error("expected no elimination when guard played with no valid target")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Deep-copy safety
+// ---------------------------------------------------------------------------
+
+func TestApplyMove_DoesNotMutateInputState(t *testing.T) {
+	state := mustInit(t, "p1", "p2")
+	state = setHand(state, "p1", "ping", "backdoor")
+	state = setHand(state, "p2", "sniffer")
+	state = setDeck(state, "ping", "ping")
+	state = roundtrip(t, state)
+
+	// Snapshot the original state via JSON for comparison.
+	origJSON, err := json.Marshal(state)
+	if err != nil {
+		t.Fatalf("marshal original state: %v", err)
+	}
+
+	m := move("p1", map[string]any{
+		"card":             "ping",
+		"target_player_id": "p2",
+		"guess":            "buffer_overflow",
+	})
+	if err := game.ValidateMove(state, m); err != nil {
+		t.Fatalf("ValidateMove: %v", err)
+	}
+	_, err = game.ApplyMove(state, m)
+	if err != nil {
+		t.Fatalf("ApplyMove: %v", err)
+	}
+
+	// The original state must be unchanged.
+	afterJSON, err := json.Marshal(state)
+	if err != nil {
+		t.Fatalf("marshal state after ApplyMove: %v", err)
+	}
+	if string(origJSON) != string(afterJSON) {
+		t.Error("ApplyMove mutated the input state.Data — deep copy is missing or broken")
+	}
+}

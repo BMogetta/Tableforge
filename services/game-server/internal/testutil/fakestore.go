@@ -471,6 +471,12 @@ func (f *FakeStore) CreateGameResult(_ context.Context, params store.CreateGameR
 	return r, nil
 }
 
+// WithTx executes fn with the same FakeStore — in-memory operations are
+// already atomic so no real transaction is needed.
+func (f *FakeStore) WithTx(_ context.Context, fn func(store.Store) error) error {
+	return fn(f)
+}
+
 func (f *FakeStore) UpdateGameResultEndedBy(_ context.Context, sessionID uuid.UUID, endedBy store.EndedBy) error {
 	r, ok := f.GameResults[sessionID]
 	if !ok {
