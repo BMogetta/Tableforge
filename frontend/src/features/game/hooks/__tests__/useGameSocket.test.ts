@@ -46,7 +46,6 @@ function createCallbacks() {
       onRematchGameStarted: vi.fn(),
     },
     onGameOver: vi.fn(),
-    onPresenceUpdate: vi.fn(),
   }
 }
 
@@ -193,16 +192,6 @@ describe('useGameSocket', () => {
   })
 
   // --- Event delegation ------------------------------------------------------
-
-  it('delegates presence_update to callback', () => {
-    render()
-    socket.emit({
-      type: 'presence_update',
-      payload: { player_id: 'p1', online: true },
-    })
-
-    expect(cbs.onPresenceUpdate).toHaveBeenCalledWith('p1', true)
-  })
 
   it('delegates pause_vote_update', () => {
     render()

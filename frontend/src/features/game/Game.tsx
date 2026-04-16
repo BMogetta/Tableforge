@@ -32,13 +32,7 @@ export function Game({ sessionId }: { sessionId: string }) {
   const leaveRoom = useAppStore(s => s.leaveRoom)
   const setQueued = useAppStore(s => s.setQueued)
   const isSpectator = useAppStore(s => s.isSpectator)
-  const setPlayerPresence = useAppStore(s => s.setPlayerPresence)
-  // Game.tsx — initialize socket status from the store socket state.
-  // The socket may already be connected when Game mounts (navigated from Room),
-  // so we cannot rely on catching ws_connected after mount.
-  const [socketStatus, setSocketStatus] = useState<'connecting' | 'connected' | 'disconnected'>(
-    () => (socket ? 'connected' : 'connecting'),
-  )
+  const socketStatus = useAppStore(s => s.roomSocketStatus)
 
   const navigate = useNavigate()
   const toast = useToast()
@@ -100,15 +94,6 @@ export function Game({ sessionId }: { sessionId: string }) {
     else sfx.play('game.lose')
   }
 
-  useEffect(() => {
-    if (!socket) return
-    const off = socket.on(event => {
-      if (event.type === 'ws_connected') setSocketStatus('connected')
-      if (event.type === 'ws_disconnected') setSocketStatus('disconnected')
-    })
-    return () => off()
-  }, [socket])
-
   // --- Hooks -----------------------------------------------------------------
 
   const { session, gameData, roomPlayers, loadError } = useGameSession({
@@ -131,7 +116,6 @@ export function Game({ sessionId }: { sessionId: string }) {
     pauseResume,
     rematch,
     onGameOver: handleGameOver,
-    onPresenceUpdate: setPlayerPresence,
   })
 
   // --- Mutations -------------------------------------------------------------

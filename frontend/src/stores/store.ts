@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { PlayerSettingMap, PlayerSettings } from '@/lib/api'
+import { DEFAULT_SETTINGS, wsRoomUrl } from '@/lib/api'
 import type { Player } from '@/lib/schema-generated.zod'
-import { DEFAULT_SETTINGS } from '@/lib/api'
 import { PlayerSocket, RoomSocket } from '@/lib/ws'
 import { applyFontSize, applySkin, type FontSize, type SkinId } from '@/lib/skins'
 import { i18n } from '@/lib/i18n'
@@ -31,6 +31,12 @@ interface AppState {
 
   socket: RoomSocket | null
   activeRoomId: string | null
+
+  /**
+   * Connection status of the room socket. Updated centrally so components
+   * read from the store instead of subscribing to the socket independently.
+   */
+  roomSocketStatus: 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
   /**
    * Persistent WebSocket for the player's personal channel.
@@ -67,6 +73,13 @@ interface AppState {
    */
   joinRoom: (roomId: string, wsUrl: string) => void
   leaveRoom: () => void
+
+  /**
+   * Called when the server confirms a ranked match is ready.
+   * Clears queue state and opens the room socket — the component only needs
+   * to navigate afterward.
+   */
+  handleMatchReady: (roomId: string) => void
 
   /**
    * Live presence map: playerID → online.
@@ -177,6 +190,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   socket: null,
   activeRoomId: null,
+  roomSocketStatus: 'connecting',
 
   playerSocket: null,
   connectPlayerSocket: (url: string) => {
@@ -207,17 +221,34 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().socket?.close()
     const socket = new RoomSocket(wsUrl)
     socket.connect()
-    set({ socket, activeRoomId: roomId, isSpectator: false, spectatorCount: 0, presenceMap: {} })
+
+    // Central handler for connection status + presence updates.
+    // Components read roomSocketStatus and presenceMap from the store.
+    socket.on(event => {
+      if (event.type === 'ws_connected') set({ roomSocketStatus: 'connected' })
+      if (event.type === 'ws_reconnecting') set({ roomSocketStatus: 'reconnecting' })
+      if (event.type === 'ws_disconnected') set({ roomSocketStatus: 'disconnected' })
+      if (event.type === 'presence_update') {
+        get().setPlayerPresence(event.payload.player_id, event.payload.online)
+      }
+    })
+
+    set({ socket, activeRoomId: roomId, roomSocketStatus: 'connecting', isSpectator: false, spectatorCount: 0, presenceMap: {} })
   },
   leaveRoom: () => {
     get().socket?.close()
     set({
       socket: null,
       activeRoomId: null,
+      roomSocketStatus: 'disconnected',
       isSpectator: false,
       spectatorCount: 0,
       presenceMap: {},
     })
+  },
+  handleMatchReady: (roomId: string) => {
+    get().clearQueue()
+    get().joinRoom(roomId, wsRoomUrl(roomId))
   },
 
   presenceMap: {},

@@ -88,11 +88,7 @@ describe('sessions API client', () => {
 
   it('move sends POST with payload', async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse({
-        session: validSession,
-        state: {},
-        is_over: false,
-      }),
+      jsonResponse({ move_number: 1, is_over: false }),
     )
 
     await sessions.move('s1', { cell: 4 })
@@ -104,7 +100,7 @@ describe('sessions API client', () => {
 
   it('surrender sends POST with empty body', async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse({ session: validSession, state: {}, is_over: true }),
+      jsonResponse({ move_number: 1, is_over: true }),
     )
 
     await sessions.surrender('s1')

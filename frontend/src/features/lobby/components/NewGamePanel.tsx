@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms } from '@/features/room/api'
 import { queue } from '@/features/lobby/api'
-import { wsRoomUrl } from '@/lib/api'
 import type { GameInfo } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
 import { keys } from '@/lib/queryClient'
@@ -29,7 +28,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
   const setQueued = useAppStore(s => s.setQueued)
   const setMatchFound = useAppStore(s => s.setMatchFound)
   const clearQueue = useAppStore(s => s.clearQueue)
-  const connectRoomSocket = useAppStore(s => s.joinRoom)
+  const handleMatchReady = useAppStore(s => s.handleMatchReady)
 
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -72,8 +71,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
 
       if (event.type === 'match_ready') {
         const payload = event.payload
-        clearQueue()
-        connectRoomSocket(payload.room_id, wsRoomUrl(payload.room_id, player.id))
+        handleMatchReady(payload.room_id)
         navigate({
           to: '/game/$sessionId',
           params: { sessionId: payload.session_id },

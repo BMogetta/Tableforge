@@ -20,7 +20,6 @@ interface UseGameSocketOptions {
   >
   rematch: Pick<RematchState, 'onRematchVote' | 'onRematchReady' | 'onRematchGameStarted'>
   onGameOver: (winnerId: string | null, isDraw: boolean) => void
-  onPresenceUpdate: (playerId: string, online: boolean) => void
 }
 
 /**
@@ -52,7 +51,6 @@ export function useGameSocket({
   pauseResume,
   rematch,
   onGameOver,
-  onPresenceUpdate,
 }: UseGameSocketOptions): void {
   const qc = useQueryClient()
 
@@ -108,9 +106,6 @@ export function useGameSocket({
       if (event.type === 'ws_connected') {
         qc.invalidateQueries({ queryKey: keys.session(sessionId) })
       }
-      if (event.type === 'presence_update') {
-        onPresenceUpdate(event.payload.player_id, event.payload.online)
-      }
       if (event.type === 'move_applied') {
         handleMovePayload(event.payload, 'move_applied')
       }
@@ -141,7 +136,7 @@ export function useGameSocket({
     })
 
     return () => off()
-  }, [socket, sessionId, handleMovePayload, onPresenceUpdate, pauseResume.onSessionResumed, pauseResume.onSessionSuspended, pauseResume.setPauseVoteUpdate, pauseResume.setResumeVoteUpdate, qc.invalidateQueries, rematch.onRematchGameStarted, rematch.onRematchReady, rematch.onRematchVote])
+  }, [socket, sessionId, handleMovePayload, pauseResume.onSessionResumed, pauseResume.onSessionSuspended, pauseResume.setPauseVoteUpdate, pauseResume.setResumeVoteUpdate, qc.invalidateQueries, rematch.onRematchGameStarted, rematch.onRematchReady, rematch.onRematchVote])
 
   // Player socket — receives move and game_over events for sessions the player
   // is part of, regardless of which room socket is active. Used to handle

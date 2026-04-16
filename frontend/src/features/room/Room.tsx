@@ -14,7 +14,7 @@ import { PlayerList } from './components/PlayerList'
 import { BotSection } from './components/BotSection'
 import { InviteCode } from './components/InviteCode'
 import { RoomActions } from './components/RoomActions'
-import { ConnectionBanner, type SocketStatus } from './components/ConnectionBanner'
+import { ConnectionBanner } from './components/ConnectionBanner'
 import { RoomToolbar, SettingsIcon, BotIcon, InviteIcon, ChatIcon } from './components/RoomToolbar'
 import styles from './Room.module.css'
 import { testId, testAttr } from '@/utils/testId'
@@ -29,15 +29,14 @@ export function Room({ roomId }: { roomId: string }) {
   const leaveRoom = useAppStore(s => s.leaveRoom)
   const setIsSpectator = useAppStore(s => s.setIsSpectator)
   const setSpectatorCount = useAppStore(s => s.setSpectatorCount)
-  const setPlayerPresence = useAppStore(s => s.setPlayerPresence)
   const spectatorCount = useAppStore(s => s.spectatorCount)
+  const socketStatus = useAppStore(s => s.roomSocketStatus)
   const navigate = useNavigate()
   const toast = useToast()
 
   const [view, setView] = useState<RoomView | null>(null)
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<AppError | null>(null)
-  const [socketStatus, setSocketStatus] = useState<SocketStatus>('connecting')
   const [ownerId, setOwnerId] = useState<string | null>(null)
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [settingDescriptors, setSettingDescriptors] = useState<LobbySetting[]>([])
@@ -174,9 +173,6 @@ export function Room({ roomId }: { roomId: string }) {
     refreshRef.current()
 
     const off = socket.on(event => {
-      if (event.type === 'ws_connected') setSocketStatus('connected')
-      if (event.type === 'ws_reconnecting') setSocketStatus('reconnecting')
-      if (event.type === 'ws_disconnected') setSocketStatus('disconnected')
       if (event.type === 'player_joined' || event.type === 'player_left') refreshRef.current()
       if (event.type === 'game_started') {
         if (!startingRef.current) {
@@ -198,13 +194,10 @@ export function Room({ roomId }: { roomId: string }) {
       if (event.type === 'spectator_joined' || event.type === 'spectator_left') {
         setSpectatorCount(event.payload.spectator_count)
       }
-      if (event.type === 'presence_update') {
-        setPlayerPresence(event.payload.player_id, event.payload.online)
-      }
     })
 
     return () => off()
-  }, [socket, setPlayerPresence, setSpectatorCount])
+  }, [socket, setSpectatorCount])
 
   // --- Actions ---------------------------------------------------------------
 
