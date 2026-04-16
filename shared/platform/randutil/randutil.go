@@ -37,6 +37,19 @@ func Shuffle[T any](s []T) ([]T, error) {
 	return out, nil
 }
 
+// ShuffleWith returns a new slice with the elements of s in a random order
+// using the provided RNG function. rng(n) must return a value in [0, n).
+// Use this for deterministic, reproducible shuffles (e.g. seeded PRNG).
+func ShuffleWith[T any](s []T, rng func(n int) int) []T {
+	out := make([]T, len(s))
+	copy(out, s)
+	for i := len(out) - 1; i > 0; i-- {
+		j := rng(i + 1)
+		out[i], out[j] = out[j], out[i]
+	}
+	return out
+}
+
 // Pick returns a single random element from s.
 // Returns an error if s is empty.
 func Pick[T any](s []T) (T, error) {

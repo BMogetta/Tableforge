@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 
 	"github.com/recess/game-server/games"
 	"github.com/recess/game-server/internal/domain/engine"
@@ -57,10 +58,19 @@ func (g *RootAccess) Init(players []engine.Player) (engine.GameState, error) {
 		Data:            map[string]any{},
 	}
 
+	// game_seed: stored once, used to derive per-round deterministic shuffles
+	// so that replaying Init + moves produces identical state.
+	gameSeed, err := randutil.Intn(1 << 31)
+	if err != nil {
+		gameSeed = 0
+	}
+
 	state.Data["players"] = playerIDs
 	state.Data["tokens"] = tokens
 	state.Data["round"] = 1
 	state.Data["phase"] = phasePlaying
+	state.Data["game_seed"] = gameSeed
+	state.Data["tokens_to_win"] = tokensToWin(len(players))
 
 	state = dealRound(state, playerIDs, players[0].ID)
 	return state, nil
@@ -573,7 +583,10 @@ func resolveRound(state engine.GameState) (engine.GameState, error) {
 	state.Data["last_round_backdoor_bonus_by"] = append([]string{}, backdoorPlayed...)
 
 	// Check game over.
-	target := tokensToWin(len(players))
+	target := getInt(state.Data, "tokens_to_win")
+	if target == 0 {
+		target = tokensToWin(len(players)) // fallback for legacy state
+	}
 	for _, id := range players {
 		if tokens[id] >= target {
 			state.Data["game_winner_id"] = id
@@ -713,12 +726,13 @@ func (g *RootAccess) FilterState(state engine.GameState, playerID engine.PlayerI
 
 func dealRound(state engine.GameState, players []string, firstPlayer engine.PlayerID) engine.GameState {
 	unshuffled := buildDeck()
-	deck, err := randutil.Shuffle(unshuffled)
-	if err != nil {
-		// Fallback: use unshuffled deck rather than failing Init.
-		// crypto/rand failure is extremely rare and non-recoverable.
-		deck = unshuffled
-	}
+
+	// Derive a per-round PRNG from game_seed + round so every shuffle is
+	// deterministic and reproducible via replay.
+	gameSeed := int64(getInt(state.Data, "game_seed"))
+	round := int64(getInt(state.Data, "round"))
+	rng := rand.New(rand.NewSource(gameSeed*1000 + round))
+	deck := randutil.ShuffleWith(unshuffled, rng.Intn)
 
 	// Set aside one card face-down.
 	faceDown := deck[0]
