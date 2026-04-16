@@ -28,6 +28,15 @@ func SignToken(secret []byte, playerID uuid.UUID, username, role string) (string
 }
 
 // SetSessionCookie writes the JWT as an HttpOnly session cookie.
+//
+// MaxAge deliberately tracks RefreshTTL, not JWTTTL: the cookie must outlive
+// the JWT so that expired-token requests still reach the server with the
+// cookie attached. The auth middleware then returns {"error":"token_expired"}
+// and the frontend triggers a silent POST /auth/refresh that rotates the
+// cookie. If MaxAge matched JWTTTL the browser would delete the cookie first,
+// the server would see a missing-cookie request and return a bare 401 with
+// no "token_expired" hint, and the refresh flow would never fire — silently
+// logging the user out every JWTTTL window.
 func SetSessionCookie(w http.ResponseWriter, token string, secure bool) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     middleware.CookieName,
@@ -36,7 +45,7 @@ func SetSessionCookie(w http.ResponseWriter, token string, secure bool) {
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int(middleware.JWTTTL.Seconds()),
+		MaxAge:   int(middleware.RefreshTTL.Seconds()),
 	})
 }
 
