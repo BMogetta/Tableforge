@@ -102,28 +102,38 @@ echo ""
 
 # -- user-service (priority 50) -----------------------------------------------
 echo "user-service (profiles, friends, settings, admin):"
-check     "GET /api/v1/players/{id}/profile"   401 GET  "/api/v1/players/$FAKE_UUID/profile"   "GET /api/v1/players/{id}/profile"   "user-service"
-check     "GET /api/v1/players/{id}/friends"   401 GET  "/api/v1/players/$FAKE_UUID/friends"   "GET /api/v1/players/{id}/friends"   "user-service"
-check     "GET /api/v1/players/{id}/settings"  401 GET  "/api/v1/players/$FAKE_UUID/settings"  "GET /api/v1/players/{id}/settings"  "user-service"
-check     "GET /api/v1/admin/players"          401 GET  "/api/v1/admin/players"                "GET /api/v1/admin/players"          "user-service"
-check     "GET /api/v1/admin/allowed-emails"   401 GET  "/api/v1/admin/allowed-emails"         "GET /api/v1/admin/allowed-emails"   "user-service"
-check     "GET /api/v1/admin/audit-logs"       401 GET  "/api/v1/admin/audit-logs"             "GET /api/v1/admin/audit-logs"       "user-service"
-check     "POST /api/v1/admin/broadcast"       401 POST "/api/v1/admin/broadcast"              "POST /api/v1/admin/broadcast"       "user-service"
+check     "GET /api/v1/players/{id}/profile"        401 GET  "/api/v1/players/$FAKE_UUID/profile"        "GET /api/v1/players/{id}/profile"        "user-service"
+check     "GET /api/v1/players/{id}/friends"        401 GET  "/api/v1/players/$FAKE_UUID/friends"        "GET /api/v1/players/{id}/friends"        "user-service"
+check     "GET /api/v1/players/{id}/settings"       401 GET  "/api/v1/players/$FAKE_UUID/settings"       "GET /api/v1/players/{id}/settings"       "user-service"
+check     "GET /api/v1/players/search"              401 GET  "/api/v1/players/search?q=test"             "GET /api/v1/players/search"              "user-service"
+check     "POST /api/v1/players/{id}/block/{tid}"    401 POST "/api/v1/players/$FAKE_UUID/block/$FAKE_UUID" "POST /api/v1/players/{id}/block/{tid}"  "user-service"
+check     "GET /api/v1/players/{id}/achievements"   401 GET  "/api/v1/players/$FAKE_UUID/achievements"   "GET /api/v1/players/{id}/achievements"   "user-service"
+check     "POST /api/v1/players/{id}/report"        401 POST "/api/v1/players/$FAKE_UUID/report"         "POST /api/v1/players/{id}/report"        "user-service"
+check     "GET /api/v1/admin/players"               401 GET  "/api/v1/admin/players"                     "GET /api/v1/admin/players"               "user-service"
+check     "GET /api/v1/admin/allowed-emails"        401 GET  "/api/v1/admin/allowed-emails"              "GET /api/v1/admin/allowed-emails"        "user-service"
+check     "GET /api/v1/admin/players/{id}/bans"      401 GET  "/api/v1/admin/players/$FAKE_UUID/bans"      "GET /api/v1/admin/players/{id}/bans"     "user-service"
+check     "GET /api/v1/admin/reports"               401 GET  "/api/v1/admin/reports"                     "GET /api/v1/admin/reports"               "user-service"
+check     "GET /api/v1/admin/audit-logs"            401 GET  "/api/v1/admin/audit-logs"                  "GET /api/v1/admin/audit-logs"            "user-service"
+check     "POST /api/v1/admin/broadcast"            401 POST "/api/v1/admin/broadcast"                   "POST /api/v1/admin/broadcast"            "user-service"
 echo ""
 
 # -- chat-service (priority 50) -----------------------------------------------
 echo "chat-service (messages, DMs):"
-check_not "GET /api/v1/players/{id}/dm"   404 GET  "/api/v1/players/$FAKE_UUID/dm"   "GET /api/v1/players/{id}/dm"   "chat-service"
+check_not "GET /api/v1/players/{id}/dm"        404 GET  "/api/v1/players/$FAKE_UUID/dm"              "GET /api/v1/players/{id}/dm"              "chat-service"
+check_not "GET /api/v1/rooms/{id}/messages"    404 GET  "/api/v1/rooms/$FAKE_UUID/messages"          "GET /api/v1/rooms/{id}/messages"          "chat-service"
+check_not "GET /api/v1/players/{id}/dm/conversations" 404 GET "/api/v1/players/$FAKE_UUID/dm/conversations" "GET /api/v1/players/{id}/dm/conversations" "chat-service"
 echo ""
 
 # -- rating-service (priority 50) ---------------------------------------------
 echo "rating-service (ratings, leaderboard):"
-check     "GET /api/v1/ratings/tictactoe/leaderboard"  401 GET  "/api/v1/ratings/tictactoe/leaderboard"  "GET /api/v1/ratings/{game}/leaderboard"  "rating-service"
+check     "GET /api/v1/ratings/tictactoe/leaderboard"  401 GET  "/api/v1/ratings/tictactoe/leaderboard"               "GET /api/v1/ratings/{game}/leaderboard"       "rating-service"
+check     "GET /api/v1/players/{id}/ratings/tictactoe" 401 GET  "/api/v1/players/$FAKE_UUID/ratings/tictactoe"         "GET /api/v1/players/{id}/ratings/{game}"       "rating-service"
 echo ""
 
 # -- notification-service (priority 50) ---------------------------------------
 echo "notification-service:"
 check     "GET /api/v1/players/{id}/notifications"  401 GET  "/api/v1/players/$FAKE_UUID/notifications"  "GET /api/v1/players/{id}/notifications"  "notification-service"
+check     "POST /api/v1/notifications/{id}/read"    401 POST "/api/v1/notifications/$FAKE_UUID/read"     "POST /api/v1/notifications/{id}/read"    "notification-service"
 echo ""
 
 # -- match-service (priority 50) ----------------------------------------------
@@ -136,6 +146,11 @@ echo ""
 echo "ws-gateway (/ws/*):"
 check_not "GET /ws/rooms/{id}"            404 GET  "/ws/rooms/$FAKE_UUID"     "GET /ws/rooms/{id}"           "ws-gateway"
 check_not "GET /ws/players/{id}"          404 GET  "/ws/players/$FAKE_UUID"   "GET /ws/players/{id}"         "ws-gateway"
+echo ""
+
+# -- ws-gateway-presence (priority 50) ----------------------------------------
+echo "ws-gateway (/api/v1/presence):"
+check     "GET /api/v1/presence"           401 GET  "/api/v1/presence"         "GET /api/v1/presence"         "ws-gateway"
 echo ""
 
 # -- grafana (subdomain) -------------------------------------------------------

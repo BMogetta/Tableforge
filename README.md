@@ -62,21 +62,32 @@ Open `http://localhost`. See [docs/getting-started.md](docs/getting-started.md) 
 | `GET /api/v1/players/{id}/profile` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/friends` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/settings` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/search` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `POST /api/v1/players/{id}/block/{tid}` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/achievements` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `POST /api/v1/players/{id}/report` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/admin/players` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/admin/allowed-emails` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/admin/players/{id}/bans` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/admin/reports` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/admin/audit-logs` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `POST /api/v1/admin/broadcast` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/dm` | chat-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/rooms/{id}/messages` | chat-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/dm/conversations` | chat-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/ratings/{game}/leaderboard` | rating-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/players/{id}/ratings/{game}` | rating-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/notifications` | notification-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `POST /api/v1/notifications/{id}/read` | notification-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `POST /api/v1/queue` | match-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `DELETE /api/v1/queue/players/{id}/state` | match-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /ws/rooms/{id}` | ws-gateway | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /ws/players/{id}` | ws-gateway | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/presence` | ws-gateway | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET grafana.localhost` | grafana | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /` | frontend | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 
-_Last updated: 2026-04-12_
+_Last updated: 2026-04-16_
 
 <!-- routing:end -->
 
@@ -88,22 +99,22 @@ _Last updated: 2026-04-12_
 | admin.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | auth.setup.ts | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | auth.spec.ts | 1/1 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| bot.spec.ts | 2/2 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| bot.spec.ts | 1/2 | ![partial](https://img.shields.io/badge/-1_of_2-yellow) |
 | chat.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | dm.spec.ts | 4/4 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | friends.spec.ts | 4/4 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | game.spec.ts | 7/7 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | lobby.spec.ts | 6/6 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | notifications.spec.ts | 3/3 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| presence.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
+| presence.spec.ts | 2/5 | ![partial](https://img.shields.io/badge/-2_of_5-yellow) |
 | profile.spec.ts | 5/5 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| ranked.spec.ts | 1/3 | ![partial](https://img.shields.io/badge/-1_of_3-yellow) |
+| ranked.spec.ts | 0/3 | ![fail](https://img.shields.io/badge/-all_fail-red) |
 | session-history.spec.ts | 10/10 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
 | settings.spec.ts | 7/7 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| spectator.spec.ts | 12/12 | ![pass](https://img.shields.io/badge/-all_pass-brightgreen) |
-| **Total** | **78/80** | ![progress](https://img.shields.io/badge/-78_of_80-yellow) |
+| spectator.spec.ts | 11/12 | ![partial](https://img.shields.io/badge/-11_of_12-yellow) |
+| **Total** | **72/80** | ![progress](https://img.shields.io/badge/-72_of_80-yellow) |
 
-_Last updated: 2026-04-14_
+_Last updated: 2026-04-16_
 <!-- e2e:end -->
 
 <!-- i18n:start -->
@@ -122,16 +133,16 @@ _Last updated: 2026-04-15_
 
 | Service | Tests | Coverage |
 |---------|-------|----------|
-| auth-service | 45 passed | ![58.3%](https://img.shields.io/badge/coverage-58.3%25-yellow) |
+| auth-service | 53 passed | ![59.5%](https://img.shields.io/badge/coverage-59.5%25-yellow) |
 | chat-service | 36 passed | ![51.6%](https://img.shields.io/badge/coverage-51.6%25-yellow) |
-| game-server | 430 passed | ![59.4%](https://img.shields.io/badge/coverage-59.4%25-yellow) |
-| match-service | 78 passed | ![64.5%](https://img.shields.io/badge/coverage-64.5%25-green) |
+| game-server | 436 passed | ![57.8%](https://img.shields.io/badge/coverage-57.8%25-yellow) |
+| match-service | 100 passed | ![65.0%](https://img.shields.io/badge/coverage-65.0%25-green) |
 | notification-service | 45 passed | ![65.9%](https://img.shields.io/badge/coverage-65.9%25-green) |
-| rating-service | 37 passed | ![66.5%](https://img.shields.io/badge/coverage-66.5%25-green) |
-| user-service | 105 passed | ![58.7%](https://img.shields.io/badge/coverage-58.7%25-yellow) |
-| ws-gateway | 78 passed | ![53.8%](https://img.shields.io/badge/coverage-53.8%25-yellow) |
-| frontend (vitest) | 672 passed | ![70.8%](https://img.shields.io/badge/coverage-70.8%25-green) |
+| rating-service | 39 passed | ![66.6%](https://img.shields.io/badge/coverage-66.6%25-green) |
+| user-service | 105 passed | ![58.6%](https://img.shields.io/badge/coverage-58.6%25-yellow) |
+| ws-gateway | 78 passed | ![51.4%](https://img.shields.io/badge/coverage-51.4%25-yellow) |
+| frontend (vitest) | 676 passed | ![69.7%](https://img.shields.io/badge/coverage-69.7%25-green) |
 
-_Last updated: 2026-04-14_
+_Last updated: 2026-04-16_
 
 <!-- coverage:end -->
