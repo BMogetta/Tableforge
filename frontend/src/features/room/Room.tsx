@@ -6,7 +6,6 @@ import { useSocketStore } from '@/stores/socketStore'
 import { useRoomStore } from '@/stores/roomStore'
 import { rooms, bots } from '@/features/room/api'
 import { gameRegistry } from '@/features/lobby/api'
-import type { RoomView } from '@/lib/api'
 import type { LobbySetting, BotProfile } from '@/lib/schema-generated.zod'
 import { ok, error, catchToAppError, type AppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
@@ -30,17 +29,17 @@ export function Room({ roomId }: { roomId: string }) {
   const gateway = useSocketStore(s => s.gateway)
   const leaveRoom = useRoomStore(s => s.leaveRoom)
   const setIsSpectator = useRoomStore(s => s.setIsSpectator)
-  const setSpectatorCount = useRoomStore(s => s.setSpectatorCount)
+  const setOwnerId = useRoomStore(s => s.setOwnerId)
+  const view = useRoomStore(s => s.view)
+  const ownerId = useRoomStore(s => s.ownerId)
+  const settings = useRoomStore(s => s.settings)
   const spectatorCount = useRoomStore(s => s.spectatorCount)
   const socketStatus = useRoomStore(s => s.roomSocketStatus)
   const navigate = useNavigate()
   const toast = useToast()
 
-  const [view, setView] = useState<RoomView | null>(null)
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<AppError | null>(null)
-  const [ownerId, setOwnerId] = useState<string | null>(null)
-  const [settings, setSettings] = useState<Record<string, string>>({})
   const [settingDescriptors, setSettingDescriptors] = useState<LobbySetting[]>([])
   const [activePopover, setActivePopover] = useState<PopoverId | null>(null)
 
@@ -91,8 +90,7 @@ export function Room({ roomId }: { roomId: string }) {
     rooms
       .get(roomId)
       .then(v => {
-        setView(v)
-        setSettings(v.settings ?? {})
+        useRoomStore.setState({ view: v, settings: v.settings ?? {} })
       })
       .catch(e => {
         const err = catchToAppError(e)
@@ -185,21 +183,12 @@ export function Room({ roomId }: { roomId: string }) {
           })
         }
       }
-      if (event.type === 'owner_changed') {
-        setOwnerId(event.payload.owner_id)
-        refreshRef.current()
-      }
+      if (event.type === 'owner_changed') refreshRef.current()
       if (event.type === 'room_closed') navigateRef.current({ to: '/' })
-      if (event.type === 'setting_updated') {
-        setSettings(prev => ({ ...prev, [event.payload.key]: event.payload.value }))
-      }
-      if (event.type === 'spectator_joined' || event.type === 'spectator_left') {
-        setSpectatorCount(event.payload.spectator_count)
-      }
     })
 
     return () => off()
-  }, [gateway, setSpectatorCount])
+  }, [gateway])
 
   // --- Actions ---------------------------------------------------------------
 
@@ -263,7 +252,7 @@ export function Room({ roomId }: { roomId: string }) {
   }
 
   function handleSettingChange(key: string, value: string) {
-    setSettings(prev => ({ ...prev, [key]: value }))
+    useRoomStore.getState().updateSetting(key, value)
   }
 
   function togglePopover(id: PopoverId) {
