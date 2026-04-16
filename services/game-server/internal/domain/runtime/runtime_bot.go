@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/recess/game-server/internal/bot"
 	"github.com/recess/game-server/internal/domain/engine"
 	"github.com/recess/game-server/internal/platform/ws"
+	"github.com/recess/shared/platform/randutil"
 )
 
 // Minimum total time between the bot being fired and its move being applied.
@@ -137,7 +137,8 @@ func (svc *Service) MaybeFireBot(ctx context.Context, hub *ws.Hub, sessionID uui
 
 		// Pace the bot to at least botMinMoveDelay + random jitter so humans
 		// can perceive each move. DecideMove time counts against the budget.
-		target := botMinMoveDelay + time.Duration(rand.Int63n(int64(botMoveDelayJitter)))
+		jitter, _ := randutil.Intn(int(botMoveDelayJitter.Milliseconds()))
+		target := botMinMoveDelay + time.Duration(jitter)*time.Millisecond
 		if elapsed := time.Since(startedAt); elapsed < target {
 			time.Sleep(target - elapsed)
 		}

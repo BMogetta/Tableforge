@@ -223,6 +223,8 @@ func writeRuntimeError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, runtime.ErrRematchNotAllowedRanked):
 		writeError(w, http.StatusForbidden, err.Error())
+	case errors.Is(err, runtime.ErrNotYourTurn):
+		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, runtime.ErrInvalidMove):
 		writeError(w, http.StatusBadRequest, err.Error())
 	default:

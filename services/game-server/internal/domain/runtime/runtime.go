@@ -176,6 +176,12 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		Timestamp: time.Now(),
 	}
 
+	// Turn enforcement at the runtime level — plugins no longer need to check
+	// this themselves, though they may keep the check for defense in depth.
+	if move.PlayerID != state.CurrentPlayerID {
+		return MoveResult{}, ErrNotYourTurn
+	}
+
 	if err := game.ValidateMove(state, move); err != nil {
 		return MoveResult{}, fmt.Errorf("%w: %s", ErrInvalidMove, err.Error())
 	}
