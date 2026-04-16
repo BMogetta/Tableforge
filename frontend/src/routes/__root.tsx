@@ -62,7 +62,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 function RootComponent() {
-  const { player, setPlayer, disconnectPlayerSocket, dmTarget, setDmTarget, playerSocket } =
+  const { player, setPlayer, disconnectGateway, dmTarget, setDmTarget, gateway } =
     useAppStore()
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [dmInboxOpen, setDmInboxOpen] = useState(false)
@@ -74,10 +74,10 @@ function RootComponent() {
     }
   }, [player?.id, player])
 
-  // Play notification sounds from playerSocket events.
+  // Play notification sounds from gateway events.
   useEffect(() => {
-    if (!playerSocket) return
-    const off = playerSocket.on(event => {
+    if (!gateway) return
+    const off = gateway.on(event => {
       if (event.type === 'notification_received') {
         const payload = event.payload as { type?: string }
         if (payload.type === 'room_invitation') sfx.play('notification.invite')
@@ -87,13 +87,13 @@ function RootComponent() {
       }
     })
     return () => off()
-  }, [playerSocket])
+  }, [gateway])
 
   useEffect(() => {
     if (!player) {
-      disconnectPlayerSocket()
+      disconnectGateway()
     }
-  }, [player, disconnectPlayerSocket])
+  }, [player, disconnectGateway])
 
   async function handleLogout() {
     await auth.logout()
@@ -164,7 +164,7 @@ export const Route = createRootRoute({
   // Runs before any child route's beforeLoad, so requireAuth guards always
   // read an already-resolved player from the store instead of null.
   beforeLoad: async () => {
-    const { setPlayer, connectPlayerSocket, hydrateSettings, setSettings } = useAppStore.getState()
+    const { setPlayer, connectGateway, hydrateSettings, setSettings } = useAppStore.getState()
 
     // Hydrate from localStorage immediately so settings are available
     // before the first render — avoids a flash of default values.
@@ -174,7 +174,7 @@ export const Route = createRootRoute({
     try {
       const p = await auth.me()
       setPlayer(p)
-      connectPlayerSocket(wsPlayerUrl(p.id))
+      connectGateway(wsPlayerUrl(p.id))
 
       // Fetch fresh settings from the backend in the background.
       // Non-fatal — cached or default values remain on failure.

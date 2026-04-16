@@ -21,7 +21,7 @@ interface Props {
 type Phase = 'loading' | 'waiting' | 'done'
 
 export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
-  const socket = useAppStore(s => s.socket)
+  const gateway = useAppStore(s => s.gateway)
   const isSpectator = useAppStore(s => s.isSpectator)
 
   const [phase, setPhase] = useState<Phase>('loading')
@@ -85,8 +85,8 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
     if (phase !== 'waiting') return
 
     // If socket is available, listen for real-time events.
-    if (socket) {
-      const off = socket.on(event => {
+    if (gateway) {
+      const off = gateway.on(event => {
         if (event.type === 'player_ready') {
           setWaitingPlayers(event.payload.ready_players)
           setRequired(event.payload.required)
@@ -115,7 +115,7 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [socket, phase, sessionId, onReady, onTimeout])
+  }, [gateway, phase, sessionId, onReady, onTimeout])
 
   // Countdown timer shown during waiting phase.
   useEffect(() => {

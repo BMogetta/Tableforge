@@ -4,7 +4,7 @@ import { emitErrorLog } from './telemetry'
 import { getDeviceContextAttrs } from './device'
 
 /**
- * Attempts to refresh the access token. Used by WebSocket classes
+ * Attempts to refresh the access token. Used by GatewaySocket
  * when the server closes the connection due to auth failure.
  */
 async function tryWsRefresh(): Promise<boolean> {
@@ -17,6 +17,8 @@ async function tryWsRefresh(): Promise<boolean> {
 }
 
 export type WsEventType =
+  // Control acks (server → client)
+  | 'room_subscribed'
   // Game flow
   | 'game_started'
   | 'game_over'
@@ -192,9 +194,15 @@ export interface WsPayloadSessionResumed {
 
 export interface WsPayloadNotificationReceived extends Notification {}
 
+export interface WsPayloadRoomSubscribed {
+  room_id: string
+  spectator: boolean
+}
+
 // --- Discriminated union -----------------------------------------------------
 
 export type WsEvent =
+  | { type: 'room_subscribed'; payload: WsPayloadRoomSubscribed }
   | { type: 'game_started'; payload: WsPayloadGameStarted }
   | { type: 'game_over'; payload: WsPayloadMoveResult }
   | { type: 'player_ready'; payload: WsPayloadPlayerReady }
@@ -230,113 +238,17 @@ export type WsEvent =
 
 type Handler = (event: WsEvent) => void
 
-// --- RoomSocket --------------------------------------------------------------
-
-export class RoomSocket {
-  private ws: WebSocket | null = null
-  private handlers = new Set<Handler>()
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  private closed = false
-  private attemptCount = 0
-  private static readonly MAX_ATTEMPTS = 10
-  private static readonly MAX_BACKOFF_MS = 30_000
-
-  /**
-   * @param url Full WebSocket URL including any query params (e.g. player_id).
-   *            Use wsRoomUrl() from api.ts to build this.
-   */
-  constructor(private url: string) {}
-
-  connect() {
-    if (this.ws) return
-    this.ws = new WebSocket(this.url)
-
-    this.ws.onopen = () => {
-      this.attemptCount = 0
-      this.emit('ws_connected')
-    }
-
-    this.ws.onmessage = e => {
-      try {
-        const event: WsEvent = JSON.parse(e.data)
-        this.handlers.forEach(h => h(event))
-      } catch {
-        // ignore malformed messages
-      }
-    }
-
-    this.ws.onclose = e => {
-      this.ws = null
-      if (!this.closed) {
-        // 4001 = auth failure from ws-gateway; try refresh before reconnecting.
-        if (e.code === 4001 || e.code === 1008) {
-          this.handleAuthClose()
-          return
-        }
-        this.attemptCount++
-        if (this.attemptCount >= RoomSocket.MAX_ATTEMPTS) {
-          emitErrorLog('WebSocket connection lost after max retries', {
-            'error.type': 'ws.disconnect',
-            'ws.url': this.url,
-            'ws.attempts': String(this.attemptCount),
-            'ws.socket_type': 'room',
-            ...getDeviceContextAttrs(),
-          })
-          this.emit('ws_disconnected')
-          return
-        }
-        this.emit('ws_reconnecting')
-        const delay = Math.min(500 * 2 ** (this.attemptCount - 1), RoomSocket.MAX_BACKOFF_MS)
-        this.reconnectTimer = setTimeout(() => this.connect(), delay)
-      }
-    }
-  }
-
-  private async handleAuthClose() {
-    const refreshed = await tryWsRefresh()
-    if (refreshed) {
-      this.emit('ws_reconnecting')
-      this.connect()
-    } else {
-      this.emit('ws_disconnected')
-      window.location.href = '/login'
-    }
-  }
-
-  on(handler: Handler): () => void {
-    this.handlers.add(handler)
-    return () => {
-      this.handlers.delete(handler)
-    }
-  }
-
-  close() {
-    this.closed = true
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
-    this.ws?.close()
-    this.ws = null
-  }
-
-  private emit(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
-    this.handlers.forEach(h => h({ type, payload: null }))
-  }
-}
-
-// --- PlayerSocket ------------------------------------------------------------
+// --- GatewaySocket -----------------------------------------------------------
 
 /**
- * PlayerSocket maintains a persistent WebSocket connection to the player's
- * personal channel (/ws/players/{playerID}). It receives player-scoped events
- * that are not tied to any specific room:
- *   match_found, match_cancelled, match_ready,
- *   queue_joined, queue_left,
- *   dm_received, dm_read,
- *   notification_received
+ * GatewaySocket is a unified WebSocket connection that replaces both the old
+ * PlayerSocket and RoomSocket. It connects once at login to
+ * /ws/players/{playerID} and dynamically subscribes/unsubscribes from room
+ * channels via control messages sent to the ws-gateway.
  *
- * Connect once on login and close on logout.
+ * All events (player-scoped and room-scoped) arrive on this single connection.
  */
-
-export class PlayerSocket {
+export class GatewaySocket {
   private ws: WebSocket | null = null
   private handlers = new Set<Handler>()
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -344,6 +256,9 @@ export class PlayerSocket {
   private attemptCount = 0
   private static readonly MAX_ATTEMPTS = 10
   private static readonly MAX_BACKOFF_MS = 30_000
+
+  /** The room ID the gateway is currently subscribed to, if any. */
+  private activeRoomId: string | null = null
 
   readonly url: string
 
@@ -357,7 +272,11 @@ export class PlayerSocket {
 
     this.ws.onopen = () => {
       this.attemptCount = 0
-      this.emit('ws_connected')
+      this.emitSynthetic('ws_connected')
+      // Re-subscribe to the room that was active before reconnect.
+      if (this.activeRoomId) {
+        this.send({ action: 'subscribe_room', room_id: this.activeRoomId })
+      }
     }
 
     this.ws.onmessage = e => {
@@ -371,40 +290,51 @@ export class PlayerSocket {
 
     this.ws.onclose = e => {
       this.ws = null
-      if (!this.closed) {
-        // 4001 = auth failure from ws-gateway; try refresh before reconnecting.
-        if (e.code === 4001 || e.code === 1008) {
-          this.handleAuthClose()
-          return
-        }
-        this.attemptCount++
-        if (this.attemptCount >= PlayerSocket.MAX_ATTEMPTS) {
-          emitErrorLog('WebSocket connection lost after max retries', {
-            'error.type': 'ws.disconnect',
-            'ws.url': this.url,
-            'ws.attempts': String(this.attemptCount),
-            'ws.socket_type': 'player',
-            ...getDeviceContextAttrs(),
-          })
-          this.emit('ws_disconnected')
-          return
-        }
-        this.emit('ws_reconnecting')
-        const delay = Math.min(500 * 2 ** (this.attemptCount - 1), PlayerSocket.MAX_BACKOFF_MS)
-        this.reconnectTimer = setTimeout(() => this.connect(), delay)
+      if (this.closed) return
+      if (e.code === 4001 || e.code === 1008) {
+        this.handleAuthClose()
+        return
       }
+      this.attemptCount++
+      if (this.attemptCount >= GatewaySocket.MAX_ATTEMPTS) {
+        emitErrorLog('WebSocket connection lost after max retries', {
+          'error.type': 'ws.disconnect',
+          'ws.url': this.url,
+          'ws.attempts': String(this.attemptCount),
+          'ws.socket_type': 'gateway',
+          ...getDeviceContextAttrs(),
+        })
+        this.emitSynthetic('ws_disconnected')
+        return
+      }
+      this.emitSynthetic('ws_reconnecting')
+      const delay = Math.min(500 * 2 ** (this.attemptCount - 1), GatewaySocket.MAX_BACKOFF_MS)
+      this.reconnectTimer = setTimeout(() => this.connect(), delay)
     }
   }
 
   private async handleAuthClose() {
     const refreshed = await tryWsRefresh()
     if (refreshed) {
-      this.emit('ws_reconnecting')
+      this.emitSynthetic('ws_reconnecting')
       this.connect()
     } else {
-      this.emit('ws_disconnected')
+      this.emitSynthetic('ws_disconnected')
       window.location.href = '/login'
     }
+  }
+
+  /** Subscribe to a room channel. Sends a control message to the server. */
+  subscribeRoom(roomId: string) {
+    this.activeRoomId = roomId
+    this.send({ action: 'subscribe_room', room_id: roomId })
+  }
+
+  /** Unsubscribe from the current room channel. */
+  unsubscribeRoom() {
+    if (!this.activeRoomId) return
+    this.send({ action: 'unsubscribe_room' })
+    this.activeRoomId = null
   }
 
   on(handler: Handler): () => void {
@@ -416,12 +346,19 @@ export class PlayerSocket {
 
   close() {
     this.closed = true
+    this.activeRoomId = null
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.ws?.close()
     this.ws = null
   }
 
-  private emit(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
+  private send(msg: Record<string, unknown>) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(msg))
+    }
+  }
+
+  private emitSynthetic(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
     this.handlers.forEach(h => h({ type, payload: null }))
   }
 }

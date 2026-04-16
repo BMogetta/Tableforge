@@ -4,7 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAppStore } from '@/stores/store'
 import { rooms, bots } from '@/features/room/api'
 import { gameRegistry } from '@/features/lobby/api'
-import { wsRoomUrl, type RoomView } from '@/lib/api'
+import type { RoomView } from '@/lib/api'
 import type { LobbySetting, BotProfile } from '@/lib/schema-generated.zod'
 import { ok, error, catchToAppError, type AppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
@@ -25,7 +25,7 @@ export function Room({ roomId }: { roomId: string }) {
   const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
   const joinRoom = useAppStore(s => s.joinRoom)
-  const socket = useAppStore(s => s.socket)
+  const gateway = useAppStore(s => s.gateway)
   const leaveRoom = useAppStore(s => s.leaveRoom)
   const setIsSpectator = useAppStore(s => s.setIsSpectator)
   const setSpectatorCount = useAppStore(s => s.setSpectatorCount)
@@ -115,7 +115,7 @@ export function Room({ roomId }: { roomId: string }) {
   // --- WebSocket connection --------------------------------------------------
   useEffect(() => {
     navigatingToGameRef.current = false
-    joinRoom(roomId, wsRoomUrl(roomId, player.id))
+    joinRoom(roomId)
     return () => {
       // Clean up socket when leaving the room flow entirely (browser back, URL change).
       // Skip cleanup when navigating to /game — the socket must survive that transition.
@@ -169,10 +169,10 @@ export function Room({ roomId }: { roomId: string }) {
   }, [starting])
 
   useEffect(() => {
-    if (!socket) return
+    if (!gateway) return
     refreshRef.current()
 
-    const off = socket.on(event => {
+    const off = gateway.on(event => {
       if (event.type === 'player_joined' || event.type === 'player_left') refreshRef.current()
       if (event.type === 'game_started') {
         if (!startingRef.current) {
@@ -197,7 +197,7 @@ export function Room({ roomId }: { roomId: string }) {
     })
 
     return () => off()
-  }, [socket, setSpectatorCount])
+  }, [gateway, setSpectatorCount])
 
   // --- Actions ---------------------------------------------------------------
 

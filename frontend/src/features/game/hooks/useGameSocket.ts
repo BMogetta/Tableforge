@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { keys } from '@/lib/queryClient'
-import type { RoomSocket, PlayerSocket, WsPayloadMoveResult } from '@/lib/ws'
+import type { GatewaySocket, WsPayloadMoveResult } from '@/lib/ws'
 import type { PauseResumeState } from './usePauseResume'
 import type { RematchState } from './useRematch'
 import { ResultStatus } from '@/lib/api'
@@ -12,8 +12,7 @@ import type { SessionCache } from '../api/session-cache'
 
 interface UseGameSocketOptions {
   sessionId: string
-  socket: RoomSocket | null
-  playerSocket: PlayerSocket | null
+  gateway: GatewaySocket | null
   pauseResume: Pick<
     PauseResumeState,
     'setPauseVoteUpdate' | 'setResumeVoteUpdate' | 'onSessionSuspended' | 'onSessionResumed'
@@ -23,10 +22,10 @@ interface UseGameSocketOptions {
 }
 
 /**
- * Subscribes to room and player WebSocket events for the active game session.
+ * Subscribes to the gateway WebSocket events for the active game session.
  *
  * Responsibilities:
- * - Handles move_applied and game_over on both room socket and player socket.
+ * - Handles move_applied and game_over events.
  * - Deduplicates WS updates against the React Query cache by checking move_count
  *   — prevents applying stale or out-of-order events.
  * - Delegates pause/resume and rematch event handling to the respective hooks
@@ -34,20 +33,19 @@ interface UseGameSocketOptions {
  * - Invalidates the session query on ws_connected to recover from reconnections.
  *
  * Separation of concerns:
- * - This hook does NOT own any state — it only reads from sockets and writes
+ * - This hook does NOT own any state — it only reads from the socket and writes
  *   to the React Query cache or calls provided callbacks.
  * - All state mutations go through the callbacks passed in (pauseResume, rematch,
- *   onGameOver, onPresenceUpdate).
+ *   onGameOver).
  *
  * @testability
- * Pass mock socket objects with a spy `.on()` method.
+ * Pass a mock socket object with a spy `.on()` method.
  * Trigger events by calling the listener captured from the spy.
  * Assert that queryClient cache is updated and callbacks are called.
  */
 export function useGameSocket({
   sessionId,
-  socket,
-  playerSocket,
+  gateway,
   pauseResume,
   rematch,
   onGameOver,
@@ -98,11 +96,11 @@ export function useGameSocket({
     [sessionId, qc, onGameOver],
   )
 
-  // Room socket — handles all game events for the current session.
+  // Gateway socket — handles all game events for the current session.
   useEffect((): (() => void) | undefined => {
-    if (!socket) return
+    if (!gateway) return
 
-    const off = socket.on(event => {
+    const off = gateway.on(event => {
       if (event.type === 'ws_connected') {
         qc.invalidateQueries({ queryKey: keys.session(sessionId) })
       }
@@ -136,23 +134,5 @@ export function useGameSocket({
     })
 
     return () => off()
-  }, [socket, sessionId, handleMovePayload, pauseResume.onSessionResumed, pauseResume.onSessionSuspended, pauseResume.setPauseVoteUpdate, pauseResume.setResumeVoteUpdate, qc.invalidateQueries, rematch.onRematchGameStarted, rematch.onRematchReady, rematch.onRematchVote])
-
-  // Player socket — receives move and game_over events for sessions the player
-  // is part of, regardless of which room socket is active. Used to handle
-  // updates when the player is navigating between pages.
-  useEffect((): (() => void) | undefined => {
-    if (!playerSocket) return
-
-    const off = playerSocket.on(event => {
-      if (event.type === 'move_applied') {
-        handleMovePayload(event.payload, 'move_applied')
-      }
-      if (event.type === 'game_over') {
-        handleMovePayload(event.payload, 'game_over')
-      }
-    })
-
-    return () => off()
-  }, [playerSocket, handleMovePayload])
+  }, [gateway, sessionId, handleMovePayload, pauseResume.onSessionResumed, pauseResume.onSessionSuspended, pauseResume.setPauseVoteUpdate, pauseResume.setResumeVoteUpdate, qc.invalidateQueries, rematch.onRematchGameStarted, rematch.onRematchReady, rematch.onRematchVote])
 }

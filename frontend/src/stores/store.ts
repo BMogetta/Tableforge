@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import type { PlayerSettingMap, PlayerSettings } from '@/lib/api'
-import { DEFAULT_SETTINGS, wsRoomUrl } from '@/lib/api'
+import { DEFAULT_SETTINGS } from '@/lib/api'
 import type { Player } from '@/lib/schema-generated.zod'
-import { PlayerSocket, RoomSocket } from '@/lib/ws'
+import { GatewaySocket } from '@/lib/ws'
 import { applyFontSize, applySkin, type FontSize, type SkinId } from '@/lib/skins'
 import { i18n } from '@/lib/i18n'
 
@@ -29,25 +29,24 @@ interface AppState {
   player: Player | null
   setPlayer: (p: Player | null) => void
 
-  socket: RoomSocket | null
+  /**
+   * Unified WebSocket connection. Connects once at login, closed on logout.
+   * Handles both player-scoped events (DMs, queue, notifications) and
+   * room-scoped events (game moves, chat, presence) on a single connection.
+   * Room subscriptions are managed via control messages (subscribeRoom /
+   * unsubscribeRoom).
+   */
+  gateway: GatewaySocket | null
+  connectGateway: (url: string) => void
+  disconnectGateway: () => void
+
   activeRoomId: string | null
 
   /**
-   * Connection status of the room socket. Updated centrally so components
-   * read from the store instead of subscribing to the socket independently.
+   * Connection status of the gateway socket. Updated centrally so components
+   * read from the store instead of subscribing independently.
    */
   roomSocketStatus: 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
-
-  /**
-   * Persistent WebSocket for the player's personal channel.
-   * Receives queue events (match_found, match_cancelled, match_ready),
-   * DM events, and notification_received — regardless of which room the
-   * player is currently in.
-   * Connected on login via connectPlayerSocket(), closed on logout.
-   */
-  playerSocket: PlayerSocket | null
-  connectPlayerSocket: (url: string) => void
-  disconnectPlayerSocket: () => void
 
   /**
    * True when the current player joined as a spectator (not in room_players).
@@ -60,30 +59,29 @@ interface AppState {
   /**
    * Live count of spectators currently watching the room.
    * Updated via spectator_joined / spectator_left WS events in Room.tsx.
-   * Read by Room.tsx and Game.tsx to display the "👁 N watching" badge.
+   * Read by Room.tsx and Game.tsx to display the "N watching" badge.
    */
   spectatorCount: number
   setSpectatorCount: (count: number) => void
 
   /**
-   * Opens a WebSocket connection for the given room.
-   * @param roomId  The room UUID — used to identify the active room.
-   * @param wsUrl   Full WebSocket URL (including player_id query param).
-   *                Build this with wsRoomUrl() from api.ts.
+   * Subscribes the gateway to a room channel. The server sends a
+   * room_subscribed ack and starts delivering room events.
    */
-  joinRoom: (roomId: string, wsUrl: string) => void
+  joinRoom: (roomId: string) => void
   leaveRoom: () => void
 
   /**
    * Called when the server confirms a ranked match is ready.
-   * Clears queue state and opens the room socket — the component only needs
+   * Clears queue state and subscribes to the room — the component only needs
    * to navigate afterward.
    */
   handleMatchReady: (roomId: string) => void
 
   /**
    * Live presence map: playerID → online.
-   * Updated via presence_update WS events in Room.tsx and Game.tsx.
+   * Updated via presence_update WS events handled centrally by the gateway
+   * event listener registered in connectGateway.
    */
   presenceMap: Record<string, boolean>
   setPlayerPresence: (playerId: string, online: boolean) => void
@@ -157,54 +155,38 @@ interface AppState {
   setSettings: (settings: ResolvedSettings) => void
 }
 
-// NOTE: Settings persistence is currently handled manually via localStorage
-// (see App.tsx: loadSettingsFromCache / saveSettingsToCache) and a debounced
-// PUT to the backend in Settings.tsx.
-//
-// An alternative would be zustand/middleware `persist`:
-//
-//   import { persist } from 'zustand/middleware'
-//   export const useAppStore = create(persist(
-//     (set, get) => ({ ... }),
-//     {
-//       name: 'tf:settings',
-//       partialize: (state) => ({ settings: state.settings }),
-//     }
-//   ))
-//
-// Implications of switching to `persist`:
-//   + Eliminates the manual localStorage read/write boilerplate
-//   + Built-in rehydration on store init (no need for setSettings in App.tsx)
-//   + Supports versioning (migrate: fn) for schema changes
-//   - Requires extracting settings into a separate store — `partialize` works
-//     but mixing volatile state (sockets, presenceMap) with persisted state
-//     in the same store is fragile and harder to reason about
-//   - The debounced backend sync in Settings.tsx still needs to exist regardless
-//     (persist only handles localStorage, not cross-device sync)
-//
-// Recommended path: if the store grows further, extract a dedicated
-// useSettingsStore with `persist`, and keep useAppStore for volatile state.
 export const useAppStore = create<AppState>((set, get) => ({
   player: null,
   setPlayer: player => set({ player }),
 
-  socket: null,
-  activeRoomId: null,
-  roomSocketStatus: 'connecting',
-
-  playerSocket: null,
-  connectPlayerSocket: (url: string) => {
-    const existing = get().playerSocket
+  gateway: null,
+  connectGateway: (url: string) => {
+    const existing = get().gateway
     if (existing && existing.url === url) return
     existing?.close()
-    const playerSocket = new PlayerSocket(url)
-    playerSocket.connect()
-    set({ playerSocket })
+    const gw = new GatewaySocket(url)
+
+    // Central handler for connection status + presence updates.
+    gw.on(event => {
+      if (event.type === 'ws_connected') set({ roomSocketStatus: 'connected' })
+      if (event.type === 'ws_reconnecting') set({ roomSocketStatus: 'reconnecting' })
+      if (event.type === 'ws_disconnected') set({ roomSocketStatus: 'disconnected' })
+      if (event.type === 'room_subscribed') set({ roomSocketStatus: 'connected' })
+      if (event.type === 'presence_update') {
+        get().setPlayerPresence(event.payload.player_id, event.payload.online)
+      }
+    })
+
+    gw.connect()
+    set({ gateway: gw })
   },
-  disconnectPlayerSocket: () => {
-    get().playerSocket?.close()
-    set({ playerSocket: null })
+  disconnectGateway: () => {
+    get().gateway?.close()
+    set({ gateway: null })
   },
+
+  activeRoomId: null,
+  roomSocketStatus: 'connecting',
 
   isSpectator: false,
   setIsSpectator: value => set({ isSpectator: value }),
@@ -212,33 +194,25 @@ export const useAppStore = create<AppState>((set, get) => ({
   spectatorCount: 0,
   setSpectatorCount: count => set({ spectatorCount: count }),
 
-  joinRoom: (roomId: string, wsUrl: string) => {
-    // Skip if already connected to this room (avoids duplicate sockets on StrictMode re-mount).
-    if (get().activeRoomId === roomId && get().socket) return
-
-    // Close existing socket if switching rooms.
-    // Reset spectator state so Game.tsx always reads fresh values for the new room.
-    get().socket?.close()
-    const socket = new RoomSocket(wsUrl)
-    socket.connect()
-
-    // Central handler for connection status + presence updates.
-    // Components read roomSocketStatus and presenceMap from the store.
-    socket.on(event => {
-      if (event.type === 'ws_connected') set({ roomSocketStatus: 'connected' })
-      if (event.type === 'ws_reconnecting') set({ roomSocketStatus: 'reconnecting' })
-      if (event.type === 'ws_disconnected') set({ roomSocketStatus: 'disconnected' })
-      if (event.type === 'presence_update') {
-        get().setPlayerPresence(event.payload.player_id, event.payload.online)
-      }
+  joinRoom: (roomId: string) => {
+    if (get().activeRoomId === roomId) return
+    // Unsubscribe from previous room if any.
+    const gw = get().gateway
+    if (get().activeRoomId) {
+      gw?.unsubscribeRoom()
+    }
+    gw?.subscribeRoom(roomId)
+    set({
+      activeRoomId: roomId,
+      roomSocketStatus: 'connecting',
+      isSpectator: false,
+      spectatorCount: 0,
+      presenceMap: {},
     })
-
-    set({ socket, activeRoomId: roomId, roomSocketStatus: 'connecting', isSpectator: false, spectatorCount: 0, presenceMap: {} })
   },
   leaveRoom: () => {
-    get().socket?.close()
+    get().gateway?.unsubscribeRoom()
     set({
-      socket: null,
       activeRoomId: null,
       roomSocketStatus: 'disconnected',
       isSpectator: false,
@@ -248,7 +222,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   handleMatchReady: (roomId: string) => {
     get().clearQueue()
-    get().joinRoom(roomId, wsRoomUrl(roomId))
+    get().joinRoom(roomId)
   },
 
   presenceMap: {},

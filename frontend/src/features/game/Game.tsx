@@ -27,8 +27,7 @@ import { requestPermission, acquireWakeLock, releaseWakeLock } from '@/lib/turn-
 export function Game({ sessionId }: { sessionId: string }) {
   const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
-  const socket = useAppStore(s => s.socket)
-  const playerSocket = useAppStore(s => s.playerSocket)
+  const gateway = useAppStore(s => s.gateway)
   const leaveRoom = useAppStore(s => s.leaveRoom)
   const setQueued = useAppStore(s => s.setQueued)
   const isSpectator = useAppStore(s => s.isSpectator)
@@ -111,8 +110,7 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   useGameSocket({
     sessionId,
-    socket,
-    playerSocket,
+    gateway,
     pauseResume,
     rematch,
     onGameOver: handleGameOver,

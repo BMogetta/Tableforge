@@ -35,7 +35,7 @@ function formatTime(ts: number): string {
 }
 
 function sourceLabel(source: CapturedEvent['source']): string {
-  return source === 'room' ? 'room' : 'player'
+  return source
 }
 
 // ---------------------------------------------------------------------------
@@ -90,11 +90,8 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
             fontSize: 9,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
-            background:
-              event.source === 'room'
-                ? 'var(--color-interactive-glow, rgba(123,140,222,0.15))'
-                : 'rgba(100,200,120,0.12)',
-            color: event.source === 'room' ? 'var(--color-interactive, #7b8cde)' : '#64c878',
+            background: 'var(--color-interactive-glow, rgba(123,140,222,0.15))',
+            color: 'var(--color-interactive, #7b8cde)',
           }}
           {...testId('event-source')}
         >

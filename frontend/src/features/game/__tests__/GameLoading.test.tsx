@@ -6,9 +6,9 @@ import { GameLoading } from '../GameLoading'
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockSocketOff = vi.fn()
-const mockSocketOn = vi.fn(() => mockSocketOff)
-const mockSocket = { on: mockSocketOn }
+const mockGatewayOff = vi.fn()
+const mockGatewayOn = vi.fn(() => mockGatewayOff)
+const mockGateway = { on: mockGatewayOn }
 const mockPlayer = { id: 'player-123' }
 
 // Mock useAppStore to behave like a selector-based hook returning fake state.
@@ -16,7 +16,7 @@ vi.mock('../../../stores/store', () => ({
   useAppStore: (selector: (s: unknown) => unknown) =>
     selector({
       player: mockPlayer,
-      socket: mockSocket,
+      gateway: mockGateway,
     }),
 }))
 
@@ -60,7 +60,7 @@ async function advancePastLoading() {
 }
 
 function captureSocketListener(): (event: unknown) => void {
-  const calls = mockSocketOn.mock.calls as unknown as Array<[(event: unknown) => void]>
+  const calls = mockGatewayOn.mock.calls as unknown as Array<[(event: unknown) => void]>
   const last = calls[calls.length - 1]
   if (!last) throw new Error('No socket listener registered')
   return last[0]
@@ -94,8 +94,8 @@ describe('GameLoading', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     mockReady.mockReset()
-    mockSocketOn.mockReset()
-    mockSocketOn.mockReturnValue(mockSocketOff)
+    mockGatewayOn.mockReset()
+    mockGatewayOn.mockReturnValue(mockGatewayOff)
     mockReady.mockResolvedValue({ all_ready: false, ready_players: [], required: 2 })
   })
 
@@ -230,6 +230,6 @@ describe('GameLoading', () => {
     const { unmount } = renderComponent({ sessionId: 's' })
     await advancePastLoading()
     unmount()
-    expect(mockSocketOff).toHaveBeenCalled()
+    expect(mockGatewayOff).toHaveBeenCalled()
   })
 })

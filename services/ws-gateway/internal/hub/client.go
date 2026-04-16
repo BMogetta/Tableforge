@@ -2,6 +2,7 @@ package hub
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"sync"
 	"time"
@@ -33,6 +34,13 @@ type Client struct {
 
 	// Spectator is true when the client is watching but not a participant.
 	Spectator bool
+
+	// OnRoomSubscribe is called when the client sends a subscribe_room control
+	// message. Set by the handler that created the client. Nil means room
+	// subscriptions via control messages are not supported (e.g. RoomHandler
+	// clients that are already subscribed at connect time).
+	OnRoomSubscribe   func(c *Client, roomID uuid.UUID)
+	OnRoomUnsubscribe func(c *Client)
 
 	// closeMu guards `closed` and serializes close/send so multiple goroutines
 	// (DisconnectPlayer, fanout*, BroadcastAll, gracefulShutdown) can never
@@ -87,6 +95,12 @@ func (c *Client) trySendOrDrop(data []byte) {
 	}
 }
 
+// SetPresence updates the presence store for this client. Used when a
+// player-only connection dynamically subscribes to a room.
+func (c *Client) SetPresence(ps *presence.Store) {
+	c.presence = ps
+}
+
 func NewClient(hub *Hub, roomID, playerID uuid.UUID, conn *websocket.Conn, spectator bool, ps *presence.Store) *Client {
 	return &Client{
 		hub:       hub,
@@ -99,8 +113,15 @@ func NewClient(hub *Hub, roomID, playerID uuid.UUID, conn *websocket.Conn, spect
 	}
 }
 
-// ReadPump drains incoming messages (clients only send pong frames).
-// On exit it cleans up room + player subscriptions and marks presence offline.
+// controlMessage is the JSON format for client-to-server control messages.
+type controlMessage struct {
+	Action string `json:"action"`
+	RoomID string `json:"room_id,omitempty"`
+}
+
+// ReadPump reads incoming messages and processes control messages
+// (subscribe_room, unsubscribe_room). On exit it cleans up room + player
+// subscriptions and marks presence offline.
 // A span is opened for the lifetime of the connection and closed on disconnect.
 func (c *Client) ReadPump() {
 	_, span := otel.Tracer("ws-gateway").Start(context.Background(), "ws.connection",
@@ -136,13 +157,41 @@ func (c *Client) ReadPump() {
 	})
 
 	for {
-		_, _, err := c.conn.ReadMessage()
+		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				slog.Info("ws: read error", "error", err)
 			}
 			break
 		}
+		c.handleControl(msg)
+	}
+}
+
+func (c *Client) handleControl(msg []byte) {
+	var ctrl controlMessage
+	if err := json.Unmarshal(msg, &ctrl); err != nil {
+		return
+	}
+	switch ctrl.Action {
+	case "subscribe_room":
+		if c.OnRoomSubscribe == nil {
+			return
+		}
+		roomID, err := uuid.Parse(ctrl.RoomID)
+		if err != nil {
+			return
+		}
+		// Unsubscribe from previous room if any.
+		if c.RoomID != uuid.Nil {
+			c.handleControl([]byte(`{"action":"unsubscribe_room"}`))
+		}
+		c.OnRoomSubscribe(c, roomID)
+	case "unsubscribe_room":
+		if c.OnRoomUnsubscribe == nil || c.RoomID == uuid.Nil {
+			return
+		}
+		c.OnRoomUnsubscribe(c)
 	}
 }
 

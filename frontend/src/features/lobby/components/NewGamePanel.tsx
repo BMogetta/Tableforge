@@ -22,7 +22,7 @@ interface Props {
 
 export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }: Props) {
   const player = useAppStore(s => s.player)!
-  const playerSocket = useAppStore(s => s.playerSocket)
+  const gateway = useAppStore(s => s.gateway)
   const queueStatus = useAppStore(s => s.queueStatus)
   const queueJoinedAt = useAppStore(s => s.queueJoinedAt)
   const setQueued = useAppStore(s => s.setQueued)
@@ -56,9 +56,9 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
 
   // Listen for queue events on the player channel
   useEffect(() => {
-    if (!playerSocket) return
+    if (!gateway) return
 
-    const off = playerSocket.on(event => {
+    const off = gateway.on(event => {
       if (event.type === 'match_found') {
         const payload = event.payload
         sfx.play('queue.match_found')
@@ -94,7 +94,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
     })
 
     return () => off()
-  }, [playerSocket, setMatchFound, clearQueue, navigate, setQueued])
+  }, [gateway, setMatchFound, clearQueue, navigate, setQueued])
 
   const createRoom = useMutation({
     mutationFn: () => rooms.create(effectiveGame, player.id),

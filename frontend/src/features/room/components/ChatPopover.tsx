@@ -43,7 +43,7 @@ export function ChatPopover({
 }: Props) {
   const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
-  const socket = useAppStore(s => s.socket)
+  const gateway = useAppStore(s => s.gateway)
   const qc = useQueryClient()
   const toast = useToast()
 
@@ -79,8 +79,8 @@ export function ChatPopover({
   const messages = messagesData?.items ?? []
 
   useEffect(() => {
-    if (!socket) return
-    const off = socket.on(event => {
+    if (!gateway) return
+    const off = gateway.on(event => {
       if (event.type === 'chat_message') {
         const msg = event.payload
         if (msg.player_id !== player.id) sfx.play('chat.receive')
@@ -104,7 +104,7 @@ export function ChatPopover({
       }
     })
     return () => off()
-  }, [socket, roomId, qc, player.id])
+  }, [gateway, roomId, qc, player.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

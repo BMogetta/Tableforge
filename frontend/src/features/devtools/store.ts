@@ -4,8 +4,7 @@ import type { WsEvent, WsEventType } from '@/lib/ws'
 export const MAX_EVENTS = 200
 
 const EventSource = {
-  room: 'room',
-  player: 'player',
+  gateway: 'gateway',
 } as const
 type EventSource = (typeof EventSource)[keyof typeof EventSource]
 
@@ -30,7 +29,7 @@ let counter = 0
 /**
  * Global store for WebSocket event capture.
  *
- * Events are captured by hooking into RoomSocket and PlayerSocket listeners
+ * Events are captured by hooking into the GatewaySocket listener
  * via useWsDevtools(). The store is capped at MAX_EVENTS to avoid unbounded
  * memory growth — oldest events are dropped when the cap is reached.
  *

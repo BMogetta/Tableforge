@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createElement, type ReactNode } from 'react'
 import { useGameSocket } from '../useGameSocket'
-import type { RoomSocket, PlayerSocket, WsEvent } from '@/lib/ws'
+import type { GatewaySocket, WsEvent } from '@/lib/ws'
 import { keys } from '@/lib/queryClient'
 import type { GameSession } from '@/lib/schema-generated.zod'
 
@@ -97,8 +97,7 @@ interface CacheWithIsOver {
 
 describe('useGameSocket', () => {
   let qc: QueryClient
-  let socket: ReturnType<typeof createMockSocket>
-  let playerSocket: ReturnType<typeof createMockSocket>
+  let gateway: ReturnType<typeof createMockSocket>
   let cbs: ReturnType<typeof createCallbacks>
 
   function wrapper({ children }: { children: ReactNode }) {
@@ -107,8 +106,7 @@ describe('useGameSocket', () => {
 
   beforeEach(() => {
     qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    socket = createMockSocket()
-    playerSocket = createMockSocket()
+    gateway = createMockSocket()
     cbs = createCallbacks()
   })
 
@@ -128,8 +126,7 @@ describe('useGameSocket', () => {
       () =>
         useGameSocket({
           sessionId: 'session-1',
-          socket: socket as unknown as RoomSocket,
-          playerSocket: playerSocket as unknown as PlayerSocket,
+          gateway: gateway as unknown as GatewaySocket,
           ...cbs,
         }),
       { wrapper },
@@ -142,7 +139,7 @@ describe('useGameSocket', () => {
     seedCache(2)
 
     render()
-    socket.emit({ type: 'move_applied', payload: makeMovePayload(3) })
+    gateway.emit({ type: 'move_applied', payload: makeMovePayload(3) })
 
     expect(getCache()?.session.move_count).toBe(3)
   })
@@ -151,7 +148,7 @@ describe('useGameSocket', () => {
     seedCache(5)
 
     render()
-    socket.emit({ type: 'move_applied', payload: makeMovePayload(3) })
+    gateway.emit({ type: 'move_applied', payload: makeMovePayload(3) })
 
     expect(getCache()?.session.move_count).toBe(5)
   })
@@ -160,14 +157,14 @@ describe('useGameSocket', () => {
     seedCache(4)
 
     render()
-    socket.emit({ type: 'move_applied', payload: makeMovePayload(4) })
+    gateway.emit({ type: 'move_applied', payload: makeMovePayload(4) })
 
     expect(getCache()?.session.move_count).toBe(4)
   })
 
   it('applies move_applied when cache is empty (first event)', () => {
     render()
-    socket.emit({ type: 'move_applied', payload: makeMovePayload(1) })
+    gateway.emit({ type: 'move_applied', payload: makeMovePayload(1) })
 
     expect(getCache()?.session.move_count).toBe(1)
   })
@@ -178,7 +175,7 @@ describe('useGameSocket', () => {
     seedCache(10)
 
     render()
-    socket.emit({ type: 'game_over', payload: makeGameOverPayload('winner-1', false) })
+    gateway.emit({ type: 'game_over', payload: makeGameOverPayload('winner-1', false) })
 
     expect(getCache()?.is_over).toBe(true)
     expect(cbs.onGameOver).toHaveBeenCalledWith('winner-1', false)
@@ -186,7 +183,7 @@ describe('useGameSocket', () => {
 
   it('handles game_over draw', () => {
     render()
-    socket.emit({ type: 'game_over', payload: makeGameOverPayload(undefined, true) })
+    gateway.emit({ type: 'game_over', payload: makeGameOverPayload(undefined, true) })
 
     expect(cbs.onGameOver).toHaveBeenCalledWith(null, true)
   })
@@ -195,7 +192,7 @@ describe('useGameSocket', () => {
 
   it('delegates pause_vote_update', () => {
     render()
-    socket.emit({
+    gateway.emit({
       type: 'pause_vote_update',
       payload: { votes: ['p1'], required: 2 },
     })
@@ -205,14 +202,14 @@ describe('useGameSocket', () => {
 
   it('delegates session_suspended', () => {
     render()
-    socket.emit({ type: 'session_suspended', payload: { suspended_at: new Date().toISOString() } })
+    gateway.emit({ type: 'session_suspended', payload: { suspended_at: new Date().toISOString() } })
 
     expect(cbs.pauseResume.onSessionSuspended).toHaveBeenCalled()
   })
 
   it('delegates resume_vote_update', () => {
     render()
-    socket.emit({
+    gateway.emit({
       type: 'resume_vote_update',
       payload: { votes: ['p1'], required: 2 },
     })
@@ -222,14 +219,14 @@ describe('useGameSocket', () => {
 
   it('delegates session_resumed', () => {
     render()
-    socket.emit({ type: 'session_resumed', payload: { resumed_at: new Date().toISOString() } })
+    gateway.emit({ type: 'session_resumed', payload: { resumed_at: new Date().toISOString() } })
 
     expect(cbs.pauseResume.onSessionResumed).toHaveBeenCalled()
   })
 
   it('delegates rematch_vote', () => {
     render()
-    socket.emit({
+    gateway.emit({
       type: 'rematch_vote',
       payload: { votes: 1, total_players: 2 },
     })
@@ -239,7 +236,7 @@ describe('useGameSocket', () => {
 
   it('delegates rematch_ready', () => {
     render()
-    socket.emit({
+    gateway.emit({
       type: 'rematch_ready',
       payload: { room_id: 'room-2' },
     })
@@ -249,28 +246,12 @@ describe('useGameSocket', () => {
 
   it('delegates game_started (rematch)', () => {
     render()
-    socket.emit({
+    gateway.emit({
       type: 'game_started',
       payload: { session: { id: 'session-2' } },
     })
 
     expect(cbs.rematch.onRematchGameStarted).toHaveBeenCalledWith('session-2')
-  })
-
-  // --- Player socket ---------------------------------------------------------
-
-  it('applies move_applied from player socket', () => {
-    render()
-    playerSocket.emit({ type: 'move_applied', payload: makeMovePayload(1) })
-
-    expect(getCache()?.session.move_count).toBe(1)
-  })
-
-  it('applies game_over from player socket', () => {
-    render()
-    playerSocket.emit({ type: 'game_over', payload: makeGameOverPayload('w', false) })
-
-    expect(cbs.onGameOver).toHaveBeenCalledWith('w', false)
   })
 
   // --- Cleanup ---------------------------------------------------------------
@@ -280,7 +261,7 @@ describe('useGameSocket', () => {
     unmount()
 
     // After unmount, emitting should not update cache.
-    socket.emit({ type: 'move_applied', payload: makeMovePayload(99) })
+    gateway.emit({ type: 'move_applied', payload: makeMovePayload(99) })
     expect(getCache()).toBeUndefined()
   })
 
@@ -291,8 +272,7 @@ describe('useGameSocket', () => {
       () =>
         useGameSocket({
           sessionId: 'session-1',
-          socket: null,
-          playerSocket: null,
+          gateway: null,
           ...cbs,
         }),
       { wrapper },

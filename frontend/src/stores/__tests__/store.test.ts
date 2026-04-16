@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock ws module before importing store
 vi.mock('@/lib/ws', () => {
-  class MockRoomSocket {
+  class MockGatewaySocket {
     url: string
     connected = false
     closed = false
+    subscribedRoom: string | null = null
     constructor(url: string) {
       this.url = url
     }
@@ -18,27 +19,15 @@ vi.mock('@/lib/ws', () => {
     on() {
       return () => {}
     }
-  }
-
-  class MockPlayerSocket {
-    url: string
-    connected = false
-    closed = false
-    constructor(url: string) {
-      this.url = url
+    subscribeRoom(roomId: string) {
+      this.subscribedRoom = roomId
     }
-    connect() {
-      this.connected = true
-    }
-    close() {
-      this.closed = true
-    }
-    on() {
-      return () => {}
+    unsubscribeRoom() {
+      this.subscribedRoom = null
     }
   }
 
-  return { RoomSocket: MockRoomSocket, PlayerSocket: MockPlayerSocket }
+  return { GatewaySocket: MockGatewaySocket }
 })
 
 // Mock skins to avoid DOM side effects
@@ -59,9 +48,8 @@ beforeEach(() => {
   // Reset store to initial state
   useAppStore.setState({
     player: null,
-    socket: null,
+    gateway: null,
     activeRoomId: null,
-    playerSocket: null,
     isSpectator: false,
     spectatorCount: 0,
     presenceMap: {},
@@ -221,16 +209,20 @@ describe('setDmTarget', () => {
 // ---------------------------------------------------------------------------
 
 describe('joinRoom', () => {
-  it('sets activeRoomId and creates socket', () => {
-    useAppStore.getState().joinRoom('room-1', 'wss://example.com/ws/rooms/room-1')
+  it('sets activeRoomId and subscribes on gateway', () => {
+    // Connect gateway first so joinRoom can subscribe
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useAppStore.getState().joinRoom('room-1')
 
     expect(useAppStore.getState().activeRoomId).toBe('room-1')
-    expect(useAppStore.getState().socket).not.toBeNull()
+    const gw = useAppStore.getState().gateway as unknown as { subscribedRoom: string | null }
+    expect(gw.subscribedRoom).toBe('room-1')
   })
 
   it('resets spectator state when joining a room', () => {
     useAppStore.setState({ isSpectator: true, spectatorCount: 5 })
-    useAppStore.getState().joinRoom('room-1', 'wss://example.com/ws/rooms/room-1')
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useAppStore.getState().joinRoom('room-1')
 
     expect(useAppStore.getState().isSpectator).toBe(false)
     expect(useAppStore.getState().spectatorCount).toBe(0)
@@ -238,34 +230,38 @@ describe('joinRoom', () => {
 
   it('resets presence map when joining a room', () => {
     useAppStore.setState({ presenceMap: { p1: true } })
-    useAppStore.getState().joinRoom('room-1', 'wss://example.com/ws/rooms/room-1')
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useAppStore.getState().joinRoom('room-1')
 
     expect(useAppStore.getState().presenceMap).toEqual({})
   })
 
-  it('closes previous socket when switching rooms', () => {
-    useAppStore.getState().joinRoom('room-1', 'wss://example.com/ws/rooms/room-1')
-    const firstSocket = useAppStore.getState().socket as unknown as { closed: boolean }
+  it('unsubscribes previous room when switching rooms', () => {
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useAppStore.getState().joinRoom('room-1')
+    useAppStore.getState().joinRoom('room-2')
 
-    useAppStore.getState().joinRoom('room-2', 'wss://example.com/ws/rooms/room-2')
-
-    expect(firstSocket.closed).toBe(true)
     expect(useAppStore.getState().activeRoomId).toBe('room-2')
+    const gw = useAppStore.getState().gateway as unknown as { subscribedRoom: string | null }
+    expect(gw.subscribedRoom).toBe('room-2')
   })
 })
 
 describe('leaveRoom', () => {
-  it('clears socket and activeRoomId', () => {
-    useAppStore.getState().joinRoom('room-1', 'wss://example.com/ws/rooms/room-1')
+  it('clears activeRoomId and unsubscribes from gateway', () => {
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useAppStore.getState().joinRoom('room-1')
     useAppStore.getState().leaveRoom()
 
-    expect(useAppStore.getState().socket).toBeNull()
     expect(useAppStore.getState().activeRoomId).toBeNull()
+    const gw = useAppStore.getState().gateway as unknown as { subscribedRoom: string | null }
+    expect(gw.subscribedRoom).toBeNull()
   })
 
   it('resets spectator and presence state', () => {
     useAppStore.setState({ isSpectator: true, spectatorCount: 3, presenceMap: { p1: true } })
-    useAppStore.getState().joinRoom('room-1', 'wss://example.com/ws/rooms/room-1')
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useAppStore.getState().joinRoom('room-1')
     useAppStore.getState().leaveRoom()
 
     expect(useAppStore.getState().isSpectator).toBe(false)
@@ -273,63 +269,65 @@ describe('leaveRoom', () => {
     expect(useAppStore.getState().presenceMap).toEqual({})
   })
 
-  it('closes the socket', () => {
-    useAppStore.getState().joinRoom('room-1', 'wss://example.com/ws/rooms/room-1')
-    const socket = useAppStore.getState().socket as unknown as { closed: boolean }
+  it('does not close the gateway socket', () => {
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useAppStore.getState().joinRoom('room-1')
     useAppStore.getState().leaveRoom()
 
-    expect(socket.closed).toBe(true)
+    const gw = useAppStore.getState().gateway as unknown as { closed: boolean }
+    expect(gw.closed).toBe(false)
+    expect(useAppStore.getState().gateway).not.toBeNull()
   })
 })
 
 // ---------------------------------------------------------------------------
-// Player socket
+// Gateway socket
 // ---------------------------------------------------------------------------
 
-describe('connectPlayerSocket', () => {
-  it('creates and connects a player socket', () => {
-    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
+describe('connectGateway', () => {
+  it('creates and connects a gateway socket', () => {
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
 
-    const ps = useAppStore.getState().playerSocket as unknown as {
+    const gw = useAppStore.getState().gateway as unknown as {
       connected: boolean
       url: string
     }
-    expect(ps).not.toBeNull()
-    expect(ps.connected).toBe(true)
-    expect(ps.url).toBe('wss://example.com/ws/players/p1')
+    expect(gw).not.toBeNull()
+    expect(gw.connected).toBe(true)
+    expect(gw.url).toBe('wss://example.com/ws/players/p1')
   })
 
   it('skips reconnect when URL is the same', () => {
-    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
-    const first = useAppStore.getState().playerSocket
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    const first = useAppStore.getState().gateway
 
-    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
-    expect(useAppStore.getState().playerSocket).toBe(first)
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    expect(useAppStore.getState().gateway).toBe(first)
   })
 
-  it('closes previous player socket when URL changes', () => {
-    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
-    const first = useAppStore.getState().playerSocket as unknown as { closed: boolean }
+  it('closes previous gateway socket when URL changes', () => {
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    const first = useAppStore.getState().gateway as unknown as { closed: boolean }
 
-    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p2')
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p2')
     expect(first.closed).toBe(true)
   })
 })
 
-describe('disconnectPlayerSocket', () => {
-  it('closes and nulls the player socket', () => {
-    useAppStore.getState().connectPlayerSocket('wss://example.com/ws/players/p1')
-    const ps = useAppStore.getState().playerSocket as unknown as { closed: boolean }
+describe('disconnectGateway', () => {
+  it('closes and nulls the gateway socket', () => {
+    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    const gw = useAppStore.getState().gateway as unknown as { closed: boolean }
 
-    useAppStore.getState().disconnectPlayerSocket()
+    useAppStore.getState().disconnectGateway()
 
-    expect(ps.closed).toBe(true)
-    expect(useAppStore.getState().playerSocket).toBeNull()
+    expect(gw.closed).toBe(true)
+    expect(useAppStore.getState().gateway).toBeNull()
   })
 
   it('is safe to call when no socket exists', () => {
-    expect(() => useAppStore.getState().disconnectPlayerSocket()).not.toThrow()
-    expect(useAppStore.getState().playerSocket).toBeNull()
+    expect(() => useAppStore.getState().disconnectGateway()).not.toThrow()
+    expect(useAppStore.getState().gateway).toBeNull()
   })
 })
 

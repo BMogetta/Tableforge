@@ -19,7 +19,7 @@ interface DMConversationProps {
 
 export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConversationProps) {
   const player = useAppStore(s => s.player)!
-  const playerSocket = useAppStore(s => s.playerSocket)
+  const gateway = useAppStore(s => s.gateway)
   const toast = useToast()
   const qc = useQueryClient()
   const [text, setText] = useState('')
@@ -44,10 +44,10 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
 
   // Listen for real-time DMs
   useEffect(() => {
-    if (!playerSocket) {
+    if (!gateway) {
       return
     }
-    const off = playerSocket.on(event => {
+    const off = gateway.on(event => {
       if (event.type === 'dm_received' && event.payload.from === otherPlayerId) {
         sfx.play('chat.receive')
         qc.invalidateQueries({ queryKey: keys.dmHistory(player.id, otherPlayerId) })
@@ -56,7 +56,7 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
       }
     })
     return () => off()
-  }, [playerSocket, otherPlayerId, player.id, qc])
+  }, [gateway, otherPlayerId, player.id, qc])
 
   // Mark unread as read on open
   useEffect(() => {

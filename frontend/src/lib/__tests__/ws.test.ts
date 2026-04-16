@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { RoomSocket, PlayerSocket, type WsEvent } from '../ws'
+import { GatewaySocket, type WsEvent } from '../ws'
 
 // Stub dependencies
 vi.mock('../telemetry', () => ({
@@ -13,11 +13,13 @@ vi.mock('../device', () => ({
 
 class MockWebSocket {
   static instances: MockWebSocket[] = []
+  static readonly OPEN = 1
   onopen: (() => void) | null = null
   onmessage: ((e: { data: string }) => void) | null = null
   onclose: ((e: { code: number }) => void) | null = null
   readyState = 0
   closed = false
+  sent: string[] = []
 
   constructor(public url: string) {
     MockWebSocket.instances.push(this)
@@ -25,6 +27,10 @@ class MockWebSocket {
 
   close() {
     this.closed = true
+  }
+
+  send(data: string) {
+    this.sent.push(data)
   }
 
   // Test helpers
@@ -64,11 +70,11 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-// --- RoomSocket tests --------------------------------------------------------
+// --- GatewaySocket tests -----------------------------------------------------
 
-describe('RoomSocket', () => {
+describe('GatewaySocket', () => {
   it('emits ws_connected on open', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     socket.on(handler)
     socket.connect()
@@ -79,7 +85,7 @@ describe('RoomSocket', () => {
   })
 
   it('forwards parsed messages to handlers', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     socket.on(handler)
     socket.connect()
@@ -92,7 +98,7 @@ describe('RoomSocket', () => {
   })
 
   it('ignores malformed messages', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     socket.on(handler)
     socket.connect()
@@ -106,7 +112,7 @@ describe('RoomSocket', () => {
   })
 
   it('reconnects with exponential backoff', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     socket.on(handler)
     socket.connect()
@@ -130,7 +136,7 @@ describe('RoomSocket', () => {
   })
 
   it('stops reconnecting after MAX_ATTEMPTS and emits ws_disconnected', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     socket.on(handler)
     socket.connect()
@@ -153,7 +159,7 @@ describe('RoomSocket', () => {
   })
 
   it('resets attempt count on successful connection', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     socket.connect()
     MockWebSocket.instances[0].simulateOpen()
 
@@ -173,7 +179,7 @@ describe('RoomSocket', () => {
 
   it('handles auth close (4001) with successful refresh', async () => {
     mockFetch.mockResolvedValue({ ok: true })
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     socket.on(handler)
     socket.connect()
@@ -191,7 +197,7 @@ describe('RoomSocket', () => {
 
   it('handles auth close (4001) with failed refresh → redirects to login', async () => {
     mockFetch.mockResolvedValue({ ok: false })
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     socket.on(handler)
     socket.connect()
@@ -205,8 +211,20 @@ describe('RoomSocket', () => {
     expect(window.location.href).toBe('/login')
   })
 
+  it('handles auth close (1008) with redirect', async () => {
+    mockFetch.mockResolvedValue({ ok: false })
+    const socket = new GatewaySocket('ws://test/gateway')
+    socket.connect()
+    MockWebSocket.instances[0].simulateOpen()
+
+    MockWebSocket.instances[0].simulateClose(1008)
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(window.location.href).toBe('/login')
+  })
+
   it('unsubscribe removes handler', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     const handler = vi.fn()
     const off = socket.on(handler)
     socket.connect()
@@ -218,7 +236,7 @@ describe('RoomSocket', () => {
   })
 
   it('close prevents reconnection', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     socket.connect()
     MockWebSocket.instances[0].simulateOpen()
 
@@ -231,7 +249,7 @@ describe('RoomSocket', () => {
   })
 
   it('connect is idempotent when already connected', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     socket.connect()
     socket.connect() // should not create a second WS
 
@@ -239,7 +257,7 @@ describe('RoomSocket', () => {
   })
 
   it('backoff is capped at MAX_BACKOFF_MS (30s)', () => {
-    const socket = new RoomSocket('ws://test/room')
+    const socket = new GatewaySocket('ws://test/gateway')
     socket.connect()
     MockWebSocket.instances[0].simulateOpen()
 
@@ -256,41 +274,49 @@ describe('RoomSocket', () => {
     vi.advanceTimersByTime(30_000)
     expect(MockWebSocket.instances.length).toBe(countBefore + 1)
   })
-})
 
-// --- PlayerSocket (shares same logic, smoke test) ----------------------------
+  // --- Room subscription -----------------------------------------------------
 
-describe('PlayerSocket', () => {
-  it('connects and emits ws_connected', () => {
-    const socket = new PlayerSocket('ws://test/player')
-    const handler = vi.fn()
-    socket.on(handler)
+  it('subscribeRoom sends subscribe_room control message', () => {
+    const socket = new GatewaySocket('ws://test/gateway')
     socket.connect()
-
     MockWebSocket.instances[0].simulateOpen()
 
-    expect(handler).toHaveBeenCalledWith({ type: 'ws_connected', payload: null })
+    socket.subscribeRoom('room-42')
+
+    expect(MockWebSocket.instances[0].sent).toContainEqual(
+      JSON.stringify({ action: 'subscribe_room', room_id: 'room-42' }),
+    )
   })
 
-  it('reconnects on disconnect', () => {
-    const socket = new PlayerSocket('ws://test/player')
+  it('unsubscribeRoom sends unsubscribe_room control message', () => {
+    const socket = new GatewaySocket('ws://test/gateway')
     socket.connect()
     MockWebSocket.instances[0].simulateOpen()
+
+    socket.subscribeRoom('room-42')
+    socket.unsubscribeRoom()
+
+    expect(MockWebSocket.instances[0].sent).toContainEqual(
+      JSON.stringify({ action: 'unsubscribe_room' }),
+    )
+  })
+
+  it('re-subscribes to active room on reconnect', () => {
+    const socket = new GatewaySocket('ws://test/gateway')
+    socket.connect()
+    MockWebSocket.instances[0].simulateOpen()
+
+    socket.subscribeRoom('room-7')
+
+    // Disconnect + reconnect
     MockWebSocket.instances[0].simulateClose()
-
     vi.advanceTimersByTime(500)
-    expect(MockWebSocket.instances).toHaveLength(2)
-  })
+    MockWebSocket.instances[1].simulateOpen()
 
-  it('handles auth close (1008) with redirect', async () => {
-    mockFetch.mockResolvedValue({ ok: false })
-    const socket = new PlayerSocket('ws://test/player')
-    socket.connect()
-    MockWebSocket.instances[0].simulateOpen()
-
-    MockWebSocket.instances[0].simulateClose(1008)
-    await vi.advanceTimersByTimeAsync(0)
-
-    expect(window.location.href).toBe('/login')
+    // The second WS should have sent a subscribe_room message on open
+    expect(MockWebSocket.instances[1].sent).toContainEqual(
+      JSON.stringify({ action: 'subscribe_room', room_id: 'room-7' }),
+    )
   })
 })

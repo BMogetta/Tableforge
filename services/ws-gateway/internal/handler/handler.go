@@ -177,8 +177,10 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 }
 
 // PlayerHandler upgrades a WebSocket connection for a player's personal channel.
-// No room subscription — only player-scoped events (DMs, notifications, queue).
-func PlayerHandler(h *hub.Hub, uc userv1.UserServiceClient) http.HandlerFunc {
+// Starts with player-scoped events only (DMs, notifications, queue). The client
+// can dynamically subscribe to a room channel by sending a subscribe_room
+// control message — this replaces opening a separate RoomSocket connection.
+func PlayerHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc gamev1.GameServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, ok := middleware.PlayerIDFromContext(r.Context())
 		if !ok {
@@ -208,6 +210,102 @@ func PlayerHandler(h *hub.Hub, uc userv1.UserServiceClient) http.HandlerFunc {
 		}
 
 		c := hub.NewClient(h, uuid.Nil, playerID, conn, false, nil)
+
+		// Room subscription callbacks — called from ReadPump when the client
+		// sends subscribe_room / unsubscribe_room control messages.
+		c.OnRoomSubscribe = func(c *hub.Client, roomID uuid.UUID) {
+			rctx, rcancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer rcancel()
+
+			isParticipant, spectatorsAllowed, err := checkParticipant(rctx, gc, roomID, c.PlayerID)
+			if err != nil {
+				slog.Warn("ws: subscribe_room check failed", "room_id", roomID, "error", err)
+				return
+			}
+			if !isParticipant && !spectatorsAllowed {
+				return
+			}
+
+			spectator := !isParticipant
+			c.RoomID = roomID
+			c.Spectator = spectator
+
+			if !spectator {
+				c.SetPresence(ps)
+			}
+
+			h.SubscribeRoom(roomID, c)
+
+			if spectator {
+				h.Publish(rctx, roomID, hub.Event{
+					Type:    sharedws.EventSpectatorJoined,
+					Payload: map[string]any{"spectator_count": h.SpectatorCount(roomID)},
+				})
+			}
+
+			if !spectator && ps != nil {
+				ps.Set(rctx, c.PlayerID)
+				h.Publish(rctx, roomID, hub.Event{
+					Type: sharedws.EventPresenceUpdate,
+					Payload: map[string]any{
+						"player_id": c.PlayerID.String(),
+						"online":    true,
+					},
+				})
+				roomPlayerIDs, _ := getRoomPlayerIDs(rctx, gc, roomID)
+				if onlineMap, err := ps.ListOnline(rctx, roomPlayerIDs); err == nil {
+					for id, online := range onlineMap {
+						snapshot, _ := json.Marshal(hub.Event{
+							Type: sharedws.EventPresenceUpdate,
+							Payload: map[string]any{
+								"player_id": id.String(),
+								"online":    online,
+							},
+						})
+						h.SendDirect(c, snapshot)
+					}
+				}
+			}
+
+			// Ack so the client knows the subscription is active.
+			ack, _ := json.Marshal(hub.Event{
+				Type: "room_subscribed",
+				Payload: map[string]any{
+					"room_id":   roomID.String(),
+					"spectator": spectator,
+				},
+			})
+			h.SendDirect(c, ack)
+		}
+
+		c.OnRoomUnsubscribe = func(c *hub.Client) {
+			roomID := c.RoomID
+			spectator := c.Spectator
+
+			h.UnsubscribeRoom(roomID, c)
+
+			if spectator {
+				h.Publish(context.Background(), roomID, hub.Event{
+					Type:    sharedws.EventSpectatorLeft,
+					Payload: map[string]any{"spectator_count": h.SpectatorCount(roomID)},
+				})
+			}
+			if !spectator && ps != nil {
+				ps.Del(context.Background(), c.PlayerID)
+				h.Publish(context.Background(), roomID, hub.Event{
+					Type: sharedws.EventPresenceUpdate,
+					Payload: map[string]any{
+						"player_id": c.PlayerID.String(),
+						"online":    false,
+					},
+				})
+			}
+
+			c.RoomID = uuid.Nil
+			c.Spectator = false
+			c.SetPresence(nil)
+		}
+
 		h.SubscribePlayer(playerID, c)
 
 		go c.ReadPump()
