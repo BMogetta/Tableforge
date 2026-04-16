@@ -1,0 +1,26 @@
+{
+  "name": "Bot wins round — refire repro",
+  "description": "Round 1, bot's turn, deck empty. Bot (P2) is forced to play Encrypted Key (rules force it when paired with Swap). After advanceTurn the human's draw fails and resolveRound fires: bot's remaining Swap(7) beats human's Sniffer(2), bot wins round 1, round 2 starts with the bot as first player. Before the MaybeFireBot recursive re-fire, the bot stayed stuck in round 2 until the ~60s turn timer advanced the turn. After the fix, the bot plays round 2 immediately. Reload and confirm the bot executes round 2's first move without waiting.",
+  "state": {
+    "current_player_id": "__PLAYER_2__",
+    "data": {
+      "round": 1,
+      "phase": "playing",
+      "players": ["__PLAYER_1__", "__PLAYER_2__"],
+      "tokens": { "__PLAYER_1__": 0, "__PLAYER_2__": 0 },
+      "eliminated": [],
+      "protected": [],
+      "backdoor_played_by": [],
+      "discard_piles": { "__PLAYER_1__": [], "__PLAYER_2__": [] },
+      "discard_order": [],
+      "set_aside_visible": [],
+      "set_aside_face_down": "",
+      "deck": [],
+      "hands": {
+        "__PLAYER_1__": ["sniffer"],
+        "__PLAYER_2__": ["encrypted_key", "swap"]
+      },
+      "round_winner_id": null
+    }
+  }
+}

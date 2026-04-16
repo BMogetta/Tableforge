@@ -236,6 +236,17 @@ func (h *TimerHandlers) applyEngineTimeout(ctx context.Context, session store.Ga
 		})
 	}
 
+	// If the post-timeout state hands the turn to a bot (common when the
+	// eliminated player's round was resolved and the next round's starter is a
+	// bot), wake it. See the TODO(refactor) in runtime_bot.go:MaybeFireBot —
+	// this is the same "wake next bot after move" rule and should be
+	// consolidated with the other three call sites.
+	if !result.IsOver {
+		if nextUUID, err := uuid.Parse(string(result.State.CurrentPlayerID)); err == nil {
+			h.svc.MaybeFireBot(ctx, h.hub, session.ID, nextUUID)
+		}
+	}
+
 	slog.Info("turn timer: engine timeout applied", "session_id", session.ID, "timed_out_player", timedOutPlayer, "is_over", result.IsOver)
 }
 

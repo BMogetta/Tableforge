@@ -247,3 +247,71 @@ func TestMaybeFireBot_FiresMove(t *testing.T) {
 
 	t.Error("expected bot to apply a move within 3s")
 }
+
+// TestMaybeFireBot_RefiresWhenBotStaysCurrent guards the rootaccess "bot wins
+// the round, starts the next one" bug. If the state returned by ApplyMove
+// still has the bot as current player (e.g. because resolveRound made the
+// bot first in the next round), MaybeFireBot must re-fire itself —
+// otherwise nothing wakes the bot until the turn timer fires (~60s later).
+func TestMaybeFireBot_RefiresWhenBotStaysCurrent(t *testing.T) {
+	fs := testutil.NewFakeStore()
+	botID := uuid.New()
+	session := makeActiveSession(t, fs, botID)
+
+	// Game that returns the bot as current for the first move, then a
+	// different player on subsequent moves (to keep the test bounded).
+	stub := &staysCurrentGame{
+		botID:   engine.PlayerID(botID.String()),
+		humanID: engine.PlayerID(uuid.New().String()),
+	}
+	reg := &fakeRegistry{game: stub}
+	svc := runtime.New(fs, reg, nil, nil, nil)
+
+	bp := makeBotPlayer(t, botID)
+	svc.RegisterBot(bp)
+
+	svc.MaybeFireBot(context.Background(), nil, session.ID, botID)
+
+	// Two moves should land — one from the initial call, one from the
+	// recursive re-fire when the state still named the bot as current.
+	deadline := time.Now().Add(4 * time.Second)
+	for time.Now().Before(deadline) {
+		refetched, _ := fs.GetGameSession(context.Background(), session.ID)
+		if refetched.MoveCount >= 2 {
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	refetched, _ := fs.GetGameSession(context.Background(), session.ID)
+	t.Errorf("expected >= 2 moves (bot re-fires when it stays current); got %d", refetched.MoveCount)
+}
+
+// staysCurrentGame keeps the same bot as current for the first ApplyMove,
+// then hands off to a human. This mimics rootaccess's round-transition
+// behaviour without pulling in the full game engine.
+type staysCurrentGame struct {
+	botID, humanID engine.PlayerID
+	calls          int
+}
+
+func (g *staysCurrentGame) ID() string      { return "tictactoe" }
+func (g *staysCurrentGame) Name() string    { return "TicTacToe" }
+func (g *staysCurrentGame) MinPlayers() int { return 2 }
+func (g *staysCurrentGame) MaxPlayers() int { return 2 }
+func (g *staysCurrentGame) Init(players []engine.Player) (engine.GameState, error) {
+	return engine.GameState{CurrentPlayerID: players[0].ID, Data: map[string]any{}}, nil
+}
+func (g *staysCurrentGame) ValidateMove(_ engine.GameState, _ engine.Move) error { return nil }
+func (g *staysCurrentGame) ApplyMove(s engine.GameState, _ engine.Move) (engine.GameState, error) {
+	g.calls++
+	if g.calls == 1 {
+		s.CurrentPlayerID = g.botID
+	} else {
+		s.CurrentPlayerID = g.humanID
+	}
+	return s, nil
+}
+func (g *staysCurrentGame) IsOver(_ engine.GameState) (bool, engine.Result) {
+	return false, engine.Result{}
+}

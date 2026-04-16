@@ -157,5 +157,23 @@ func (svc *Service) MaybeFireBot(ctx context.Context, hub *ws.Hub, sessionID uui
 
 		players, _ := svc.store.ListRoomPlayers(botCtx, result.Session.RoomID)
 		svc.BroadcastMove(botCtx, hub, result, eventType, players)
+
+		// Re-fire if the new current player is also a bot. In rootaccess,
+		// `resolveRound` sets the previous round's winner as the starter of
+		// the next round; if the bot just won, `state.CurrentPlayerID` is the
+		// bot again and nothing else will wake it (no HTTP /move call happens
+		// until the human plays, which they can't because it's not their
+		// turn). The internal guard at line 119 re-reads state and no-ops if
+		// the situation has changed, so redundant calls are safe.
+		//
+		// TODO(refactor): the same "after a move, wake the next bot" pattern
+		// is duplicated at api_session.go:149, api_bots.go:157 and
+		// api_lobby.go:287. Pull it into a shared helper so the rule lives
+		// in one place.
+		if !result.IsOver {
+			if nextUUID, err := uuid.Parse(string(result.State.CurrentPlayerID)); err == nil {
+				svc.MaybeFireBot(botCtx, hub, sessionID, nextUUID)
+			}
+		}
 	}()
 }
