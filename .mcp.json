@@ -4,7 +4,7 @@
       "command": "/home/bruno/.local/bin/uvx",
       "args": ["mcp-grafana"],
       "env": {
-        "GRAFANA_URL": "http://localhost/grafana",
+        "GRAFANA_URL": "http://localhost:53000",
         "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_MCP_TOKEN}"
       }
     },
@@ -13,7 +13,15 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-postgres",
-        "postgresql://recess:recess@localhost:5432/recess"
+        "postgresql://claude_ro:${CLAUDE_MCP_RO_PASSWORD}@localhost:55432/recess"
+      ]
+    },
+    "redis": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-redis",
+        "redis://:${REDIS_PASSWORD}@localhost:56379"
       ]
     },
     "recess-game": {

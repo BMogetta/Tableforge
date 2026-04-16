@@ -41,6 +41,11 @@ services:
       RECESS_DB_PASSWORD: ${RECESS_DB_PASSWORD}
       UNLEASH_DB_PASSWORD: ${UNLEASH_DB_PASSWORD}
       CLAUDE_MCP_RO_PASSWORD: ${CLAUDE_MCP_RO_PASSWORD:-claude_ro}
+    # Loopback-only on a high port for local MCP/CLI access. Does not cross
+    # cloudflared (tunnel only forwards traefik:80). High port avoids
+    # clashing with any host-side postgres on the usual 5432.
+    ports:
+      - "127.0.0.1:55432:5432"
     networks:
       - data_network
     volumes:
@@ -76,6 +81,10 @@ services:
       - "200mb"
       - --maxmemory-policy
       - "allkeys-lru"
+    # Loopback-only on a high port for local MCP/CLI access (redis-cli,
+    # Redis MCP). Not exposed to the LAN or via cloudflared.
+    ports:
+      - "127.0.0.1:56379:6379"
     networks:
       - data_network
     volumes:
@@ -184,6 +193,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # Traefik API + dashboard, loopback only. Useful for debugging routes
+      # (GET /api/http/routers) without pulling logs. Never reachable from
+      # LAN or cloudflared.
+      - "127.0.0.1:59090:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infra/traefik/config:/etc/traefik/config:ro
@@ -191,6 +204,7 @@ services:
     networks:
       - app_network
       - monitoring_network
+      - proxy_network
     depends_on:
       - game-server
     restart: unless-stopped

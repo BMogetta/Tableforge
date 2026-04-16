@@ -1,4 +1,4 @@
-.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing smoke-test coverage check-i18n logs ps clean clean-test gen-types gen-proto setup lint version
+.PHONY: up up-app up-all up-prod up-test down build seed-test test test-one test-ui test-e2e-readme test-routing smoke-test coverage check-i18n logs ps clean clean-test gen-types gen-proto setup lint version claude claude-prod
 
 # ── Build metadata ────────────────────────────────────────────────────────────
 
@@ -17,6 +17,7 @@ networks:
 	docker network create app_network 2>/dev/null || true
 	docker network create data_network 2>/dev/null || true
 	docker network create monitoring_network 2>/dev/null || true
+	docker network create proxy_network 2>/dev/null || true
 
 up: networks
 	docker compose up --build -d
@@ -219,3 +220,19 @@ lint:
 	@echo ""
 	@echo "=== Frontend (Biome) ==="
 	cd frontend && npx @biomejs/biome lint ./src || true
+# ── Claude Code launchers ─────────────────────────────────────────────────────
+#
+# Source the appropriate env file into the subshell, then exec claude. The MCP
+# servers defined in .mcp.json can then interpolate ${VAR} references
+# (postgres/redis passwords, Grafana token, etc.) from that env.
+#
+#   make claude       → loads .env      (dev: recess/recess creds)
+#   make claude-prod  → loads .env.prod (prod: whatever you set)
+
+claude:
+	@test -f .env || { echo ".env not found — copy from .env.example first"; exit 1; }
+	@set -a; . ./.env; set +a; exec claude
+
+claude-prod:
+	@test -f .env.prod || { echo ".env.prod not found — copy from .env.example first"; exit 1; }
+	@set -a; . ./.env.prod; set +a; exec claude

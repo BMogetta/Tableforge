@@ -102,6 +102,11 @@ services:
       - ./infra/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
       - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - grafana-data:/var/lib/grafana
+    # Loopback-only on a high port so the Grafana MCP can hit the API directly
+    # without going through Traefik / Cloudflare (bypasses the subdomain +
+    # Access policies). Public access still goes through grafana.${DOMAIN}.
+    ports:
+      - "127.0.0.1:53000:3000"
     networks:
       - monitoring_network
       - app_network
@@ -134,4 +139,6 @@ networks:
   data_network:
     external: true
   monitoring_network:
+    external: true
+  proxy_network:
     external: true

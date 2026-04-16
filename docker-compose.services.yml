@@ -497,7 +497,10 @@ services:
   # Egress-only tunnel to Cloudflare's edge. Terminates TLS at Cloudflare and
   # speaks HTTP to traefik:80 over the tunnel, so the Pi never needs an open
   # port or public IP. Configure the public hostname in the Cloudflare
-  # dashboard to target http://traefik:80 (container DNS, shared app_network).
+  # dashboard to target http://traefik:80 — both containers share
+  # proxy_network, so container DNS resolves. cloudflared is intentionally
+  # NOT on app_network/data_network — if the tunnel is compromised the
+  # blast radius is limited to whatever traefik routes (the public app).
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
@@ -505,7 +508,7 @@ services:
     profiles: ["production"]
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
-      - app_network
+      - proxy_network
     depends_on:
       - traefik
     deploy:
