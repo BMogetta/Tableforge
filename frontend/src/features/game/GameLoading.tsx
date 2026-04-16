@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { testId } from '@/utils/testId'
-import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
+import { useRoomStore } from '@/stores/roomStore'
 import { sessions } from '@/lib/api/sessions'
 import { loadAssets, type LoadProgress } from '@/lib/assets'
 import { getGameAssets } from '@/games/assets'
@@ -21,8 +22,8 @@ interface Props {
 type Phase = 'loading' | 'waiting' | 'done'
 
 export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
-  const gateway = useAppStore(s => s.gateway)
-  const isSpectator = useAppStore(s => s.isSpectator)
+  const gateway = useSocketStore(s => s.gateway)
+  const isSpectator = useRoomStore(s => s.isSpectator)
 
   const [phase, setPhase] = useState<Phase>('loading')
   const [progress, setProgress] = useState<LoadProgress>({ loaded: 0, total: 0, progress: 0 })

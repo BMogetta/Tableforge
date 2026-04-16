@@ -5,6 +5,9 @@ import { rooms } from '@/features/room/api'
 import { queue } from '@/features/lobby/api'
 import type { GameInfo } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
+import { useQueueStore } from '@/stores/queueStore'
+import { useRoomStore } from '@/stores/roomStore'
 import { keys } from '@/lib/queryClient'
 import { sfx } from '@/lib/sfx'
 import styles from './NewGamePanel.module.css'
@@ -22,13 +25,13 @@ interface Props {
 
 export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }: Props) {
   const player = useAppStore(s => s.player)!
-  const gateway = useAppStore(s => s.gateway)
-  const queueStatus = useAppStore(s => s.queueStatus)
-  const queueJoinedAt = useAppStore(s => s.queueJoinedAt)
-  const setQueued = useAppStore(s => s.setQueued)
-  const setMatchFound = useAppStore(s => s.setMatchFound)
-  const clearQueue = useAppStore(s => s.clearQueue)
-  const handleMatchReady = useAppStore(s => s.handleMatchReady)
+  const gateway = useSocketStore(s => s.gateway)
+  const queueStatus = useQueueStore(s => s.queueStatus)
+  const queueJoinedAt = useQueueStore(s => s.queueJoinedAt)
+  const setQueued = useQueueStore(s => s.setQueued)
+  const setMatchFound = useQueueStore(s => s.setMatchFound)
+  const clearQueue = useQueueStore(s => s.clearQueue)
+  const handleMatchReady = useRoomStore(s => s.handleMatchReady)
 
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -126,7 +129,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
     onSuccess: () => clearQueue(),
   })
 
-  const matchId = useAppStore(s => s.matchId)
+  const matchId = useQueueStore(s => s.matchId)
 
   const acceptMatch = useMutation({
     mutationFn: () => queue.accept(player.id, matchId!),

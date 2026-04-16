@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useAppStore } from '@/stores/store'
+import { useRoomStore } from '@/stores/roomStore'
 import { testId } from '@/utils/testId'
 import styles from './TicTacToe.module.css'
 
@@ -37,7 +37,7 @@ export function TicTacToeBoard({
   const { board, marks } = state
   const localMark = marks[localPlayerId]
   const isMyTurn = currentPlayerId === localPlayerId && !disabled
-  const presenceMap = useAppStore(s => s.presenceMap)
+  const presenceMap = useRoomStore(s => s.presenceMap)
   const { t } = useTranslation()
 
   const opponent = players.find(p => p.id !== localPlayerId) ?? null

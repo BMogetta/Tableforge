@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
+import { useRoomStore } from '@/stores/roomStore'
+import { useQueueStore } from '@/stores/queueStore'
 import { sessions } from '@/lib/api/sessions'
 import { queue } from '@/features/lobby/api'
 import { catchToAppError, type AppError } from '@/utils/errors'
@@ -27,11 +30,11 @@ import { requestPermission, acquireWakeLock, releaseWakeLock } from '@/lib/turn-
 export function Game({ sessionId }: { sessionId: string }) {
   const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
-  const gateway = useAppStore(s => s.gateway)
-  const leaveRoom = useAppStore(s => s.leaveRoom)
-  const setQueued = useAppStore(s => s.setQueued)
-  const isSpectator = useAppStore(s => s.isSpectator)
-  const socketStatus = useAppStore(s => s.roomSocketStatus)
+  const gateway = useSocketStore(s => s.gateway)
+  const leaveRoom = useRoomStore(s => s.leaveRoom)
+  const setQueued = useQueueStore(s => s.setQueued)
+  const isSpectator = useRoomStore(s => s.isSpectator)
+  const socketStatus = useRoomStore(s => s.roomSocketStatus)
 
   const navigate = useNavigate()
   const toast = useToast()

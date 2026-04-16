@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
 import { useAppStore } from '@/stores/store'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { playerSettings, DEFAULT_SETTINGS, type PlayerSettingMap, Language } from '@/lib/api'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from './Toast'
@@ -34,8 +35,8 @@ interface Props {
 
 export function Settings({ onClose }: Props) {
   const player = useAppStore(s => s.player)!
-  const settings = useAppStore(s => s.settings)
-  const updateSetting = useAppStore(s => s.updateSetting)
+  const settings = useSettingsStore(s => s.settings)
+  const updateSetting = useSettingsStore(s => s.updateSetting)
   const toast = useToast()
   const { blockedPlayers, unblock, unblockPending } = useBlockPlayer()
   const { t } = useTranslation()
@@ -61,7 +62,7 @@ export function Settings({ onClose }: Props) {
   const change = useCallback(
     <K extends keyof PlayerSettingMap>(key: K, value: PlayerSettingMap[K]) => {
       updateSetting(key, value)
-      const next = { ...useAppStore.getState().settings, [key]: value }
+      const next = { ...useSettingsStore.getState().settings, [key]: value }
       saveSettingsToCache(next)
       syncToBackend(next)
     },

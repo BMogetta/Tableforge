@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useAppStore } from '@/stores/store'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { RulesModal } from '../RulesModal'
 
 // Mock focus trap to avoid ref issues in test
@@ -11,7 +11,7 @@ vi.mock('@/hooks/useFocusTrap', () => ({
 
 describe('RulesModal', () => {
   beforeEach(() => {
-    useAppStore.setState({ settings: { show_move_hints: true } as any })
+    useSettingsStore.setState({ settings: { show_move_hints: true } as any })
   })
 
   it('renders with game tabs', () => {

@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
+import { useRoomStore } from '@/stores/roomStore'
 import { rooms, bots } from '@/features/room/api'
 import { gameRegistry } from '@/features/lobby/api'
 import type { RoomView } from '@/lib/api'
@@ -24,13 +26,13 @@ type PopoverId = 'settings' | 'bot' | 'invite' | 'chat'
 export function Room({ roomId }: { roomId: string }) {
   const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
-  const joinRoom = useAppStore(s => s.joinRoom)
-  const gateway = useAppStore(s => s.gateway)
-  const leaveRoom = useAppStore(s => s.leaveRoom)
-  const setIsSpectator = useAppStore(s => s.setIsSpectator)
-  const setSpectatorCount = useAppStore(s => s.setSpectatorCount)
-  const spectatorCount = useAppStore(s => s.spectatorCount)
-  const socketStatus = useAppStore(s => s.roomSocketStatus)
+  const joinRoom = useRoomStore(s => s.joinRoom)
+  const gateway = useSocketStore(s => s.gateway)
+  const leaveRoom = useRoomStore(s => s.leaveRoom)
+  const setIsSpectator = useRoomStore(s => s.setIsSpectator)
+  const setSpectatorCount = useRoomStore(s => s.setSpectatorCount)
+  const spectatorCount = useRoomStore(s => s.spectatorCount)
+  const socketStatus = useRoomStore(s => s.roomSocketStatus)
   const navigate = useNavigate()
   const toast = useToast()
 

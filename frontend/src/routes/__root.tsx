@@ -1,7 +1,9 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { useEffect, useState, Component, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAppStore, type ResolvedSettings } from '../stores/store'
+import { useAppStore } from '../stores/store'
+import { useSocketStore } from '../stores/socketStore'
+import { useSettingsStore, type ResolvedSettings } from '../stores/settingsStore'
 import { auth, wsPlayerUrl, playerSettings } from '@/lib/api'
 import { friends } from '@/features/friends/api'
 import { keys } from '@/lib/queryClient'
@@ -62,8 +64,12 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 function RootComponent() {
-  const { player, setPlayer, disconnectGateway, dmTarget, setDmTarget, gateway } =
-    useAppStore()
+  const player = useAppStore(s => s.player)
+  const setPlayer = useAppStore(s => s.setPlayer)
+  const dmTarget = useAppStore(s => s.dmTarget)
+  const setDmTarget = useAppStore(s => s.setDmTarget)
+  const gateway = useSocketStore(s => s.gateway)
+  const disconnectGateway = useSocketStore(s => s.disconnectGateway)
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [dmInboxOpen, setDmInboxOpen] = useState(false)
 
@@ -164,7 +170,9 @@ export const Route = createRootRoute({
   // Runs before any child route's beforeLoad, so requireAuth guards always
   // read an already-resolved player from the store instead of null.
   beforeLoad: async () => {
-    const { setPlayer, connectGateway, hydrateSettings, setSettings } = useAppStore.getState()
+    const { setPlayer } = useAppStore.getState()
+    const { connectGateway } = useSocketStore.getState()
+    const { hydrateSettings, setSettings } = useSettingsStore.getState()
 
     // Hydrate from localStorage immediately so settings are available
     // before the first render — avoids a flash of default values.
@@ -182,7 +190,7 @@ export const Route = createRootRoute({
         .get(p.id)
         .then(raw => {
           hydrateSettings(raw)
-          saveSettingsToCache(useAppStore.getState().settings)
+          saveSettingsToCache(useSettingsStore.getState().settings)
         })
         .catch(() => {})
     } catch {

@@ -1,8 +1,8 @@
-import { useAppStore } from '@/stores/store'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 /**
  * Returns whether the user has enabled move hints in settings.
  */
 export function useHintsEnabled(): boolean {
-  return useAppStore(s => s.settings.show_move_hints)
+  return useSettingsStore(s => s.settings.show_move_hints)
 }

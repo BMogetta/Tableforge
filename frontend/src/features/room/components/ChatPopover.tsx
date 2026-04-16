@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rooms, mutes } from '@/features/room/api'
 import type { RoomMessage, RoomPlayer, GetRoomMessagesResponse } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
 import { keys } from '@/lib/queryClient'
@@ -43,7 +44,7 @@ export function ChatPopover({
 }: Props) {
   const { t } = useTranslation()
   const player = useAppStore(s => s.player)!
-  const gateway = useAppStore(s => s.gateway)
+  const gateway = useSocketStore(s => s.gateway)
   const qc = useQueryClient()
   const toast = useToast()
 

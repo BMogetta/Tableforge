@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/store'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import { Settings } from '../Settings'
 import { ToastProvider } from '../Toast'
@@ -53,6 +54,8 @@ function renderSettings(onClose = vi.fn()) {
       is_bot: false,
       created_at: '',
     },
+  })
+  useSettingsStore.setState({
     settings: { ...DEFAULT_SETTINGS },
   })
 
@@ -68,7 +71,7 @@ function renderSettings(onClose = vi.fn()) {
 }
 
 beforeEach(() => {
-  useAppStore.setState({ settings: { ...DEFAULT_SETTINGS } })
+  useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS } })
   localStorage.clear()
 })
 
@@ -127,7 +130,7 @@ describe('Skin picker', () => {
   it('updates store when a skin is clicked', () => {
     renderSettings()
     fireEvent.click(screen.getByRole('button', { name: 'Parchment' }))
-    expect(useAppStore.getState().settings.theme).toBe('parchment')
+    expect(useSettingsStore.getState().settings.theme).toBe('parchment')
   })
 
   it('calls applySkin with the selected skin id', () => {
@@ -160,7 +163,7 @@ describe('ToggleRow', () => {
     renderSettings()
     const toggle = screen.getByRole('switch', { name: 'Show Move Hints' })
     fireEvent.click(toggle)
-    expect(useAppStore.getState().settings.show_move_hints).toBe(false)
+    expect(useSettingsStore.getState().settings.show_move_hints).toBe(false)
   })
 
   it('reflects updated state after click', () => {
@@ -178,7 +181,7 @@ describe('ToggleRow', () => {
     expect(toggle).not.toBeDisabled()
     expect(toggle).toHaveAttribute('aria-checked', String(DEFAULT_SETTINGS.mute_all))
     fireEvent.click(toggle)
-    expect(useAppStore.getState().settings.mute_all).toBe(!DEFAULT_SETTINGS.mute_all)
+    expect(useSettingsStore.getState().settings.mute_all).toBe(!DEFAULT_SETTINGS.mute_all)
   })
 })
 
@@ -198,7 +201,7 @@ describe('SelectRow', () => {
     // Find the Allow DMs select by its current value.
     const select = screen.getByDisplayValue('Anyone')
     fireEvent.change(select, { target: { value: 'nobody' } })
-    expect(useAppStore.getState().settings.allow_dms).toBe('nobody')
+    expect(useSettingsStore.getState().settings.allow_dms).toBe('nobody')
   })
 })
 
@@ -218,7 +221,7 @@ describe('VolumeRow', () => {
     const slider = screen.getByRole('slider', { name: 'Master Volume volume' })
     expect(slider).not.toBeDisabled()
     fireEvent.change(slider, { target: { value: '0.5' } })
-    expect(useAppStore.getState().settings.volume_master).toBe(0.5)
+    expect(useSettingsStore.getState().settings.volume_master).toBe(0.5)
   })
 })
 

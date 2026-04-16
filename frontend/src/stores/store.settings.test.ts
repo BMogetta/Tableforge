@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useAppStore } from '@/stores/store'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { DEFAULT_SETTINGS, type PlayerSettings } from '@/lib/api'
 
 // Reset store state before each test so tests are independent.
 beforeEach(() => {
-  useAppStore.setState({ settings: { ...DEFAULT_SETTINGS } })
+  useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS } })
 })
 
 // ---------------------------------------------------------------------------
@@ -19,8 +20,8 @@ describe('hydrateSettings', () => {
       updated_at: new Date().toISOString(),
     }
 
-    useAppStore.getState().hydrateSettings(raw)
-    const s = useAppStore.getState().settings
+    useSettingsStore.getState().hydrateSettings(raw)
+    const s = useSettingsStore.getState().settings
 
     expect(s.theme).toBe('parchment')
     expect(s.language).toBe('es')
@@ -33,8 +34,8 @@ describe('hydrateSettings', () => {
       updated_at: new Date().toISOString(),
     }
 
-    useAppStore.getState().hydrateSettings(raw)
-    const s = useAppStore.getState().settings
+    useSettingsStore.getState().hydrateSettings(raw)
+    const s = useSettingsStore.getState().settings
 
     // theme overridden
     expect(s.theme).toBe('parchment')
@@ -51,8 +52,8 @@ describe('hydrateSettings', () => {
       updated_at: new Date().toISOString(),
     }
 
-    useAppStore.getState().hydrateSettings(raw)
-    const s = useAppStore.getState().settings
+    useSettingsStore.getState().hydrateSettings(raw)
+    const s = useSettingsStore.getState().settings
 
     for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof typeof DEFAULT_SETTINGS)[]) {
       expect(s[key]).not.toBeUndefined()
@@ -66,8 +67,8 @@ describe('hydrateSettings', () => {
       updated_at: new Date().toISOString(),
     }
 
-    useAppStore.getState().hydrateSettings(raw)
-    const s = useAppStore.getState().settings
+    useSettingsStore.getState().hydrateSettings(raw)
+    const s = useSettingsStore.getState().settings
 
     expect(s.theme).toBe(DEFAULT_SETTINGS.theme)
   })
@@ -79,24 +80,24 @@ describe('hydrateSettings', () => {
 
 describe('updateSetting', () => {
   it('updates a single string key', () => {
-    useAppStore.getState().updateSetting('theme', 'parchment')
-    expect(useAppStore.getState().settings.theme).toBe('parchment')
+    useSettingsStore.getState().updateSetting('theme', 'parchment')
+    expect(useSettingsStore.getState().settings.theme).toBe('parchment')
   })
 
   it('updates a boolean key', () => {
-    useAppStore.getState().updateSetting('notify_dm', false)
-    expect(useAppStore.getState().settings.notify_dm).toBe(false)
+    useSettingsStore.getState().updateSetting('notify_dm', false)
+    expect(useSettingsStore.getState().settings.notify_dm).toBe(false)
   })
 
   it('updates a numeric key', () => {
-    useAppStore.getState().updateSetting('volume_master', 0.5)
-    expect(useAppStore.getState().settings.volume_master).toBe(0.5)
+    useSettingsStore.getState().updateSetting('volume_master', 0.5)
+    expect(useSettingsStore.getState().settings.volume_master).toBe(0.5)
   })
 
   it('does not affect other keys', () => {
-    const before = { ...useAppStore.getState().settings }
-    useAppStore.getState().updateSetting('theme', 'parchment')
-    const after = useAppStore.getState().settings
+    const before = { ...useSettingsStore.getState().settings }
+    useSettingsStore.getState().updateSetting('theme', 'parchment')
+    const after = useSettingsStore.getState().settings
 
     expect(after.language).toBe(before.language)
     expect(after.notify_dm).toBe(before.notify_dm)
@@ -104,11 +105,11 @@ describe('updateSetting', () => {
   })
 
   it('multiple sequential updates accumulate correctly', () => {
-    useAppStore.getState().updateSetting('theme', 'parchment')
-    useAppStore.getState().updateSetting('language', 'es')
-    useAppStore.getState().updateSetting('volume_master', 0.3)
+    useSettingsStore.getState().updateSetting('theme', 'parchment')
+    useSettingsStore.getState().updateSetting('language', 'es')
+    useSettingsStore.getState().updateSetting('volume_master', 0.3)
 
-    const s = useAppStore.getState().settings
+    const s = useSettingsStore.getState().settings
     expect(s.theme).toBe('parchment')
     expect(s.language).toBe('es')
     expect(s.volume_master).toBe(0.3)
@@ -127,8 +128,8 @@ describe('setSettings', () => {
       language: 'es' as const,
     }
 
-    useAppStore.getState().setSettings(override)
-    const s = useAppStore.getState().settings
+    useSettingsStore.getState().setSettings(override)
+    const s = useSettingsStore.getState().settings
 
     expect(s.theme).toBe('parchment')
     expect(s.language).toBe('es')
@@ -137,7 +138,7 @@ describe('setSettings', () => {
   it('does not affect other store state', () => {
     const playerBefore = useAppStore.getState().player
 
-    useAppStore.getState().setSettings({ ...DEFAULT_SETTINGS, theme: 'parchment' })
+    useSettingsStore.getState().setSettings({ ...DEFAULT_SETTINGS, theme: 'parchment' })
 
     expect(useAppStore.getState().player).toBe(playerBefore)
   })

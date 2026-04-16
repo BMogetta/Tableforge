@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock ws module before importing store
 vi.mock('@/lib/ws', () => {
@@ -38,25 +38,35 @@ vi.mock('@/lib/skins', () => ({
   FontSize: { Small: 'small', Medium: 'medium', Large: 'large' },
 }))
 
-import { useAppStore, QueueStatus } from '@/stores/store'
+import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
+import { useRoomStore } from '@/stores/roomStore'
+import { useQueueStore, QueueStatus } from '@/stores/queueStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import type { Player } from '@/lib/schema-generated.zod'
 
-const initialState = useAppStore.getState()
-
 beforeEach(() => {
-  // Reset store to initial state
+  // Reset all stores to initial state
   useAppStore.setState({
     player: null,
+    dmTarget: null,
+  })
+  useSocketStore.setState({
     gateway: null,
+  })
+  useRoomStore.setState({
     activeRoomId: null,
     isSpectator: false,
     spectatorCount: 0,
     presenceMap: {},
+  })
+  useQueueStore.setState({
     queueStatus: QueueStatus.Idle,
     queueJoinedAt: null,
     matchId: null,
-    dmTarget: null,
+  })
+  useSettingsStore.setState({
     settings: { ...DEFAULT_SETTINGS },
   })
 })
@@ -70,7 +80,8 @@ describe('setPlayer', () => {
     id: 'p1',
     username: 'Alice',
     avatar_url: 'https://example.com/alice.png',
-    role: 'user',
+    role: 'player',
+    is_bot: false,
     created_at: '2025-01-01T00:00:00Z',
   }
 
@@ -92,27 +103,27 @@ describe('setPlayer', () => {
 
 describe('setIsSpectator', () => {
   it('sets spectator flag to true', () => {
-    useAppStore.getState().setIsSpectator(true)
-    expect(useAppStore.getState().isSpectator).toBe(true)
+    useRoomStore.getState().setIsSpectator(true)
+    expect(useRoomStore.getState().isSpectator).toBe(true)
   })
 
   it('sets spectator flag to false', () => {
-    useAppStore.getState().setIsSpectator(true)
-    useAppStore.getState().setIsSpectator(false)
-    expect(useAppStore.getState().isSpectator).toBe(false)
+    useRoomStore.getState().setIsSpectator(true)
+    useRoomStore.getState().setIsSpectator(false)
+    expect(useRoomStore.getState().isSpectator).toBe(false)
   })
 })
 
 describe('setSpectatorCount', () => {
   it('sets spectator count', () => {
-    useAppStore.getState().setSpectatorCount(5)
-    expect(useAppStore.getState().spectatorCount).toBe(5)
+    useRoomStore.getState().setSpectatorCount(5)
+    expect(useRoomStore.getState().spectatorCount).toBe(5)
   })
 
   it('resets to zero', () => {
-    useAppStore.getState().setSpectatorCount(5)
-    useAppStore.getState().setSpectatorCount(0)
-    expect(useAppStore.getState().spectatorCount).toBe(0)
+    useRoomStore.getState().setSpectatorCount(5)
+    useRoomStore.getState().setSpectatorCount(0)
+    expect(useRoomStore.getState().spectatorCount).toBe(0)
   })
 })
 
@@ -122,22 +133,22 @@ describe('setSpectatorCount', () => {
 
 describe('setPlayerPresence', () => {
   it('sets a player as online', () => {
-    useAppStore.getState().setPlayerPresence('p1', true)
-    expect(useAppStore.getState().presenceMap).toEqual({ p1: true })
+    useRoomStore.getState().setPlayerPresence('p1', true)
+    expect(useRoomStore.getState().presenceMap).toEqual({ p1: true })
   })
 
   it('sets a player as offline', () => {
-    useAppStore.getState().setPlayerPresence('p1', true)
-    useAppStore.getState().setPlayerPresence('p1', false)
-    expect(useAppStore.getState().presenceMap.p1).toBe(false)
+    useRoomStore.getState().setPlayerPresence('p1', true)
+    useRoomStore.getState().setPlayerPresence('p1', false)
+    expect(useRoomStore.getState().presenceMap.p1).toBe(false)
   })
 
   it('tracks multiple players independently', () => {
-    useAppStore.getState().setPlayerPresence('p1', true)
-    useAppStore.getState().setPlayerPresence('p2', false)
-    useAppStore.getState().setPlayerPresence('p3', true)
+    useRoomStore.getState().setPlayerPresence('p1', true)
+    useRoomStore.getState().setPlayerPresence('p2', false)
+    useRoomStore.getState().setPlayerPresence('p3', true)
 
-    const map = useAppStore.getState().presenceMap
+    const map = useRoomStore.getState().presenceMap
     expect(map).toEqual({ p1: true, p2: false, p3: true })
   })
 })
@@ -148,42 +159,42 @@ describe('setPlayerPresence', () => {
 
 describe('queue state', () => {
   it('starts idle', () => {
-    expect(useAppStore.getState().queueStatus).toBe(QueueStatus.Idle)
-    expect(useAppStore.getState().queueJoinedAt).toBeNull()
-    expect(useAppStore.getState().matchId).toBeNull()
+    expect(useQueueStore.getState().queueStatus).toBe(QueueStatus.Idle)
+    expect(useQueueStore.getState().queueJoinedAt).toBeNull()
+    expect(useQueueStore.getState().matchId).toBeNull()
   })
 
   it('setQueued transitions to Queued with timestamp', () => {
     const now = Date.now()
-    useAppStore.getState().setQueued(now)
+    useQueueStore.getState().setQueued(now)
 
-    expect(useAppStore.getState().queueStatus).toBe(QueueStatus.Queued)
-    expect(useAppStore.getState().queueJoinedAt).toBe(now)
-    expect(useAppStore.getState().matchId).toBeNull()
+    expect(useQueueStore.getState().queueStatus).toBe(QueueStatus.Queued)
+    expect(useQueueStore.getState().queueJoinedAt).toBe(now)
+    expect(useQueueStore.getState().matchId).toBeNull()
   })
 
   it('setMatchFound transitions to MatchFound with matchId', () => {
-    useAppStore.getState().setQueued(Date.now())
-    useAppStore.getState().setMatchFound('match-123')
+    useQueueStore.getState().setQueued(Date.now())
+    useQueueStore.getState().setMatchFound('match-123')
 
-    expect(useAppStore.getState().queueStatus).toBe(QueueStatus.MatchFound)
-    expect(useAppStore.getState().matchId).toBe('match-123')
+    expect(useQueueStore.getState().queueStatus).toBe(QueueStatus.MatchFound)
+    expect(useQueueStore.getState().matchId).toBe('match-123')
   })
 
   it('clearQueue resets to idle', () => {
-    useAppStore.getState().setQueued(Date.now())
-    useAppStore.getState().setMatchFound('match-123')
-    useAppStore.getState().clearQueue()
+    useQueueStore.getState().setQueued(Date.now())
+    useQueueStore.getState().setMatchFound('match-123')
+    useQueueStore.getState().clearQueue()
 
-    expect(useAppStore.getState().queueStatus).toBe(QueueStatus.Idle)
-    expect(useAppStore.getState().queueJoinedAt).toBeNull()
-    expect(useAppStore.getState().matchId).toBeNull()
+    expect(useQueueStore.getState().queueStatus).toBe(QueueStatus.Idle)
+    expect(useQueueStore.getState().queueJoinedAt).toBeNull()
+    expect(useQueueStore.getState().matchId).toBeNull()
   })
 
   it('setQueued clears any previous matchId', () => {
-    useAppStore.getState().setMatchFound('old-match')
-    useAppStore.getState().setQueued(Date.now())
-    expect(useAppStore.getState().matchId).toBeNull()
+    useQueueStore.getState().setMatchFound('old-match')
+    useQueueStore.getState().setQueued(Date.now())
+    expect(useQueueStore.getState().matchId).toBeNull()
   })
 })
 
@@ -211,72 +222,72 @@ describe('setDmTarget', () => {
 describe('joinRoom', () => {
   it('sets activeRoomId and subscribes on gateway', () => {
     // Connect gateway first so joinRoom can subscribe
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    useAppStore.getState().joinRoom('room-1')
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useRoomStore.getState().joinRoom('room-1')
 
-    expect(useAppStore.getState().activeRoomId).toBe('room-1')
-    const gw = useAppStore.getState().gateway as unknown as { subscribedRoom: string | null }
+    expect(useRoomStore.getState().activeRoomId).toBe('room-1')
+    const gw = useSocketStore.getState().gateway as unknown as { subscribedRoom: string | null }
     expect(gw.subscribedRoom).toBe('room-1')
   })
 
   it('resets spectator state when joining a room', () => {
-    useAppStore.setState({ isSpectator: true, spectatorCount: 5 })
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    useAppStore.getState().joinRoom('room-1')
+    useRoomStore.setState({ isSpectator: true, spectatorCount: 5 })
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useRoomStore.getState().joinRoom('room-1')
 
-    expect(useAppStore.getState().isSpectator).toBe(false)
-    expect(useAppStore.getState().spectatorCount).toBe(0)
+    expect(useRoomStore.getState().isSpectator).toBe(false)
+    expect(useRoomStore.getState().spectatorCount).toBe(0)
   })
 
   it('resets presence map when joining a room', () => {
-    useAppStore.setState({ presenceMap: { p1: true } })
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    useAppStore.getState().joinRoom('room-1')
+    useRoomStore.setState({ presenceMap: { p1: true } })
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useRoomStore.getState().joinRoom('room-1')
 
-    expect(useAppStore.getState().presenceMap).toEqual({})
+    expect(useRoomStore.getState().presenceMap).toEqual({})
   })
 
   it('unsubscribes previous room when switching rooms', () => {
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    useAppStore.getState().joinRoom('room-1')
-    useAppStore.getState().joinRoom('room-2')
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useRoomStore.getState().joinRoom('room-1')
+    useRoomStore.getState().joinRoom('room-2')
 
-    expect(useAppStore.getState().activeRoomId).toBe('room-2')
-    const gw = useAppStore.getState().gateway as unknown as { subscribedRoom: string | null }
+    expect(useRoomStore.getState().activeRoomId).toBe('room-2')
+    const gw = useSocketStore.getState().gateway as unknown as { subscribedRoom: string | null }
     expect(gw.subscribedRoom).toBe('room-2')
   })
 })
 
 describe('leaveRoom', () => {
   it('clears activeRoomId and unsubscribes from gateway', () => {
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    useAppStore.getState().joinRoom('room-1')
-    useAppStore.getState().leaveRoom()
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useRoomStore.getState().joinRoom('room-1')
+    useRoomStore.getState().leaveRoom()
 
-    expect(useAppStore.getState().activeRoomId).toBeNull()
-    const gw = useAppStore.getState().gateway as unknown as { subscribedRoom: string | null }
+    expect(useRoomStore.getState().activeRoomId).toBeNull()
+    const gw = useSocketStore.getState().gateway as unknown as { subscribedRoom: string | null }
     expect(gw.subscribedRoom).toBeNull()
   })
 
   it('resets spectator and presence state', () => {
-    useAppStore.setState({ isSpectator: true, spectatorCount: 3, presenceMap: { p1: true } })
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    useAppStore.getState().joinRoom('room-1')
-    useAppStore.getState().leaveRoom()
+    useRoomStore.setState({ isSpectator: true, spectatorCount: 3, presenceMap: { p1: true } })
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useRoomStore.getState().joinRoom('room-1')
+    useRoomStore.getState().leaveRoom()
 
-    expect(useAppStore.getState().isSpectator).toBe(false)
-    expect(useAppStore.getState().spectatorCount).toBe(0)
-    expect(useAppStore.getState().presenceMap).toEqual({})
+    expect(useRoomStore.getState().isSpectator).toBe(false)
+    expect(useRoomStore.getState().spectatorCount).toBe(0)
+    expect(useRoomStore.getState().presenceMap).toEqual({})
   })
 
   it('does not close the gateway socket', () => {
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    useAppStore.getState().joinRoom('room-1')
-    useAppStore.getState().leaveRoom()
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useRoomStore.getState().joinRoom('room-1')
+    useRoomStore.getState().leaveRoom()
 
-    const gw = useAppStore.getState().gateway as unknown as { closed: boolean }
+    const gw = useSocketStore.getState().gateway as unknown as { closed: boolean }
     expect(gw.closed).toBe(false)
-    expect(useAppStore.getState().gateway).not.toBeNull()
+    expect(useSocketStore.getState().gateway).not.toBeNull()
   })
 })
 
@@ -286,9 +297,9 @@ describe('leaveRoom', () => {
 
 describe('connectGateway', () => {
   it('creates and connects a gateway socket', () => {
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
 
-    const gw = useAppStore.getState().gateway as unknown as {
+    const gw = useSocketStore.getState().gateway as unknown as {
       connected: boolean
       url: string
     }
@@ -298,36 +309,36 @@ describe('connectGateway', () => {
   })
 
   it('skips reconnect when URL is the same', () => {
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    const first = useAppStore.getState().gateway
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    const first = useSocketStore.getState().gateway
 
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    expect(useAppStore.getState().gateway).toBe(first)
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    expect(useSocketStore.getState().gateway).toBe(first)
   })
 
   it('closes previous gateway socket when URL changes', () => {
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    const first = useAppStore.getState().gateway as unknown as { closed: boolean }
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    const first = useSocketStore.getState().gateway as unknown as { closed: boolean }
 
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p2')
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p2')
     expect(first.closed).toBe(true)
   })
 })
 
 describe('disconnectGateway', () => {
   it('closes and nulls the gateway socket', () => {
-    useAppStore.getState().connectGateway('wss://example.com/ws/players/p1')
-    const gw = useAppStore.getState().gateway as unknown as { closed: boolean }
+    useSocketStore.getState().connectGateway('wss://example.com/ws/players/p1')
+    const gw = useSocketStore.getState().gateway as unknown as { closed: boolean }
 
-    useAppStore.getState().disconnectGateway()
+    useSocketStore.getState().disconnectGateway()
 
     expect(gw.closed).toBe(true)
-    expect(useAppStore.getState().gateway).toBeNull()
+    expect(useSocketStore.getState().gateway).toBeNull()
   })
 
   it('is safe to call when no socket exists', () => {
-    expect(() => useAppStore.getState().disconnectGateway()).not.toThrow()
-    expect(useAppStore.getState().gateway).toBeNull()
+    expect(() => useSocketStore.getState().disconnectGateway()).not.toThrow()
+    expect(useSocketStore.getState().gateway).toBeNull()
   })
 })
 

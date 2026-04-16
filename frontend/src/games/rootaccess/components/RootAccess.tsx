@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useGameTopBarSlot } from '@/features/game/top-bar-slot'
 import { sfx } from '@/lib/sfx'
-import { useAppStore } from '@/stores/store'
+import { useRoomStore } from '@/stores/roomStore'
 import { Card, CardPile } from '@/ui/cards'
 import { ModalOverlay } from '@/ui/ModalOverlay'
 import { CardFace } from './CardFace'
@@ -125,7 +125,7 @@ export function RootAccess({
   players = [],
 }: Props) {
   const { t } = useTranslation()
-  const presenceMap = useAppStore(s => s.presenceMap)
+  const presenceMap = useRoomStore(s => s.presenceMap)
   const topBarSlot = useGameTopBarSlot()
   const [selectedCard, setSelectedCard] = useState<CardName | null>(null)
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)

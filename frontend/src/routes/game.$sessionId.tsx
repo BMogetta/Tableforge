@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Game } from '../features/game/Game'
 import { GameLoading } from '../features/game/GameLoading'
 import { requireAuth } from '@/lib/authGuards'
-import { useAppStore } from '../stores/store'
+import { useRoomStore } from '../stores/roomStore'
 import { sessions } from '@/lib/api/sessions'
 import { keys } from '@/lib/queryClient'
 
@@ -43,7 +43,7 @@ function GameLoadingWrapper({
  * on rematch — no stale gameReady state leaking between sessions.
  */
 function GameGate({ sessionId }: { sessionId: string }) {
-  const isSpectator = useAppStore(s => s.isSpectator)
+  const isSpectator = useRoomStore(s => s.isSpectator)
   const [gameReady, setGameReady] = useState(false)
 
   const handleReady = () => setGameReady(true)

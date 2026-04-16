@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { dm } from '@/features/room/api'
 import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
 import { keys } from '@/lib/queryClient'
 import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
@@ -19,7 +20,7 @@ interface DMConversationProps {
 
 export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConversationProps) {
   const player = useAppStore(s => s.player)!
-  const gateway = useAppStore(s => s.gateway)
+  const gateway = useSocketStore(s => s.gateway)
   const toast = useToast()
   const qc = useQueryClient()
   const [text, setText] = useState('')

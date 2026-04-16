@@ -6,6 +6,7 @@ import { friends } from '@/features/friends/api'
 import { ok, error, catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
 import { useAppStore } from '@/stores/store'
+import { useRoomStore } from '@/stores/roomStore'
 import { PlayerDropdown } from './PlayerDropdown'
 import styles from '../Room.module.css'
 import { testId } from '@/utils/testId'
@@ -39,7 +40,7 @@ export function PlayerList({
 }: PlayerListProps) {
   const { t } = useTranslation()
   const toast = useToast()
-  const presenceMap = useAppStore(s => s.presenceMap)
+  const presenceMap = useRoomStore(s => s.presenceMap)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 

@@ -26,7 +26,7 @@
  * (never the same variant twice in a row for a given key).
  */
 
-import { useAppStore } from '@/stores/store'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { CATALOG, type CatalogEntry, type SfxId } from './catalog'
 
 const CACHE_NAME = 'tf-sfx-v1'
@@ -173,7 +173,7 @@ async function getBuffer(url: string): Promise<AudioBuffer | null> {
  * variant, or omit it for random selection with anti-repetition.
  */
 function play(id: SfxId, index?: number): void {
-  const settings = useAppStore.getState().settings
+  const settings = useSettingsStore.getState().settings
 
   if (settings.mute_all || !settings.notify_sound) return
 

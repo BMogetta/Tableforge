@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useAppStore } from '@/stores/store'
+import { useSocketStore } from '@/stores/socketStore'
 import { useWsDevtoolsStore } from './store'
 
 /**
@@ -13,7 +13,7 @@ import { useWsDevtoolsStore } from './store'
  * so there is zero overhead.
  */
 export function useWsDevtools(): void {
-  const gateway = useAppStore(s => s.gateway)
+  const gateway = useSocketStore(s => s.gateway)
   const capture = useWsDevtoolsStore(s => s.capture)
 
   useEffect(() => {

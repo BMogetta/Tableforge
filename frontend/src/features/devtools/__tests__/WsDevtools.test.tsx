@@ -12,7 +12,7 @@ function makeEvent(overrides?: Partial<CapturedEvent>): CapturedEvent {
   return {
     id: Math.random(),
     timestamp: Date.now(),
-    source: 'room',
+    source: 'gateway',
     type: 'move_applied',
     payload: { session: { id: 'abc', move_count: 1 } },
     ...overrides,
@@ -60,9 +60,9 @@ describe('WsDevtools', () => {
   })
 
   it('shows source badge', () => {
-    seedEvents([makeEvent({ source: 'player' })])
+    seedEvents([makeEvent({ source: 'gateway' })])
     render(<WsDevtools />)
-    expect(screen.getByTestId('event-source')).toHaveTextContent('player')
+    expect(screen.getByTestId('event-source')).toHaveTextContent('gateway')
   })
 
   // ── Expand / collapse ─────────────────────────────────────────────────────

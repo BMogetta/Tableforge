@@ -9,14 +9,19 @@ import { GameLoading } from '../GameLoading'
 const mockGatewayOff = vi.fn()
 const mockGatewayOn = vi.fn(() => mockGatewayOff)
 const mockGateway = { on: mockGatewayOn }
-const mockPlayer = { id: 'player-123' }
 
-// Mock useAppStore to behave like a selector-based hook returning fake state.
-vi.mock('../../../stores/store', () => ({
-  useAppStore: (selector: (s: unknown) => unknown) =>
+// Mock stores to behave like selector-based hooks returning fake state.
+vi.mock('../../../stores/socketStore', () => ({
+  useSocketStore: (selector: (s: unknown) => unknown) =>
     selector({
-      player: mockPlayer,
       gateway: mockGateway,
+    }),
+}))
+
+vi.mock('../../../stores/roomStore', () => ({
+  useRoomStore: (selector: (s: unknown) => unknown) =>
+    selector({
+      isSpectator: false,
     }),
 }))
 

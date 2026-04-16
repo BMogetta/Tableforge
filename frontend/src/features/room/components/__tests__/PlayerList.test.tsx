@@ -18,9 +18,13 @@ vi.mock('@/ui/Toast', () => ({
 
 vi.mock('@/stores/store', () => ({
   useAppStore: Object.assign(
-    (selector: (s: unknown) => unknown) => selector({ presenceMap: { 'p1': true, 'p2': false } }),
+    (selector: (s: unknown) => unknown) => selector({}),
     { getState: () => ({ setDmTarget: vi.fn() }) },
   ),
+}))
+
+vi.mock('@/stores/roomStore', () => ({
+  useRoomStore: (selector: (s: unknown) => unknown) => selector({ presenceMap: { 'p1': true, 'p2': false } }),
 }))
 
 const players: RoomPlayer[] = [
