@@ -8,5 +8,4 @@ that can be handed directly to an agent.
 | # | Task | File | Effort |
 |---|------|------|--------|
 | 2 | Deploy to Raspberry Pi | `deploy-raspberry-pi.md` | Medium |
-| 4 | Pause/resume/timeout bugs (3 bugs) | `tech-debt-pause-timeout.md` | Low-Medium |
-| 5 | Remove rematch in ranked matches | `no-rematch-ranked.md` | Low |
+| 6 | Test coverage gaps | `test-coverage-gaps.md` | Medium |

@@ -41,27 +41,34 @@ up-prod: networks
 up-test: networks
 	TEST_MODE=true RATE_LIMIT_AVG=9999 RATE_LIMIT_BURST=9999 MATCHMAKER_TICK_INTERVAL=1s MATCHMAKER_SPREAD_PER_SEC=20 docker compose -f docker-compose.yml --profile app up --build -d
 
+# Compose flags shared by all targets that touch prod / multi-file configs.
+# Must match up-prod so that down/reset see the same project config hash and
+# actually kill containers that up-prod created. Without this, the include:
+# directive in docker-compose.yml creates a different project view vs the
+# explicit -f list, and containers survive a down.
+COMPOSE_ALL = -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml --profile production --profile app --profile monitoring
+
 # Stop all services and remove containers.
 down:
-	docker compose --profile app --profile monitoring --profile production down
+	docker compose $(COMPOSE_ALL) down
 
 # Rebuild all images without starting.
 build:
-	docker compose --profile app --profile monitoring --profile production build
+	docker compose $(COMPOSE_ALL) build
 
 # Show running containers.
 ps:
-	docker compose --profile app --profile monitoring --profile production ps
+	docker compose $(COMPOSE_ALL) ps
 
 # Tail logs for all services.
 logs:
-	docker compose --profile app --profile monitoring --profile production logs -f
+	docker compose $(COMPOSE_ALL) logs -f
 
 # Hard reset — removes all containers, volumes, images and networks for this project.
 # WARNING: wipes the database.
 reset:
-	docker compose --profile app --profile monitoring --profile production down -v --rmi local --remove-orphans
-	docker network rm app_network data_network monitoring_network 2>/dev/null || true
+	docker compose $(COMPOSE_ALL) down -v --rmi local --remove-orphans
+	docker network rm app_network data_network monitoring_network proxy_network 2>/dev/null || true
 
 # ── Database ──────────────────────────────────────────────────────────────────
 

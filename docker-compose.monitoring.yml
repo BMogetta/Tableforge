@@ -95,6 +95,10 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=${GRAFANA_ANON_ENABLED:-false}
       - GF_AUTH_ANONYMOUS_ORG_ROLE=${GRAFANA_ANON_ROLE:-Viewer}
       - GF_AUTH_DISABLE_LOGIN_FORM=${GRAFANA_DISABLE_LOGIN:-false}
+      # Fallback admin password — only reachable if anonymous access is off
+      # or the external gate fails open. Grafana itself defaults to admin/admin
+      # without this override, so always setting it is cheap insurance.
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       # Password for the claude_mcp_ro Postgres role — consumed by the
       # provisioned Postgres datasource (see infra/grafana-datasources.yaml).
       - GRAFANA_DB_PASSWORD=${CLAUDE_MCP_RO_PASSWORD:-claude_ro}

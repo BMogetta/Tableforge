@@ -1,0 +1,22 @@
+# Unleash router — declared via file provider as a workaround.
+# Traefik's Docker provider silently ignores the unleash container despite
+# correct labels, networks, and health. Root cause unresolved as of
+# Traefik v3.2.5 / Docker Compose v2.38.1. If the Docker provider ever picks
+# it up, remove this file to avoid a duplicate router (Traefik would log a
+# warning about it).
+#
+# The URL uses Docker DNS (unleash:4242) which resolves on app_network.
+
+http:
+  routers:
+    unleash:
+      rule: "Host(`unleash.bmogetta.com`) || Host(`unleash.localhost`)"
+      entrypoints:
+        - web
+      service: unleash-svc
+
+  services:
+    unleash-svc:
+      loadBalancer:
+        servers:
+          - url: "http://unleash:4242"
