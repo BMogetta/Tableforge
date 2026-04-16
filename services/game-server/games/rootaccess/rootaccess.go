@@ -625,7 +625,8 @@ func highestHandWinner(state engine.GameState, active []string) string {
 
 // TimeoutMove implements engine.TurnTimeoutHandler.
 // Returns a penalty_lose move that eliminates the active player via the engine.
-func (g *RootAccess) TimeoutMove() map[string]any {
+// RootAccess always eliminates the timed-out player regardless of penalty config.
+func (g *RootAccess) TimeoutMove(_ string) map[string]any {
 	return map[string]any{"card": string(CardPenaltyLose)}
 }
 

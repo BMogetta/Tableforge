@@ -149,9 +149,10 @@ func handleMove(rt *runtime.Service, hub *ws.Hub, st store.Store) http.HandlerFu
 				rt.MaybeFireBot(r.Context(), hub, sessionID, nextPlayerUUID)
 			}
 		}
+		filteredState := rt.FilterState(result.Session.GameID, result.State, playerID)
 		writeJSON(w, http.StatusOK, MoveResponse{
 			Session: sessionToDTO(result.Session),
-			State:   result.State,
+			State:   filteredState,
 			IsOver:  result.IsOver,
 			Result:  result.Result,
 		})
@@ -171,9 +172,11 @@ func handleGetSession(rt *runtime.Service) http.HandlerFunc {
 			writeRuntimeError(w, err)
 			return
 		}
+		callerID, _ := sharedmw.PlayerIDFromContext(r.Context())
+		filteredState := rt.FilterState(session.GameID, state, callerID)
 		writeJSON(w, http.StatusOK, SessionResponse{
 			Session: sessionToDTO(session),
-			State:   state,
+			State:   filteredState,
 			Result:  result,
 		})
 	}
@@ -267,9 +270,10 @@ func handleSurrender(rt *runtime.Service, hub *ws.Hub, st store.Store) http.Hand
 		players, _ := st.ListRoomPlayers(r.Context(), result.Session.RoomID)
 		rt.BroadcastMove(r.Context(), hub, result, ws.EventGameOver, players)
 		activeSessions.Dec()
+		filteredState := rt.FilterState(result.Session.GameID, result.State, playerID)
 		writeJSON(w, http.StatusOK, MoveResponse{
 			Session: sessionToDTO(result.Session),
-			State:   result.State,
+			State:   filteredState,
 			IsOver:  result.IsOver,
 			Result:  result.Result,
 		})

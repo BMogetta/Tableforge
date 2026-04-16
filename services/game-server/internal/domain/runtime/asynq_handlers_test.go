@@ -3,6 +3,8 @@ package runtime_test
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -69,13 +71,15 @@ func (t *noopTimer) CancelReady(sessionID uuid.UUID) {
 func seedTimerSession(t *testing.T, fs *testutil.FakeStore, gameID string, players int) (store.GameSession, []engine.PlayerID) {
 	t.Helper()
 	pids := make([]engine.PlayerID, players)
+	playerStrs := make([]any, players)
 	for i := range pids {
 		pids[i] = engine.PlayerID(uuid.New().String())
+		playerStrs[i] = string(pids[i])
 	}
 
 	state := engine.GameState{
 		CurrentPlayerID: pids[0],
-		Data:            map[string]any{"turn": 0},
+		Data:            map[string]any{"turn": 0, "players": playerStrs},
 	}
 	stateJSON, _ := json.Marshal(state)
 
@@ -96,7 +100,8 @@ func newTimerHandlers(st store.Store, _ store.TimeoutPenalty) (*runtime.TimerHan
 	hub := ws.NewHub()
 	timer := &noopTimer{}
 	reg := &fakeRegistry{&stubGame{}}
-	svc := runtime.New(st, reg, nil, nil, nil)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := runtime.New(st, reg, nil, nil, log)
 	h := runtime.NewTimerHandlers(svc, hub, st, nil, timer, reg)
 	return h, timer
 }

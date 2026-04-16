@@ -257,6 +257,9 @@ type Store interface {
 
 	// Results
 	CreateGameResult(ctx context.Context, params CreateGameResultParams) (GameResult, error)
+	// UpdateGameResultEndedBy corrects the ended_by field on an existing game
+	// result. Used by the timeout handler to mark engine-routed timeouts.
+	UpdateGameResultEndedBy(ctx context.Context, sessionID uuid.UUID, endedBy EndedBy) error
 	GetPlayerStats(ctx context.Context, playerID uuid.UUID) (PlayerStats, error)
 	ListPlayerHistory(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]GameResult, error)
 	ListPlayerMatches(ctx context.Context, playerID uuid.UUID, limit, offset int) ([]MatchHistoryEntry, error)

@@ -56,9 +56,14 @@ func (g *TicTacToe) Init(players []engine.Player) (engine.GameState, error) {
 
 // ValidateMove checks that the move is a valid cell selection.
 // The move payload must contain: {"cell": <0-8>}
+// Timeout moves ({"timeout_action": "..."}) are always valid for the current player.
 func (g *TicTacToe) ValidateMove(state engine.GameState, move engine.Move) error {
 	if move.PlayerID != state.CurrentPlayerID {
 		return errors.New("it is not your turn")
+	}
+
+	if _, ok := move.Payload["timeout_action"]; ok {
+		return nil
 	}
 
 	cell, err := getCell(move)
@@ -79,7 +84,14 @@ func (g *TicTacToe) ValidateMove(state engine.GameState, move engine.Move) error
 }
 
 // ApplyMove places the player's mark on the board and advances the turn.
+// Timeout moves skip the mark placement:
+//   - lose_turn: advances to the next player without placing a mark
+//   - lose_game: marks the game as forfeited (IsOver detects the forfeit)
 func (g *TicTacToe) ApplyMove(state engine.GameState, move engine.Move) (engine.GameState, error) {
+	if action, ok := move.Payload["timeout_action"].(string); ok {
+		return g.applyTimeout(state, move.PlayerID, action)
+	}
+
 	cell, err := getCell(move)
 	if err != nil {
 		return state, err
@@ -119,8 +131,48 @@ func (g *TicTacToe) ApplyMove(state engine.GameState, move engine.Move) (engine.
 	}, nil
 }
 
-// IsOver checks for a win or a draw.
+func (g *TicTacToe) applyTimeout(state engine.GameState, playerID engine.PlayerID, action string) (engine.GameState, error) {
+	players, err := getPlayers(state)
+	if err != nil {
+		return state, err
+	}
+
+	nextPlayerID := players[0]
+	if engine.PlayerID(players[0]) == playerID {
+		nextPlayerID = players[1]
+	}
+
+	if action == "lose_game" {
+		state.Data["forfeit"] = string(playerID)
+		return state, nil
+	}
+
+	// lose_turn (default): advance turn without placing a mark
+	return engine.GameState{
+		CurrentPlayerID: engine.PlayerID(nextPlayerID),
+		Data:            state.Data,
+	}, nil
+}
+
+// IsOver checks for a win, a draw, or a forfeit (timeout lose_game).
 func (g *TicTacToe) IsOver(state engine.GameState) (bool, engine.Result) {
+	// Forfeit: timed-out player loses, opponent wins.
+	if forfeit, ok := state.Data["forfeit"].(string); ok {
+		players, err := getPlayers(state)
+		if err != nil {
+			return false, engine.Result{}
+		}
+		for _, p := range players {
+			if p != forfeit {
+				winnerID := engine.PlayerID(p)
+				return true, engine.Result{
+					Status:   engine.ResultWin,
+					WinnerID: &winnerID,
+				}
+			}
+		}
+	}
+
 	board, err := getBoard(state)
 	if err != nil {
 		return false, engine.Result{}
@@ -161,6 +213,13 @@ func (g *TicTacToe) IsOver(state engine.GameState) (bool, engine.Result) {
 	}
 
 	return true, engine.Result{Status: engine.ResultDraw}
+}
+
+// TimeoutMove implements engine.TurnTimeoutHandler.
+// For lose_turn, the move skips the turn without placing a mark.
+// For lose_game, the move forfeits the game — IsOver detects the forfeit.
+func (g *TicTacToe) TimeoutMove(penalty string) map[string]any {
+	return map[string]any{"timeout_action": penalty}
 }
 
 // --- Helpers -----------------------------------------------------------------

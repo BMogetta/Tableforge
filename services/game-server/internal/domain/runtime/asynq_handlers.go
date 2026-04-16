@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -81,132 +80,27 @@ func (h *TimerHandlers) onTimeout(sessionID uuid.UUID) {
 
 	timedOutPlayerID := state.CurrentPlayerID
 
-	// If the game provides its own timeout move, delegate to ApplyMove so the
-	// engine handles all state transitions (e.g. Love Letter penalty_lose).
 	game, err := h.reg.Get(session.GameID)
-	if err == nil {
-		if th, ok := game.(engine.TurnTimeoutHandler); ok {
-			h.applyEngineTimeout(ctx, session, timedOutPlayerID, th.TimeoutMove())
-			return
-		}
+	if err != nil {
+		slog.Error("turn timer: game not found", "game_id", session.GameID, "error", err)
+		return
 	}
 
-	switch cfg.TimeoutPenalty {
-	case store.PenaltyLoseGame:
-		h.applyLoseGame(ctx, session, state, timedOutPlayerID)
-	case store.PenaltyLoseTurn:
-		h.applyLoseTurn(ctx, session, state, timedOutPlayerID)
-	default:
-		slog.Warn("turn timer: unknown timeout penalty", "penalty", cfg.TimeoutPenalty, "game_id", session.GameID)
-	}
-}
+	penalty := string(cfg.TimeoutPenalty)
 
-func (h *TimerHandlers) applyLoseGame(ctx context.Context, session store.GameSession, state engine.GameState, timedOutPlayer engine.PlayerID) {
-	players, err := h.st.ListRoomPlayers(ctx, session.RoomID)
-	if err != nil {
-		slog.Error("turn timer: list room players failed", "room_id", session.RoomID, "error", err)
+	// All timeouts go through the engine. Games that implement
+	// TurnTimeoutHandler provide a game-specific payload; the penalty string
+	// lets them vary behaviour (e.g. skip turn vs. forfeit).
+	th, ok := game.(engine.TurnTimeoutHandler)
+	if !ok {
+		slog.Error("turn timer: game does not implement TurnTimeoutHandler", "game_id", session.GameID)
 		return
 	}
-	var winnerID *engine.PlayerID
-	for _, p := range players {
-		pid := engine.PlayerID(p.PlayerID.String())
-		if pid != timedOutPlayer {
-			w := pid
-			winnerID = &w
-			break
-		}
-	}
-	result := engine.Result{Status: engine.ResultWin, WinnerID: winnerID}
-	if err := h.st.FinishSession(ctx, session.ID); err != nil {
-		slog.Error("turn timer: finish session failed", "session_id", session.ID, "error", err)
-		return
-	}
-	if err := h.st.UpdateRoomStatus(ctx, session.RoomID, store.RoomStatusFinished); err != nil {
-		slog.Error("turn timer: finish room failed", "room_id", session.RoomID, "error", err)
-	}
-	resultParams := buildGameResultParams(session, result, players)
-	resultParams.EndedBy = store.EndedByTimeout
-	if _, err := h.st.CreateGameResult(ctx, resultParams); err != nil {
-		slog.Error("turn timer: create game result failed", "session_id", session.ID, "error", err)
-	}
-	if h.events != nil {
-		timedOutUUID, _ := uuid.Parse(string(timedOutPlayer))
-		h.events.Append(ctx, session.ID, events.TypeTurnTimeout, &timedOutUUID, map[string]any{
-			"timed_out_player": string(timedOutPlayer),
-			"penalty":          "lose_game",
-		})
-		h.events.Append(ctx, session.ID, events.TypeGameOver, nil, map[string]any{
-			"winner_id": winnerID,
-			"status":    store.OutcomeWin,
-			"ended_by":  store.EndedByTimeout,
-		})
-		h.events.Persist(ctx, session.ID)
-	}
-	updatedSession, err := h.st.GetGameSession(ctx, session.ID)
-	if err != nil {
-		updatedSession = session
-	}
-	h.hub.Broadcast(session.RoomID, ws.Event{
-		Type: ws.EventGameOver,
-		Payload: map[string]any{
-			"session":          updatedSession,
-			"state":            state,
-			"is_over":          true,
-			"result":           map[string]any{"winner_id": winnerID, "status": "win"},
-			"timed_out_player": string(timedOutPlayer),
-		},
-	})
-	slog.Info("turn timer: session ended by timeout", "session_id", session.ID, "penalty", "lose_game", "timed_out_player", timedOutPlayer)
-}
-
-func (h *TimerHandlers) applyLoseTurn(ctx context.Context, session store.GameSession, state engine.GameState, timedOutPlayer engine.PlayerID) {
-	players, err := h.st.ListRoomPlayers(ctx, session.RoomID)
-	if err != nil {
-		slog.Error("turn timer: list room players failed", "room_id", session.RoomID, "error", err)
-		return
-	}
-	state.CurrentPlayerID = nextPlayerAfter(timedOutPlayer, players)
-	stateJSON, err := json.Marshal(state)
-	if err != nil {
-		slog.Error("turn timer: marshal state failed", "session_id", session.ID, "error", err)
-		return
-	}
-	if err := h.st.UpdateSessionState(ctx, session.ID, stateJSON); err != nil {
-		slog.Error("turn timer: update state failed", "session_id", session.ID, "error", err)
-		return
-	}
-	if err := h.st.TouchLastMoveAt(ctx, session.ID); err != nil {
-		slog.Error("turn timer: touch last_move_at failed", "session_id", session.ID, "error", err)
-	}
-	session, err = h.st.GetGameSession(ctx, session.ID)
-	if err != nil {
-		slog.Error("turn timer: reload session failed", "session_id", session.ID, "error", err)
-		return
-	}
-	if h.events != nil {
-		timedOutUUID, _ := uuid.Parse(string(timedOutPlayer))
-		h.events.Append(ctx, session.ID, events.TypeTurnTimeout, &timedOutUUID, map[string]any{
-			"timed_out_player": string(timedOutPlayer),
-			"next_player":      string(state.CurrentPlayerID),
-			"penalty":          "lose_turn",
-		})
-	}
-	h.hub.Broadcast(session.RoomID, ws.Event{
-		Type: ws.EventMoveApplied,
-		Payload: TimeoutResult{
-			SessionID:      session.ID,
-			TimedOutPlayer: string(timedOutPlayer),
-			State:          &state,
-			IsOver:         false,
-		},
-	})
-	h.timer.Schedule(session)
-	slog.Info("turn timer: turn skipped", "session_id", session.ID, "penalty", "lose_turn", "timed_out_player", timedOutPlayer, "next_player", state.CurrentPlayerID)
+	h.applyEngineTimeout(ctx, session, timedOutPlayerID, th.TimeoutMove(penalty))
 }
 
 // applyEngineTimeout delegates a timeout to the engine by calling ApplyMove
-// with the game-provided penalty payload. Used for games that implement
-// engine.TurnTimeoutHandler (e.g. Love Letter penalty_lose).
+// with the game-provided timeout payload.
 func (h *TimerHandlers) applyEngineTimeout(ctx context.Context, session store.GameSession, timedOutPlayer engine.PlayerID, payload map[string]any) {
 	playerUUID, err := uuid.Parse(string(timedOutPlayer))
 	if err != nil {
@@ -228,6 +122,13 @@ func (h *TimerHandlers) applyEngineTimeout(ctx context.Context, session store.Ga
 	players, _ := h.st.ListRoomPlayers(ctx, session.RoomID)
 	h.svc.BroadcastMove(ctx, h.hub, result, eventType, players)
 
+	// ApplyMove records ended_by as "win"/"draw"; correct to "timeout".
+	if result.IsOver {
+		if err := h.st.UpdateGameResultEndedBy(ctx, session.ID, store.EndedByTimeout); err != nil {
+			slog.Error("turn timer: update ended_by failed", "session_id", session.ID, "error", err)
+		}
+	}
+
 	if h.events != nil {
 		timedOutUUID, _ := uuid.Parse(string(timedOutPlayer))
 		h.events.Append(ctx, session.ID, events.TypeTurnTimeout, &timedOutUUID, map[string]any{
@@ -236,12 +137,12 @@ func (h *TimerHandlers) applyEngineTimeout(ctx context.Context, session store.Ga
 		})
 	}
 
-	// If the post-timeout state hands the turn to a bot (common when the
-	// eliminated player's round was resolved and the next round's starter is a
-	// bot), wake it. See the TODO(refactor) in runtime_bot.go:MaybeFireBot —
-	// this is the same "wake next bot after move" rule and should be
-	// consolidated with the other three call sites.
 	if !result.IsOver {
+		// Reschedule the turn timer for the next player.
+		if updated, err := h.st.GetGameSession(ctx, session.ID); err == nil {
+			h.timer.Schedule(updated)
+		}
+		// If the post-timeout state hands the turn to a bot, wake it.
 		if nextUUID, err := uuid.Parse(string(result.State.CurrentPlayerID)); err == nil {
 			h.svc.MaybeFireBot(ctx, h.hub, session.ID, nextUUID)
 		}
@@ -370,37 +271,3 @@ func (h *TimerHandlers) ReschedulePending(ctx context.Context) {
 	slog.Info("turn timer: reschedule pending complete", "rescheduled", rescheduled, "immediate", immediate)
 }
 
-// TimeoutResult is the WebSocket payload sent when a turn times out.
-type TimeoutResult struct {
-	SessionID      uuid.UUID         `json:"session_id"`
-	TimedOutPlayer string            `json:"timed_out_player"`
-	Result         engine.Result     `json:"result,omitempty"`
-	State          *engine.GameState `json:"state,omitempty"`
-	IsOver         bool              `json:"is_over"`
-}
-
-// nextPlayerAfter returns the next player in seat order after current.
-// Players are sorted by seat number so the rotation works even when seats are
-// non-contiguous (e.g. 0, 3 after a player left). Using index-based wrap
-// instead of arithmetic on seat numbers avoids skipping to a vacant seat.
-func nextPlayerAfter(current engine.PlayerID, players []store.RoomPlayer) engine.PlayerID {
-	if len(players) == 0 {
-		return current
-	}
-	sorted := make([]store.RoomPlayer, len(players))
-	copy(sorted, players)
-	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Seat < sorted[j].Seat })
-
-	currentIdx := -1
-	for i, p := range sorted {
-		if engine.PlayerID(p.PlayerID.String()) == current {
-			currentIdx = i
-			break
-		}
-	}
-	if currentIdx == -1 {
-		return engine.PlayerID(sorted[0].PlayerID.String())
-	}
-	nextIdx := (currentIdx + 1) % len(sorted)
-	return engine.PlayerID(sorted[nextIdx].PlayerID.String())
-}

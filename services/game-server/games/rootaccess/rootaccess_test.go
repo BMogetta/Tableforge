@@ -898,9 +898,14 @@ func TestFilterState_PrivateRevealOnlyForRecipient(t *testing.T) {
 }
 
 func TestTimeoutMove(t *testing.T) {
-	payload := game.TimeoutMove()
+	payload := game.TimeoutMove("lose_turn")
 	if payload["card"] != "penalty_lose" {
 		t.Errorf("expected penalty_lose, got %v", payload["card"])
+	}
+	// Penalty argument is ignored — RootAccess always eliminates.
+	payload2 := game.TimeoutMove("lose_game")
+	if payload2["card"] != "penalty_lose" {
+		t.Errorf("expected penalty_lose for lose_game too, got %v", payload2["card"])
 	}
 }
 

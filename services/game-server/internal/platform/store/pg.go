@@ -661,6 +661,14 @@ func (s *PGStore) CreateGameResult(ctx context.Context, params CreateGameResultP
 	return gr, nil
 }
 
+func (s *PGStore) UpdateGameResultEndedBy(ctx context.Context, sessionID uuid.UUID, endedBy EndedBy) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE game_results SET ended_by = $1 WHERE session_id = $2`,
+		endedBy, sessionID,
+	)
+	return err
+}
+
 func (s *PGStore) GetPlayerStats(ctx context.Context, playerID uuid.UUID) (PlayerStats, error) {
 	row := s.pool.QueryRow(ctx,
 		`SELECT

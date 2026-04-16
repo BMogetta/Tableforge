@@ -110,7 +110,24 @@ func (g *stubGame) Init(players []engine.Player) (engine.GameState, error) {
 	}, nil
 }
 func (g *stubGame) ValidateMove(_ engine.GameState, _ engine.Move) error { return nil }
-func (g *stubGame) ApplyMove(state engine.GameState, _ engine.Move) (engine.GameState, error) {
+func (g *stubGame) ApplyMove(state engine.GameState, move engine.Move) (engine.GameState, error) {
+	if action, ok := move.Payload["timeout_action"].(string); ok {
+		if action == "lose_game" {
+			state.Data["forfeit"] = string(move.PlayerID)
+			return state, nil
+		}
+		// lose_turn: advance to the next player without other changes
+		if players, ok := state.Data["players"].([]any); ok && len(players) > 1 {
+			cur := string(move.PlayerID)
+			for _, p := range players {
+				if ps, ok := p.(string); ok && ps != cur {
+					state.CurrentPlayerID = engine.PlayerID(ps)
+					break
+				}
+			}
+		}
+		return state, nil
+	}
 	var turn float64
 	switch v := state.Data["turn"].(type) {
 	case int:
@@ -121,7 +138,25 @@ func (g *stubGame) ApplyMove(state engine.GameState, _ engine.Move) (engine.Game
 	state.Data["turn"] = turn + 1
 	return state, nil
 }
-func (g *stubGame) IsOver(_ engine.GameState) (bool, engine.Result) { return false, engine.Result{} }
+func (g *stubGame) IsOver(state engine.GameState) (bool, engine.Result) {
+	if forfeit, ok := state.Data["forfeit"].(string); ok {
+		winner := engine.PlayerID(forfeit + "_opponent") // placeholder
+		// Find actual winner by looking at players list if available
+		if players, ok := state.Data["players"].([]any); ok {
+			for _, p := range players {
+				if ps, ok := p.(string); ok && ps != forfeit {
+					winner = engine.PlayerID(ps)
+					break
+				}
+			}
+		}
+		return true, engine.Result{Status: engine.ResultWin, WinnerID: &winner}
+	}
+	return false, engine.Result{}
+}
+func (g *stubGame) TimeoutMove(penalty string) map[string]any {
+	return map[string]any{"timeout_action": penalty}
+}
 
 // winningGame ends after one move.
 type winningGame struct{ winner engine.PlayerID }

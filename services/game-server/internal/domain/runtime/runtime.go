@@ -278,6 +278,21 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 	}, nil
 }
 
+// FilterState applies the game's StateFilter (if any) to produce a view of the
+// state safe to send to the given player. Games without StateFilter return the
+// state unchanged. This should be called before writing state to HTTP responses.
+func (svc *Service) FilterState(gameID string, state engine.GameState, playerID uuid.UUID) engine.GameState {
+	game, err := svc.registry.Get(gameID)
+	if err != nil {
+		return state
+	}
+	sf, ok := game.(engine.StateFilter)
+	if !ok {
+		return state
+	}
+	return sf.FilterState(state, engine.PlayerID(playerID.String()))
+}
+
 // GetSessionAndState returns the session, its deserialized state, and optionally
 // the game result if the session is finished.
 func (svc *Service) GetSessionAndState(ctx context.Context, sessionID uuid.UUID) (store.GameSession, engine.GameState, *store.GameResult, error) {

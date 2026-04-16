@@ -94,9 +94,13 @@ type StateFilter interface {
 
 // TurnTimeoutHandler is an optional interface a Game can implement to provide
 // a custom move payload when a player's turn times out.
-// If implemented, the timer calls ApplyMove with the returned payload instead
-// of applying the platform-level penalty directly.
+// The timer calls ApplyMove with the returned payload instead of applying
+// the platform-level penalty directly.
 // The move is applied on behalf of the timed-out player (state.CurrentPlayerID).
+//
+// penalty is the platform-level timeout penalty from the game config
+// (e.g. "lose_turn", "lose_game"). Games may use it to vary behavior or
+// ignore it and always apply their own semantics.
 type TurnTimeoutHandler interface {
-	TimeoutMove() map[string]any
+	TimeoutMove(penalty string) map[string]any
 }

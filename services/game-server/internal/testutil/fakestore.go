@@ -471,6 +471,16 @@ func (f *FakeStore) CreateGameResult(_ context.Context, params store.CreateGameR
 	return r, nil
 }
 
+func (f *FakeStore) UpdateGameResultEndedBy(_ context.Context, sessionID uuid.UUID, endedBy store.EndedBy) error {
+	r, ok := f.GameResults[sessionID]
+	if !ok {
+		return ErrNotFound
+	}
+	r.EndedBy = endedBy
+	f.GameResults[sessionID] = r
+	return nil
+}
+
 func (f *FakeStore) GetGameResult(_ context.Context, sessionID uuid.UUID) (store.GameResult, error) {
 	r, ok := f.GameResults[sessionID]
 	if !ok {
