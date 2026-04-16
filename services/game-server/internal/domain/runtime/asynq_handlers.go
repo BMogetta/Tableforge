@@ -117,6 +117,10 @@ func (h *TimerHandlers) applyEngineTimeout(ctx context.Context, session store.Ga
 	eventType := ws.EventMoveApplied
 	if result.IsOver {
 		eventType = ws.EventGameOver
+		// Override ended_by for the WS broadcast so clients see "timeout".
+		if result.Result != nil {
+			result.Result.EndedBy = string(store.EndedByTimeout)
+		}
 	}
 
 	players, _ := h.st.ListRoomPlayers(ctx, session.RoomID)

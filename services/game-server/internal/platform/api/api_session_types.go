@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/recess/game-server/internal/domain/engine"
 	"github.com/recess/game-server/internal/platform/store"
 )
 
@@ -12,14 +11,13 @@ type SessionResponse struct {
 	Result  *store.GameResult `json:"result"`
 }
 
-// MoveResponse is returned by POST /sessions/{sessionID}/move
-// and POST /sessions/{sessionID}/surrender.
-// Mirrors runtime.MoveResult with JSON-friendly field names.
-type MoveResponse struct {
-	Session GameSessionDTO `json:"session"`
-	State   interface{}    `json:"state"`
-	IsOver  bool           `json:"is_over"`
-	Result  *engine.Result `json:"result,omitempty"`
+// MoveAckResponse is returned by POST /sessions/{sessionID}/move
+// and POST /sessions/{sessionID}/surrender. It confirms the move was
+// accepted without echoing state — clients receive the authoritative
+// state update via the WebSocket broadcast.
+type MoveAckResponse struct {
+	MoveNumber int  `json:"move_number"`
+	IsOver     bool `json:"is_over"`
 }
 
 // RematchResponse is returned by POST /sessions/{sessionID}/rematch.

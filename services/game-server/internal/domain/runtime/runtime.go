@@ -202,6 +202,12 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 
 	moveNumber := session.MoveCount + 1
 	over, result := game.IsOver(newState)
+	if over {
+		result.EndedBy = string(store.EndedByNormal)
+		if result.Status == engine.ResultDraw {
+			result.EndedBy = string(store.EndedByDraw)
+		}
+	}
 
 	// Persist all DB writes atomically: move recording, state update,
 	// and (if game over) session finish + room status + game result.
@@ -499,6 +505,7 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		Result: &engine.Result{
 			Status:   engine.ResultWin,
 			WinnerID: winnerEngineID,
+			EndedBy:  string(store.EndedByForfeit),
 		},
 	}, nil
 }

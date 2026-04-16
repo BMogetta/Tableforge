@@ -68,6 +68,7 @@ export interface WsPayloadMoveResult {
   result?: {
     status?: 'win' | 'draw'
     winner_id?: string
+    ended_by?: string
   }
 }
 

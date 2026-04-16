@@ -4,10 +4,8 @@
   "title": "ApplyMoveResponse",
   "type": "object",
   "properties": {
-    "session": { "$ref": "defs/game_session.json" },
-    "state": {},
-    "is_over": { "type": "boolean" },
-    "result": { "$ref": "defs/game_result.json" }
+    "move_number": { "type": "integer" },
+    "is_over": { "type": "boolean" }
   },
-  "required": ["session", "state", "is_over"]
+  "required": ["move_number", "is_over"]
 }

@@ -40,6 +40,9 @@ const (
 type Result struct {
 	Status   ResultStatus `json:"status"`
 	WinnerID *PlayerID    `json:"winner_id,omitempty"`
+	// EndedBy is set by the runtime (not by game plugins) to communicate the
+	// game-over reason to WS clients. Plugins leave it empty.
+	EndedBy string `json:"ended_by,omitempty"`
 }
 
 // Game is the interface every board game plugin must implement.

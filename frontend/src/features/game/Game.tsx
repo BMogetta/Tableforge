@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useAppStore } from '@/stores/store'
 import { sessions } from '@/lib/api/sessions'
 import { queue } from '@/features/lobby/api'
@@ -8,7 +8,6 @@ import { catchToAppError, type AppError } from '@/utils/errors'
 import { testAttr } from '@/utils/testId'
 import { useToast } from '@/ui/Toast'
 import { ErrorMessage } from '@/ui/ErrorMessage'
-import { keys } from '@/lib/queryClient'
 import { sfx } from '@/lib/sfx'
 import styles from './Game.module.css'
 import { SurrenderModal } from './components/SurrenderModal'
@@ -23,8 +22,6 @@ import { useGameSession } from './hooks/useGameSession'
 import { useGameSocket } from './hooks/useGameSocket'
 import { usePauseResume } from './hooks/usePauseResume'
 import { useRematch } from './hooks/useRematch'
-import type { SessionCache } from './api/session-cache'
-import { ResultStatus } from '@/lib/api'
 import { requestPermission, acquireWakeLock, releaseWakeLock } from '@/lib/turn-notifier'
 
 export function Game({ sessionId }: { sessionId: string }) {
@@ -45,7 +42,6 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   const navigate = useNavigate()
   const toast = useToast()
-  const qc = useQueryClient()
 
   const [gameOver, setGameOver] = useState<{
     isOver: boolean
@@ -142,40 +138,9 @@ export function Game({ sessionId }: { sessionId: string }) {
 
   const move = useMutation({
     mutationFn: (payload: Record<string, unknown>) => sessions.move(sessionId, payload),
-    onMutate: async () => {
-      await qc.cancelQueries({ queryKey: keys.session(sessionId) })
-    },
-    onSuccess: res => {
+    onSuccess: () => {
+      // Move accepted — state update arrives via WS (move_applied / game_over).
       setMoveError(null)
-
-      // Guard: if a WS event already pushed a newer move_count, skip this
-      // stale HTTP response to avoid overwriting fresher cache data.
-      const current = qc.getQueryData<SessionCache>(keys.session(sessionId))
-      if (
-        current?.session?.move_count !== undefined &&
-        res.session.move_count <= current.session.move_count
-      ) {
-        return
-      }
-
-      qc.setQueryData(keys.session(sessionId), {
-        session: res.session,
-        state: res.state,
-        // Normalize MoveResponse.result (Result shape) to SessionCache.result shape.
-        result: res.result
-          ? {
-              winner_id: res.result.winner_id ?? null,
-              is_draw: res.result.status === ResultStatus.Draw,
-            }
-          : null,
-      } satisfies SessionCache)
-      if (res.is_over) {
-        setGameOver({
-          isOver: true,
-          winnerId: res.result?.winner_id ?? null,
-          isDraw: res.result?.status === ResultStatus.Draw,
-        })
-      }
     },
     onError: e => setMoveError(catchToAppError(e)),
   })

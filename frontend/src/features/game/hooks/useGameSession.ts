@@ -27,14 +27,12 @@ interface UseGameSessionReturn {
  * Manages fetching and syncing game session state.
  *
  * Responsibilities:
- * - Polls the session endpoint every 3s while the game is active.
- * - Stops polling once the session is finished.
+ * - Fetches the session once on mount. WS events (move_applied, game_over)
+ *   keep the cache in sync — no polling needed.
+ * - On WS reconnect, useGameSocket invalidates the session query to resync.
  * - Fetches room players (stale forever — they don't change mid-game).
  * - Calls onGameOver when the session's finished_at is set on initial load
  *   (covers the "player returns to an already-finished game" case).
- *
- * Does NOT handle WS updates — those go through useGameSocket which calls
- * queryClient.setQueryData directly to keep the cache in sync.
  *
  * @testability
  * Mock `sessions.get` and `rooms.get` from `../../lib/api`.
@@ -48,11 +46,7 @@ export function useGameSession({
     queryKey: keys.session(sessionId),
     queryFn: () => sessions.get(sessionId),
     refetchOnWindowFocus: false,
-    staleTime: 0,
-    refetchInterval: query => {
-      const d = query.state.data
-      return d?.session?.finished_at ? false : 3000
-    },
+    staleTime: Infinity,
   })
 
   const session = data?.session ?? null

@@ -145,12 +145,7 @@ export type AdminBroadcastRequest = z.infer<typeof adminBroadcastRequestSchema>
 export const applyMoveRequestSchema = z.object({ "payload": z.record(z.string(), z.any()) })
 export type ApplyMoveRequest = z.infer<typeof applyMoveRequestSchema>
 
-export const applyMoveResponseSchema = z.object({
-  "session": gameSessionSchema,
-  "state": z.unknown(),
-  "is_over": z.boolean(),
-  "result": gameResultSchema.nullish()
-})
+export const applyMoveResponseSchema = z.object({ "move_number": z.number().int(), "is_over": z.boolean() })
 export type ApplyMoveResponse = z.infer<typeof applyMoveResponseSchema>
 
 export const createReportRequestSchema = z.object({ "reported_id": z.string().min(1), "reason": z.string().min(1), "context": z.any().optional() })

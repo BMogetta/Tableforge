@@ -149,10 +149,8 @@ func applyLoadedState(
 		rt.MaybeFireBot(r.Context(), hub, sessionID, currentPlayerID)
 	}
 
-	writeJSON(w, http.StatusOK, MoveResponse{
-		Session: sessionToDTO(result.Session),
-		State:   result.State,
-		IsOver:  result.IsOver,
-		Result:  result.Result,
+	writeJSON(w, http.StatusOK, MoveAckResponse{
+		MoveNumber: result.Session.MoveCount,
+		IsOver:     result.IsOver,
 	})
 }
