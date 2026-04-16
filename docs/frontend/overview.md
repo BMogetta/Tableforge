@@ -9,7 +9,7 @@ React 19 + TypeScript SPA served via Nginx in Docker. All API calls go through T
 | Framework | React 19 |
 | Routing | TanStack Router (file-based, `src/routes/`) |
 | Server state | TanStack Query |
-| Client state | Zustand (`src/stores/store.ts`) |
+| Client state | Zustand (`src/stores/`) |
 | Animations | Motion (Framer Motion fork) |
 | Validation | Zod (generated from JSON Schema) |
 | i18n | i18next + react-i18next |
@@ -24,7 +24,7 @@ frontend/src/
   routes/             # file-based routing (TanStack Router)
   features/           # feature modules
   games/              # pluggable game renderers
-  stores/             # Zustand store
+  stores/             # Zustand stores (split by domain)
   lib/                # API layer, i18n, schema validation
   ui/                 # shared UI components (cards kit)
   styles/             # global.css (design tokens, themes, utilities)
@@ -65,16 +65,25 @@ Each feature is a directory under `src/features/` with components, hooks, and AP
 
 Features import directly from subfolders -- there are no barrel exports.
 
-## Store
+## Stores
 
-Single Zustand store (`src/stores/store.ts`) managing:
+State is split across five domain-focused Zustand stores under `src/stores/`:
 
-- **Auth**: current player
-- **WebSockets**: room socket + player socket (persistent personal channel)
-- **Spectator**: spectator mode flag + count
-- **Presence**: online/offline tracking map
-- **Queue**: matchmaking status (idle/queued/match found)
-- **Settings**: fully resolved player settings with localStorage cache + backend sync
+| Store | File | Responsibility |
+|-------|------|----------------|
+| `useAppStore` | `store.ts` | Current player, DM overlay target |
+| `useSocketStore` | `socketStore.ts` | `GatewaySocket` lifecycle (connect/disconnect) |
+| `useRoomStore` | `roomStore.ts` | Active room id, view, owner, settings, spectator flag/count, presence map, `joinRoom`/`leaveRoom` |
+| `useQueueStore` | `queueStore.ts` | Matchmaking status (`idle` / `queued` / `match_found`) |
+| `useSettingsStore` | `settingsStore.ts` | Resolved player settings with localStorage cache + backend sync |
+
+`store.ts` re-exports the domain stores so legacy `import { X } from '@/stores/store'` keeps working; new code should import directly from the specific store.
+
+### WebSocket
+
+A single `GatewaySocket` (`src/lib/ws.ts`) replaces the former dual `RoomSocket` + `PlayerSocket`. It connects once at login to `/ws/players/{playerID}` and dynamically subscribes/unsubscribes from room channels via `subscribe_room` / `unsubscribe_room` control messages. All events — player-scoped (queue, DMs, notifications) and room-scoped (game flow, chat, presence) — arrive over this connection.
+
+`useRoomStore` registers a single listener on the gateway to route room-level events (`presence_update`, `owner_changed`, `setting_updated`, spectator counts, connection status) into state.
 
 ## API Layer
 
@@ -85,7 +94,7 @@ The API client lives in `src/lib/api.ts`:
 
 Session-specific endpoints (move, surrender, rematch, pause, etc.) are in `src/lib/api/sessions.ts`.
 
-WebSocket URLs are constructed by `wsRoomUrl(roomId)` and `wsPlayerUrl(playerId)`.
+The gateway URL is built by `wsPlayerUrl(playerId)`; room subscription is handled in-band by the `GatewaySocket`.
 
 ## i18n
 
