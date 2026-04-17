@@ -205,7 +205,8 @@ ArgoCD detecta el commit → sync → rolling update en el cluster
   - Config con `include-component-in-tag: true`, `tag-separator: "-v"` → tags quedan `game-server-v1.2.3`. `separate-pull-requests: true` → un PR de release por componente. `bootstrap-sha` apunta al commit de SHA-pinning para que release-please empiece desde un commit conocido.
 - [x] **4.5.b** `.release-please-manifest.json` con versiones iniciales `0.1.0-alpha.1` por componente
   - Nota: en este repo los tags generados son throwaway (se descarta el `.git` al migrar al repo limpio). El manifest y los workflows sí viajan como archivos finales; en el primer push del repo limpio empiezan a acumular historial real desde cero.
-- [ ] **4.5.c** `.github/workflows/release-please.yml` en `push: main`
+- [x] **4.5.c** `.github/workflows/release-please.yml` en `push: main`
+  - Acción pineada `googleapis/release-please-action@5c625bf…` (v4.4.1). Permisos mínimos: `contents: write` (commit de release PR) + `pull-requests: write` (abrir el PR).
 - [ ] **4.5.d** `.github/workflows/release.yml` en `push: tags: ['*-v*']`:
   - Parsea tag (`${tag%%-v*}` = componente, `${tag##*-v}` = versión)
   - Buildea, publica con tags `vX.Y.Z`, `vX.Y`, `latest`, cosign + SBOM + provenance
