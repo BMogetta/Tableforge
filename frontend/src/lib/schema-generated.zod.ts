@@ -10,6 +10,9 @@ import { z } from 'zod'
 
 // ---- Shared types (defs/) -------------------------------------------------
 
+export const achievementDefinitionSchema = z.object({ "key": z.string().min(1), "name_key": z.string().min(1), "description_key": z.string().optional(), "game_id": z.string(), "type": z.enum(["flat","tiered"]), "tiers": z.array(z.object({ "threshold": z.number().int().gte(1), "name_key": z.string().min(1), "description_key": z.string().min(1) })).min(1) })
+export type AchievementDefinition = z.infer<typeof achievementDefinitionSchema>
+
 export const allowedEmailSchema = z.object({ "email": z.string(), "role": z.enum(["player","manager","owner"]), "note": z.string().optional(), "invited_by": z.string().optional(), "expires_at": z.string().datetime({ offset: true }).optional(), "created_at": z.string().datetime({ offset: true }) })
 export type AllowedEmail = z.infer<typeof allowedEmailSchema>
 
@@ -227,6 +230,11 @@ export type JoinRoomResponse = z.infer<typeof joinRoomResponseSchema>
 
 export const leaveRoomRequestSchema = z.object({})
 export type LeaveRoomRequest = z.infer<typeof leaveRoomRequestSchema>
+
+export const listAchievementDefinitionsResponseSchema = z.object({
+  "definitions": z.array(achievementDefinitionSchema)
+})
+export type ListAchievementDefinitionsResponse = z.infer<typeof listAchievementDefinitionsResponseSchema>
 
 export const listAchievementsResponseSchema = z.array(playerAchievementSchema)
 export type ListAchievementsResponse = z.infer<typeof listAchievementsResponseSchema>

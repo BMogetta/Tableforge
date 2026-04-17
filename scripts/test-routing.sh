@@ -108,6 +108,7 @@ check     "GET /api/v1/players/{id}/settings"       401 GET  "/api/v1/players/$F
 check     "GET /api/v1/players/search"              401 GET  "/api/v1/players/search?q=test"             "GET /api/v1/players/search"              "user-service"
 check     "POST /api/v1/players/{id}/block/{tid}"    401 POST "/api/v1/players/$FAKE_UUID/block/$FAKE_UUID" "POST /api/v1/players/{id}/block/{tid}"  "user-service"
 check     "GET /api/v1/players/{id}/achievements"   401 GET  "/api/v1/players/$FAKE_UUID/achievements"   "GET /api/v1/players/{id}/achievements"   "user-service"
+check     "GET /api/v1/achievements/definitions"    200 GET  "/api/v1/achievements/definitions"          "GET /api/v1/achievements/definitions"    "user-service"
 check     "POST /api/v1/players/{id}/report"        401 POST "/api/v1/players/$FAKE_UUID/report"         "POST /api/v1/players/{id}/report"        "user-service"
 check     "GET /api/v1/admin/players"               401 GET  "/api/v1/admin/players"                     "GET /api/v1/admin/players"               "user-service"
 check     "GET /api/v1/admin/allowed-emails"        401 GET  "/api/v1/admin/allowed-emails"              "GET /api/v1/admin/allowed-emails"        "user-service"

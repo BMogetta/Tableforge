@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/recess/services/user-service/internal/store"
+	"github.com/recess/shared/achievements"
 	sharedmw "github.com/recess/shared/middleware"
 )
 
@@ -70,11 +71,57 @@ func handleListAchievements(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid player id")
 			return
 		}
-		achievements, err := st.ListAchievements(r.Context(), playerID)
+		rows, err := st.ListAchievements(r.Context(), playerID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to list achievements")
 			return
 		}
-		writeJSON(w, http.StatusOK, achievements)
+		writeJSON(w, http.StatusOK, rows)
+	}
+}
+
+// Public — the definitions are static metadata shared by all clients, with no
+// per-player secrets. Carries i18n keys only; the frontend resolves them.
+//
+// Shape is deliberately minimal and JSON-friendly: ComputeProgress closures
+// are server-only and never serialized.
+type achievementTierDTO struct {
+	Threshold      int    `json:"threshold"`
+	NameKey        string `json:"name_key"`
+	DescriptionKey string `json:"description_key"`
+}
+
+type achievementDefinitionDTO struct {
+	Key            string               `json:"key"`
+	NameKey        string               `json:"name_key"`
+	DescriptionKey string               `json:"description_key,omitempty"`
+	GameID         string               `json:"game_id"`
+	Type           string               `json:"type"`
+	Tiers          []achievementTierDTO `json:"tiers"`
+}
+
+func handleListAchievementDefinitions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		all := achievements.All()
+		out := make([]achievementDefinitionDTO, 0, len(all))
+		for _, d := range all {
+			tiers := make([]achievementTierDTO, len(d.Tiers))
+			for i, t := range d.Tiers {
+				tiers[i] = achievementTierDTO{
+					Threshold:      t.Threshold,
+					NameKey:        t.NameKey,
+					DescriptionKey: t.DescriptionKey,
+				}
+			}
+			out = append(out, achievementDefinitionDTO{
+				Key:            d.Key,
+				NameKey:        d.NameKey,
+				DescriptionKey: d.DescriptionKey,
+				GameID:         d.GameID,
+				Type:           d.Type,
+				Tiers:          tiers,
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"definitions": out})
 	}
 }

@@ -41,4 +41,5 @@ export const keys = {
   playerMatches: (id: string, offset?: number) => ['players', id, 'matches', offset ?? 0] as const,
   playerProfile: (id: string) => ['players', id, 'profile'] as const,
   playerAchievements: (id: string) => ['players', id, 'achievements'] as const,
+  achievementDefinitions: () => ['achievements', 'definitions'] as const,
 }

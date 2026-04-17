@@ -1,9 +1,80 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import type { PlayerAchievement } from '@/lib/api'
 import { AchievementCard, type AchievementDef } from '../AchievementCard'
 import { AchievementGrid } from '../AchievementGrid'
 import '@/lib/i18n'
+
+// Static registry fetched by AchievementGrid. Mocked here so the component
+// test exercises the mapping + rendering path without hitting the network.
+vi.mock('@/lib/api', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api')
+  return {
+    ...actual,
+    achievements: {
+      definitions: () =>
+        Promise.resolve({
+          definitions: [
+            {
+              key: 'games_played',
+              name_key: 'achievements.games_played.name',
+              game_id: '',
+              type: 'tiered' as const,
+              tiers: [
+                {
+                  threshold: 1,
+                  name_key: 'achievements.games_played.tiers.1.name',
+                  description_key: 'achievements.games_played.tiers.1.description',
+                },
+                {
+                  threshold: 10,
+                  name_key: 'achievements.games_played.tiers.2.name',
+                  description_key: 'achievements.games_played.tiers.2.description',
+                },
+              ],
+            },
+            {
+              key: 'games_won',
+              name_key: 'achievements.games_won.name',
+              game_id: '',
+              type: 'tiered' as const,
+              tiers: [
+                {
+                  threshold: 1,
+                  name_key: 'achievements.games_won.tiers.1.name',
+                  description_key: 'achievements.games_won.tiers.1.description',
+                },
+              ],
+            },
+            {
+              key: 'first_draw',
+              name_key: 'achievements.first_draw.name',
+              description_key: 'achievements.first_draw.description',
+              game_id: '',
+              type: 'flat' as const,
+              tiers: [
+                {
+                  threshold: 1,
+                  name_key: 'achievements.first_draw.tiers.1.name',
+                  description_key: 'achievements.first_draw.tiers.1.description',
+                },
+              ],
+            },
+          ],
+        }),
+    },
+  }
+})
+
+function renderGrid(achievements: PlayerAchievement[], isLoading: boolean) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <AchievementGrid achievements={achievements} isLoading={isLoading} />
+    </QueryClientProvider>,
+  )
+}
 
 // All defs carry i18n keys; resolution happens inside AchievementCard via
 // useTranslation. The component tests assert on *resolved* strings to exercise
@@ -125,22 +196,21 @@ describe('AchievementCard', () => {
 // ---------------------------------------------------------------------------
 
 describe('AchievementGrid', () => {
-  it('renders loading state', () => {
-    render(<AchievementGrid achievements={[]} isLoading={true} />)
+  it('renders loading state while the caller signals loading', () => {
+    renderGrid([], true)
     expect(screen.queryByTestId('achievement-grid')).not.toBeInTheDocument()
   })
 
-  it('renders all achievement definitions', () => {
-    render(<AchievementGrid achievements={[]} isLoading={false} />)
-    expect(screen.getByTestId('achievement-grid')).toBeInTheDocument()
+  it('renders every registry entry returned by the API', async () => {
+    renderGrid([], false)
+    await waitFor(() => expect(screen.getByTestId('achievement-grid')).toBeInTheDocument())
     expect(screen.getByTestId('achievement-games_played')).toBeInTheDocument()
     expect(screen.getByTestId('achievement-games_won')).toBeInTheDocument()
     expect(screen.getByTestId('achievement-first_draw')).toBeInTheDocument()
   })
 
-  it('matches achievements to definitions and resolves tier label', () => {
-    const achievements = [makeAchievement('games_played', 2, 15)]
-    render(<AchievementGrid achievements={achievements} isLoading={false} />)
-    expect(screen.getByText('Regular')).toBeInTheDocument()
+  it('matches achievements to definitions and resolves tier label', async () => {
+    renderGrid([makeAchievement('games_played', 2, 15)], false)
+    await waitFor(() => expect(screen.getByText('Regular')).toBeInTheDocument())
   })
 })

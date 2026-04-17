@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "list_achievement_definitions.response.json",
+  "title": "ListAchievementDefinitionsResponse",
+  "type": "object",
+  "properties": {
+    "definitions": {
+      "type": "array",
+      "items": { "$ref": "defs/achievement_definition.json" }
+    }
+  },
+  "required": ["definitions"]
+}

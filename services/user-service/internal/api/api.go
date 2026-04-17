@@ -55,6 +55,8 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 
 	// --- Achievements --------------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/achievements", handleListAchievements(st))
+	// Public static registry — i18n keys only, resolved client-side.
+	r.Get("/api/v1/achievements/definitions", handleListAchievementDefinitions())
 
 	// --- Player settings -----------------------------------------------------
 	r.Get("/api/v1/players/{playerID}/settings", handleGetPlayerSettings(st))

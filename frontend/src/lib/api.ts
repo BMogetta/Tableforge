@@ -1,19 +1,20 @@
 // All types mirror the Go store models.
 
-import { isDev } from '@/lib/env'
+import { context, propagation, SpanKind, SpanStatusCode } from '@opentelemetry/api'
 import { z } from 'zod'
+import { isDev } from '@/lib/env'
+import type { Player, PlayerSettingMap, Room, RoomPlayer } from './schema-generated.zod'
 import {
   gameSessionSchema,
   getPlayerStatsResponseSchema,
+  listAchievementDefinitionsResponseSchema,
   listAchievementsResponseSchema,
   listPlayerMatchesResponseSchema,
   playerProfileSchema,
   playerSettingsSchema,
 } from './schema-generated.zod'
-import type { Player, RoomPlayer, PlayerSettingMap, Room } from './schema-generated.zod'
 import { FontSize, SkinId } from './skins'
 import { tracer } from './telemetry'
-import { SpanKind, SpanStatusCode, context, propagation } from '@opentelemetry/api'
 
 // =============================================================================
 // CONSTANTS — avoids magic strings across the codebase.
@@ -87,15 +88,15 @@ export type Language = (typeof Language)[keyof typeof Language]
 // =============================================================================
 
 export type {
-  Player,
-  PlayerAchievement,
-  RoomPlayer,
-  PlayerSettingMap,
-  PlayerSettings,
-  PlayerProfile,
   AllowedEmail,
   Notification,
+  Player,
+  PlayerAchievement,
+  PlayerProfile,
+  PlayerSettingMap,
+  PlayerSettings,
   Room,
+  RoomPlayer,
 } from './schema-generated.zod'
 
 export interface RoomView {
@@ -155,7 +156,7 @@ export const DEFAULT_SETTINGS: Required<PlayerSettingMap> = {
 
 // --- Lobby settings types ----------------------------------------------------
 
-export type { LobbySetting, GameInfo } from './schema-generated.zod'
+export type { GameInfo, LobbySetting } from './schema-generated.zod'
 
 // --- HTTP client -------------------------------------------------------------
 
@@ -362,6 +363,12 @@ export const players = {
   profile: (id: string) => validatedRequest(playerProfileSchema, `/players/${id}/profile`),
   achievements: (id: string) =>
     validatedRequest(listAchievementsResponseSchema, `/players/${id}/achievements`),
+}
+
+export const achievements = {
+  /** Static achievement metadata (i18n keys, thresholds, game scoping). */
+  definitions: () =>
+    validatedRequest(listAchievementDefinitionsResponseSchema, '/achievements/definitions'),
 }
 
 // --- Player settings ---------------------------------------------------------

@@ -65,6 +65,7 @@ Open `http://localhost`. See [docs/getting-started.md](docs/getting-started.md) 
 | `GET /api/v1/players/search` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `POST /api/v1/players/{id}/block/{tid}` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/players/{id}/achievements` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
+| `GET /api/v1/achievements/definitions` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `POST /api/v1/players/{id}/report` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/admin/players` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
 | `GET /api/v1/admin/allowed-emails` | user-service | ![pass](https://img.shields.io/badge/-pass-brightgreen) |
