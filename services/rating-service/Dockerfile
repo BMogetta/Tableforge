@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26-alpine@sha256:80fbb8f9b2fa541a7d34378f1ad10f4f1c433817c4ed39ddb3e2f3ec3e961271 AS builder
 WORKDIR /app
 
 # 1. Copy module definitions first to leverage Docker cache
@@ -23,7 +23,7 @@ WORKDIR /app/services/rating-service
 RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/rating-service ./cmd/server
 
 # --- Run stage ---
-FROM alpine:3.19
+FROM alpine:3.19@sha256:b58899f069c47216f6002a6850143dc6fae0d35eb8b0df9300bbe6327b9c2171
 RUN apk --no-cache add ca-certificates tzdata wget
 
 WORKDIR /app
