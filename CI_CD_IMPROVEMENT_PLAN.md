@@ -138,6 +138,7 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **3.1.b** Añadir `npx biome check ./src` además de `biome lint`
 - [ ] **3.1.c** Subir bundle como artefacto (retención 3 días)
 - [ ] **Validación 3.1** — PR que rompe `tsconfig.build.json` sin romper el dev ⇒ ahora falla
+  - **Pausado 2026-04-17** por pedido del usuario. Blockers detectados localmente: (a) `npm run build` falla con TS2774 en `src/features/game/Replay.tsx:169`; (b) `biome check` reporta drift remanente después de `biome check --write`; (c) `npm audit` (2.2.a) ya detecta CVE crítica de `protobufjs`. Retomar después de limpiar el frontend.
 
 ### 3.2 Schema drift check
 - [ ] **3.2.a** Job `schema-drift`: `make gen-types` + `git diff --exit-code frontend/src/lib/schema-generated.zod.ts`
