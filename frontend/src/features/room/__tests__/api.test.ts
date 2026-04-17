@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { rooms, bots } from '../api'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { bots, rooms } from '../api'
 
 // Stub telemetry
 vi.mock('@/lib/telemetry', () => ({
@@ -41,15 +41,41 @@ function lastFetchCall() {
 
 const now = new Date().toISOString()
 const validRoom = {
-  room: { id: 'r1', code: 'ABCD', game_id: 'tictactoe', owner_id: 'p1', status: 'waiting', max_players: 2, created_at: now, updated_at: now },
-  players: [{ id: 'p1', username: 'alice', seat: 0, joined_at: now, is_bot: false, role: 'player', avatar_url: '', created_at: now }],
+  room: {
+    id: 'r1',
+    code: 'ABCD',
+    game_id: 'tictactoe',
+    owner_id: 'p1',
+    status: 'waiting',
+    max_players: 2,
+    created_at: now,
+    updated_at: now,
+  },
+  players: [
+    {
+      id: 'p1',
+      username: 'alice',
+      seat: 0,
+      joined_at: now,
+      is_bot: false,
+      role: 'player',
+      avatar_url: '',
+      created_at: now,
+    },
+  ],
   settings: {},
 }
 
 const validSession = {
-  id: 's1', room_id: 'r1', game_id: 'tictactoe', mode: 'casual',
-  move_count: 0, suspend_count: 0, ready_players: [],
-  last_move_at: new Date().toISOString(), started_at: new Date().toISOString(),
+  id: 's1',
+  room_id: 'r1',
+  game_id: 'tictactoe',
+  mode: 'casual',
+  move_count: 0,
+  suspend_count: 0,
+  ready_players: [],
+  last_move_at: new Date().toISOString(),
+  started_at: new Date().toISOString(),
 }
 
 beforeEach(() => {
@@ -109,7 +135,9 @@ describe('rooms API', () => {
   })
 
   it('leave sends POST', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204, headers: { 'content-length': '0' } }))
+    mockFetch.mockResolvedValue(
+      new Response(null, { status: 204, headers: { 'content-length': '0' } }),
+    )
 
     await rooms.leave('r1')
     const call = lastFetchCall()
@@ -127,7 +155,9 @@ describe('rooms API', () => {
   })
 
   it('updateSetting sends PUT with value', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204, headers: { 'content-length': '0' } }))
+    mockFetch.mockResolvedValue(
+      new Response(null, { status: 204, headers: { 'content-length': '0' } }),
+    )
 
     await rooms.updateSetting('r1', 'turn_timeout', '60')
     const call = lastFetchCall()
@@ -137,7 +167,9 @@ describe('rooms API', () => {
   })
 
   it('updateSetting encodes key', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204, headers: { 'content-length': '0' } }))
+    mockFetch.mockResolvedValue(
+      new Response(null, { status: 204, headers: { 'content-length': '0' } }),
+    )
 
     await rooms.updateSetting('r1', 'key with spaces', 'val')
     expect(lastFetchCall().url).toContain('key%20with%20spaces')
@@ -167,7 +199,9 @@ describe('bots API', () => {
   })
 
   it('remove sends DELETE', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204, headers: { 'content-length': '0' } }))
+    mockFetch.mockResolvedValue(
+      new Response(null, { status: 204, headers: { 'content-length': '0' } }),
+    )
 
     await bots.remove('r1', 'p1', 'bot1')
     const call = lastFetchCall()

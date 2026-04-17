@@ -1,10 +1,10 @@
-import { useRef, useImperativeHandle } from 'react'
 import { motion } from 'motion/react'
+import { useImperativeHandle, useRef } from 'react'
 import { testId } from '@/utils/testId'
-import { Token } from './Token'
 import { getClaimVariants, tokenSpring } from './animations'
-import type { TokenRowProps } from './types'
+import { Token } from './Token'
 import styles from './TokenRow.module.css'
+import type { TokenRowProps } from './types'
 
 const DEFAULT_CLAIM_OFFSET = 40
 

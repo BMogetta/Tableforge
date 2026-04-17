@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { TargetPicker } from '../TargetPicker'
+import { describe, expect, it, vi } from 'vitest'
 import type { CardName } from '../CardDisplay'
+import { TargetPicker } from '../TargetPicker'
 
 const opponents = [
   { id: 'p2', username: 'Player 2' },

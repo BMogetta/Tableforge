@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { rooms, mutes } from '@/features/room/api'
-import type { RoomMessage, RoomPlayer, GetRoomMessagesResponse } from '@/lib/schema-generated.zod'
-import { useAppStore } from '@/stores/store'
-import { useSocketStore } from '@/stores/socketStore'
-import { catchToAppError } from '@/utils/errors'
-import { useToast } from '@/ui/Toast'
+import { mutes, rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
+import type { GetRoomMessagesResponse, RoomMessage, RoomPlayer } from '@/lib/schema-generated.zod'
 import { sfx } from '@/lib/sfx'
+import { useSocketStore } from '@/stores/socketStore'
+import { useAppStore } from '@/stores/store'
+import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import styles from './ChatPopover.module.css'
 
 interface Props {
@@ -97,9 +97,7 @@ export function ChatPopover({
           if (!prev) return prev
           return {
             ...prev,
-            items: prev.items.map(m =>
-              m.message_id === message_id ? { ...m, hidden: true } : m,
-            ),
+            items: prev.items.map(m => (m.message_id === message_id ? { ...m, hidden: true } : m)),
           }
         })
       }
@@ -293,7 +291,8 @@ export function ChatPopover({
           onKeyDown={e => e.key === 'Enter' && handleSend()}
           maxLength={500}
         />
-        <button type="button"
+        <button
+          type='button'
           className={styles.sendBtn}
           onClick={handleSend}
           disabled={!draft.trim() || sendMessage.isPending}

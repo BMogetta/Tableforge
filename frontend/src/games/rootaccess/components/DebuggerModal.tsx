@@ -44,10 +44,10 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
 
   function handleConfirm() {
     if (!canConfirm) return
-    onConfirm(
-      choices[keptIdx!],
-      [choices[returnOrder[0]], choices[returnOrder[1]]] as [CardName, CardName],
-    )
+    onConfirm(choices[keptIdx!], [choices[returnOrder[0]], choices[returnOrder[1]]] as [
+      CardName,
+      CardName,
+    ])
   }
 
   return (
@@ -79,14 +79,9 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
                     }
                     onClick={() => handleKeep(i)}
                   />
-                  {keptIdx === i && (
-                    <span className={styles.tagKeep}>{t('rootaccess.keep')}</span>
-                  )}
+                  {keptIdx === i && <span className={styles.tagKeep}>{t('rootaccess.keep')}</span>}
                   {keptIdx !== null && returnPos !== -1 && (
-                    <span
-                      className={styles.tagReturn}
-                      {...testId(`return-order-${returnPos + 1}`)}
-                    >
+                    <span className={styles.tagReturn} {...testId(`return-order-${returnPos + 1}`)}>
                       {returnPos + 1}
                     </span>
                   )}
@@ -128,7 +123,8 @@ export function DebuggerModal({ choices, onConfirm }: Props) {
           </div>
         )}
 
-        <button type="button"
+        <button
+          type='button'
           className={`btn btn-primary ${styles.confirmBtn}`}
           onClick={handleConfirm}
           disabled={!canConfirm}

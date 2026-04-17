@@ -26,25 +26,25 @@ export function PlayerDropdown({
   return (
     <div className={styles.dropdown}>
       {isMuted ? (
-        <button type="button" className={styles.dropdownItem} onClick={onUnmute}>
+        <button type='button' className={styles.dropdownItem} onClick={onUnmute}>
           {t('room.unmuteSession')}
         </button>
       ) : (
-        <button type="button" className={styles.dropdownItem} onClick={onMute}>
+        <button type='button' className={styles.dropdownItem} onClick={onMute}>
           {t('room.muteSession')}
         </button>
       )}
-      <button type="button" className={styles.dropdownItem} onClick={onBlock}>
+      <button type='button' className={styles.dropdownItem} onClick={onBlock}>
         {t('profile.block')}
       </button>
-      <button type="button" className={styles.dropdownItem} onClick={onUnblock}>
+      <button type='button' className={styles.dropdownItem} onClick={onUnblock}>
         {t('profile.unblock')}
       </button>
       <hr className={styles.dropdownDivider} />
-      <button type="button" className={styles.dropdownItem} onClick={onAddFriend}>
+      <button type='button' className={styles.dropdownItem} onClick={onAddFriend}>
         {t('room.addFriend')}
       </button>
-      <button type="button" className={styles.dropdownItem} onClick={onSendDM}>
+      <button type='button' className={styles.dropdownItem} onClick={onSendDM}>
         {t('room.sendDm')}
       </button>
     </div>

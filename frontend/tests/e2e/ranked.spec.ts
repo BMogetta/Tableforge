@@ -1,6 +1,6 @@
-import { test, expect } from './fixtures'
-import { waitForGameReady } from './helpers'
 import type { Page } from '@playwright/test'
+import { expect, test } from './fixtures'
+import { waitForGameReady } from './helpers'
 
 /**
  * Plays a full TicTacToe game without assuming who moves first.
@@ -57,7 +57,10 @@ async function ensureLobby(...pages: Page[]) {
       await expect(page).toHaveURL('/', { timeout: 10_000 })
     }
 
-    const onLobby = await page.getByTestId('game-option-tictactoe').isVisible().catch(() => false)
+    const onLobby = await page
+      .getByTestId('game-option-tictactoe')
+      .isVisible()
+      .catch(() => false)
     if (!onLobby) {
       await page.goto('/')
       await expect(page.getByTestId('game-option-tictactoe')).toBeVisible({ timeout: 10_000 })
@@ -131,10 +134,12 @@ async function queueAndPlayRankedGame(p1: Page, p2: Page, p1Id: string, p2Id: st
   await expect(p2.getByTestId('back-to-queue-btn')).toBeVisible()
 
   // Wait for rating-service to process (async via Redis Pub/Sub).
-  await expect.poll(
-    async () => getGamesPlayed(p1, p1Id),
-    { timeout: 15_000, message: 'games_played should increase after rated game' },
-  ).toBeGreaterThan(gamesBefore)
+  await expect
+    .poll(async () => getGamesPlayed(p1, p1Id), {
+      timeout: 15_000,
+      message: 'games_played should increase after rated game',
+    })
+    .toBeGreaterThan(gamesBefore)
 
   // Return to lobby.
   await p1.getByTestId('back-to-lobby-btn').click()
@@ -157,15 +162,19 @@ test.describe('Ranked matchmaking', () => {
 
     await queueAndPlayRankedGame(p1, p2, p1Id, p2Id)
 
-    await expect.poll(
-      async () => getRating(p1, p1Id),
-      { timeout: 15_000, message: 'P1 rating should change' },
-    ).not.toBe(ratingP1Before)
+    await expect
+      .poll(async () => getRating(p1, p1Id), {
+        timeout: 15_000,
+        message: 'P1 rating should change',
+      })
+      .not.toBe(ratingP1Before)
 
-    await expect.poll(
-      async () => getRating(p2, p2Id),
-      { timeout: 15_000, message: 'P2 rating should change' },
-    ).not.toBe(ratingP2Before)
+    await expect
+      .poll(async () => getRating(p2, p2Id), {
+        timeout: 15_000,
+        message: 'P2 rating should change',
+      })
+      .not.toBe(ratingP2Before)
   })
 
   test('five ranked games unlock leaderboard', async ({ rankedPlayers }) => {
@@ -183,10 +192,7 @@ test.describe('Ranked matchmaking', () => {
     await expect(p1.getByTestId('leaderboard-table')).toBeVisible({ timeout: 15_000 })
 
     // Verify both players appear and have divergent ratings.
-    const [ratingP1, ratingP2] = await Promise.all([
-      getRating(p1, p1Id),
-      getRating(p1, p2Id),
-    ])
+    const [ratingP1, ratingP2] = await Promise.all([getRating(p1, p1Id), getRating(p1, p2Id)])
 
     expect(ratingP1).not.toBeNull()
     expect(ratingP2).not.toBeNull()

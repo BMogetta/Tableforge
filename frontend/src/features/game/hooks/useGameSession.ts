@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { rooms } from '@/features/room/api'
-import { keys } from '@/lib/queryClient'
 import type { GameData } from '@/games/registry'
-import type { GameSession } from '@/lib/schema-generated.zod'
 import { sessions } from '@/lib/api/sessions'
+import { keys } from '@/lib/queryClient'
+import type { GameSession } from '@/lib/schema-generated.zod'
 
 interface UseGameSessionOptions {
   sessionId: string

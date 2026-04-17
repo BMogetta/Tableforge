@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
-import { useWsDevtoolsStore, type CapturedEvent } from './store'
-import type { WsEventType } from '@/lib/ws'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useClipboard } from '@/hooks/useClipboard'
+import type { WsEventType } from '@/lib/ws'
 import { testId } from '@/utils/testId'
+import { type CapturedEvent, useWsDevtoolsStore } from './store'
 
 // ---------------------------------------------------------------------------
 // Filter mode
@@ -109,9 +109,7 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
             fontSize: 10,
             background: 'transparent',
             border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
-            color: copied
-              ? 'var(--color-interactive, #7b8cde)'
-              : 'var(--color-text-muted, #555)',
+            color: copied ? 'var(--color-interactive, #7b8cde)' : 'var(--color-text-muted, #555)',
             borderRadius: 3,
             cursor: 'pointer',
             fontFamily: 'inherit',
@@ -249,7 +247,8 @@ export function WsDevtools() {
         {/* Filter mode toggle */}
         <div style={{ display: 'flex', gap: 2 }}>
           {Object.values(FilterMode).map(mode => (
-            <button type="button"
+            <button
+              type='button'
               key={mode}
               {...testId(`filter-mode-${mode}`)}
               data-active={filterMode === mode}
@@ -316,7 +315,8 @@ export function WsDevtools() {
         </span>
 
         {/* Clear button */}
-        <button type="button"
+        <button
+          type='button'
           {...testId('clear-btn')}
           onClick={clear}
           style={{

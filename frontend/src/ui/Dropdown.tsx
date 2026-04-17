@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { testId as makeTestId } from '@/utils/testId'
 import styles from './Dropdown.module.css'
 

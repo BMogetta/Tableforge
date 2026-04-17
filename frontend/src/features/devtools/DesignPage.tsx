@@ -22,7 +22,8 @@ export function DesignPage() {
         <h1 className={styles.headerTitle}>Design System</h1>
         <div className={styles.themeToggle}>
           {(['dark', 'parchment', 'slate', 'ivory'] as Theme[]).map(t => (
-            <button type="button"
+            <button
+              type='button'
               key={t}
               className={`${styles.themeBtn} ${theme === t ? styles.themeBtnActive : ''}`}
               onClick={() => setTheme(t)}
@@ -38,9 +39,21 @@ export function DesignPage() {
         {/* ── Colors ─────────────────────────────────────────────────────── */}
         <Section title='Color primitives'>
           <div className={styles.colorGrid}>
-            <ColorSwatch name='interactive' value='var(--color-interactive)' hex='--color-interactive' />
-            <ColorSwatch name='interactive-dim' value='var(--color-interactive-dim)' hex='--color-interactive-dim' />
-            <ColorSwatch name='interactive-glow' value='var(--color-interactive-glow)' hex='--color-interactive-glow' />
+            <ColorSwatch
+              name='interactive'
+              value='var(--color-interactive)'
+              hex='--color-interactive'
+            />
+            <ColorSwatch
+              name='interactive-dim'
+              value='var(--color-interactive-dim)'
+              hex='--color-interactive-dim'
+            />
+            <ColorSwatch
+              name='interactive-glow'
+              value='var(--color-interactive-glow)'
+              hex='--color-interactive-glow'
+            />
             <ColorSwatch name='danger' value='var(--color-danger)' hex='--color-danger' />
             <ColorSwatch name='success' value='var(--color-success)' hex='--color-success' />
           </div>
@@ -142,19 +155,35 @@ export function DesignPage() {
         {/* ── Buttons ────────────────────────────────────────────────────── */}
         <Section title='Buttons'>
           <div className={styles.row}>
-            <button type="button" className='btn btn-primary'>Start Game</button>
-            <button type="button" className='btn btn-ghost'>Leave Room</button>
-            <button type="button" className='btn btn-danger'>Forfeit</button>
-            <button type="button" className='btn btn-secondary'>View Replay</button>
-            <button type="button" className='btn btn-primary' disabled={true}>
+            <button type='button' className='btn btn-primary'>
+              Start Game
+            </button>
+            <button type='button' className='btn btn-ghost'>
+              Leave Room
+            </button>
+            <button type='button' className='btn btn-danger'>
+              Forfeit
+            </button>
+            <button type='button' className='btn btn-secondary'>
+              View Replay
+            </button>
+            <button type='button' className='btn btn-primary' disabled={true}>
               Disabled
             </button>
           </div>
           <div className={styles.row} style={{ marginTop: 12 }}>
-            <button type="button" className='btn btn-ghost' style={{ padding: '4px 10px', fontSize: 11 }}>
+            <button
+              type='button'
+              className='btn btn-ghost'
+              style={{ padding: '4px 10px', fontSize: 11 }}
+            >
               ← Lobby
             </button>
-            <button type="button" className='btn btn-ghost' style={{ padding: '4px 10px', fontSize: 11 }}>
+            <button
+              type='button'
+              className='btn btn-ghost'
+              style={{ padding: '4px 10px', fontSize: 11 }}
+            >
               ⏸ Pause
             </button>
           </div>

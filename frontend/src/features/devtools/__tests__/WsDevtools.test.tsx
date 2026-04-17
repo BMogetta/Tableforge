@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it } from 'vitest'
+import type { CapturedEvent } from '../store'
 import { useWsDevtoolsStore } from '../store'
 import { WsDevtools } from '../WsDevtools'
-import type { CapturedEvent } from '../store'
 
 // ---------------------------------------------------------------------------
 // Helpers

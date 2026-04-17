@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
 import { dm } from '@/features/room/api'
-import { useAppStore } from '@/stores/store'
-import { useSocketStore } from '@/stores/socketStore'
-import { keys } from '@/lib/queryClient'
-import { catchToAppError } from '@/utils/errors'
-import { useToast } from '@/ui/Toast'
 import { useBlockPlayer } from '@/hooks/useBlockPlayer'
+import { keys } from '@/lib/queryClient'
 import type { DirectMessage } from '@/lib/schema-generated.zod'
 import { sfx } from '@/lib/sfx'
-import styles from './DMConversation.module.css'
+import { useSocketStore } from '@/stores/socketStore'
+import { useAppStore } from '@/stores/store'
+import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
+import styles from './DMConversation.module.css'
 
 interface DMConversationProps {
   otherPlayerId: string
@@ -96,12 +96,18 @@ export function DMConversation({ otherPlayerId, otherUsername, onBack }: DMConve
   return (
     <div className={styles.root}>
       <div className={styles.header}>
-        <button type="button" className={styles.backBtn} {...testId('dm-back-btn')} onClick={onBack}>
+        <button
+          type='button'
+          className={styles.backBtn}
+          {...testId('dm-back-btn')}
+          onClick={onBack}
+        >
           &#8592;
         </button>
         <span className={styles.username}>{otherUsername}</span>
         {!blocked && (
-          <button type="button"
+          <button
+            type='button'
             className={`${styles.blockBtn}`}
             onClick={() => block({ targetId: otherPlayerId, username: otherUsername })}
             disabled={blockPending}

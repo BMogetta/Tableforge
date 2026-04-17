@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { admin } from '@/features/admin/api'
 import { PlayerRole, type RoomView } from '@/lib/api'
 import type { Room } from '@/lib/schema-generated.zod'
-import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
 import styles from '../Admin.module.css'
 
@@ -69,7 +69,8 @@ export function RoomsTab({ callerRole }: Props) {
       <div className={styles.toolbar}>
         <div className={styles.filterGroup}>
           {(['all', 'waiting', 'in_progress', 'finished'] as RoomFilter[]).map(f => (
-            <button type="button"
+            <button
+              type='button'
               key={f}
               className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => {
@@ -88,7 +89,11 @@ export function RoomsTab({ callerRole }: Props) {
         <div className={`card ${styles.detailCard}`} {...testId('room-detail')}>
           <div className={styles.detailHeader}>
             <h3>Room: {selectedRoom.room.code}</h3>
-            <button type="button" className='btn btn-ghost btn-sm' onClick={() => setSelectedRoom(null)}>
+            <button
+              type='button'
+              className='btn btn-ghost btn-sm'
+              onClick={() => setSelectedRoom(null)}
+            >
               Back
             </button>
           </div>
@@ -118,7 +123,8 @@ export function RoomsTab({ callerRole }: Props) {
           </ul>
           {selectedRoom.room.status === 'in_progress' && canForceEnd && (
             <div className={styles.actionRow}>
-              <button type="button"
+              <button
+                type='button'
                 className='btn btn-danger btn-sm'
                 onClick={() => handleForceEnd(selectedRoom.room.id)}
                 {...testId('force-end-btn')}

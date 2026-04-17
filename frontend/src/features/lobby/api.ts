@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { request, validatedRequest } from '@/lib/api'
 import type { AcceptMatchRequest, DeclineMatchRequest } from '@/lib/schema-generated.zod'
 import {
@@ -5,7 +6,6 @@ import {
   getLeaderboardResponseSchema,
   queuePositionSchema,
 } from '@/lib/schema-generated.zod'
-import { z } from 'zod'
 
 // --- Leaderboard -------------------------------------------------------------
 

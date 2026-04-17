@@ -80,19 +80,14 @@ export function MatchHistory({
                 {match.opponent_username ?? t('profile.unknownOpponent')}
               </span>
               {match.opponent_is_bot && (
-                <span
-                  className={styles.botBadge}
-                  {...testId(`match-opponent-bot-${i}`)}
-                >
+                <span className={styles.botBadge} {...testId(`match-opponent-bot-${i}`)}>
                   {t('room.bot')}
                   {match.opponent_bot_profile && (
                     <>
                       <span className={styles.botBadgeSep} aria-hidden='true'>
                         ·
                       </span>
-                      <span className={styles.botBadgeProfile}>
-                        {match.opponent_bot_profile}
-                      </span>
+                      <span className={styles.botBadgeProfile}>{match.opponent_bot_profile}</span>
                     </>
                   )}
                 </span>
@@ -108,7 +103,8 @@ export function MatchHistory({
 
       {totalPages > 1 && (
         <div className={styles.pagination}>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-ghost'
             onClick={() => onPageChange(page - 1)}
             disabled={page === 0}
@@ -118,7 +114,8 @@ export function MatchHistory({
           <span className={styles.pageInfo}>
             {t('profile.pageInfo', { current: page + 1, total: totalPages })}
           </span>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-ghost'
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages - 1}

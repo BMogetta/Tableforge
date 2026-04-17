@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import { ProfileHeader } from '../components/ProfileHeader'
 
 describe('ProfileHeader', () => {
@@ -46,7 +46,13 @@ describe('ProfileHeader', () => {
 
   it('renders BOT badge with profile when isBot is true', () => {
     render(
-      <ProfileHeader playerId='bot1' username='bot_easy_1' isBot botProfile='easy' isLoading={false} />,
+      <ProfileHeader
+        playerId='bot1'
+        username='bot_easy_1'
+        isBot={true}
+        botProfile='easy'
+        isLoading={false}
+      />,
     )
     expect(screen.getByTestId('profile-bot-badge')).toBeInTheDocument()
     expect(screen.getByTestId('profile-bot-badge')).toHaveTextContent('easy')

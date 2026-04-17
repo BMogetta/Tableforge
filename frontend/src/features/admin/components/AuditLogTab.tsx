@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
-import { admin, type AuditLog, type AuditLogFilter } from '@/features/admin/api'
-import { catchToAppError } from '@/utils/errors'
+import { type AuditLog, type AuditLogFilter, admin } from '@/features/admin/api'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
 import styles from '../Admin.module.css'
 
 const PAGE_SIZE = 50
 
-const ACTIONS = ['', 'ban_issued', 'ban_lifted', 'report_reviewed', 'email_added', 'email_removed', 'role_changed'] as const
+const ACTIONS = [
+  '',
+  'ban_issued',
+  'ban_lifted',
+  'report_reviewed',
+  'email_added',
+  'email_removed',
+  'role_changed',
+] as const
 const TARGET_TYPES = ['', 'player', 'email', 'report', 'ban'] as const
 
 export function AuditLogTab() {
@@ -53,7 +61,9 @@ export function AuditLogTab() {
           >
             <option value=''>All actions</option>
             {ACTIONS.filter(Boolean).map(a => (
-              <option key={a} value={a}>{a.replace('_', ' ')}</option>
+              <option key={a} value={a}>
+                {a.replace('_', ' ')}
+              </option>
             ))}
           </select>
           <select
@@ -64,12 +74,15 @@ export function AuditLogTab() {
           >
             <option value=''>All targets</option>
             {TARGET_TYPES.filter(Boolean).map(t => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t}>
+                {t}
+              </option>
             ))}
           </select>
         </div>
         <div className={styles.filterGroup}>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-ghost btn-sm'
             disabled={page === 0}
             onClick={() => setPage(p => p - 1)}
@@ -77,10 +90,14 @@ export function AuditLogTab() {
           >
             Prev
           </button>
-          <span className={styles.muted} style={{ fontSize: 'var(--text-xs)', alignSelf: 'center' }}>
+          <span
+            className={styles.muted}
+            style={{ fontSize: 'var(--text-xs)', alignSelf: 'center' }}
+          >
             Page {page + 1}
           </span>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-ghost btn-sm'
             disabled={logs.length < PAGE_SIZE}
             onClick={() => setPage(p => p + 1)}
@@ -94,7 +111,9 @@ export function AuditLogTab() {
       {loading ? (
         <p className={styles.empty}>Loading...</p>
       ) : logs.length === 0 ? (
-        <p className={styles.empty} {...testId('audit-empty')}>No audit logs found.</p>
+        <p className={styles.empty} {...testId('audit-empty')}>
+          No audit logs found.
+        </p>
       ) : (
         <table className={styles.table} {...testId('audit-table')}>
           <thead>
@@ -116,10 +135,16 @@ export function AuditLogTab() {
                   </span>
                 </td>
                 <td>{log.target_type}</td>
-                <td className={styles.muted} style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)' }}>
+                <td
+                  className={styles.muted}
+                  style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)' }}
+                >
                   {log.target_id.slice(0, 8)}
                 </td>
-                <td className={styles.muted} style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)' }}>
+                <td
+                  className={styles.muted}
+                  style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)' }}
+                >
                   {log.actor_id.slice(0, 8)}
                 </td>
               </tr>

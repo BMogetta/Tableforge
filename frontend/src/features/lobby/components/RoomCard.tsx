@@ -1,6 +1,6 @@
 import type { RoomView } from '@/lib/api'
-import styles from './RoomCard.module.css'
 import { testId } from '@/utils/testId'
+import styles from './RoomCard.module.css'
 
 interface Props {
   view: RoomView
@@ -35,7 +35,12 @@ export function RoomCard({ view, onJoin, disabled }: Props) {
           {players.length}/{room.max_players} players
         </span>
         {!isPrivate && (
-          <button type="button" className='btn btn-ghost btn-sm' onClick={onJoin} disabled={disabled}>
+          <button
+            type='button'
+            className='btn btn-ghost btn-sm'
+            onClick={onJoin}
+            disabled={disabled}
+          >
             Join →
           </button>
         )}

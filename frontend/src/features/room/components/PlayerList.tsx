@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { RoomPlayer } from '@/lib/schema-generated.zod'
-import { mutes } from '@/features/room/api'
 import { friends } from '@/features/friends/api'
-import { ok, error, catchToAppError } from '@/utils/errors'
-import { useToast } from '@/ui/Toast'
-import { useAppStore } from '@/stores/store'
+import { mutes } from '@/features/room/api'
+import type { RoomPlayer } from '@/lib/schema-generated.zod'
 import { useRoomStore } from '@/stores/roomStore'
-import { PlayerDropdown } from './PlayerDropdown'
-import styles from '../Room.module.css'
+import { useAppStore } from '@/stores/store'
+import { useToast } from '@/ui/Toast'
+import { catchToAppError, error, ok } from '@/utils/errors'
 import { testId } from '@/utils/testId'
+import styles from '../Room.module.css'
+import { PlayerDropdown } from './PlayerDropdown'
 
 interface PlayerListProps {
   players: RoomPlayer[]
@@ -102,7 +102,8 @@ export function PlayerList({
 
               {!isSelf && !p.is_bot ? (
                 <div className={styles.playerNameWrapper} ref={isDropdownOpen ? dropdownRef : null}>
-                  <button type="button"
+                  <button
+                    type='button'
                     className={styles.playerNameBtn}
                     onClick={() => setOpenDropdownId(isDropdownOpen ? null : p.id)}
                     title={t('room.optionsFor', { name: p.username })}
@@ -162,7 +163,8 @@ export function PlayerList({
               {p.id === ownerId && <span className='badge badge-amber'>{t('room.host')}</span>}
               {isSelf && <span className='badge badge-muted'>{t('common.you')}</span>}
               {isOwner && p.is_bot && (
-                <button type="button"
+                <button
+                  type='button'
                   {...testId(`remove-bot-btn-${p.id}`)}
                   className={styles.removeBotBtn}
                   disabled={removingBotId === p.id}

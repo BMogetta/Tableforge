@@ -1,10 +1,5 @@
-import { test, expect } from './fixtures'
-import {
-  enableSpectators,
-  setRoomPrivate,
-  playFullGame,
-  waitForSocketConnected,
-} from './helpers'
+import { expect, test } from './fixtures'
+import { enableSpectators, playFullGame, setRoomPrivate, waitForSocketConnected } from './helpers'
 
 test.describe('Spectator mode', () => {
   test('spectator is rejected when allow_spectators is "no"', async ({ playersWithSpectator }) => {

@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { blocks, type BlockedPlayer } from '@/features/friends/api'
-import { useAppStore } from '@/stores/store'
+import { type BlockedPlayer, blocks } from '@/features/friends/api'
 import { keys } from '@/lib/queryClient'
-import { catchToAppError } from '@/utils/errors'
+import { useAppStore } from '@/stores/store'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 
 /**
  * Hook for block/unblock player operations.

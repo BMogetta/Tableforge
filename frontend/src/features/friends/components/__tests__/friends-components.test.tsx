@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { FriendItem } from '../FriendItem'
 import { PendingRequestItem } from '../PendingRequestItem'
 
@@ -41,7 +41,7 @@ describe('FriendItem', () => {
 
   it('calls onBlock with username and avatar', () => {
     const onBlock = vi.fn()
-    render(<FriendItem {...defaults} onBlock={onBlock} avatarUrl="https://example.com/a.png" />)
+    render(<FriendItem {...defaults} onBlock={onBlock} avatarUrl='https://example.com/a.png' />)
     fireEvent.click(screen.getByTestId('block-btn'))
     expect(onBlock).toHaveBeenCalledWith('f1', 'alice', 'https://example.com/a.png')
   })
@@ -59,7 +59,7 @@ describe('FriendItem', () => {
   })
 
   it('renders avatar when provided', () => {
-    const { container } = render(<FriendItem {...defaults} avatarUrl="https://example.com/a.png" />)
+    const { container } = render(<FriendItem {...defaults} avatarUrl='https://example.com/a.png' />)
     const img = container.querySelector('img')
     expect(img).toBeInTheDocument()
     expect(img?.src).toBe('https://example.com/a.png')
@@ -119,7 +119,7 @@ describe('PendingRequestItem', () => {
 
   it('renders avatar when provided', () => {
     const { container } = render(
-      <PendingRequestItem {...defaults} avatarUrl="https://example.com/b.png" />,
+      <PendingRequestItem {...defaults} avatarUrl='https://example.com/b.png' />,
     )
     const img = container.querySelector('img')
     expect(img).toBeInTheDocument()

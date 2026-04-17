@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { RoomToolbar, SettingsIcon, ChatIcon } from '../RoomToolbar'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { ChatIcon, RoomToolbar, SettingsIcon } from '../RoomToolbar'
 
 const baseItems = [
   { id: 'settings' as const, label: 'Settings', icon: SettingsIcon, visible: true },

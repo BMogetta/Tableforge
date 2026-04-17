@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { admin } from '@/features/admin/api'
-import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
 import styles from '../Admin.module.css'
 
@@ -39,7 +39,11 @@ export function BroadcastTab() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-            <label htmlFor='broadcast-type' className={styles.muted} style={{ fontSize: 'var(--text-sm)' }}>
+            <label
+              htmlFor='broadcast-type'
+              className={styles.muted}
+              style={{ fontSize: 'var(--text-sm)' }}
+            >
               Type
             </label>
             <select
@@ -68,7 +72,8 @@ export function BroadcastTab() {
           />
 
           <div className={styles.actionRow}>
-            <button type="button"
+            <button
+              type='button'
               className={`btn btn-sm ${type === 'warning' ? 'btn-danger' : 'btn-primary'}`}
               disabled={!message.trim() || sending}
               onClick={handleSend}

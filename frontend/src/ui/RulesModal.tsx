@@ -47,7 +47,8 @@ export function RulesModal({ initialGameId, handCards, onClose }: Props) {
           <h2 className={styles.title} id='rules-modal-title'>
             {t('rules.title')}
           </h2>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-ghost btn-sm'
             onClick={onClose}
             aria-label={t('common.close')}
@@ -58,7 +59,8 @@ export function RulesModal({ initialGameId, handCards, onClose }: Props) {
 
         <div className={styles.tabs} role='tablist'>
           {entries.map((entry, i) => (
-            <button type="button"
+            <button
+              type='button'
               key={entry.id}
               role='tab'
               aria-selected={i === activeTab}

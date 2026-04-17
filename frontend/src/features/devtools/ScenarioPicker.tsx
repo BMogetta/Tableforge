@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { sessions, scenarios as scenariosApi } from '@/lib/api/sessions'
+import { useEffect, useMemo, useState } from 'react'
+import { scenarios as scenariosApi, sessions } from '@/lib/api/sessions'
 import { testId } from '@/utils/testId'
 
 // Parses the active session UUID from `/game/<uuid>` URLs. Returns null when
@@ -93,7 +93,11 @@ export function ScenarioPicker() {
   })
   const gameId = session?.session.game_id ?? null
 
-  const { data: list = [], isLoading, error } = useQuery({
+  const {
+    data: list = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['scenario-picker:list', gameId],
     queryFn: () => scenariosApi.list(gameId!),
     enabled: !!gameId,
@@ -129,7 +133,12 @@ export function ScenarioPicker() {
     <div {...testId('scenario-picker')} style={styles.panel}>
       <div style={styles.meta}>
         session <code>{sessionId.slice(0, 8)}…</code>
-        {gameId && <> · game <code>{gameId}</code></>}
+        {gameId && (
+          <>
+            {' '}
+            · game <code>{gameId}</code>
+          </>
+        )}
       </div>
 
       {!gameId && <div style={styles.meta}>Loading session…</div>}

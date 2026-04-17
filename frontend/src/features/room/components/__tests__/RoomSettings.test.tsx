@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { RoomSettings } from '../RoomSettings'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LobbySetting } from '@/lib/schema-generated.zod'
+import { RoomSettings } from '../RoomSettings'
 
 const mockUpdateSetting = vi.fn()
 

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { admin } from '@/features/admin/api'
 import type { Ban } from '@/lib/schema-generated.zod'
-import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
 import styles from '../Admin.module.css'
 
@@ -91,7 +91,8 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             {...testId('bans-search-input')}
           />
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-secondary'
             onClick={handleSearch}
             {...testId('bans-search-btn')}
@@ -99,7 +100,8 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
             Search
           </button>
           {canBan && (
-            <button type="button"
+            <button
+              type='button'
               className='btn btn-danger'
               onClick={() => setShowDialog(true)}
               {...testId('open-ban-dialog-btn')}
@@ -111,7 +113,14 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
       </div>
 
       {showDialog && (
-        <div className={styles.dialogBackdrop} role="button" tabIndex={0} aria-label="Close dialog" onClick={() => setShowDialog(false)} onKeyDown={e => e.key === 'Escape' && setShowDialog(false)}>
+        <div
+          className={styles.dialogBackdrop}
+          role='button'
+          tabIndex={0}
+          aria-label='Close dialog'
+          onClick={() => setShowDialog(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowDialog(false)}
+        >
           <div
             className={`card ${styles.dialog}`}
             role='dialog'
@@ -172,10 +181,11 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
               </>
             )}
             <div className={styles.actionRow}>
-              <button type="button" className='btn btn-ghost' onClick={() => setShowDialog(false)}>
+              <button type='button' className='btn btn-ghost' onClick={() => setShowDialog(false)}>
                 Cancel
               </button>
-              <button type="button"
+              <button
+                type='button'
                 className='btn btn-danger'
                 onClick={handleBanSubmit}
                 {...testId('confirm-ban-btn')}
@@ -193,98 +203,95 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
         <p className={styles.empty} {...testId('bans-empty')}>
           Search for a player to view ban history.
         </p>
+      ) : activeBans.length === 0 && historyBans.length === 0 ? (
+        <p className={styles.empty} {...testId('bans-no-results')}>
+          No bans found for this player.
+        </p>
       ) : (
-        activeBans.length === 0 && historyBans.length === 0 ? (
-            <p className={styles.empty} {...testId('bans-no-results')}>
-              No bans found for this player.
-            </p>
-          ) : (
+        <>
+          {activeBans.length > 0 && (
             <>
-              {activeBans.length > 0 && (
-                <>
-                  <h4 className={styles.sectionTitle}>Active Bans</h4>
-                  <table className={styles.table} {...testId('active-bans-table')}>
-                    <thead>
-                      <tr>
-                        <th>Player</th>
-                        <th>Reason</th>
-                        <th>Issued</th>
-                        <th>Expires</th>
-                        <th>Issued by</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activeBans.map(b => (
-                        <tr key={b.id}>
-                          <td>{b.player_id}</td>
-                          <td>{b.reason ?? '—'}</td>
-                          <td className={styles.muted}>
-                            {new Date(b.created_at).toLocaleDateString()}
-                          </td>
-                          <td className={styles.muted}>
-                            {b.expires_at
-                              ? new Date(b.expires_at).toLocaleDateString()
-                              : 'Permanent'}
-                          </td>
-                          <td className={styles.muted}>{b.banned_by}</td>
-                          <td>
-                            {canBan && (
-                              <button type="button"
-                                className='btn btn-ghost btn-sm'
-                                onClick={() => handleLiftBan(b.id)}
-                                {...testId(`lift-ban-${b.id}`)}
-                              >
-                                Lift Ban
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {historyBans.length > 0 && (
-                <details className={styles.historySection}>
-                  <summary className={styles.sectionTitle} {...testId('ban-history-toggle')}>
-                    History ({historyBans.length})
-                  </summary>
-                  <table className={styles.table} {...testId('history-bans-table')}>
-                    <thead>
-                      <tr>
-                        <th>Player</th>
-                        <th>Reason</th>
-                        <th>Issued</th>
-                        <th>Expired / Lifted</th>
-                        <th>Issued by</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {historyBans.map(b => (
-                        <tr key={b.id} className={styles.mutedRow}>
-                          <td>{b.player_id}</td>
-                          <td>{b.reason ?? '—'}</td>
-                          <td className={styles.muted}>
-                            {new Date(b.created_at).toLocaleDateString()}
-                          </td>
-                          <td className={styles.muted}>
-                            {b.lifted_at
-                              ? `Lifted ${new Date(b.lifted_at).toLocaleDateString()}`
-                              : b.expires_at
-                                ? new Date(b.expires_at).toLocaleDateString()
-                                : '—'}
-                          </td>
-                          <td className={styles.muted}>{b.banned_by}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </details>
-              )}
+              <h4 className={styles.sectionTitle}>Active Bans</h4>
+              <table className={styles.table} {...testId('active-bans-table')}>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Reason</th>
+                    <th>Issued</th>
+                    <th>Expires</th>
+                    <th>Issued by</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeBans.map(b => (
+                    <tr key={b.id}>
+                      <td>{b.player_id}</td>
+                      <td>{b.reason ?? '—'}</td>
+                      <td className={styles.muted}>
+                        {new Date(b.created_at).toLocaleDateString()}
+                      </td>
+                      <td className={styles.muted}>
+                        {b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Permanent'}
+                      </td>
+                      <td className={styles.muted}>{b.banned_by}</td>
+                      <td>
+                        {canBan && (
+                          <button
+                            type='button'
+                            className='btn btn-ghost btn-sm'
+                            onClick={() => handleLiftBan(b.id)}
+                            {...testId(`lift-ban-${b.id}`)}
+                          >
+                            Lift Ban
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </>
-          )
+          )}
+
+          {historyBans.length > 0 && (
+            <details className={styles.historySection}>
+              <summary className={styles.sectionTitle} {...testId('ban-history-toggle')}>
+                History ({historyBans.length})
+              </summary>
+              <table className={styles.table} {...testId('history-bans-table')}>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Reason</th>
+                    <th>Issued</th>
+                    <th>Expired / Lifted</th>
+                    <th>Issued by</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyBans.map(b => (
+                    <tr key={b.id} className={styles.mutedRow}>
+                      <td>{b.player_id}</td>
+                      <td>{b.reason ?? '—'}</td>
+                      <td className={styles.muted}>
+                        {new Date(b.created_at).toLocaleDateString()}
+                      </td>
+                      <td className={styles.muted}>
+                        {b.lifted_at
+                          ? `Lifted ${new Date(b.lifted_at).toLocaleDateString()}`
+                          : b.expires_at
+                            ? new Date(b.expires_at).toLocaleDateString()
+                            : '—'}
+                      </td>
+                      <td className={styles.muted}>{b.banned_by}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
+        </>
       )}
     </div>
   )

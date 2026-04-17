@@ -114,7 +114,7 @@ export function RoundSummary({
           <div className={styles.progressBar}>
             <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
           </div>
-          <button type="button" className='btn btn-ghost' onClick={onDismiss}>
+          <button type='button' className='btn btn-ghost' onClick={onDismiss}>
             {t('rootaccess.continue')}
           </button>
         </div>

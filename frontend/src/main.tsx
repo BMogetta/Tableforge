@@ -7,28 +7,29 @@ if (window.opener && !window.location.search.includes('error')) {
 
 // Telemetry must be imported before React and the app so the providers
 // are registered before any fetch calls or renders happen.
-import { initWebVitals, initErrorHandler, initConsoleBridge } from './lib/telemetry'
+import { initConsoleBridge, initErrorHandler, initWebVitals } from './lib/telemetry'
+
 initErrorHandler()
 initConsoleBridge()
 initWebVitals()
 
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { pacerDevtoolsPlugin } from '@tanstack/react-pacer-devtools'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import { createRouter, RouterProvider } from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createRouter, RouterProvider } from '@tanstack/react-router'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { routeTree } from './routeTree.gen'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { pacerDevtoolsPlugin } from '@tanstack/react-pacer-devtools'
 //import { TanStackRouterDevtoolsInProd } from '@tanstack/react-router-devtools'
 import { queryClient } from './lib/queryClient'
+import { routeTree } from './routeTree.gen'
 import './lib/i18n'
 import './styles/fonts.css'
 import './styles/global.css'
+import { ScenarioPicker } from './features/devtools/ScenarioPicker'
 import { useWsDevtools } from './features/devtools/useWsDevtools'
 import { WsDevtools } from './features/devtools/WsDevtools'
-import { ScenarioPicker } from './features/devtools/ScenarioPicker'
 
 const router = createRouter({ routeTree })
 

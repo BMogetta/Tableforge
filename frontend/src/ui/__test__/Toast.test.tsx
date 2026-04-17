@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act, fireEvent } from '@testing-library/react'
-import { ToastProvider, useToast } from '../Toast'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppError } from '@/utils/errors'
+import { ToastProvider, useToast } from '../Toast'
 
 // ---------------------------------------------------------------------------
 // Test harness
@@ -25,16 +25,24 @@ function TestHarness() {
 
   return (
     <div>
-      <button type="button" data-testid='show-error' onClick={() => toast.showError(devError)}>
+      <button type='button' data-testid='show-error' onClick={() => toast.showError(devError)}>
         Error
       </button>
-      <button type="button" data-testid='show-prod-error' onClick={() => toast.showError(prodError)}>
+      <button
+        type='button'
+        data-testid='show-prod-error'
+        onClick={() => toast.showError(prodError)}
+      >
         Prod Error
       </button>
-      <button type="button" data-testid='show-warning' onClick={() => toast.showWarning('watch out')}>
+      <button
+        type='button'
+        data-testid='show-warning'
+        onClick={() => toast.showWarning('watch out')}
+      >
         Warning
       </button>
-      <button type="button" data-testid='show-info' onClick={() => toast.showInfo('heads up')}>
+      <button type='button' data-testid='show-info' onClick={() => toast.showInfo('heads up')}>
         Info
       </button>
     </div>

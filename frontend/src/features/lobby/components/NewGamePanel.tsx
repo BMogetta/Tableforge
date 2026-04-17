@@ -1,18 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { rooms } from '@/features/room/api'
+import { useNavigate } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { queue } from '@/features/lobby/api'
+import { rooms } from '@/features/room/api'
+import { keys } from '@/lib/queryClient'
 import type { GameInfo } from '@/lib/schema-generated.zod'
-import { useAppStore } from '@/stores/store'
-import { useSocketStore } from '@/stores/socketStore'
+import { sfx } from '@/lib/sfx'
 import { useQueueStore } from '@/stores/queueStore'
 import { useRoomStore } from '@/stores/roomStore'
-import { keys } from '@/lib/queryClient'
-import { sfx } from '@/lib/sfx'
-import styles from './NewGamePanel.module.css'
-import { useNavigate } from '@tanstack/react-router'
+import { useSocketStore } from '@/stores/socketStore'
+import { useAppStore } from '@/stores/store'
 import { testId } from '@/utils/testId'
+import styles from './NewGamePanel.module.css'
 
 type Tab = 'casual' | 'ranked'
 
@@ -165,7 +165,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
       {gameList.length > 1 && (
         <div className={styles.gameSelector}>
           {gameList.map((g: GameInfo) => (
-            <button type="button"
+            <button
+              type='button'
               key={g.id}
               {...testId(`game-option-${g.id}`)}
               className={`${styles.gameOption} ${effectiveGame === g.id ? styles.gameOptionActive : ''}`}
@@ -182,14 +183,16 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
 
       {/* Tabs */}
       <div className={styles.tabs}>
-        <button type="button"
+        <button
+          type='button'
           {...testId('tab-casual')}
           className={`${styles.tab} ${tab === 'casual' ? styles.tabActive : ''}`}
           onClick={() => setTab('casual')}
         >
           {t('lobby.casual')}
         </button>
-        <button type="button"
+        <button
+          type='button'
           {...testId('tab-ranked')}
           className={`${styles.tab} ${tab === 'ranked' ? styles.tabActive : ''}`}
           onClick={() => setTab('ranked')}
@@ -201,7 +204,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
       <div className={styles.body}>
         {tab === 'casual' && (
           <div className={styles.casualBody}>
-            <button type="button"
+            <button
+              type='button'
               {...testId('create-room-btn')}
               className='btn btn-primary'
               onClick={() => createRoom.mutate()}
@@ -222,7 +226,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                 maxLength={6}
                 style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
               />
-              <button type="button"
+              <button
+                type='button'
                 {...testId('join-btn')}
                 className='btn btn-ghost'
                 onClick={() => joinRoom.mutate()}
@@ -237,7 +242,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
         {tab === 'ranked' && (
           <div className={styles.rankedBody}>
             {queueStatus === 'idle' && (
-              <button type="button"
+              <button
+                type='button'
                 {...testId('find-match-btn')}
                 className='btn btn-primary'
                 onClick={() => joinQueue.mutate()}
@@ -256,7 +262,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                   </span>
                   <span className={styles.queueTimer}>{formatElapsed(elapsed)}</span>
                 </div>
-                <button type="button"
+                <button
+                  type='button'
                   {...testId('cancel-queue-btn')}
                   className='btn btn-ghost'
                   onClick={() => leaveQueue.mutate()}
@@ -272,7 +279,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
               <div {...testId('match-found')} className={styles.matchFound}>
                 <span className={styles.matchFoundLabel}>{t('lobby.matchFound')}</span>
                 <div className={styles.matchActions}>
-                  <button type="button"
+                  <button
+                    type='button'
                     {...testId('accept-match-btn')}
                     className='btn btn-primary'
                     onClick={() => acceptMatch.mutate()}
@@ -280,7 +288,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                   >
                     {t('lobby.acceptMatch')}
                   </button>
-                  <button type="button"
+                  <button
+                    type='button'
                     {...testId('decline-match-btn')}
                     className='btn btn-ghost'
                     onClick={() => declineMatch.mutate()}
@@ -293,7 +302,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
             )}
 
             <p className={styles.rankedNote}>
-              {t('lobby.rankedNote')} <span className={styles.ratingWord}>{t('lobby.displayRating')}</span>.
+              {t('lobby.rankedNote')}{' '}
+              <span className={styles.ratingWord}>{t('lobby.displayRating')}</span>.
             </p>
           </div>
         )}

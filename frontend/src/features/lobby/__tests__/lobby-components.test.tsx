@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { RoomCard } from '../components/RoomCard'
-import { ActiveGameBanner } from '../components/ActiveGameBanner'
-import { RoomCardSkeleton } from '../components/RoomCardSkeleton'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import type { RoomView } from '@/lib/api'
+import { ActiveGameBanner } from '../components/ActiveGameBanner'
+import { RoomCard } from '../components/RoomCard'
+import { RoomCardSkeleton } from '../components/RoomCardSkeleton'
 
 // ---------------------------------------------------------------------------
 // RoomCard
@@ -21,7 +21,17 @@ function makeRoomView(overrides?: Partial<RoomView>): RoomView {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
-    players: [{ id: 'p1', username: 'alice', role: 'player', is_bot: false, created_at: new Date().toISOString(), seat: 0, joined_at: new Date().toISOString() }],
+    players: [
+      {
+        id: 'p1',
+        username: 'alice',
+        role: 'player',
+        is_bot: false,
+        created_at: new Date().toISOString(),
+        seat: 0,
+        joined_at: new Date().toISOString(),
+      },
+    ],
     settings: {},
     ...overrides,
   }
@@ -47,7 +57,7 @@ describe('RoomCard', () => {
   })
 
   it('disables join button when disabled', () => {
-    render(<RoomCard view={makeRoomView()} onJoin={vi.fn()} disabled />)
+    render(<RoomCard view={makeRoomView()} onJoin={vi.fn()} disabled={true} />)
     expect(screen.getByText('Join →')).toBeDisabled()
   })
 

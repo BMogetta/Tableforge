@@ -1,7 +1,7 @@
-import type { GameSession } from './schema-generated.zod'
-import type { RoomView, Notification } from './api'
-import { emitErrorLog } from './telemetry'
+import type { Notification, RoomView } from './api'
 import { getDeviceContextAttrs } from './device'
+import type { GameSession } from './schema-generated.zod'
+import { emitErrorLog } from './telemetry'
 
 /**
  * Attempts to refresh the access token. Used by GatewaySocket

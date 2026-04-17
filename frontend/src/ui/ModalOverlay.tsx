@@ -34,7 +34,8 @@ export function ModalOverlay({ onClose, children, className }: Props) {
 
   return (
     <div className={`${styles.overlay} ${className ?? ''}`}>
-      <button type="button"
+      <button
+        type='button'
         className={styles.backdrop}
         onClick={onClose}
         aria-label={t('common.closeDialog')}

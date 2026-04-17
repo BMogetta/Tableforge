@@ -2,13 +2,13 @@ import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import type {
   Notification,
+  NotificationPayloadBanIssued,
   NotificationPayloadFriendRequest,
   NotificationPayloadRoomInvitation,
-  NotificationPayloadBanIssued,
   NotificationType,
 } from '@/lib/api'
-import styles from './NotificationItem.module.css'
 import { testId } from '@/utils/testId'
+import styles from './NotificationItem.module.css'
 
 interface NotificationItemProps {
   notification: Notification
@@ -56,13 +56,16 @@ export function NotificationItem({
 
       {n.action_taken && (
         <span className={styles.actionTaken} {...testId('action-taken')}>
-          {n.action_taken === 'accepted' ? t('notifications.accepted') : t('notifications.declined')}
+          {n.action_taken === 'accepted'
+            ? t('notifications.accepted')
+            : t('notifications.declined')}
         </span>
       )}
 
       {hasAction && !isExpired && (
         <div className={styles.actions}>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-primary btn-sm'
             disabled={pending}
             onClick={() => onAccept?.(n.id)}
@@ -70,7 +73,8 @@ export function NotificationItem({
           >
             {t('notifications.accept')}
           </button>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-ghost btn-sm'
             disabled={pending}
             onClick={() => onDecline?.(n.id)}
@@ -106,11 +110,14 @@ function describeNotification(n: Notification, t: TFunction): string {
     }
     case 'ban_issued': {
       const p = n.payload as NotificationPayloadBanIssued
-      const reason = p.reason === 'decline_threshold'
-        ? t('notifications.banReasonDeclines')
-        : t('notifications.banReasonModerator')
-      return t('notifications.banMessage', { reason }) +
+      const reason =
+        p.reason === 'decline_threshold'
+          ? t('notifications.banReasonDeclines')
+          : t('notifications.banReasonModerator')
+      return (
+        t('notifications.banMessage', { reason }) +
         (p.expires_at ? ` Expires: ${new Date(p.expires_at).toLocaleString()}` : '')
+      )
     }
     default:
       return t('notifications.defaultMessage')

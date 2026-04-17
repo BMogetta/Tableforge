@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock ws module before importing store
 vi.mock('@/lib/ws', () => {
@@ -38,13 +38,13 @@ vi.mock('@/lib/skins', () => ({
   FontSize: { Small: 'small', Medium: 'medium', Large: 'large' },
 }))
 
-import { useAppStore } from '@/stores/store'
-import { useSocketStore } from '@/stores/socketStore'
-import { useRoomStore } from '@/stores/roomStore'
-import { useQueueStore, QueueStatus } from '@/stores/queueStore'
-import { useSettingsStore } from '@/stores/settingsStore'
 import { DEFAULT_SETTINGS } from '@/lib/api'
 import type { Player } from '@/lib/schema-generated.zod'
+import { QueueStatus, useQueueStore } from '@/stores/queueStore'
+import { useRoomStore } from '@/stores/roomStore'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { useSocketStore } from '@/stores/socketStore'
+import { useAppStore } from '@/stores/store'
 
 beforeEach(() => {
   // Reset all stores to initial state

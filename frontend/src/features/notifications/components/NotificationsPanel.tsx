@@ -89,7 +89,7 @@ export function NotificationsPanel({ items, onClose }: NotificationsPanelProps) 
           <h2 className={styles.title} id='notifications-title'>
             {t('notifications.title')}
           </h2>
-          <button type="button" className={styles.closeBtn} onClick={handleClose}>
+          <button type='button' className={styles.closeBtn} onClick={handleClose}>
             x
           </button>
         </div>

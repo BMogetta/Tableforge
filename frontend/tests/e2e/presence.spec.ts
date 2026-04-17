@@ -1,5 +1,5 @@
-import { test, expect } from './fixtures'
-import { setupRoom, setupAndStartGame } from './helpers'
+import { expect, test } from './fixtures'
+import { setupAndStartGame, setupRoom } from './helpers'
 
 test.describe('Player presence', () => {
   test('presence dot shown in room player list', async ({ players }) => {

@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { sessions } from '@/lib/api/sessions'
 import { keys } from '@/lib/queryClient'
-import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 
 interface UsePauseResumeOptions {
   sessionId: string

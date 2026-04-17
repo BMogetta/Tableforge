@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { admin } from '@/features/admin/api'
-import { PlayerRole, type AllowedEmail } from '@/lib/api'
-import { catchToAppError, type AppError } from '@/utils/errors'
+import { type AllowedEmail, PlayerRole } from '@/lib/api'
 import { useToast } from '@/ui/Toast'
+import { type AppError, catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
 import styles from '../Admin.module.css'
 
@@ -71,7 +71,12 @@ export function AllowedEmailsTab({ callerRole }: Props) {
             <option value={PlayerRole.Manager}>Manager</option>
           </select>
         )}
-        <button type="button" className='btn btn-primary' onClick={handleAdd} {...testId('add-email-btn')}>
+        <button
+          type='button'
+          className='btn btn-primary'
+          onClick={handleAdd}
+          {...testId('add-email-btn')}
+        >
           Add
         </button>
       </div>
@@ -107,7 +112,8 @@ export function AllowedEmailsTab({ callerRole }: Props) {
                 <td className={styles.muted}>{e.invited_by ?? '—'}</td>
                 <td className={styles.muted}>{new Date(e.created_at).toLocaleDateString()}</td>
                 <td>
-                  <button type="button"
+                  <button
+                    type='button'
                     className={`btn btn-ghost ${styles.removeBtn}`}
                     onClick={() => handleRemove(e.email)}
                     {...testId(`remove-email-${e.email}`)}

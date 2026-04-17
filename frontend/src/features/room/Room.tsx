@@ -1,24 +1,24 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppStore } from '@/stores/store'
-import { useSocketStore } from '@/stores/socketStore'
-import { useRoomStore } from '@/stores/roomStore'
-import { rooms, bots } from '@/features/room/api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { gameRegistry } from '@/features/lobby/api'
-import type { LobbySetting, BotProfile } from '@/lib/schema-generated.zod'
-import { ok, error, catchToAppError, type AppError } from '@/utils/errors'
+import { bots, rooms } from '@/features/room/api'
+import type { BotProfile, LobbySetting } from '@/lib/schema-generated.zod'
+import { useRoomStore } from '@/stores/roomStore'
+import { useSocketStore } from '@/stores/socketStore'
+import { useAppStore } from '@/stores/store'
 import { useToast } from '@/ui/Toast'
-import { RoomSettings } from './components/RoomSettings'
-import { ChatPopover } from './components/ChatPopover'
-import { PlayerList } from './components/PlayerList'
+import { type AppError, catchToAppError, error, ok } from '@/utils/errors'
+import { testAttr, testId } from '@/utils/testId'
 import { BotSection } from './components/BotSection'
-import { InviteCode } from './components/InviteCode'
-import { RoomActions } from './components/RoomActions'
+import { ChatPopover } from './components/ChatPopover'
 import { ConnectionBanner } from './components/ConnectionBanner'
-import { RoomToolbar, SettingsIcon, BotIcon, InviteIcon, ChatIcon } from './components/RoomToolbar'
+import { InviteCode } from './components/InviteCode'
+import { PlayerList } from './components/PlayerList'
+import { RoomActions } from './components/RoomActions'
+import { RoomSettings } from './components/RoomSettings'
+import { BotIcon, ChatIcon, InviteIcon, RoomToolbar, SettingsIcon } from './components/RoomToolbar'
 import styles from './Room.module.css'
-import { testId, testAttr } from '@/utils/testId'
 
 type PopoverId = 'settings' | 'bot' | 'invite' | 'chat'
 
@@ -291,7 +291,12 @@ export function Room({ roomId }: { roomId: string }) {
   const showBotButton = isOwner && gameHasBotAdapter && botProfiles.length > 0
 
   const toolbarItems = [
-    { id: 'settings' as const, label: t('room.settings'), icon: SettingsIcon, visible: hasSettings },
+    {
+      id: 'settings' as const,
+      label: t('room.settings'),
+      icon: SettingsIcon,
+      visible: hasSettings,
+    },
     {
       id: 'bot' as const,
       label: t('room.addBot'),
@@ -299,7 +304,12 @@ export function Room({ roomId }: { roomId: string }) {
       visible: showBotButton,
       disabled: !hasOpenSlot,
     },
-    { id: 'invite' as const, label: t('room.inviteCode'), icon: InviteIcon, visible: isParticipant },
+    {
+      id: 'invite' as const,
+      label: t('room.inviteCode'),
+      icon: InviteIcon,
+      visible: isParticipant,
+    },
     { id: 'chat' as const, label: t('room.chat'), icon: ChatIcon, visible: true },
   ]
 

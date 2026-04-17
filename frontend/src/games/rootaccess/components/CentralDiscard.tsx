@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, dealVariants, springTransition } from '@/ui/cards'
 import { ModalOverlay } from '@/ui/ModalOverlay'
@@ -51,8 +51,7 @@ export function CentralDiscard({ discardOrder, discardPiles, getUsername, pileRe
 
   // Resolve top card: prefer global order, fall back to any non-empty pile.
   const total =
-    discardOrder?.length ??
-    Object.values(discardPiles).reduce((sum, arr) => sum + arr.length, 0)
+    discardOrder?.length ?? Object.values(discardPiles).reduce((sum, arr) => sum + arr.length, 0)
 
   const topCard: CardName | null = (() => {
     if (discardOrder && discardOrder.length > 0) {

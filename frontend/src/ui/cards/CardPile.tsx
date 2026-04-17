@@ -1,10 +1,10 @@
-import { useCallback, useRef, useImperativeHandle } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useCallback, useImperativeHandle, useRef } from 'react'
 import { testId } from '@/utils/testId'
-import { Card } from './Card'
 import { dealVariants, springTransition } from './animations'
-import type { CardPileProps } from './types'
+import { Card } from './Card'
 import styles from './CardPile.module.css'
+import type { CardPileProps } from './types'
 
 const STACK_OFFSETS = [
   { x: 0, y: 0 },

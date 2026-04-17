@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
+import styles from '../Game.module.css'
 
 interface Props {
   isSpectator: boolean
@@ -43,14 +43,25 @@ export function GameOverActions({
   const { t } = useTranslation()
   return (
     <div className={styles.gameOver}>
-      <button type="button" className='btn btn-ghost' {...testId('back-to-lobby-btn')} onClick={onBackToLobby}>
+      <button
+        type='button'
+        className='btn btn-ghost'
+        {...testId('back-to-lobby-btn')}
+        onClick={onBackToLobby}
+      >
         {t('game.backToLobby')}
       </button>
-      <button type="button" className='btn btn-ghost' {...testId('view-replay-btn')} onClick={onViewReplay}>
+      <button
+        type='button'
+        className='btn btn-ghost'
+        {...testId('view-replay-btn')}
+        onClick={onViewReplay}
+      >
         {t('game.viewReplay')}
       </button>
       {!isSpectator && !isRanked && (
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-primary'
           {...testId('rematch-btn')}
           onClick={onRematch}
@@ -64,7 +75,8 @@ export function GameOverActions({
         </button>
       )}
       {!isSpectator && isRanked && onBackToQueue && (
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-primary'
           {...testId('back-to-queue-btn')}
           onClick={onBackToQueue}

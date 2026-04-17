@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BroadcastTab } from '../components/BroadcastTab'
 
 const { mockToast, mockAdmin } = vi.hoisted(() => ({
@@ -51,7 +51,10 @@ describe('BroadcastTab', () => {
     fireEvent.click(screen.getByTestId('broadcast-send'))
 
     await waitFor(() =>
-      expect(mockAdmin.sendBroadcast).toHaveBeenCalledWith('Maintenance window starting', 'warning'),
+      expect(mockAdmin.sendBroadcast).toHaveBeenCalledWith(
+        'Maintenance window starting',
+        'warning',
+      ),
     )
   })
 

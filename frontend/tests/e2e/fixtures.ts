@@ -14,14 +14,14 @@
  *     const { p1, p2, p3, p1Id, p2Id, p3Id, cleanup } = playersWithSpectator
  *   })
  */
-import { test as base, expect, type Page, type BrowserContext } from '@playwright/test'
+import { type BrowserContext, test as base, expect, type Page } from '@playwright/test'
 import {
+  ADMIN_RESERVED_INDEX,
   acquirePlayers,
   acquireSpecificPlayers,
-  ADMIN_RESERVED_INDEX,
+  type PoolPlayer,
   RANKED_RESERVED_INDICES,
   releasePlayers,
-  type PoolPlayer,
 } from './player-pool'
 
 export { expect }

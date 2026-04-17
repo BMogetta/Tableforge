@@ -18,10 +18,16 @@ export function ActiveGameBanner({ gameId, onRejoin, onForfeit, isForfeitPending
         </span>
       </div>
       <div className={styles.actions}>
-        <button type="button" className='btn btn-primary' onClick={onRejoin} {...testId('rejoin-btn')}>
+        <button
+          type='button'
+          className='btn btn-primary'
+          onClick={onRejoin}
+          {...testId('rejoin-btn')}
+        >
           Rejoin
         </button>
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-danger'
           onClick={onForfeit}
           disabled={isForfeitPending}

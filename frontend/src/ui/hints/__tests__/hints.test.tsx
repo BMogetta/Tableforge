@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
 import { DimOverlay } from '../DimOverlay'
-import { TooltipWrapper } from '../TooltipWrapper'
 import { HighlightBorder } from '../HighlightBorder'
 import { HintText } from '../HintText'
+import { TooltipWrapper } from '../TooltipWrapper'
 
 describe('DimOverlay', () => {
   it('applies dimOverlay class when dimmed is true', () => {
@@ -39,7 +39,7 @@ describe('TooltipWrapper', () => {
   it('does not show tooltip by default', () => {
     render(
       <TooltipWrapper text='Tooltip text'>
-        <button type="button">Hover me</button>
+        <button type='button'>Hover me</button>
       </TooltipWrapper>,
     )
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
@@ -49,7 +49,7 @@ describe('TooltipWrapper', () => {
     const user = userEvent.setup()
     render(
       <TooltipWrapper text='Tooltip text'>
-        <button type="button">Hover me</button>
+        <button type='button'>Hover me</button>
       </TooltipWrapper>,
     )
     await user.hover(screen.getByText('Hover me'))
@@ -60,7 +60,7 @@ describe('TooltipWrapper', () => {
     const user = userEvent.setup()
     render(
       <TooltipWrapper text='Tooltip text'>
-        <button type="button">Hover me</button>
+        <button type='button'>Hover me</button>
       </TooltipWrapper>,
     )
     await user.hover(screen.getByText('Hover me'))

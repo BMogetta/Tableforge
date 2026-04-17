@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GatewaySocket, type WsEvent } from '../ws'
 
 // Stub dependencies
@@ -190,7 +190,10 @@ describe('GatewaySocket', () => {
     // Let the async refresh resolve
     await vi.advanceTimersByTimeAsync(0)
 
-    expect(mockFetch).toHaveBeenCalledWith('/auth/refresh', expect.objectContaining({ method: 'POST' }))
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/auth/refresh',
+      expect.objectContaining({ method: 'POST' }),
+    )
     expect(handler).toHaveBeenCalledWith({ type: 'ws_reconnecting', payload: null })
     expect(MockWebSocket.instances).toHaveLength(2) // reconnected
   })

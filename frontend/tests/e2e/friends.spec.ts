@@ -1,10 +1,12 @@
-import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 /** Remove friendship between two players (idempotent). */
 async function cleanFriendship(page: Page, playerId: string, otherId: string) {
   await page.request.delete(`/api/v1/players/${playerId}/friends/${otherId}`).catch(() => {})
-  await page.request.delete(`/api/v1/players/${playerId}/friends/${otherId}/decline`).catch(() => {})
+  await page.request
+    .delete(`/api/v1/players/${playerId}/friends/${otherId}/decline`)
+    .catch(() => {})
 }
 
 test.describe('Friends', () => {
@@ -70,7 +72,7 @@ test.describe('Friends', () => {
     await pendingItem.getByTestId('decline-btn').click()
 
     // Pending request should disappear.
-    await expect(p1.getByTestId(`pending-${p2Id}`)).not.toBeVisible({ timeout: 5_000 })
+    await expect(p1.getByTestId(`pending-${p2Id}`)).not.toBeVisible({ timeout: 5000 })
   })
 
   test('removing a friend removes them from the list', async ({ players }) => {
@@ -90,6 +92,6 @@ test.describe('Friends', () => {
     await friendItem.getByTestId('remove-btn').click()
 
     // P2 should disappear from P1's list.
-    await expect(p1.getByTestId(`friend-${p2Id}`)).not.toBeVisible({ timeout: 5_000 })
+    await expect(p1.getByTestId(`friend-${p2Id}`)).not.toBeVisible({ timeout: 5000 })
   })
 })

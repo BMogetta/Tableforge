@@ -51,7 +51,8 @@ export function AppHeader({ onLogout }: Props) {
 
         <div className={styles.actions}>
           {/* Rules book */}
-          <button type="button"
+          <button
+            type='button'
             className={styles.iconBtn}
             title={t('header.gameRules')}
             onClick={() => setRulesOpen(true)}
@@ -71,7 +72,8 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* Notifications bell */}
-          <button type="button"
+          <button
+            type='button'
             className={styles.iconBtn}
             {...testId('notifications-btn')}
             title={t('header.notifications')}
@@ -94,7 +96,8 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* DMs envelope */}
-          <button type="button"
+          <button
+            type='button'
             className={styles.iconBtn}
             {...testId('dm-envelope-btn')}
             title={t('header.messages')}
@@ -117,7 +120,12 @@ export function AppHeader({ onLogout }: Props) {
           </button>
 
           {/* Settings gear */}
-          <button type="button" className={styles.iconBtn} title={t('header.settings')} onClick={() => setSettingsOpen(true)}>
+          <button
+            type='button'
+            className={styles.iconBtn}
+            title={t('header.settings')}
+            onClick={() => setSettingsOpen(true)}
+          >
             <svg
               width='16'
               height='16'
@@ -139,7 +147,7 @@ export function AppHeader({ onLogout }: Props) {
             ariaLabel={player.username}
             triggerClassName={styles.avatarTrigger}
             panelClassName={styles.userMenu}
-            hideCaret
+            hideCaret={true}
             trigger={
               player.avatar_url ? (
                 <img src={player.avatar_url} alt='' className={styles.avatar} />

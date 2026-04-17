@@ -1,9 +1,5 @@
-import { test, expect } from './fixtures'
-import {
-  setupRoom,
-  waitForSocketConnected,
-  playFullGame,
-} from './helpers'
+import { expect, test } from './fixtures'
+import { playFullGame, setupRoom, waitForSocketConnected } from './helpers'
 
 test.describe('Lobby', () => {
   test('two players can join the same room', async ({ players }) => {

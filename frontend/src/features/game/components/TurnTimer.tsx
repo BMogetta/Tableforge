@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
+import styles from '../Game.module.css'
 
 interface TurnTimerProps {
   turnTimeoutSecs?: number

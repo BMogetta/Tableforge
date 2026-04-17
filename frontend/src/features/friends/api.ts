@@ -1,10 +1,13 @@
 import { request } from '@/lib/api'
-import type { FriendshipView, DmConversation, PlayerSearchResult } from '@/lib/schema-generated.zod'
+import type { DmConversation, FriendshipView, PlayerSearchResult } from '@/lib/schema-generated.zod'
 
 // Re-export for convenience so consumers don't need to know the source.
-export type { FriendshipView, PlayerSearchResult } from '@/lib/schema-generated.zod'
 // Preserve existing name casing used by consumers.
-export type { DmConversation as DMConversation } from '@/lib/schema-generated.zod'
+export type {
+  DmConversation as DMConversation,
+  FriendshipView,
+  PlayerSearchResult,
+} from '@/lib/schema-generated.zod'
 
 // --- Player search -----------------------------------------------------------
 

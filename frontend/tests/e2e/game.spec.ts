@@ -1,9 +1,5 @@
-import { test, expect } from './fixtures'
-import {
-  setupAndStartGame,
-  playFullGame,
-  waitForSocketConnected,
-} from './helpers'
+import { expect, test } from './fixtures'
+import { playFullGame, setupAndStartGame, waitForSocketConnected } from './helpers'
 
 // --- Tests -------------------------------------------------------------------
 

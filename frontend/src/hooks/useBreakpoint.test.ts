@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { useBreakpoint, type Breakpoint } from './useBreakpoint'
+import { describe, expect, it, vi } from 'vitest'
+import { type Breakpoint, useBreakpoint } from './useBreakpoint'
 
 // Mock matchMedia — each test configures which breakpoint is "active".
 function mockMatchMedia(activeBreakpoint: Breakpoint) {

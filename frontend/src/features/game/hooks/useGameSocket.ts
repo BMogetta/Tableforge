@@ -1,14 +1,14 @@
-import { useCallback, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { keys } from '@/lib/queryClient'
-import type { GatewaySocket, WsPayloadMoveResult } from '@/lib/ws'
-import type { PauseResumeState } from './usePauseResume'
-import type { RematchState } from './useRematch'
+import { useCallback, useEffect } from 'react'
 import { ResultStatus } from '@/lib/api'
-import { notifyTurn } from '@/lib/turn-notifier'
+import { keys } from '@/lib/queryClient'
 import { sfx } from '@/lib/sfx'
+import { notifyTurn } from '@/lib/turn-notifier'
+import type { GatewaySocket, WsPayloadMoveResult } from '@/lib/ws'
 import { useAppStore } from '@/stores/store'
 import type { SessionCache } from '../api/session-cache'
+import type { PauseResumeState } from './usePauseResume'
+import type { RematchState } from './useRematch'
 
 interface UseGameSocketOptions {
   sessionId: string
@@ -134,5 +134,17 @@ export function useGameSocket({
     })
 
     return () => off()
-  }, [gateway, sessionId, handleMovePayload, pauseResume.onSessionResumed, pauseResume.onSessionSuspended, pauseResume.setPauseVoteUpdate, pauseResume.setResumeVoteUpdate, qc.invalidateQueries, rematch.onRematchGameStarted, rematch.onRematchReady, rematch.onRematchVote])
+  }, [
+    gateway,
+    sessionId,
+    handleMovePayload,
+    pauseResume.onSessionResumed,
+    pauseResume.onSessionSuspended,
+    pauseResume.setPauseVoteUpdate,
+    pauseResume.setResumeVoteUpdate,
+    qc.invalidateQueries,
+    rematch.onRematchGameStarted,
+    rematch.onRematchReady,
+    rematch.onRematchVote,
+  ])
 }

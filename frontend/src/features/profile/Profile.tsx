@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useAppStore } from '@/stores/store'
-import { players } from '@/lib/api'
-import { testId } from '@/utils/testId'
-import { keys } from '@/lib/queryClient'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useBlockPlayer } from '@/hooks/useBlockPlayer'
-import { ProfileHeader } from './components/ProfileHeader'
-import { MatchHistory } from './components/MatchHistory'
+import { players } from '@/lib/api'
+import { keys } from '@/lib/queryClient'
+import { useAppStore } from '@/stores/store'
+import { testId } from '@/utils/testId'
 import { AchievementGrid } from './AchievementGrid'
+import { MatchHistory } from './components/MatchHistory'
+import { ProfileHeader } from './components/ProfileHeader'
 import styles from './Profile.module.css'
 
 const PAGE_SIZE = 20
@@ -68,7 +68,8 @@ export function Profile({ playerId }: { playerId: string }) {
           {!isOwnProfile && currentPlayer && (
             <div className={styles.profileActions}>
               {blocked ? (
-                <button type="button"
+                <button
+                  type='button'
                   className='btn btn-ghost btn-sm'
                   onClick={() => unblock(playerId)}
                   disabled={unblockPending}
@@ -77,7 +78,8 @@ export function Profile({ playerId }: { playerId: string }) {
                   {unblockPending ? t('profile.unblocking') : t('profile.unblock')}
                 </button>
               ) : (
-                <button type="button"
+                <button
+                  type='button'
                   className={`btn btn-ghost btn-sm ${styles.blockBtn}`}
                   onClick={() =>
                     block({
@@ -129,10 +131,7 @@ export function Profile({ playerId }: { playerId: string }) {
         )}
 
         <div className={styles.sectionTitle}>{t('profile.achievements')}</div>
-        <AchievementGrid
-          achievements={achievements ?? []}
-          isLoading={achievementsLoading}
-        />
+        <AchievementGrid achievements={achievements ?? []} isLoading={achievementsLoading} />
 
         <div className={styles.sectionTitle}>{t('profile.matchHistory')}</div>
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 // In Vitest, import.meta.env.DEV is true by default, so testId/testAttr will be enabled.
 

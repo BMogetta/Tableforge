@@ -1,22 +1,33 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { players, friends, dmConversations, blocks, presence } from '../api'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { blocks, dmConversations, friends, players, presence } from '../api'
 
 vi.mock('@/lib/telemetry', () => ({
   tracer: {
     startActiveSpan: (_n: string, _o: unknown, fn: (s: unknown) => unknown) =>
-      fn({ setAttributes: vi.fn(), setAttribute: vi.fn(), setStatus: vi.fn(), recordException: vi.fn(), end: vi.fn() }),
+      fn({
+        setAttributes: vi.fn(),
+        setAttribute: vi.fn(),
+        setStatus: vi.fn(),
+        recordException: vi.fn(),
+        end: vi.fn(),
+      }),
   },
   emitErrorLog: vi.fn(),
 }))
 vi.mock('@opentelemetry/api', () => ({
-  SpanKind: { CLIENT: 1 }, SpanStatusCode: { OK: 0, ERROR: 1 },
-  context: { active: vi.fn() }, propagation: { inject: vi.fn() },
+  SpanKind: { CLIENT: 1 },
+  SpanStatusCode: { OK: 0, ERROR: 1 },
+  context: { active: vi.fn() },
+  propagation: { inject: vi.fn() },
 }))
 
 let mockFetch: ReturnType<typeof vi.fn>
 
 function json(body: unknown) {
-  return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  })
 }
 function empty() {
   return new Response(null, { status: 204, headers: { 'content-length': '0' } })
@@ -26,8 +37,14 @@ function lastCall() {
   return { url: url as string, method: init?.method ?? 'GET', body: init?.body }
 }
 
-beforeEach(() => { mockFetch = vi.fn(); vi.stubGlobal('fetch', mockFetch) })
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
+beforeEach(() => {
+  mockFetch = vi.fn()
+  vi.stubGlobal('fetch', mockFetch)
+})
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('players', () => {
   it('search encodes username', async () => {
@@ -111,7 +128,7 @@ describe('blocks', () => {
 
 describe('presence', () => {
   it('check sends comma-separated ids', async () => {
-    mockFetch.mockResolvedValue(json({ 'id1': true, 'id2': false }))
+    mockFetch.mockResolvedValue(json({ id1: true, id2: false }))
     await presence.check(['id1', 'id2'])
     expect(lastCall().url).toContain('/presence?ids=id1,id2')
   })

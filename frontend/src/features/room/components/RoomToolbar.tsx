@@ -27,7 +27,8 @@ export function RoomToolbar({ items, activePopover, onToggle, children }: Props)
     <div className={styles.popoverWrap}>
       <div className={styles.toolbar}>
         {visibleItems.map(item => (
-          <button type="button"
+          <button
+            type='button'
             key={item.id}
             className={`${styles.toolbarBtn} ${activePopover === item.id ? styles.toolbarBtnActive : ''}`}
             onClick={() => onToggle(item.id)}
@@ -45,7 +46,14 @@ export function RoomToolbar({ items, activePopover, onToggle, children }: Props)
 
       {activePopover && (
         <>
-          <div className={styles.popoverBackdrop} role="button" tabIndex={0} aria-label="Close popover" onClick={() => onToggle(activePopover)} onKeyDown={e => e.key === 'Escape' && onToggle(activePopover)} />
+          <div
+            className={styles.popoverBackdrop}
+            role='button'
+            tabIndex={0}
+            aria-label='Close popover'
+            onClick={() => onToggle(activePopover)}
+            onKeyDown={e => e.key === 'Escape' && onToggle(activePopover)}
+          />
           <div className={styles.popover}>{children}</div>
         </>
       )}

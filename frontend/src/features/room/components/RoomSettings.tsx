@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { rooms } from '@/features/room/api'
 import type { LobbySetting } from '@/lib/schema-generated.zod'
-import styles from './RoomSettings.module.css'
 import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
+import styles from './RoomSettings.module.css'
 
 interface Props {
   roomId: string

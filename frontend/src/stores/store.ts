@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 import type { Player } from '@/lib/schema-generated.zod'
 
+export type { QueueStatus as QueueStatusType } from './queueStore'
 // Re-export from dedicated stores so existing `import { X } from '@/stores/store'`
 // continues to work during migration. New code should import from the specific store.
 export { QueueStatus, useQueueStore } from './queueStore'
-export type { QueueStatus as QueueStatusType } from './queueStore'
-export { useSocketStore } from './socketStore'
 export { useRoomStore } from './roomStore'
-export { useSettingsStore, type ResolvedSettings } from './settingsStore'
+export { type ResolvedSettings, useSettingsStore } from './settingsStore'
+export { useSocketStore } from './socketStore'
 
 interface AppState {
   player: Player | null

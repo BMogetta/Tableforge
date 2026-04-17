@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { rooms } from '@/features/room/api'
 import { keys } from '@/lib/queryClient'
+import { testId } from '@/utils/testId'
+import styles from './OpenRooms.module.css'
 import { RoomCard } from './RoomCard'
 import { RoomCardSkeleton } from './RoomCardSkeleton'
-import styles from './OpenRooms.module.css'
-import { useNavigate } from '@tanstack/react-router'
-import { testId } from '@/utils/testId'
 
 export function OpenRooms({ disabled }: { disabled?: boolean }) {
   const { t } = useTranslation()

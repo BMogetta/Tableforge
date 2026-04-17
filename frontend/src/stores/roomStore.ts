@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { useSocketStore } from './socketStore'
 import type { RoomView } from '@/lib/api'
+import { useSocketStore } from './socketStore'
 
 interface RoomState {
   activeRoomId: string | null
@@ -46,8 +46,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   setView: view => set({ view }),
   setOwnerId: id => set({ ownerId: id }),
-  updateSetting: (key, value) =>
-    set(state => ({ settings: { ...state.settings, [key]: value } })),
+  updateSetting: (key, value) => set(state => ({ settings: { ...state.settings, [key]: value } })),
 
   setIsSpectator: value => set({ isSpectator: value }),
   setSpectatorCount: count => set({ spectatorCount: count }),
@@ -102,8 +101,10 @@ useSocketStore.subscribe((state, prev) => {
   unsubscribe = gw.on(event => {
     const store = useRoomStore.getState()
     if (event.type === 'ws_connected') useRoomStore.setState({ roomSocketStatus: 'connected' })
-    if (event.type === 'ws_reconnecting') useRoomStore.setState({ roomSocketStatus: 'reconnecting' })
-    if (event.type === 'ws_disconnected') useRoomStore.setState({ roomSocketStatus: 'disconnected' })
+    if (event.type === 'ws_reconnecting')
+      useRoomStore.setState({ roomSocketStatus: 'reconnecting' })
+    if (event.type === 'ws_disconnected')
+      useRoomStore.setState({ roomSocketStatus: 'disconnected' })
     if (event.type === 'room_subscribed') useRoomStore.setState({ roomSocketStatus: 'connected' })
     if (event.type === 'presence_update') {
       store.setPlayerPresence(event.payload.player_id, event.payload.online)

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { expect, test } from './fixtures'
 
 test.describe('Profile', () => {
   test('own profile shows username and stats', async ({ singlePlayer }) => {

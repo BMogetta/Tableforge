@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 // Stub telemetry so it's a no-op — tracer.startActiveSpan calls the callback immediately.
@@ -24,7 +24,7 @@ vi.mock('@opentelemetry/api', () => ({
   propagation: { inject: vi.fn() },
 }))
 
-import { request, validatedRequest, ApiError, SchemaError } from '../api'
+import { ApiError, request, SchemaError, validatedRequest } from '../api'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -170,9 +170,7 @@ describe('request()', () => {
     const expiredResponse = jsonResponse({ error: 'token_expired' }, 401)
     const refreshFailResponse = new Response(null, { status: 401 })
 
-    mockFetch
-      .mockResolvedValueOnce(expiredResponse)
-      .mockResolvedValueOnce(refreshFailResponse)
+    mockFetch.mockResolvedValueOnce(expiredResponse).mockResolvedValueOnce(refreshFailResponse)
 
     await expect(request('/players/me')).rejects.toThrow(ApiError)
     expect(window.location.href).toBe('/login')
@@ -229,9 +227,7 @@ describe('validatedRequest()', () => {
   })
 
   it('strips extra fields (Zod default behavior)', async () => {
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: 'p1', username: 'Alice', extra: true }),
-    )
+    mockFetch.mockResolvedValueOnce(jsonResponse({ id: 'p1', username: 'Alice', extra: true }))
 
     const data = await validatedRequest(playerSchema, '/players/p1')
     // Zod strips extra fields by default

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
-import styles from './SurrenderModal.module.css'
 import { testId } from '@/utils/testId'
+import styles from './SurrenderModal.module.css'
 
 interface Props {
   onConfirm: () => void
@@ -27,10 +27,11 @@ export function SurrenderModal({ onConfirm, onCancel, isPending }: Props) {
         </h2>
         <p className={styles.body}>{t('game.forfeitDesc')}</p>
         <div className={styles.actions}>
-          <button type="button" className='btn btn-ghost' onClick={onCancel} disabled={isPending}>
+          <button type='button' className='btn btn-ghost' onClick={onCancel} disabled={isPending}>
             {t('common.cancel')}
           </button>
-          <button type="button"
+          <button
+            type='button'
             className='btn btn-danger'
             onClick={onConfirm}
             disabled={isPending}

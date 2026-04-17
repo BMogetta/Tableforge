@@ -1,14 +1,18 @@
-import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import { useFocusTrap } from '../useFocusTrap'
 
 function TrapDialog() {
   const ref = useFocusTrap<HTMLDivElement>()
   return (
     <div ref={ref} role='dialog' aria-modal='true'>
-      <button type="button" data-testid='first'>First</button>
+      <button type='button' data-testid='first'>
+        First
+      </button>
       <input data-testid='middle' />
-      <button type="button" data-testid='last'>Last</button>
+      <button type='button' data-testid='last'>
+        Last
+      </button>
     </div>
   )
 }

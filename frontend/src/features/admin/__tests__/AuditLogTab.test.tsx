@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { AuditLogTab } from '../components/AuditLogTab'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditLog } from '../api'
+import { AuditLogTab } from '../components/AuditLogTab'
 
 const { mockToast, mockAdmin } = vi.hoisted(() => ({
   mockToast: { showError: vi.fn(), showWarning: vi.fn(), showInfo: vi.fn() },
@@ -98,9 +98,7 @@ describe('AuditLogTab', () => {
     // Click next
     fireEvent.click(screen.getByTestId('audit-next'))
     await waitFor(() =>
-      expect(mockAdmin.listAuditLogs).toHaveBeenCalledWith(
-        expect.objectContaining({ offset: 50 }),
-      ),
+      expect(mockAdmin.listAuditLogs).toHaveBeenCalledWith(expect.objectContaining({ offset: 50 })),
     )
   })
 

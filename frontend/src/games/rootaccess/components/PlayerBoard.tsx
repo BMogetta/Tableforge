@@ -116,7 +116,10 @@ export function PlayerBoard({
           </div>
         </div>
 
-        <div className={styles.tokens} aria-label={t('rootaccess.tokenCount', { current: tokens, total: tokensToWin })}>
+        <div
+          className={styles.tokens}
+          aria-label={t('rootaccess.tokenCount', { current: tokens, total: tokensToWin })}
+        >
           {Array.from({ length: tokensToWin }).map((_, i) => (
             <span
               key={i}
@@ -127,7 +130,10 @@ export function PlayerBoard({
         </div>
 
         {!isLocal && handSize > 0 && !isEliminated && (
-          <div className={styles.opponentHand} aria-label={t('rootaccess.opponentHand', { name: username })}>
+          <div
+            className={styles.opponentHand}
+            aria-label={t('rootaccess.opponentHand', { name: username })}
+          >
             <CardPile count={handSize} faceDown={true} />
           </div>
         )}

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { PlayerList } from '../PlayerList'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RoomPlayer } from '@/lib/schema-generated.zod'
+import { PlayerList } from '../PlayerList'
 
 vi.mock('@/features/room/api', () => ({
   rooms: {},
@@ -17,14 +17,14 @@ vi.mock('@/ui/Toast', () => ({
 }))
 
 vi.mock('@/stores/store', () => ({
-  useAppStore: Object.assign(
-    (selector: (s: unknown) => unknown) => selector({}),
-    { getState: () => ({ setDmTarget: vi.fn() }) },
-  ),
+  useAppStore: Object.assign((selector: (s: unknown) => unknown) => selector({}), {
+    getState: () => ({ setDmTarget: vi.fn() }),
+  }),
 }))
 
 vi.mock('@/stores/roomStore', () => ({
-  useRoomStore: (selector: (s: unknown) => unknown) => selector({ presenceMap: { 'p1': true, 'p2': false } }),
+  useRoomStore: (selector: (s: unknown) => unknown) =>
+    selector({ presenceMap: { p1: true, p2: false } }),
 }))
 
 const players: RoomPlayer[] = [
@@ -77,9 +77,7 @@ describe('PlayerList', () => {
   })
 
   it('shows bot badge and remove button for bot players', () => {
-    render(
-      <PlayerList {...baseProps} players={[...players, botPlayer]} />,
-    )
+    render(<PlayerList {...baseProps} players={[...players, botPlayer]} />)
     expect(screen.getByText('Bot')).toBeInTheDocument()
     expect(screen.getByTitle('Remove bot')).toBeInTheDocument()
   })
@@ -107,13 +105,7 @@ describe('PlayerList', () => {
   })
 
   it('disables remove bot button when bot is being removed', () => {
-    render(
-      <PlayerList
-        {...baseProps}
-        players={[...players, botPlayer]}
-        removingBotId='bot1'
-      />,
-    )
+    render(<PlayerList {...baseProps} players={[...players, botPlayer]} removingBotId='bot1' />)
     expect(screen.getByTitle('Remove bot')).toBeDisabled()
   })
 })

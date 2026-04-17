@@ -1,5 +1,5 @@
-export { useHintsEnabled } from './HintContext'
 export { DimOverlay } from './DimOverlay'
-export { TooltipWrapper } from './TooltipWrapper'
 export { HighlightBorder } from './HighlightBorder'
+export { useHintsEnabled } from './HintContext'
 export { HintText } from './HintText'
+export { TooltipWrapper } from './TooltipWrapper'

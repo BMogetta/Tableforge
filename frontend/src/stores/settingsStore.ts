@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import type { PlayerSettingMap, PlayerSettings } from '@/lib/api'
 import { DEFAULT_SETTINGS } from '@/lib/api'
-import { applyFontSize, applySkin, type FontSize, type SkinId } from '@/lib/skins'
 import { i18n } from '@/lib/i18n'
+import { applyFontSize, applySkin, type FontSize, type SkinId } from '@/lib/skins'
 
 /** All keys guaranteed non-optional after merging stored values over defaults. */
 export type ResolvedSettings = Required<PlayerSettingMap>

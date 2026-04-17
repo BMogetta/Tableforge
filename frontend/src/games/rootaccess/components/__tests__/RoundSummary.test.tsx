@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RoundSummary } from '../RoundSummary'
 
 vi.mock('@/hooks/useFocusTrap', () => ({
@@ -8,8 +8,22 @@ vi.mock('@/hooks/useFocusTrap', () => ({
 }))
 
 const basePlayers = [
-  { id: 'p1', username: 'Alice', tokens: 2, tokensToWin: 3, isWinner: true, earnedBackdoorBonus: false },
-  { id: 'p2', username: 'Bob', tokens: 1, tokensToWin: 3, isWinner: false, earnedBackdoorBonus: false },
+  {
+    id: 'p1',
+    username: 'Alice',
+    tokens: 2,
+    tokensToWin: 3,
+    isWinner: true,
+    earnedBackdoorBonus: false,
+  },
+  {
+    id: 'p2',
+    username: 'Bob',
+    tokens: 1,
+    tokensToWin: 3,
+    isWinner: false,
+    earnedBackdoorBonus: false,
+  },
 ]
 
 let onDismiss: ReturnType<typeof vi.fn>
@@ -25,27 +39,21 @@ afterEach(() => {
 
 describe('RoundSummary', () => {
   it('renders round number and winner', () => {
-    render(
-      <RoundSummary round={3} winnerId='p1' players={basePlayers} onDismiss={onDismiss} />,
-    )
+    render(<RoundSummary round={3} winnerId='p1' players={basePlayers} onDismiss={onDismiss} />)
     expect(screen.getByText(/Alice wins the round/)).toBeInTheDocument()
     // Round label uses i18n key
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('renders draw when no winner', () => {
-    render(
-      <RoundSummary round={1} winnerId={null} players={basePlayers} onDismiss={onDismiss} />,
-    )
+    render(<RoundSummary round={1} winnerId={null} players={basePlayers} onDismiss={onDismiss} />)
     // With no winner the draw text is shown
     const headings = screen.getAllByRole('heading')
     expect(headings.length).toBeGreaterThan(0)
   })
 
   it('renders all player rows', () => {
-    render(
-      <RoundSummary round={1} winnerId='p1' players={basePlayers} onDismiss={onDismiss} />,
-    )
+    render(<RoundSummary round={1} winnerId='p1' players={basePlayers} onDismiss={onDismiss} />)
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.getByText('Bob')).toBeInTheDocument()
   })
@@ -60,25 +68,15 @@ describe('RoundSummary', () => {
   })
 
   it('shows backdoor bonus when earned', () => {
-    const players = [
-      { ...basePlayers[0], earnedBackdoorBonus: true },
-      basePlayers[1],
-    ]
-    render(
-      <RoundSummary round={1} winnerId='p1' players={players} onDismiss={onDismiss} />,
-    )
+    const players = [{ ...basePlayers[0], earnedBackdoorBonus: true }, basePlayers[1]]
+    render(<RoundSummary round={1} winnerId='p1' players={players} onDismiss={onDismiss} />)
     expect(screen.getByText('Backdoor bonus')).toBeInTheDocument()
     expect(screen.getByText(/Alice earned \+1 token/)).toBeInTheDocument()
   })
 
   it('shows hand card when present', () => {
-    const players = [
-      { ...basePlayers[0], handCard: 'ROOT' },
-      basePlayers[1],
-    ]
-    render(
-      <RoundSummary round={1} winnerId='p1' players={players} onDismiss={onDismiss} />,
-    )
+    const players = [{ ...basePlayers[0], handCard: 'ROOT' }, basePlayers[1]]
+    render(<RoundSummary round={1} winnerId='p1' players={players} onDismiss={onDismiss} />)
     expect(screen.getByText('ROOT')).toBeInTheDocument()
   })
 
@@ -86,7 +84,13 @@ describe('RoundSummary', () => {
     vi.useRealTimers()
     const user = userEvent.setup()
     render(
-      <RoundSummary round={1} winnerId='p1' players={basePlayers} autoDismissMs={999999} onDismiss={onDismiss} />,
+      <RoundSummary
+        round={1}
+        winnerId='p1'
+        players={basePlayers}
+        autoDismissMs={999_999}
+        onDismiss={onDismiss}
+      />,
     )
     const btn = screen.getByRole('button')
     await user.click(btn)
@@ -95,7 +99,13 @@ describe('RoundSummary', () => {
 
   it('auto-dismisses after timeout', () => {
     render(
-      <RoundSummary round={1} winnerId='p1' players={basePlayers} autoDismissMs={500} onDismiss={onDismiss} />,
+      <RoundSummary
+        round={1}
+        winnerId='p1'
+        players={basePlayers}
+        autoDismissMs={500}
+        onDismiss={onDismiss}
+      />,
     )
     // The component uses setInterval(100ms) decrementing remaining.
     // Wrap in act to flush React state updates from timers.
@@ -106,9 +116,7 @@ describe('RoundSummary', () => {
   })
 
   it('has accessible dialog role and label', () => {
-    render(
-      <RoundSummary round={1} winnerId='p1' players={basePlayers} onDismiss={onDismiss} />,
-    )
+    render(<RoundSummary round={1} winnerId='p1' players={basePlayers} onDismiss={onDismiss} />)
     const dialog = screen.getByRole('dialog')
     expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(dialog).toHaveAttribute('aria-labelledby', 'round-summary-title')

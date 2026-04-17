@@ -1,10 +1,10 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
 import { testId } from '@/utils/testId'
+import { dealVariants, getFlyOutTarget, springTransition } from './animations'
 import { Card } from './Card'
-import { dealVariants, springTransition, getFlyOutTarget } from './animations'
-import type { CardHandProps } from './types'
 import styles from './CardHand.module.css'
+import type { CardHandProps } from './types'
 
 const DEFAULT_SPREAD = 30
 

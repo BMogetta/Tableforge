@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { admin, type SystemStats } from '@/features/admin/api'
-import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
 import styles from '../Admin.module.css'
 
@@ -30,7 +30,11 @@ export function StatsTab() {
   }
 
   if (!stats) {
-    return <p className={styles.empty} {...testId('stats-empty')}>No stats available.</p>
+    return (
+      <p className={styles.empty} {...testId('stats-empty')}>
+        No stats available.
+      </p>
+    )
   }
 
   const cards: { label: string; value: number; id: string }[] = [

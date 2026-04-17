@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { useAppStore } from '@/stores/store'
 import { testId } from '@/utils/testId'
+import styles from './Admin.module.css'
 import { AllowedEmailsTab } from './components/AllowedEmailsTab'
-import { PlayersTab } from './components/PlayersTab'
-import { ModerationTab } from './components/ModerationTab'
+import { AuditLogTab } from './components/AuditLogTab'
 import { BansTab } from './components/BansTab'
+import { BroadcastTab } from './components/BroadcastTab'
+import { ModerationTab } from './components/ModerationTab'
+import { PlayersTab } from './components/PlayersTab'
 import { RoomsTab } from './components/RoomsTab'
 import { StatsTab } from './components/StatsTab'
-import { AuditLogTab } from './components/AuditLogTab'
-import { BroadcastTab } from './components/BroadcastTab'
-import styles from './Admin.module.css'
 
 const Tab = {
   stats: 'stats',
@@ -58,7 +58,8 @@ export function Admin() {
 
       <nav className={styles.tabs} {...testId('admin-tabs')}>
         {Object.entries(TAB_LABELS).map(([key, label]) => (
-          <button type="button"
+          <button
+            type='button'
             key={key}
             className={`${styles.tab} ${tab === key ? styles.tabActive : ''}`}
             onClick={() => setTab(key as Tab)}

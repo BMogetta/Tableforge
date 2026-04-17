@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { GameOverActions } from '../components/GameOverActions'
 import { GameTopBar } from '../components/GameTopBar'
 import { PauseVoteOverlay } from '../components/PauseVoteOverlay'
 import { SuspendedScreen } from '../components/SuspendedScreen'
-import { GameOverActions } from '../components/GameOverActions'
 
 // ---------------------------------------------------------------------------
 // GameTopBar — merges the former GameHeader + GameStatus into one row.

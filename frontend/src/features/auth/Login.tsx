@@ -67,7 +67,8 @@ export function Login() {
 
         <div className={styles.actions}>
           <p className={styles.hint}>{t('auth.invitationOnly')}</p>
-          <button type="button"
+          <button
+            type='button'
             className={`btn btn-primary ${styles.loginBtn}`}
             onClick={handleLogin}
             disabled={loading}
@@ -114,7 +115,8 @@ function AccessDenied() {
         </div>
 
         <div className={styles.actions}>
-          <button type="button"
+          <button
+            type='button'
             className={`btn btn-ghost ${styles.loginBtn}`}
             onClick={() =>
               openOAuthPopup(() => {

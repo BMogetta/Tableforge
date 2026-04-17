@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { admin } from '@/features/admin/api'
 import type { PlayerReport } from '@/lib/schema-generated.zod'
-import { catchToAppError } from '@/utils/errors'
 import { useToast } from '@/ui/Toast'
+import { catchToAppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
 import styles from '../Admin.module.css'
 
@@ -54,7 +54,8 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
       <div className={styles.toolbar}>
         <div className={styles.filterGroup}>
           {(['pending', 'reviewed', 'all'] as FilterStatus[]).map(s => (
-            <button type="button"
+            <button
+              type='button'
               key={s}
               className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setFilter(s)}
@@ -73,7 +74,11 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
         <div className={`card ${styles.detailCard}`} {...testId('report-detail')}>
           <div className={styles.detailHeader}>
             <h3>Report Detail</h3>
-            <button type="button" className='btn btn-ghost btn-sm' onClick={() => setSelected(null)}>
+            <button
+              type='button'
+              className='btn btn-ghost btn-sm'
+              onClick={() => setSelected(null)}
+            >
               Back
             </button>
           </div>
@@ -95,14 +100,16 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
           </dl>
           {selected.status === 'pending' && (
             <div className={styles.actionRow}>
-              <button type="button"
+              <button
+                type='button'
                 className='btn btn-ghost btn-sm'
                 onClick={() => handleReview(selected.id, 'dismiss')}
                 {...testId('dismiss-report-btn')}
               >
                 Dismiss
               </button>
-              <button type="button"
+              <button
+                type='button'
                 className='btn btn-secondary btn-sm'
                 onClick={() => handleReview(selected.id, 'warn')}
                 {...testId('warn-report-btn')}
@@ -110,7 +117,8 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
                 Warn
               </button>
               {(callerRole === 'manager' || callerRole === 'owner') && (
-                <button type="button"
+                <button
+                  type='button'
                   className='btn btn-danger btn-sm'
                   onClick={() => handleBan(selected.reported_id)}
                   {...testId('ban-from-report-btn')}

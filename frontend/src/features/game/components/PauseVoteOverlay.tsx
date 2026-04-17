@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
+import styles from '../Game.module.css'
 
 interface Props {
   votes: string[]
@@ -40,7 +40,8 @@ export function PauseVoteOverlay({
         {t('game.pauseVotes', { current: votes.length, total: required })}
       </p>
       {!isSpectator && !votedPause && (
-        <button type="button"
+        <button
+          type='button'
           {...testId('vote-pause-btn')}
           className='btn btn-ghost'
           onClick={onVote}

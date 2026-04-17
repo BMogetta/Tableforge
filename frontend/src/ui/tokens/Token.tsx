@@ -1,8 +1,8 @@
 import { motion } from 'motion/react'
 import { testId } from '@/utils/testId'
 import { getClaimVariants, tokenSpring } from './animations'
-import type { TokenProps } from './types'
 import styles from './Token.module.css'
+import type { TokenProps } from './types'
 
 const DEFAULT_CLAIM_OFFSET = 40
 

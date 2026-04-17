@@ -1,5 +1,5 @@
-import styles from './FriendsPanel.module.css'
 import { testId } from '@/utils/testId'
+import styles from './FriendsPanel.module.css'
 
 interface PendingRequestItemProps {
   requesterId: string
@@ -23,7 +23,8 @@ export function PendingRequestItem({
       {avatarUrl && <img src={avatarUrl} alt='' className={styles.avatar} />}
       <span className={styles.friendName}>{username}</span>
       <div className={styles.friendActions}>
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-primary btn-sm'
           onClick={() => onAccept(requesterId)}
           disabled={pending}
@@ -31,7 +32,8 @@ export function PendingRequestItem({
         >
           Accept
         </button>
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-ghost btn-sm'
           onClick={() => onDecline(requesterId)}
           disabled={pending}

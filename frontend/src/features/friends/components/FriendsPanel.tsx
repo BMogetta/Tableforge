@@ -132,7 +132,7 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
           <h2 className={styles.title} id='friends-title'>
             {t('friends.title')}
           </h2>
-          <button type="button" className={styles.closeBtn} onClick={onClose}>
+          <button type='button' className={styles.closeBtn} onClick={onClose}>
             x
           </button>
         </div>
@@ -158,14 +158,16 @@ export function FriendsPanel({ onClose, onOpenDM }: FriendsPanelProps) {
         </form>
 
         <div className={styles.tabs}>
-          <button type="button"
+          <button
+            type='button'
             {...testId('friends-tab')}
             className={`${styles.tab} ${tab === 'friends' ? styles.tabActive : ''}`}
             onClick={() => setTab('friends')}
           >
             {t('friends.friendsCount', { count: safeFriends.length })}
           </button>
-          <button type="button"
+          <button
+            type='button'
             {...testId('pending-tab')}
             className={`${styles.tab} ${tab === 'pending' ? styles.tabActive : ''}`}
             onClick={() => setTab('pending')}
@@ -238,7 +240,12 @@ interface FriendsButtonProps {
 export function FriendsButton({ pendingCount, onClick }: FriendsButtonProps) {
   const { t } = useTranslation()
   return (
-    <button type="button" className={styles.floatingBtn} onClick={onClick} {...testId('friends-btn')}>
+    <button
+      type='button'
+      className={styles.floatingBtn}
+      onClick={onClick}
+      {...testId('friends-btn')}
+    >
       <svg
         width='14'
         height='14'

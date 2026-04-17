@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import styles from '../Room.module.css'
 import { testId } from '@/utils/testId'
+import styles from '../Room.module.css'
 
 interface InviteCodeProps {
   code: string
@@ -14,9 +14,7 @@ export function InviteCode({ code, isPrivate }: InviteCodeProps) {
       {isPrivate ? (
         <>
           <p className='label'>{t('room.privateRoom')}</p>
-          <p className={styles.privateNote}>
-            {t('room.privateRoomHint')}
-          </p>
+          <p className={styles.privateNote}>{t('room.privateRoomHint')}</p>
         </>
       ) : (
         <p className='label'>{t('room.inviteCode')}</p>
@@ -25,7 +23,8 @@ export function InviteCode({ code, isPrivate }: InviteCodeProps) {
         <span {...testId('room-code-display')} className={styles.codeDisplay}>
           {code}
         </span>
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-ghost btn-sm'
           onClick={() => navigator.clipboard.writeText(code)}
         >

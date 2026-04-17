@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import type { BotProfile } from '@/lib/schema-generated.zod'
-import type { AppError } from '@/utils/errors'
 import { ErrorMessage } from '@/ui/ErrorMessage'
-import styles from '../Room.module.css'
+import type { AppError } from '@/utils/errors'
 import { testId } from '@/utils/testId'
+import styles from '../Room.module.css'
 
 interface BotSectionProps {
   profiles: BotProfile[]
@@ -40,7 +40,8 @@ export function BotSection({
             </option>
           ))}
         </select>
-        <button type="button"
+        <button
+          type='button'
           {...testId('add-bot-btn')}
           className='btn btn-secondary'
           disabled={adding}

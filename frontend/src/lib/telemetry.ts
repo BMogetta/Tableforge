@@ -1,5 +1,5 @@
-import { SeverityNumber } from '@opentelemetry/api-logs'
 import type { Tracer } from '@opentelemetry/api'
+import { SeverityNumber } from '@opentelemetry/api-logs'
 import { isDev } from '@/lib/env'
 
 // ---------------------------------------------------------------------------
@@ -49,10 +49,14 @@ if (!TELEMETRY_DISABLED) {
   const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-http')
   const { OTLPMetricExporter } = await import('@opentelemetry/exporter-metrics-otlp-http')
   const { OTLPLogExporter } = await import('@opentelemetry/exporter-logs-otlp-http')
-  const { MeterProvider, PeriodicExportingMetricReader } = await import('@opentelemetry/sdk-metrics')
+  const { MeterProvider, PeriodicExportingMetricReader } = await import(
+    '@opentelemetry/sdk-metrics'
+  )
   const { LoggerProvider, SimpleLogRecordProcessor } = await import('@opentelemetry/sdk-logs')
   const { resourceFromAttributes } = await import('@opentelemetry/resources')
-  const { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } = await import('@opentelemetry/semantic-conventions')
+  const { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } = await import(
+    '@opentelemetry/semantic-conventions'
+  )
   const { W3CTraceContextPropagator } = await import('@opentelemetry/core')
   const { registerInstrumentations } = await import('@opentelemetry/instrumentation')
   const { FetchInstrumentation } = await import('@opentelemetry/instrumentation-fetch')
@@ -89,7 +93,9 @@ if (!TELEMETRY_DISABLED) {
   const metricExporter = new OTLPMetricExporter({ url: `${COLLECTOR_BASE}/v1/metrics` })
   const meterProvider = new MeterProvider({
     resource,
-    readers: [new PeriodicExportingMetricReader({ exporter: metricExporter, exportIntervalMillis: 30_000 })],
+    readers: [
+      new PeriodicExportingMetricReader({ exporter: metricExporter, exportIntervalMillis: 30_000 }),
+    ],
   })
   const vitalsHistogram = meterProvider.getMeter('recess-frontend').createHistogram('web_vitals', {
     description: 'Core Web Vitals measurements',

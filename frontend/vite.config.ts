@@ -1,9 +1,9 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
-import { resolve } from 'path'
+import react from '@vitejs/plugin-react'
 import { execSync } from 'child_process'
+import { resolve } from 'path'
+import { defineConfig } from 'vitest/config'
 
 function resolveAppVersion(): string {
   if (process.env.APP_VERSION) return process.env.APP_VERSION

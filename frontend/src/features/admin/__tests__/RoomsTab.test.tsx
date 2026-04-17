@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { RoomsTab } from '../components/RoomsTab'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Room } from '@/lib/schema-generated.zod'
+import { RoomsTab } from '../components/RoomsTab'
 
 const { mockToast, mockAdmin } = vi.hoisted(() => ({
   mockToast: { showError: vi.fn(), showWarning: vi.fn(), showInfo: vi.fn() },

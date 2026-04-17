@@ -1,6 +1,6 @@
-import { acquirePlayers, releasePlayers, type PoolPlayer } from './player-pool'
-import { setupAndStartGame, playFullGame } from './helpers'
-import { test, expect, cleanupPlayer } from './fixtures'
+import { cleanupPlayer, expect, test } from './fixtures'
+import { playFullGame, setupAndStartGame } from './helpers'
+import { acquirePlayers, type PoolPlayer, releasePlayers } from './player-pool'
 
 // ---------------------------------------------------------------------------
 // Session History & Replay tests
@@ -15,20 +15,17 @@ import { test, expect, cleanupPlayer } from './fixtures'
 // ---------------------------------------------------------------------------
 
 test.describe('Game-over transition', () => {
-  test(
-    'View Replay button appears and navigates to /sessions/:id/history',
-    async ({ players }) => {
-      const { p1, p2, p1Id } = players
+  test('View Replay button appears and navigates to /sessions/:id/history', async ({ players }) => {
+    const { p1, p2, p1Id } = players
 
-      await setupAndStartGame(p1, p2, p1Id)
-      await playFullGame(p1, p2)
+    await setupAndStartGame(p1, p2, p1Id)
+    await playFullGame(p1, p2)
 
-      await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
-      await p1.getByTestId('view-replay-btn').click()
+    await expect(p1.getByTestId('view-replay-btn')).toBeVisible({ timeout: 10_000 })
+    await p1.getByTestId('view-replay-btn').click()
 
-      await expect(p1).toHaveURL(/\/sessions\/.*\/history/, { timeout: 10_000 })
-    },
-  )
+    await expect(p1).toHaveURL(/\/sessions\/.*\/history/, { timeout: 10_000 })
+  })
 })
 
 // For the shared session tests, we acquire players manually in beforeAll.

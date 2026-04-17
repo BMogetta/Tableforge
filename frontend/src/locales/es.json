@@ -363,7 +363,10 @@
     "win_streak": {
       "name": "En racha",
       "tiers": {
-        "1": { "name": "Racha caliente", "description": "Gan\u00e1 {{threshold}} partidas seguidas" },
+        "1": {
+          "name": "Racha caliente",
+          "description": "Gan\u00e1 {{threshold}} partidas seguidas"
+        },
         "2": { "name": "Imparable", "description": "Gan\u00e1 {{threshold}} partidas seguidas" },
         "3": { "name": "Legendario", "description": "Gan\u00e1 {{threshold}} partidas seguidas" }
       }
@@ -379,14 +382,23 @@
       "name": "Partida perfecta",
       "description": "Gan\u00e1 una partida de tic-tac-toe en la menor cantidad de movimientos posible",
       "tiers": {
-        "1": { "name": "Partida perfecta", "description": "Gan\u00e1 en la menor cantidad de movimientos posible" }
+        "1": {
+          "name": "Partida perfecta",
+          "description": "Gan\u00e1 en la menor cantidad de movimientos posible"
+        }
       }
     },
     "ttt_games_played": {
       "name": "Fan\u00e1tico del Tic-Tac-Toe",
       "tiers": {
-        "1": { "name": "Principiante", "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe" },
-        "2": { "name": "Entusiasta", "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe" },
+        "1": {
+          "name": "Principiante",
+          "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe"
+        },
+        "2": {
+          "name": "Entusiasta",
+          "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe"
+        },
         "3": { "name": "Adicto", "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe" }
       }
     }

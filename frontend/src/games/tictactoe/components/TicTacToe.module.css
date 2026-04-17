@@ -26,7 +26,7 @@
   transition: background 0.3s;
 }
 
-.presenceDot[data-online='true'] {
+.presenceDot[data-online="true"] {
   background: var(--color-success);
   box-shadow: 0 0 4px var(--color-success);
 }

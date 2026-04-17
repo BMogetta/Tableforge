@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { RootAccessRules } from '../Rules'
+import { describe, expect, it } from 'vitest'
 import { CARD_META, type CardName } from '../CardDisplay'
+import { RootAccessRules } from '../Rules'
 
 describe('RootAccessRules', () => {
   it('renders all sections', () => {

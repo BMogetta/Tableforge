@@ -1,5 +1,5 @@
-import styles from './FriendsPanel.module.css'
 import { testId } from '@/utils/testId'
+import styles from './FriendsPanel.module.css'
 
 interface FriendItemProps {
   friendId: string
@@ -30,7 +30,8 @@ export function FriendItem({
       {avatarUrl && <img src={avatarUrl} alt='' className={styles.avatar} />}
       <span className={styles.friendName}>{username}</span>
       <div className={styles.friendActions}>
-        <button type="button"
+        <button
+          type='button'
           className={styles.actionBtn}
           onClick={() => onDM(friendId)}
           title='Send DM'
@@ -38,7 +39,8 @@ export function FriendItem({
         >
           DM
         </button>
-        <button type="button"
+        <button
+          type='button'
           className={styles.actionBtn}
           onClick={() => onRemove(friendId)}
           disabled={removePending}
@@ -47,7 +49,8 @@ export function FriendItem({
         >
           {removePending ? '...' : 'x'}
         </button>
-        <button type="button"
+        <button
+          type='button'
           className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
           onClick={() => onBlock(friendId, username, avatarUrl)}
           disabled={blockPending}

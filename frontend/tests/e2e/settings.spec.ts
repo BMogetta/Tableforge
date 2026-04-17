@@ -1,10 +1,6 @@
-import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
-import {
-  setupRoom,
-  playFullGame,
-  waitForSocketConnected,
-} from './helpers'
+import { expect, test } from './fixtures'
+import { playFullGame, setupRoom, waitForSocketConnected } from './helpers'
 
 /** Open the settings popover via the toolbar button. */
 async function openSettings(page: Page) {

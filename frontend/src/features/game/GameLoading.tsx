@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { testId } from '@/utils/testId'
-import { useSocketStore } from '@/stores/socketStore'
-import { useRoomStore } from '@/stores/roomStore'
-import { sessions } from '@/lib/api/sessions'
-import { loadAssets, type LoadProgress } from '@/lib/assets'
 import { getGameAssets } from '@/games/assets'
+import { sessions } from '@/lib/api/sessions'
+import { type LoadProgress, loadAssets } from '@/lib/assets'
+import { useRoomStore } from '@/stores/roomStore'
+import { useSocketStore } from '@/stores/socketStore'
+import { testId } from '@/utils/testId'
 import styles from './GameLoading.module.css'
 
 // Minimum time to show the loading screen — prevents flash if assets load instantly.
@@ -107,12 +107,15 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
     // Fallback: no socket available (e.g. ranked queue skipped room).
     // Poll ready status so we don't get stuck on the waiting screen.
     const interval = setInterval(() => {
-      sessions.ready(sessionId).then(res => {
-        if (res.all_ready) {
-          setPhase('done')
-          onReady()
-        }
-      }).catch(() => {})
+      sessions
+        .ready(sessionId)
+        .then(res => {
+          if (res.all_ready) {
+            setPhase('done')
+            onReady()
+          }
+        })
+        .catch(() => {})
     }, 2000)
 
     return () => clearInterval(interval)
@@ -161,7 +164,8 @@ export function GameLoading({ sessionId, gameId, onReady, onTimeout }: Props) {
           </p>
         )}
         <p className={styles.countdown}>{countdown}s</p>
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-ghost'
           {...testId('loading-back-to-lobby-btn')}
           style={{ marginTop: 16, fontSize: 12 }}

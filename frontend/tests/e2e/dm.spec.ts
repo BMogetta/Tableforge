@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { expect, test } from './fixtures'
 
 test.describe('Direct Messages', () => {
   test('P1 sends DM to P2 via API, P2 sees it in conversation', async ({ players }) => {
@@ -98,12 +98,14 @@ test.describe('Direct Messages', () => {
     await expect(p2.getByTestId('dm-envelope-btn')).toBeVisible({ timeout: 10_000 })
 
     // Badge should show a number.
-    await expect.poll(
-      async () => {
-        const text = await p2.getByTestId('dm-envelope-btn').textContent()
-        return text !== null && /\d/.test(text)
-      },
-      { timeout: 10_000, message: 'DM badge should show unread count' },
-    ).toBe(true)
+    await expect
+      .poll(
+        async () => {
+          const text = await p2.getByTestId('dm-envelope-btn').textContent()
+          return text !== null && /\d/.test(text)
+        },
+        { timeout: 10_000, message: 'DM badge should show unread count' },
+      )
+      .toBe(true)
   })
 })

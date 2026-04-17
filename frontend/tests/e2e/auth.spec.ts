@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { expect, test } from './fixtures'
 
 test.describe('Auth and access control', () => {
   test('error boundary catches render errors and shows recovery UI', async ({ singlePlayer }) => {

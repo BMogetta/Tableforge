@@ -1,13 +1,13 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { leaderboard } from '@/features/lobby/api'
-import type { LeaderboardEntry } from '@/lib/schema-generated.zod'
 import { keys } from '@/lib/queryClient'
-import { LeaderboardSkeleton } from './LeaderboardSkeleton'
-import styles from './LeaderboardPanel.module.css'
+import type { LeaderboardEntry } from '@/lib/schema-generated.zod'
 import { testId } from '@/utils/testId'
+import styles from './LeaderboardPanel.module.css'
+import { LeaderboardSkeleton } from './LeaderboardSkeleton'
 
 interface Props {
   gameId: string

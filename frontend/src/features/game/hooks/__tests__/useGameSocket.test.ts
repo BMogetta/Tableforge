@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderHook } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
-import { useGameSocket } from '../useGameSocket'
-import type { GatewaySocket, WsEvent } from '@/lib/ws'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { keys } from '@/lib/queryClient'
 import type { GameSession } from '@/lib/schema-generated.zod'
+import type { GatewaySocket, WsEvent } from '@/lib/ws'
+import { useGameSocket } from '../useGameSocket'
 
 // --- Mocks -------------------------------------------------------------------
 
@@ -24,7 +24,9 @@ function createMockSocket() {
   return {
     on: vi.fn((h: OnHandler) => {
       handler = h
-      return () => { handler = null }
+      return () => {
+        handler = null
+      }
     }),
     emit(event: WsEvent) {
       handler?.(event)

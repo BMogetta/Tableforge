@@ -1,13 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useAppStore } from '@/stores/store'
-import { useSettingsStore } from '@/stores/settingsStore'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS } from '@/lib/api'
+import { applySkin, SKINS } from '@/lib/skins'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { useAppStore } from '@/stores/store'
 import { Settings } from '../Settings'
 import { ToastProvider } from '../Toast'
-import { SKINS } from '@/lib/skins'
-import { applySkin } from '@/lib/skins'
 
 // ---------------------------------------------------------------------------
 // Mocks

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react'
+import { type RefObject, useEffect, useRef } from 'react'
 
 const FOCUSABLE = [
   'a[href]',
@@ -52,9 +52,9 @@ export function useFocusTrap<T extends HTMLElement>(): RefObject<T | null> {
           last.focus()
         }
       } else if (document.activeElement === last) {
-          e.preventDefault()
-          first.focus()
-        }
+        e.preventDefault()
+        first.focus()
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)

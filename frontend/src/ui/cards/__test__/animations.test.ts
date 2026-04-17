@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { getFlyOutTarget, slideInVariants } from '../animations'
 
 function mockRect(left: number, top: number, width: number, height: number): DOMRect {

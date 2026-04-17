@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { NotificationItem } from '../NotificationItem'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import type { Notification } from '@/lib/api'
+import { NotificationItem } from '../NotificationItem'
 
 function makeNotification(overrides?: Partial<Notification>): Notification {
   return {

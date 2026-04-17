@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { ok, error, toAppError, catchToAppError, type AppError } from '@/utils/errors'
+import { describe, expect, it } from 'vitest'
+import { type AppError, catchToAppError, error, ok, toAppError } from '@/utils/errors'
 
 // ---------------------------------------------------------------------------
 // Result helpers

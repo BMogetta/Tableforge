@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import styles from '../Game.module.css'
 import { testId } from '@/utils/testId'
+import styles from '../Game.module.css'
 
 interface Props {
   resumeVotes: string[]
@@ -52,7 +52,8 @@ export function SuspendedScreen({
         </p>
       )}
       {canResume && (
-        <button type="button"
+        <button
+          type='button'
           {...testId('vote-resume-btn')}
           className='btn btn-primary'
           onClick={onResume}
@@ -62,7 +63,13 @@ export function SuspendedScreen({
         </button>
       )}
       {votedResume && <p className={styles.voteWaiting}>{t('game.waitingForOpponent')}</p>}
-      <button type="button" className='btn btn-ghost' {...testId('suspended-back-to-lobby-btn')} onClick={onBackToLobby} style={{ marginTop: 8 }}>
+      <button
+        type='button'
+        className='btn btn-ghost'
+        {...testId('suspended-back-to-lobby-btn')}
+        onClick={onBackToLobby}
+        style={{ marginTop: 8 }}
+      >
         {t('game.backToLobby')}
       </button>
     </div>

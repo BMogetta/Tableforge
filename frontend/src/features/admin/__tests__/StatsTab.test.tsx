@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { StatsTab } from '../components/StatsTab'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SystemStats } from '../api'
+import { StatsTab } from '../components/StatsTab'
 
 const { mockToast, mockAdmin } = vi.hoisted(() => ({
   mockToast: { showError: vi.fn(), showWarning: vi.fn(), showInfo: vi.fn() },

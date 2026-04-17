@@ -1,22 +1,33 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { notifications } from '../api'
 
 vi.mock('@/lib/telemetry', () => ({
   tracer: {
     startActiveSpan: (_n: string, _o: unknown, fn: (s: unknown) => unknown) =>
-      fn({ setAttributes: vi.fn(), setAttribute: vi.fn(), setStatus: vi.fn(), recordException: vi.fn(), end: vi.fn() }),
+      fn({
+        setAttributes: vi.fn(),
+        setAttribute: vi.fn(),
+        setStatus: vi.fn(),
+        recordException: vi.fn(),
+        end: vi.fn(),
+      }),
   },
   emitErrorLog: vi.fn(),
 }))
 vi.mock('@opentelemetry/api', () => ({
-  SpanKind: { CLIENT: 1 }, SpanStatusCode: { OK: 0, ERROR: 1 },
-  context: { active: vi.fn() }, propagation: { inject: vi.fn() },
+  SpanKind: { CLIENT: 1 },
+  SpanStatusCode: { OK: 0, ERROR: 1 },
+  context: { active: vi.fn() },
+  propagation: { inject: vi.fn() },
 }))
 
 let mockFetch: ReturnType<typeof vi.fn>
 
 function json(body: unknown) {
-  return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  })
 }
 function empty() {
   return new Response(null, { status: 204, headers: { 'content-length': '0' } })
@@ -26,8 +37,14 @@ function lastCall() {
   return { url: url as string, method: init?.method ?? 'GET', body: init?.body }
 }
 
-beforeEach(() => { mockFetch = vi.fn(); vi.stubGlobal('fetch', mockFetch) })
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
+beforeEach(() => {
+  mockFetch = vi.fn()
+  vi.stubGlobal('fetch', mockFetch)
+})
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('notifications', () => {
   it('list fetches with params', async () => {

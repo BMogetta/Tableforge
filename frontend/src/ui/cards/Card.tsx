@@ -1,8 +1,8 @@
 import { motion } from 'motion/react'
 import { testId } from '@/utils/testId'
-import { flipVariants, flipTransition, liftWhileHover } from './animations'
-import type { CardProps } from './types'
+import { flipTransition, flipVariants, liftWhileHover } from './animations'
 import styles from './Card.module.css'
+import type { CardProps } from './types'
 
 export function Card({
   front,

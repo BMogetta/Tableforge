@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
-import { useGameSession } from '../useGameSession'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GameSession } from '@/lib/schema-generated.zod'
+import { useGameSession } from '../useGameSession'
 
 // --- Mocks -------------------------------------------------------------------
 
@@ -62,10 +62,7 @@ describe('useGameSession', () => {
   })
 
   function render() {
-    return renderHook(
-      () => useGameSession({ sessionId: 'session-1', onGameOver }),
-      { wrapper },
-    )
+    return renderHook(() => useGameSession({ sessionId: 'session-1', onGameOver }), { wrapper })
   }
 
   it('fetches session and returns data', async () => {

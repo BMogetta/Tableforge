@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // Breakpoints — desktop-first (max-width).
 // sm: 640, md: 768, lg: 1024, xl: 1280

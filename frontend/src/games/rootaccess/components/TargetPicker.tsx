@@ -65,7 +65,8 @@ export function TargetPicker({
             const isSelected = selectedTarget === p.id
 
             return (
-              <button type="button"
+              <button
+                type='button'
                 key={p.id}
                 className={[
                   styles.targetBtn,

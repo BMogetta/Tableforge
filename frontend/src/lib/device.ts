@@ -103,11 +103,11 @@ if (typeof navigator !== 'undefined' && 'userAgentData' in navigator) {
   cachedPlatform = uad.platform ?? ''
   uad
     .getHighEntropyValues?.(['fullVersionList', 'platformVersion'])
-    .then((v) => {
+    .then(v => {
       if (v.fullVersionList?.length) {
         // Pick the most specific brand (skip "Chromium", "Not…" brands).
         const brand =
-          v.fullVersionList.find((b) => !/Chromium|Not/i.test(b.brand)) ?? v.fullVersionList[0]
+          v.fullVersionList.find(b => !/Chromium|Not/i.test(b.brand)) ?? v.fullVersionList[0]
         cachedBrowser = { name: brand.brand, version: brand.version }
       }
       if (v.platform) cachedOS = { name: v.platform, version: v.platformVersion ?? '' }

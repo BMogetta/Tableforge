@@ -1,10 +1,10 @@
-import { useRef, useImperativeHandle } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useImperativeHandle, useRef } from 'react'
 import { testId } from '@/utils/testId'
-import { Card } from './Card'
 import { flyInVariants, slideInVariants, springTransition } from './animations'
-import type { CardZoneProps } from './types'
+import { Card } from './Card'
 import styles from './CardZone.module.css'
+import type { CardZoneProps } from './types'
 
 export function CardZone<T>({
   cards,

@@ -1,7 +1,7 @@
-import { testId } from '@/utils/testId'
 import { Card } from '@/ui/cards'
-import { CardFace } from './CardFace'
+import { testId } from '@/utils/testId'
 import styles from './CardDisplay.module.css'
+import { CardFace } from './CardFace'
 
 /** @package */
 export type CardName =

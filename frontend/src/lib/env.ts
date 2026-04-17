@@ -6,8 +6,7 @@
  */
 
 /** True in Vite dev server, Vitest, or Docker test mode. */
-export const isDev =
-  import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
+export const isDev = import.meta.env.DEV || import.meta.env.VITE_TEST_MODE === 'true'
 
 /** True only in production builds (no test mode). */
 export const isProd = import.meta.env.PROD && !isDev

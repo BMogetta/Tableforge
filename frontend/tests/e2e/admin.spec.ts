@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { expect, test } from './fixtures'
 
 /**
  * Admin panel tests. Use the dedicated `adminPlayer` fixture which logs in
@@ -77,7 +77,10 @@ test.describe('Admin panel', () => {
     await expect(async () => {
       const res = await admin.request.get(`/api/v1/admin/players/${targetId}/bans`)
       expect(res.ok()).toBe(true)
-      const bans = (await res.json()) as Array<{ lifted_at: string | null; expires_at: string | null }>
+      const bans = (await res.json()) as Array<{
+        lifted_at: string | null
+        expires_at: string | null
+      }>
       const stillActive = bans.some(
         b => !b.lifted_at && (!b.expires_at || new Date(b.expires_at) > new Date()),
       )

@@ -12,17 +12,18 @@ export function ErrorScreen({ error, onReset }: Props) {
     <div className={styles.page}>
       <div className={styles.logo}>RECESS</div>
       <div className={styles.heading}>SOMETHING WENT WRONG</div>
-      <p className={styles.description}>
-        {t('errors.serverError')}
-      </p>
+      <p className={styles.description}>{t('errors.serverError')}</p>
       <code className={styles.codeBlock}>{error.message}</code>
       <div className={styles.actions}>
         <button type='button' className='btn btn-primary' onClick={onReset}>
           {t('common.tryAgain')}
         </button>
-        <button type="button"
+        <button
+          type='button'
           className='btn btn-ghost'
-          onClick={() => { window.location.href = '/' }}
+          onClick={() => {
+            window.location.href = '/'
+          }}
         >
           {t('game.backToLobby')}
         </button>

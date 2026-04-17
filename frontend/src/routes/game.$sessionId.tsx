@@ -1,12 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { sessions } from '@/lib/api/sessions'
+import { requireAuth } from '@/lib/authGuards'
+import { keys } from '@/lib/queryClient'
 import { Game } from '../features/game/Game'
 import { GameLoading } from '../features/game/GameLoading'
-import { requireAuth } from '@/lib/authGuards'
 import { useRoomStore } from '../stores/roomStore'
-import { sessions } from '@/lib/api/sessions'
-import { keys } from '@/lib/queryClient'
 
 function GameLoadingWrapper({
   sessionId,

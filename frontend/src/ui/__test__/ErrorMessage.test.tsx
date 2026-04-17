@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { ErrorMessage } from '../ErrorMessage'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppError } from '@/utils/errors'
+import { ErrorMessage } from '../ErrorMessage'
 
 const devError: AppError = {
   reason: 'NOT_FOUND',

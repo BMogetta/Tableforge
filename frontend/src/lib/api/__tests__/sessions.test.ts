@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { sessions } from '../sessions'
 
 // Stub telemetry
@@ -65,9 +65,7 @@ describe('sessions API client', () => {
   }
 
   it('get fetches correct URL', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ session: validSession, state: {}, result: null }),
-    )
+    mockFetch.mockResolvedValue(jsonResponse({ session: validSession, state: {}, result: null }))
 
     await sessions.get('session-42')
     expect(lastFetchCall().url).toContain('/sessions/session-42')
@@ -87,9 +85,7 @@ describe('sessions API client', () => {
   })
 
   it('move sends POST with payload', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ move_number: 1, is_over: false }),
-    )
+    mockFetch.mockResolvedValue(jsonResponse({ move_number: 1, is_over: false }))
 
     await sessions.move('s1', { cell: 4 })
     const call = lastFetchCall()
@@ -99,9 +95,7 @@ describe('sessions API client', () => {
   })
 
   it('surrender sends POST with empty body', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ move_number: 1, is_over: true }),
-    )
+    mockFetch.mockResolvedValue(jsonResponse({ move_number: 1, is_over: true }))
 
     await sessions.surrender('s1')
     const call = lastFetchCall()
@@ -111,9 +105,7 @@ describe('sessions API client', () => {
   })
 
   it('rematch sends POST with empty body', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ votes: 1, total_players: 2 }),
-    )
+    mockFetch.mockResolvedValue(jsonResponse({ votes: 1, total_players: 2 }))
 
     await sessions.rematch('s1')
     const call = lastFetchCall()
@@ -122,9 +114,7 @@ describe('sessions API client', () => {
   })
 
   it('pause sends POST with empty body', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ all_voted: false, votes: 1, required: 2 }),
-    )
+    mockFetch.mockResolvedValue(jsonResponse({ all_voted: false, votes: 1, required: 2 }))
 
     await sessions.pause('s1')
     const call = lastFetchCall()
@@ -133,9 +123,7 @@ describe('sessions API client', () => {
   })
 
   it('resume sends POST with empty body', async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ all_voted: true, votes: 2, required: 2 }),
-    )
+    mockFetch.mockResolvedValue(jsonResponse({ all_voted: true, votes: 2, required: 2 }))
 
     const result = await sessions.resume('s1')
     expect(lastFetchCall().url).toContain('/sessions/s1/resume')
@@ -143,7 +131,9 @@ describe('sessions API client', () => {
   })
 
   it('forceClose sends DELETE', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204, headers: { 'content-length': '0' } }))
+    mockFetch.mockResolvedValue(
+      new Response(null, { status: 204, headers: { 'content-length': '0' } }),
+    )
 
     await sessions.forceClose('s1')
     const call = lastFetchCall()
