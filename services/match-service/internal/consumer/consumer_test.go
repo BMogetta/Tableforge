@@ -10,21 +10,30 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	sharedevents "github.com/recess/shared/events"
+	"github.com/recess/shared/testutil"
 )
 
 type mockDequeuer struct {
+	calls      int
 	calledWith uuid.UUID
 	removed    bool
 	err        error
 }
 
 func (m *mockDequeuer) Dequeue(_ context.Context, playerID uuid.UUID) (bool, error) {
+	m.calls++
 	m.calledWith = playerID
 	return m.removed, m.err
 }
 
 func newTestConsumer(q *mockDequeuer) *Consumer {
 	return &Consumer{queue: q, log: slog.Default()}
+}
+
+func newTestConsumerWithRedis(t *testing.T, q *mockDequeuer) *Consumer {
+	t.Helper()
+	rdb, _ := testutil.NewTestRedis(t)
+	return &Consumer{rdb: rdb, queue: q, log: slog.Default()}
 }
 
 func playerBannedJSON(playerID string) string {
@@ -139,6 +148,27 @@ func TestHandle_UnknownChannel_ErrorMessage(t *testing.T) {
 	want := "unknown channel: player.suspended"
 	if err.Error() != want {
 		t.Errorf("error = %q, want %q", err.Error(), want)
+	}
+}
+
+func TestHandlePlayerBanned_DedupeByEventID(t *testing.T) {
+	mock := &mockDequeuer{removed: true}
+	c := newTestConsumerWithRedis(t, mock)
+
+	playerID := uuid.New()
+	eventID := uuid.NewString()
+	payload := `{"event_id":"` + eventID + `","player_id":"` + playerID.String() + `","reason":"cheating"}`
+	msg := &redis.Message{Channel: channelPlayerBanned, Payload: payload}
+
+	if err := c.handle(context.Background(), msg); err != nil {
+		t.Fatalf("first handle: %v", err)
+	}
+	if err := c.handle(context.Background(), msg); err != nil {
+		t.Fatalf("second handle: %v", err)
+	}
+
+	if mock.calls != 1 {
+		t.Errorf("expected Dequeue to run once, got %d calls", mock.calls)
 	}
 }
 

@@ -11,13 +11,18 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	sharedevents "github.com/recess/shared/events"
 )
 
-const channelPlayerBanned = "player.banned"
+const (
+	channelPlayerBanned = "player.banned"
+	dedupeKeyPrefix     = "dedup:match-service:"
+	dedupeTTL           = 24 * time.Hour
+)
 
 // Dequeuer is the minimal queue interface the consumer needs.
 type Dequeuer interface {
@@ -78,6 +83,13 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error
 		return fmt.Errorf("invalid player_id: %w", err)
 	}
 
+	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
+		c.log.Warn("match: dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
+	} else if seen {
+		c.log.Info("match: skipping duplicate player.banned event", "event_id", evt.EventID, "player_id", playerID)
+		return nil
+	}
+
 	removed, err := c.queue.Dequeue(ctx, playerID)
 	if err != nil {
 		return fmt.Errorf("dequeue banned player: %w", err)
@@ -87,4 +99,18 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error
 		c.log.Info("match: dequeued banned player", "player_id", playerID, "event_id", evt.EventID)
 	}
 	return nil
+}
+
+// seenEvent returns true if the event was already processed within the 24h
+// dedupe window; otherwise records the event and returns false. An empty
+// event_id is treated as unseen (best-effort).
+func (c *Consumer) seenEvent(ctx context.Context, eventID string) (bool, error) {
+	if eventID == "" || c.rdb == nil {
+		return false, nil
+	}
+	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result()
+	if err != nil {
+		return false, err
+	}
+	return !ok, nil
 }
