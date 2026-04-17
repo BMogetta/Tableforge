@@ -57,12 +57,24 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 
 ### 1.4 Reducir fanout de `shared/**`
 
-- [ ] **1.4.a** Analizar qué subcarpetas de `shared/` consume cada servicio (grep de imports)
+- [x] **1.4.a** Analizar qué subcarpetas de `shared/` consume cada servicio (grep de imports)
+  - Resultado del audit (2026-04-17, `grep -rho "github.com/recess/shared/[^\"]*" services/<svc>`):
+    - **Universales** (los 8 servicios): `config`, `middleware`, `redis`, `telemetry`, `testutil`, `errors`, `schemas` (vía `middleware/validate`), `db/**` (migraciones leídas por `testutil/pgtest`)
+    - **events**: 7 servicios (todos menos chat-service)
+    - **ws**: game-server, match-service, notification-service, ws-gateway
+    - **proto/game**: game-server, match-service, ws-gateway
+    - **proto/lobby**: game-server, match-service
+    - **proto/user**: game-server, user-service, chat-service, notification-service, ws-gateway
+    - **proto/rating**: rating-service, match-service
+    - **domain/rating**: game-server, rating-service, **match-service** _(el plan original no listaba match-service aquí; lo agrego por el import real)_
+    - **domain/matchmaking**: match-service, **game-server** _(idem; el plan original sólo listaba match-service)_
+    - **platform**: game-server
+    - **achievements**: user-service
 - [ ] **1.4.b** Reescribir filtros:
   - `shared/proto/**` → sólo consumidores de ese proto
   - `shared/events/**` → sólo pub/sub consumidores
-  - `shared/domain/rating/**` → game-server + rating-service
-  - `shared/domain/matchmaking/**` → match-service
+  - `shared/domain/rating/**` → game-server + rating-service (+ match-service, ver 1.4.a)
+  - `shared/domain/matchmaking/**` → match-service (+ game-server, ver 1.4.a)
   - `shared/middleware|telemetry|config|db|redis|errors/**` → todos (común)
 - [ ] **1.4.c** Extraer filtros a `.github/paths-filters.yml` (DRY entre ci.yml y cd.yml)
 - [ ] **Validación 1.4**
