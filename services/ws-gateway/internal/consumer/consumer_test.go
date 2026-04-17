@@ -8,7 +8,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	sharedevents "github.com/recess/shared/events"
+	"github.com/recess/shared/testutil"
 )
+
+func newTestConsumerWithRedis(t *testing.T, disc Disconnector, bc Broadcaster) *Consumer {
+	t.Helper()
+	rdb, _ := testutil.NewTestRedis(t)
+	return New(rdb, disc, bc, slog.Default())
+}
 
 // --- mock disconnector -------------------------------------------------------
 
@@ -277,6 +284,57 @@ func TestHandle_MultipleUnknownChannels(t *testing.T) {
 				t.Fatalf("expected error for unknown channel %q", ch)
 			}
 		})
+	}
+}
+
+func TestHandleSessionRevoked_DedupesByEventID(t *testing.T) {
+	disc := &mockDisconnector{}
+	c := newTestConsumerWithRedis(t, disc, &mockBroadcaster{})
+
+	playerID := uuid.New()
+	evt := sharedevents.PlayerSessionRevoked{
+		Meta:      sharedevents.Meta{EventID: uuid.NewString()},
+		PlayerID:  playerID.String(),
+		SessionID: uuid.NewString(),
+		Reason:    "banned",
+	}
+	payload, _ := json.Marshal(evt)
+	msg := &redis.Message{Channel: channelSessionRevoked, Payload: string(payload)}
+
+	if err := c.handle(t.Context(), msg); err != nil {
+		t.Fatalf("first handle: %v", err)
+	}
+	if err := c.handle(t.Context(), msg); err != nil {
+		t.Fatalf("second handle: %v", err)
+	}
+
+	if len(disc.disconnected) != 1 {
+		t.Errorf("expected 1 disconnect on redelivery, got %d", len(disc.disconnected))
+	}
+}
+
+func TestHandleBroadcastSent_DedupesByEventID(t *testing.T) {
+	bc := &mockBroadcaster{}
+	c := newTestConsumerWithRedis(t, &mockDisconnector{}, bc)
+
+	evt := sharedevents.AdminBroadcastSent{
+		Meta:          sharedevents.Meta{EventID: uuid.NewString()},
+		Message:       "Server restart in 5 min",
+		BroadcastType: "warning",
+		SentBy:        uuid.NewString(),
+	}
+	payload, _ := json.Marshal(evt)
+	msg := &redis.Message{Channel: channelBroadcastSent, Payload: string(payload)}
+
+	if err := c.handle(t.Context(), msg); err != nil {
+		t.Fatalf("first handle: %v", err)
+	}
+	if err := c.handle(t.Context(), msg); err != nil {
+		t.Fatalf("second handle: %v", err)
+	}
+
+	if len(bc.messages) != 1 {
+		t.Errorf("expected 1 broadcast on redelivery, got %d", len(bc.messages))
 	}
 }
 

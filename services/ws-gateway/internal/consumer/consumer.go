@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -20,8 +21,11 @@ import (
 )
 
 const (
-	channelSessionRevoked  = "player.session.revoked"
-	channelBroadcastSent   = "admin.broadcast.sent"
+	channelSessionRevoked = "player.session.revoked"
+	channelBroadcastSent  = "admin.broadcast.sent"
+
+	dedupeKeyPrefix = "dedup:ws-gateway:"
+	dedupeTTL       = 24 * time.Hour
 )
 
 // Disconnector is the interface used to close player WS connections.
@@ -74,13 +78,13 @@ func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
 	case channelSessionRevoked:
 		return c.handleSessionRevoked(ctx, msg.Payload)
 	case channelBroadcastSent:
-		return c.handleBroadcastSent(msg.Payload)
+		return c.handleBroadcastSent(ctx, msg.Payload)
 	default:
 		return fmt.Errorf("unknown channel: %s", msg.Channel)
 	}
 }
 
-func (c *Consumer) handleSessionRevoked(_ context.Context, payload string) error {
+func (c *Consumer) handleSessionRevoked(ctx context.Context, payload string) error {
 	var evt sharedevents.PlayerSessionRevoked
 	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
 		return fmt.Errorf("unmarshal PlayerSessionRevoked: %w", err)
@@ -89,6 +93,13 @@ func (c *Consumer) handleSessionRevoked(_ context.Context, payload string) error
 	playerID, err := uuid.Parse(evt.PlayerID)
 	if err != nil {
 		return fmt.Errorf("invalid player_id: %w", err)
+	}
+
+	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
+		c.log.Warn("ws: dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
+	} else if seen {
+		c.log.Info("ws: skipping duplicate session.revoked", "event_id", evt.EventID, "player_id", playerID)
+		return nil
 	}
 
 	c.hub.DisconnectPlayer(playerID)
@@ -100,10 +111,17 @@ func (c *Consumer) handleSessionRevoked(_ context.Context, payload string) error
 	return nil
 }
 
-func (c *Consumer) handleBroadcastSent(payload string) error {
+func (c *Consumer) handleBroadcastSent(ctx context.Context, payload string) error {
 	var evt sharedevents.AdminBroadcastSent
 	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
 		return fmt.Errorf("unmarshal AdminBroadcastSent: %w", err)
+	}
+
+	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
+		c.log.Warn("ws: dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
+	} else if seen {
+		c.log.Info("ws: skipping duplicate admin.broadcast.sent", "event_id", evt.EventID)
+		return nil
 	}
 
 	wsEvent := sharedws.Event{
@@ -125,4 +143,19 @@ func (c *Consumer) handleBroadcastSent(payload string) error {
 		"event_id", evt.EventID,
 	)
 	return nil
+}
+
+// seenEvent returns true if the event was already processed within the 24h
+// dedupe window; otherwise records the event and returns false. An empty
+// event_id or nil Redis client is treated as unseen so invocations without a
+// wired Redis (unit tests, bootstrap) still proceed. Redis errors fail open.
+func (c *Consumer) seenEvent(ctx context.Context, eventID string) (bool, error) {
+	if eventID == "" || c.rdb == nil {
+		return false, nil
+	}
+	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result()
+	if err != nil {
+		return false, err
+	}
+	return !ok, nil
 }
