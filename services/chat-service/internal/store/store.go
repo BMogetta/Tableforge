@@ -58,7 +58,11 @@ type Store interface {
 	// Direct messages
 	SaveDM(ctx context.Context, senderID, receiverID uuid.UUID, content string) (DirectMessage, error)
 	GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID, limit, offset int) ([]DirectMessage, error)
-	MarkDMRead(ctx context.Context, messageID, receiverID uuid.UUID) error
+	// MarkDMRead marks the DM read iff the caller is the receiver and the
+	// message is unread. Returns the sender_id (so the caller can notify the
+	// sender their message was read) and a bool indicating whether the row
+	// was actually updated. When marked is false, senderID is uuid.Nil.
+	MarkDMRead(ctx context.Context, messageID, receiverID uuid.UUID) (senderID uuid.UUID, marked bool, err error)
 	GetUnreadDMCount(ctx context.Context, playerID uuid.UUID) (int, error)
 	ListDMConversations(ctx context.Context, playerID uuid.UUID) ([]DMConversation, error)
 	ReportDM(ctx context.Context, messageID, playerA, playerB uuid.UUID) error

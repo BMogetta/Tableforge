@@ -2,9 +2,11 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // --- Room chat ---------------------------------------------------------------
@@ -150,15 +152,26 @@ func (s *pgStore) GetDMHistory(ctx context.Context, playerA, playerB uuid.UUID, 
 	return messages, rows.Err()
 }
 
-func (s *pgStore) MarkDMRead(ctx context.Context, messageID, receiverID uuid.UUID) error {
-	_, err := s.db.Exec(ctx,
-		`UPDATE direct_messages SET read_at = NOW() WHERE id = $1 AND receiver_id = $2 AND read_at IS NULL`,
+func (s *pgStore) MarkDMRead(ctx context.Context, messageID, receiverID uuid.UUID) (uuid.UUID, bool, error) {
+	// Mark + fetch sender in one round trip. RETURNING fires only when the
+	// UPDATE touches a row, so an empty result set means either (a) the
+	// message doesn't exist, (b) the caller isn't the receiver, or (c) it
+	// was already read — none of which should produce a dm_read broadcast.
+	var senderID uuid.UUID
+	err := s.db.QueryRow(ctx,
+		`UPDATE direct_messages
+		 SET read_at = NOW()
+		 WHERE id = $1 AND receiver_id = $2 AND read_at IS NULL
+		 RETURNING sender_id`,
 		messageID, receiverID,
-	)
+	).Scan(&senderID)
 	if err != nil {
-		return fmt.Errorf("MarkDMRead: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, false, nil
+		}
+		return uuid.Nil, false, fmt.Errorf("MarkDMRead: %w", err)
 	}
-	return nil
+	return senderID, true, nil
 }
 
 func (s *pgStore) GetUnreadDMCount(ctx context.Context, playerID uuid.UUID) (int, error) {

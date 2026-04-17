@@ -219,8 +219,20 @@ func TestMarkDMReadAndUnreadCount(t *testing.T) {
 		t.Errorf("expected 2 unread, got %d", count)
 	}
 
-	if err := env.store.MarkDMRead(ctx, dm2.ID, bob); err != nil {
+	senderID, marked, err := env.store.MarkDMRead(ctx, dm2.ID, bob)
+	if err != nil {
 		t.Fatalf("MarkDMRead: %v", err)
+	}
+	if !marked {
+		t.Fatal("expected marked=true for unread DM")
+	}
+	if senderID != alice {
+		t.Errorf("expected sender %s, got %s", alice, senderID)
+	}
+
+	// Re-marking must be a no-op and report marked=false.
+	if _, marked, err := env.store.MarkDMRead(ctx, dm2.ID, bob); err != nil || marked {
+		t.Errorf("expected marked=false on already-read DM, got marked=%v err=%v", marked, err)
 	}
 
 	count, _ = env.store.GetUnreadDMCount(ctx, bob)

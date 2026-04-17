@@ -225,15 +225,20 @@ func handleMarkDMRead(st store.Store, pub *Publisher) http.HandlerFunc {
 			return
 		}
 
-		if err := st.MarkDMRead(r.Context(), messageID, callerID); err != nil {
+		senderID, marked, err := st.MarkDMRead(r.Context(), messageID, callerID)
+		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to mark message as read")
 			return
 		}
 
-		// Notify the sender that their message was read.
-		pub.PublishPlayerEvent(r.Context(), callerID, eventDMRead, map[string]any{
-			"message_id": messageID,
-		})
+		// Only notify when the UPDATE actually changed a row. Publishing
+		// indiscriminately would leak "read" receipts to the caller instead
+		// of the sender and spam already-read or unauthorised cases.
+		if marked {
+			pub.PublishPlayerEvent(r.Context(), senderID, eventDMRead, map[string]any{
+				"message_id": messageID,
+			})
+		}
 
 		w.WriteHeader(http.StatusNoContent)
 	}

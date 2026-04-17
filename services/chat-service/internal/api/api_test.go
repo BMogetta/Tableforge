@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/recess/services/chat-service/internal/store"
 	sharedmw "github.com/recess/shared/middleware"
 )
@@ -115,9 +117,20 @@ func (m *mockStore) GetDMHistory(_ context.Context, playerA, playerB uuid.UUID, 
 	return result, nil
 }
 
-func (m *mockStore) MarkDMRead(_ context.Context, messageID, _ uuid.UUID) error {
-	m.readMessages[messageID] = true
-	return nil
+func (m *mockStore) MarkDMRead(_ context.Context, messageID, receiverID uuid.UUID) (uuid.UUID, bool, error) {
+	for i := range m.directMsgs {
+		msg := &m.directMsgs[i]
+		if msg.ID != messageID || msg.ReceiverID != receiverID || msg.ReadAt != nil {
+			continue
+		}
+		now := time.Now()
+		msg.ReadAt = &now
+		m.readMessages[messageID] = true
+		return msg.SenderID, true, nil
+	}
+	// Fall back to the legacy flag-only behavior for tests that don't seed
+	// a matching DM — no publish should follow (marked=false).
+	return uuid.Nil, false, nil
 }
 
 func (m *mockStore) GetUnreadDMCount(_ context.Context, playerID uuid.UUID) (int, error) {
@@ -507,9 +520,72 @@ func TestMarkDMRead(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
 	}
+}
 
-	if !st.readMessages[messageID] {
-		t.Error("expected message to be marked as read")
+func TestMarkDMRead_NotifiesSenderChannel(t *testing.T) {
+	st := newMockStore()
+	sender := uuid.New()
+	reader := uuid.New()
+	messageID := uuid.New()
+
+	// Seed a real DM so MarkDMRead returns the sender.
+	st.directMsgs = append(st.directMsgs, store.DirectMessage{
+		ID:         messageID,
+		SenderID:   sender,
+		ReceiverID: reader,
+		Content:    "hey",
+		CreatedAt:  time.Now(),
+	})
+
+	// Wire a real Publisher against miniredis and subscribe to both channels.
+	mr := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { rdb.Close() })
+	pub := NewPublisher(rdb)
+
+	noopAuth := func(next http.Handler) http.Handler { return next }
+	router := NewRouter(st, pub, noopAuth, nil, "chat-service-test", nil)
+
+	ctx := context.Background()
+	senderSub := rdb.Subscribe(ctx, "ws:player:"+sender.String())
+	readerSub := rdb.Subscribe(ctx, "ws:player:"+reader.String())
+	defer senderSub.Close()
+	defer readerSub.Close()
+	if _, err := senderSub.Receive(ctx); err != nil {
+		t.Fatalf("senderSub ready: %v", err)
+	}
+	if _, err := readerSub.Receive(ctx); err != nil {
+		t.Fatalf("readerSub ready: %v", err)
+	}
+
+	rec := postJSONAs(t, router, "/api/v1/dm/"+messageID.String()+"/read", reader, sharedmw.RolePlayer, nil)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Reader's own channel must NOT get the event — that was the bug.
+	select {
+	case msg := <-readerSub.Channel():
+		t.Fatalf("dm_read leaked to reader channel: %s", msg.Payload)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	// Sender's channel must receive the dm_read event.
+	select {
+	case msg := <-senderSub.Channel():
+		var env filteredEnvelope
+		if err := json.Unmarshal([]byte(msg.Payload), &env); err != nil {
+			t.Fatalf("unmarshal envelope: %v", err)
+		}
+		var evt event
+		if err := json.Unmarshal(env.Data, &evt); err != nil {
+			t.Fatalf("unmarshal event: %v", err)
+		}
+		if evt.Type != eventDMRead {
+			t.Errorf("event type: got %q, want %q", evt.Type, eventDMRead)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("sender channel did not receive dm_read within 500ms")
 	}
 }
 
