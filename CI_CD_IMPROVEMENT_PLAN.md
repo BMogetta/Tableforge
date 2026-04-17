@@ -37,7 +37,7 @@ CD debe sólo publicar si CI terminó exitoso.
 
 El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry para dev local de otros colaboradores y para compatibilidad con CI runners amd64 (caso Playwright).
 
-- [ ] **1.2.a** Cambiar `platforms: linux/arm64` → `linux/amd64,linux/arm64` en los 2 jobs
+- [x] **1.2.a** Cambiar `platforms: linux/arm64` → `linux/amd64,linux/arm64` en los 2 jobs
 - [ ] **1.2.b** Verificar overhead de QEMU en build time; si supera +8min por imagen, evaluar volver a arm64-only y que los devs buildeen local
 - [ ] **1.2.c** ArgoCD siempre pulleará arm64 (el nodo es arm64) — no requiere cambios en el manifest
 - [ ] **Validación 1.2**
