@@ -22,6 +22,7 @@
       "!**/test-results",
       "!**/tsconfig.*",
       "!**/routeTree.gen.ts",
+      "!src/lib/schema-generated.zod.ts",
       "!**/vite-env.d.ts"
     ]
   },
