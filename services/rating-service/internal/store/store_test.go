@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -17,7 +18,12 @@ type testEnv struct {
 
 func newTestEnv(t *testing.T) testEnv {
 	t.Helper()
-	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.MigrationRating, testutil.MigrationBotProfile)
+	dsn := testutil.NewTestDB(t,
+		testutil.MigrationInitial,
+		testutil.MigrationRating,
+		testutil.MigrationBotProfile,
+		testutil.MigrationRatingUnique,
+	)
 
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {
@@ -44,8 +50,9 @@ func (e testEnv) seedPlayer(t *testing.T, username string) uuid.UUID {
 	return id
 }
 
-// seedGameResult creates the full FK chain (room → session → result) and returns the result ID.
-func (e testEnv) seedGameResult(t *testing.T, ownerID uuid.UUID, gameID string) uuid.UUID {
+// seedGameResult creates the full FK chain (room → session → result) and
+// returns (sessionID, resultID).
+func (e testEnv) seedGameResult(t *testing.T, ownerID uuid.UUID, gameID string) (uuid.UUID, uuid.UUID) {
 	t.Helper()
 	ctx := context.Background()
 
@@ -74,7 +81,7 @@ func (e testEnv) seedGameResult(t *testing.T, ownerID uuid.UUID, gameID string) 
 		t.Fatalf("seedResult: %v", err)
 	}
 
-	return resultID
+	return sessionID, resultID
 }
 
 func TestGetRatingDefault(t *testing.T) {
@@ -157,12 +164,12 @@ func TestUpsertRatingsWithHistory(t *testing.T) {
 	ctx := context.Background()
 
 	p1 := env.seedPlayer(t, "alice")
-	resultID := env.seedGameResult(t, p1, "tictactoe")
+	sessionID, resultID := env.seedGameResult(t, p1, "tictactoe")
 
 	err := env.store.UpsertRatings(ctx, []*store.PlayerRating{
 		{PlayerID: p1, GameID: "tictactoe", MMR: 1520, DisplayRating: 1515, GamesPlayed: 1, WinStreak: 1},
 	}, []store.HistoryEntry{
-		{PlayerID: p1, GameID: "tictactoe", ResultID: resultID, MMRBefore: 1500, MMRAfter: 1520, Delta: 20},
+		{PlayerID: p1, GameID: "tictactoe", SessionID: sessionID, ResultID: resultID, MMRBefore: 1500, MMRAfter: 1520, Delta: 20},
 	})
 	if err != nil {
 		t.Fatalf("UpsertRatings with history: %v", err)
@@ -176,6 +183,59 @@ func TestUpsertRatingsWithHistory(t *testing.T) {
 	).Scan(&count)
 	if count != 1 {
 		t.Errorf("expected 1 history entry, got %d", count)
+	}
+}
+
+func TestUpsertRatings_DuplicateSessionRejected(t *testing.T) {
+	env := newTestEnv(t)
+	ctx := context.Background()
+
+	p1 := env.seedPlayer(t, "alice")
+	sessionID, resultID := env.seedGameResult(t, p1, "tictactoe")
+
+	if err := env.store.UpsertRatings(ctx,
+		[]*store.PlayerRating{
+			{PlayerID: p1, GameID: "tictactoe", MMR: 1520, DisplayRating: 1515, GamesPlayed: 1, WinStreak: 1},
+		},
+		[]store.HistoryEntry{
+			{PlayerID: p1, GameID: "tictactoe", SessionID: sessionID, ResultID: resultID, MMRBefore: 1500, MMRAfter: 1520, Delta: 20},
+		},
+	); err != nil {
+		t.Fatalf("first UpsertRatings: %v", err)
+	}
+
+	// Same session delivered again — must be rejected with the sentinel so
+	// the caller can treat it as an idempotent success and NOT re-apply the
+	// rating delta.
+	err := env.store.UpsertRatings(ctx,
+		[]*store.PlayerRating{
+			{PlayerID: p1, GameID: "tictactoe", MMR: 1600, DisplayRating: 1600, GamesPlayed: 99, WinStreak: 99},
+		},
+		[]store.HistoryEntry{
+			{PlayerID: p1, GameID: "tictactoe", SessionID: sessionID, ResultID: resultID, MMRBefore: 1520, MMRAfter: 1600, Delta: 80},
+		},
+	)
+	if !errors.Is(err, store.ErrSessionAlreadyProcessed) {
+		t.Fatalf("expected ErrSessionAlreadyProcessed, got %v", err)
+	}
+
+	var count int
+	env.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM ratings.rating_history WHERE session_id = $1 AND player_id = $2`,
+		sessionID, p1,
+	).Scan(&count)
+	if count != 1 {
+		t.Errorf("expected exactly 1 history row for (session, player), got %d", count)
+	}
+
+	// The rating row must still reflect the first call — the second call's
+	// delta (mmr=1600, games_played=99) must never be applied.
+	r, _ := env.store.GetRating(ctx, p1, "tictactoe")
+	if r.MMR != 1520 {
+		t.Errorf("expected MMR 1520 (no double-apply), got %f", r.MMR)
+	}
+	if r.GamesPlayed != 1 {
+		t.Errorf("expected 1 game played (no double-apply), got %d", r.GamesPlayed)
 	}
 }
 

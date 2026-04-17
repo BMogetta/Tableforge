@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -105,6 +106,10 @@ func (s *Service) ProcessGameFinished(ctx context.Context, evt events.GameSessio
 	if err != nil {
 		return fmt.Errorf("invalid result_id %q: %w", evt.ResultID, err)
 	}
+	sessionID, err := uuid.Parse(evt.SessionID)
+	if err != nil {
+		return fmt.Errorf("invalid session_id %q: %w", evt.SessionID, err)
+	}
 
 	for _, id := range playerIDs {
 		rp := ratingPlayers[id]
@@ -120,6 +125,7 @@ func (s *Service) ProcessGameFinished(ctx context.Context, evt events.GameSessio
 		history = append(history, store.HistoryEntry{
 			PlayerID:  id,
 			GameID:    evt.GameID,
+			SessionID: sessionID,
 			ResultID:  resultID,
 			MMRBefore: mmrBefore[id],
 			MMRAfter:  rp.MMR,
@@ -128,6 +134,13 @@ func (s *Service) ProcessGameFinished(ctx context.Context, evt events.GameSessio
 	}
 
 	if err := s.store.UpsertRatings(ctx, updates, history); err != nil {
+		if errors.Is(err, store.ErrSessionAlreadyProcessed) {
+			s.log.Info("skipping already-processed session",
+				"session_id", evt.SessionID,
+				"event_id", evt.EventID,
+			)
+			return nil
+		}
 		return fmt.Errorf("persist ratings: %w", err)
 	}
 

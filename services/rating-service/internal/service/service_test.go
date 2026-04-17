@@ -14,9 +14,10 @@ import (
 // --- mock store --------------------------------------------------------------
 
 type mockStore struct {
-	ratings map[string]*store.PlayerRating // key: "playerID:gameID"
-	upserts []*store.PlayerRating
-	history []store.HistoryEntry
+	ratings      map[string]*store.PlayerRating // key: "playerID:gameID"
+	upserts      []*store.PlayerRating
+	history      []store.HistoryEntry
+	seenSessions map[string]bool // key: "sessionID:playerID"
 }
 
 func newMockStore() *mockStore {
@@ -65,8 +66,22 @@ func (m *mockStore) CountLeaderboard(_ context.Context, _ string, _ int, _ bool)
 }
 
 func (m *mockStore) UpsertRatings(_ context.Context, updates []*store.PlayerRating, history []store.HistoryEntry) error {
+	// Enforce UNIQUE(session_id, player_id) the same way the real store does
+	// so re-delivery tests exercise the dedupe path.
+	for _, h := range history {
+		sessionKey := h.SessionID.String() + ":" + h.PlayerID.String()
+		if m.seenSessions == nil {
+			m.seenSessions = make(map[string]bool)
+		}
+		if m.seenSessions[sessionKey] {
+			return store.ErrSessionAlreadyProcessed
+		}
+	}
+	for _, h := range history {
+		m.seenSessions[h.SessionID.String()+":"+h.PlayerID.String()] = true
+	}
 	m.upserts = updates
-	m.history = history
+	m.history = append(m.history, history...)
 	for _, u := range updates {
 		m.ratings[m.key(u.PlayerID, u.GameID)] = u
 	}
@@ -200,6 +215,47 @@ func TestProcessGameFinished_TooFewPlayers(t *testing.T) {
 	}
 	if len(st.upserts) != 0 {
 		t.Errorf("expected no upserts for single player, got %d", len(st.upserts))
+	}
+}
+
+func TestProcessGameFinished_IdempotentOnRedelivery(t *testing.T) {
+	st := newMockStore()
+	engine := rating.NewDefaultEngine()
+	svc := New(st, engine, slog.Default())
+
+	winner := uuid.New()
+	loser := uuid.New()
+
+	evt := events.GameSessionFinished{
+		SessionID: uuid.NewString(),
+		ResultID:  uuid.NewString(),
+		GameID:    "tictactoe",
+		Mode:      "ranked",
+		Players: []events.SessionPlayer{
+			{PlayerID: winner.String(), Outcome: "win"},
+			{PlayerID: loser.String(), Outcome: "loss"},
+		},
+	}
+
+	if err := svc.ProcessGameFinished(context.Background(), evt); err != nil {
+		t.Fatalf("first ProcessGameFinished: %v", err)
+	}
+	firstWinnerMMR := st.ratings[st.key(winner, "tictactoe")].MMR
+	firstLoserMMR := st.ratings[st.key(loser, "tictactoe")].MMR
+
+	// Same event re-delivered — must be a no-op, not another delta.
+	if err := svc.ProcessGameFinished(context.Background(), evt); err != nil {
+		t.Fatalf("second ProcessGameFinished: %v", err)
+	}
+
+	if got := st.ratings[st.key(winner, "tictactoe")].MMR; got != firstWinnerMMR {
+		t.Errorf("winner MMR changed on redelivery: %f -> %f", firstWinnerMMR, got)
+	}
+	if got := st.ratings[st.key(loser, "tictactoe")].MMR; got != firstLoserMMR {
+		t.Errorf("loser MMR changed on redelivery: %f -> %f", firstLoserMMR, got)
+	}
+	if len(st.history) != 2 {
+		t.Errorf("expected 2 history rows after redelivery, got %d", len(st.history))
 	}
 }
 

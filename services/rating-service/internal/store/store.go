@@ -2,13 +2,21 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/recess/shared/domain/rating"
 )
+
+// ErrSessionAlreadyProcessed is returned by UpsertRatings when the
+// rating_history row for (session_id, player_id) already exists. The caller
+// must treat this as an idempotent success — re-delivery of the same
+// game.session.finished event must not apply the delta twice.
+var ErrSessionAlreadyProcessed = errors.New("rating history already recorded for this session")
 
 // --- Models ------------------------------------------------------------------
 
@@ -37,6 +45,7 @@ type LeaderboardRow struct {
 type HistoryEntry struct {
 	PlayerID  uuid.UUID
 	GameID    string
+	SessionID uuid.UUID // game_sessions.id — part of the dedupe unique key
 	ResultID  uuid.UUID // game_results.id
 	MMRBefore float64
 	MMRAfter  float64
@@ -219,6 +228,25 @@ func (s *pgStore) UpsertRatings(ctx context.Context, updates []*PlayerRating, hi
 	}
 	defer tx.Rollback(ctx)
 
+	// History inserts run first so the UNIQUE(session_id, player_id) constraint
+	// is the authoritative idempotency guard — a re-delivered event aborts here
+	// before any rating delta is applied.
+	const histQ = `
+		INSERT INTO ratings.rating_history (player_id, game_id, session_id, result_id, mmr_before, mmr_after, delta)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)`
+
+	for _, h := range history {
+		if _, err := tx.Exec(ctx, histQ,
+			h.PlayerID, h.GameID, h.SessionID, h.ResultID, h.MMRBefore, h.MMRAfter, h.Delta,
+		); err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				return ErrSessionAlreadyProcessed
+			}
+			return fmt.Errorf("insert history %s: %w", h.PlayerID, err)
+		}
+	}
+
 	const upsertQ = `
 		INSERT INTO ratings.ratings (player_id, game_id, mmr, display_rating, games_played,
 		                             win_streak, loss_streak, updated_at)
@@ -237,18 +265,6 @@ func (s *pgStore) UpsertRatings(ctx context.Context, updates []*PlayerRating, hi
 			u.GamesPlayed, u.WinStreak, u.LossStreak,
 		); err != nil {
 			return fmt.Errorf("upsert rating %s: %w", u.PlayerID, err)
-		}
-	}
-
-	const histQ = `
-		INSERT INTO ratings.rating_history (player_id, game_id, result_id, mmr_before, mmr_after, delta)
-		VALUES ($1,$2,$3,$4,$5,$6)`
-
-	for _, h := range history {
-		if _, err := tx.Exec(ctx, histQ,
-			h.PlayerID, h.GameID, h.ResultID, h.MMRBefore, h.MMRAfter, h.Delta,
-		); err != nil {
-			return fmt.Errorf("insert history %s: %w", h.PlayerID, err)
 		}
 	}
 
