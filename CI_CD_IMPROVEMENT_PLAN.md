@@ -50,7 +50,7 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 
 - [x] **1.3.a** Determinar la versión deseada: `golangci-lint version` en local, o `grep` en `.golangci.yml`
   - No hay `.golangci.yml` en el repo; local dev tiene v1.55.2 (obsoleta). Elegida: **v2.11.4** (última release estable al 2026-03-22, compatible con go 1.26). Config default hasta que se agregue `.golangci.yml`.
-- [ ] **1.3.b** Reemplazar `version: latest` en `ci.yml` por `version: vX.Y.Z`
+- [x] **1.3.b** Reemplazar `version: latest` en `ci.yml` por `version: vX.Y.Z`
 - [ ] **Validación 1.3**
   - Job `go-lint` verde en PR de prueba
   - Cambiar la versión a una inexistente → job falla con error claro
