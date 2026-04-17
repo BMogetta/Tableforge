@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { RefObject } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, dealVariants, getFlyOutTarget, springTransition } from '@/ui/cards'
 import { HintText, TooltipWrapper, useHintsEnabled } from '@/ui/hints'
@@ -54,10 +54,13 @@ export function HandDisplay({
   const hintsEnabled = useHintsEnabled()
   const slotRefs = useRef<Map<number, HTMLElement>>(new Map())
 
-  const setSlotRef = useCallback((index: number) => (el: HTMLElement | null) => {
-    if (el) slotRefs.current.set(index, el)
-    else slotRefs.current.delete(index)
-  }, [])
+  const setSlotRef = useCallback(
+    (index: number) => (el: HTMLElement | null) => {
+      if (el) slotRefs.current.set(index, el)
+      else slotRefs.current.delete(index)
+    },
+    [],
+  )
 
   // Fly-out: when playingCard is set, animate the matching slot toward targetRef,
   // then notify the parent so it can fire the mutation.
@@ -76,25 +79,43 @@ export function HandDisplay({
     }
 
     let cancelled = false
-    ;(async () => {
-      const target = getFlyOutTarget(slot, targetRef?.current)
-      const { animate: motionAnimate } = await import('motion')
-      await motionAnimate(
-        motionEl,
-        { x: target.x, y: target.y, opacity: 0, scale: 0.7 },
-        { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
-      )
-      // Clear inline styles so if React reuses this DOM node for a
-      // different card (e.g. another copy of the same card remaining
-      // in hand under the same key), the next render isn't stuck at
-      // opacity:0 / translated offscreen.
+    // Safety timeout — if motion never resolves (hung import, animation stuck),
+    // force the parent to unblock so the user can still play or cancel.
+    const safety = window.setTimeout(() => {
+      if (cancelled) return
       motionEl.style.transform = ''
       motionEl.style.opacity = ''
-      if (!cancelled) onPlayComplete()
+      onPlayComplete()
+      cancelled = true
+    }, 1500)
+    ;(async () => {
+      try {
+        const target = getFlyOutTarget(slot, targetRef?.current)
+        const { animate: motionAnimate } = await import('motion')
+        await motionAnimate(
+          motionEl,
+          { x: target.x, y: target.y, opacity: 0, scale: 0.7 },
+          { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
+        )
+      } catch {
+        // Swallow — the finally block + safety timeout handle cleanup.
+      } finally {
+        window.clearTimeout(safety)
+        // Clear inline styles so if React reuses this DOM node for a
+        // different card (e.g. another copy of the same card remaining
+        // in hand under the same key), the next render isn't stuck at
+        // opacity:0 / translated offscreen.
+        motionEl.style.transform = ''
+        motionEl.style.opacity = ''
+        if (!cancelled) onPlayComplete()
+      }
     })()
 
     return () => {
       cancelled = true
+      window.clearTimeout(safety)
+      motionEl.style.transform = ''
+      motionEl.style.opacity = ''
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playingCard])

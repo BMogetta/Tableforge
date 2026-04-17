@@ -6,9 +6,9 @@ import { sfx } from '@/lib/sfx'
 import { useRoomStore } from '@/stores/roomStore'
 import { Card, CardPile } from '@/ui/cards'
 import { ModalOverlay } from '@/ui/ModalOverlay'
+import type { CardName } from './CardDisplay'
 import { CardFace } from './CardFace'
 import { CentralDiscard } from './CentralDiscard'
-import type { CardName } from './CardDisplay'
 import { DebuggerModal } from './DebuggerModal'
 import { HandDisplay } from './HandDisplay'
 import { PlayerBoard } from './PlayerBoard'
@@ -281,8 +281,7 @@ export function RootAccess({
     tokens: state.tokens[id] ?? 0,
     tokensToWin: target,
     isWinner: id === state.round_winner_id,
-    earnedBackdoorBonus:
-      backdoorBonusRecipients.length === 1 && backdoorBonusRecipients[0] === id,
+    earnedBackdoorBonus: backdoorBonusRecipients.length === 1 && backdoorBonusRecipients[0] === id,
   }))
 
   const discardPilesTyped = state.discard_piles as Record<string, CardName[]>
@@ -353,7 +352,7 @@ export function RootAccess({
                       style={{ transform: `translate(${-i * 3}px, ${-i * 3}px)`, zIndex: i }}
                     >
                       <Card
-                        disabled
+                        disabled={true}
                         front={
                           isTop ? (
                             <div className={styles.setAsideFace}>
@@ -429,7 +428,11 @@ export function RootAccess({
         {/* Floating action overlay — picker + play button, anchored above the hand
             so it doesn't push content and cause a scroll. */}
         {isMyTurn && selectedCard && (
-          <div className={styles.actionOverlay} role='dialog' aria-label={t('rootaccess.play', { card: selectedCard })}>
+          <div
+            className={styles.actionOverlay}
+            role='dialog'
+            aria-label={t('rootaccess.play', { card: selectedCard })}
+          >
             {needsTarget && (
               <TargetPicker
                 opponents={opponents}
@@ -450,6 +453,8 @@ export function RootAccess({
                   setSelectedCard(null)
                   setSelectedTarget(null)
                   setSelectedGuess(null)
+                  setPlayingCard(null)
+                  pendingPayloadRef.current = null
                 }}
               >
                 {t('common.cancel')}
