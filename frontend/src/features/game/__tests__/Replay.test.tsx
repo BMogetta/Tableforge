@@ -8,9 +8,13 @@ import { ReplayView } from '../Replay'
 // real registry ships — this exercises ONLY the Replay → GAME_RENDERERS wiring.
 vi.mock('@/games/registry', () => ({
   GAME_RENDERERS: {
-    'audit-game': (props: { gameData: { data: unknown }; disabled: boolean }) => (
+    'audit-game': (props: {
+      gameData: { data: unknown }
+      disabled: boolean
+      players: { id: string; username: string }[]
+    }) => (
       <div data-testid='fake-renderer' data-disabled={String(props.disabled)}>
-        {JSON.stringify(props.gameData.data)}
+        {JSON.stringify({ data: props.gameData.data, players: props.players })}
       </div>
     ),
   },
@@ -48,6 +52,26 @@ describe('ReplayView', () => {
     const rendered = await screen.findByTestId('fake-renderer')
     expect(rendered).toHaveAttribute('data-disabled', 'true')
     expect(rendered.textContent).toContain('from-registry')
+  })
+
+  it('forwards participants to the renderer', async () => {
+    const user = userEvent.setup()
+    const players = [
+      { id: 'p-alice', username: 'alice' },
+      { id: 'p-bob', username: 'bob' },
+    ]
+    render(
+      <ReplayView
+        moves={[buildMove({ current_player_id: '', data: {} })]}
+        gameId='audit-game'
+        players={players}
+      />,
+    )
+    await user.click(screen.getByTestId('replay-next-btn'))
+
+    const rendered = await screen.findByTestId('fake-renderer')
+    expect(rendered.textContent).toContain('alice')
+    expect(rendered.textContent).toContain('bob')
   })
 
   it('falls back to a JSON dump when the gameId is not in the registry', async () => {

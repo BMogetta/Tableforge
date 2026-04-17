@@ -1,12 +1,30 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { rooms } from '@/features/room/api'
 import { GAME_RENDERERS, type GameData } from '@/games/registry'
 import { sessions } from '@/lib/api/sessions'
 import { keys } from '@/lib/queryClient'
-import type { Move, SessionEvent } from '@/lib/schema-generated.zod'
+import type { Move, RoomPlayer, SessionEvent } from '@/lib/schema-generated.zod'
 import { useAppStore } from '@/stores/store'
 import { testId } from '@/utils/testId'
 import styles from './Replay.module.css'
+
+// Renderer shape for the `players` prop — a strict subset of RoomPlayer.
+type ReplayPlayer = {
+  id: string
+  username: string
+  is_bot?: boolean
+  bot_profile?: 'easy' | 'medium' | 'hard' | 'aggressive'
+}
+
+function toReplayPlayer(p: RoomPlayer): ReplayPlayer {
+  return {
+    id: p.id,
+    username: p.username,
+    is_bot: p.is_bot,
+    bot_profile: p.bot_profile,
+  }
+}
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -98,7 +116,15 @@ function EventRow({ event, base, index }: { event: SessionEvent; base: string; i
 
 // --- Replay ------------------------------------------------------------------
 
-export function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
+export function ReplayView({
+  moves,
+  gameId,
+  players = [],
+}: {
+  moves: Move[]
+  gameId: string
+  players?: ReplayPlayer[]
+}) {
   const [step, setStep] = useState(0)
 
   if (moves.length === 0) {
@@ -148,7 +174,7 @@ export function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string })
             onMove={() => {}}
             disabled={true}
             isOver={step === moves.length}
-            players={[]}
+            players={players}
           />
         ) : (
           <div className={styles.replayNoRenderer}>
@@ -246,11 +272,23 @@ export function Replay({ sessionId }: { sessionId: string }) {
     staleTime: 60_000,
   })
 
-  const isLoading = sessionLoading || eventsLoading || movesLoading
   const session = sessionData?.session
+
+  // Pull the room participants so the replay renderer can resolve usernames
+  // instead of falling back to truncated player IDs. Skipped until the
+  // session response tells us which room to ask for.
+  const { data: roomData } = useQuery({
+    queryKey: keys.room(session?.room_id ?? ''),
+    queryFn: () => rooms.get(session!.room_id),
+    enabled: !!session?.room_id,
+    staleTime: 60_000,
+  })
+
+  const isLoading = sessionLoading || eventsLoading || movesLoading
   const result = sessionData?.result
   const events = eventsData ?? []
   const moves = movesData ?? []
+  const participants = roomData?.players.map(toReplayPlayer) ?? []
   const baseTime = events[0]?.occurred_at ?? session?.started_at ?? new Date().toISOString()
 
   // Resolve winner name from player list
@@ -354,7 +392,7 @@ export function Replay({ sessionId }: { sessionId: string }) {
             )}
           </div>
         ) : (
-          <ReplayView moves={moves} gameId={session?.game_id ?? ''} />
+          <ReplayView moves={moves} gameId={session?.game_id ?? ''} players={participants} />
         )}
       </div>
     </div>
