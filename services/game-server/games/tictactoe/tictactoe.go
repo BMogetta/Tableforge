@@ -88,6 +88,8 @@ func (g *TicTacToe) ValidateMove(state engine.GameState, move engine.Move) error
 //   - lose_turn: advances to the next player without placing a mark
 //   - lose_game: marks the game as forfeited (IsOver detects the forfeit)
 func (g *TicTacToe) ApplyMove(state engine.GameState, move engine.Move) (engine.GameState, error) {
+	state.Data = engine.DeepCopyData(state.Data)
+
 	if action, ok := move.Payload["timeout_action"].(string); ok {
 		return g.applyTimeout(state, move.PlayerID, action)
 	}

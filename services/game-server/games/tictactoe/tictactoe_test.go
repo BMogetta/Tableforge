@@ -1,6 +1,7 @@
 package tictactoe_test
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -210,5 +211,69 @@ func TestNotOverMidGame(t *testing.T) {
 	over, _ := g.IsOver(state)
 	if over {
 		t.Error("game should not be over mid-game")
+	}
+}
+
+// TestApplyMoveIsPure verifies ApplyMove does not mutate the input state.
+// The same state + same move applied twice must produce identical output,
+// and the caller's state.Data must remain unchanged between calls.
+func TestApplyMoveIsPure(t *testing.T) {
+	g := &tictactoe.TicTacToe{}
+	state := newGame(t)
+	m := move(p1.ID, 4)
+
+	snapshotBoard := state.Data["board"]
+	snapshotMarks := state.Data["marks"]
+	_, hadForfeit := state.Data["forfeit"]
+
+	s1, err := g.ApplyMove(state, m)
+	if err != nil {
+		t.Fatalf("first ApplyMove: %v", err)
+	}
+	s2, err := g.ApplyMove(state, m)
+	if err != nil {
+		t.Fatalf("second ApplyMove: %v", err)
+	}
+
+	if !reflect.DeepEqual(s1.Data["board"], s2.Data["board"]) {
+		t.Errorf("ApplyMove not deterministic: board diverged\nfirst=%v\nsecond=%v", s1.Data["board"], s2.Data["board"])
+	}
+	if s1.CurrentPlayerID != s2.CurrentPlayerID {
+		t.Errorf("ApplyMove not deterministic: CurrentPlayerID diverged (%s vs %s)", s1.CurrentPlayerID, s2.CurrentPlayerID)
+	}
+	if !reflect.DeepEqual(state.Data["board"], snapshotBoard) {
+		t.Error("ApplyMove mutated caller's board")
+	}
+	if !reflect.DeepEqual(state.Data["marks"], snapshotMarks) {
+		t.Error("ApplyMove mutated caller's marks")
+	}
+	if _, now := state.Data["forfeit"]; now != hadForfeit {
+		t.Error("ApplyMove leaked a forfeit marker into caller's state")
+	}
+}
+
+// TestTimeoutLoseGameDoesNotMutateCaller covers the historical bug where
+// applyTimeout wrote "forfeit" directly into state.Data, which in Go is a
+// reference type — the caller's map saw the mutation.
+func TestTimeoutLoseGameDoesNotMutateCaller(t *testing.T) {
+	g := &tictactoe.TicTacToe{}
+	state := newGame(t)
+
+	m := engine.Move{
+		PlayerID:  p1.ID,
+		Payload:   map[string]any{"timeout_action": "lose_game"},
+		Timestamp: time.Now(),
+	}
+
+	next, err := g.ApplyMove(state, m)
+	if err != nil {
+		t.Fatalf("ApplyMove: %v", err)
+	}
+
+	if _, ok := state.Data["forfeit"]; ok {
+		t.Error("lose_game leaked a forfeit marker into caller's state.Data")
+	}
+	if forfeit, ok := next.Data["forfeit"].(string); !ok || forfeit != string(p1.ID) {
+		t.Errorf("returned state missing forfeit=%s, got %v", p1.ID, next.Data["forfeit"])
 	}
 }

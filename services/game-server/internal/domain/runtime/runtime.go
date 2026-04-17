@@ -147,6 +147,73 @@ func (svc *Service) BroadcastMove(
 	)
 }
 
+// BroadcastSessionStarted fans out an EventGameStarted event with per-player
+// filtered state. For games that implement engine.StateFilter, each player
+// receives only their own view; the room-channel (spectator) copy has private
+// information stripped (playerID == "").
+//
+// Falls back to an unfiltered broadcast when any prerequisite is missing
+// (room players unavailable, game not registered, game has no StateFilter,
+// or state cannot be unmarshaled) — those paths either run in tests or
+// involve games that don't hide information, so the fallback is safe.
+func (svc *Service) BroadcastSessionStarted(ctx context.Context, hub *ws.Hub, session store.GameSession) {
+	event := ws.Event{Type: ws.EventGameStarted, Payload: map[string]any{"session": session}}
+
+	players, err := svc.store.ListRoomPlayers(ctx, session.RoomID)
+	if err != nil {
+		hub.Broadcast(session.RoomID, event)
+		return
+	}
+
+	game, err := svc.registry.Get(session.GameID)
+	if err != nil {
+		hub.Broadcast(session.RoomID, event)
+		return
+	}
+
+	sf, ok := game.(engine.StateFilter)
+	if !ok {
+		hub.Broadcast(session.RoomID, event)
+		return
+	}
+
+	var state engine.GameState
+	if err := json.Unmarshal(session.State, &state); err != nil {
+		hub.Broadcast(session.RoomID, event)
+		return
+	}
+
+	projectSession := func(pid engine.PlayerID) store.GameSession {
+		filtered := sf.FilterState(state, pid)
+		raw, err := json.Marshal(filtered)
+		if err != nil {
+			return session
+		}
+		cp := session
+		cp.State = raw
+		return cp
+	}
+
+	playerIDs := make([]uuid.UUID, len(players))
+	for i, p := range players {
+		playerIDs[i] = p.PlayerID
+	}
+
+	spectatorSession := projectSession(engine.PlayerID(""))
+
+	hub.BroadcastToRoom(
+		session.RoomID,
+		playerIDs,
+		func(playerID uuid.UUID) ws.Event {
+			return ws.Event{
+				Type:    ws.EventGameStarted,
+				Payload: map[string]any{"session": projectSession(engine.PlayerID(playerID.String()))},
+			}
+		},
+		ws.Event{Type: ws.EventGameStarted, Payload: map[string]any{"session": spectatorSession}},
+	)
+}
+
 // ApplyMove validates and applies a player move to the given session.
 func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID, payload map[string]any) (MoveResult, error) {
 	session, err := svc.store.GetGameSession(ctx, sessionID)

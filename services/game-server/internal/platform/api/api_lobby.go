@@ -273,10 +273,7 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 			return
 		}
 		rt.StartSession(r.Context(), session, hub, runtime.DefaultReadyTimeout)
-		hub.Broadcast(roomID, ws.Event{
-			Type:    ws.EventGameStarted,
-			Payload: map[string]any{"session": session},
-		})
+		rt.BroadcastSessionStarted(r.Context(), hub, session)
 
 		// If the first player to move is a registered bot, fire immediately.
 		var initialState struct {

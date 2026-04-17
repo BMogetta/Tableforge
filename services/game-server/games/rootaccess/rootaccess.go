@@ -1,7 +1,6 @@
 package rootaccess
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -242,7 +241,7 @@ func validateTarget(state engine.GameState, actorID engine.PlayerID, target stri
 // ---------------------------------------------------------------------------
 
 func (g *RootAccess) ApplyMove(state engine.GameState, move engine.Move) (engine.GameState, error) {
-	state.Data = deepCopyData(state.Data)
+	state.Data = engine.DeepCopyData(state.Data)
 
 	card := getCardFromPayload(move.Payload, "card")
 
@@ -1135,18 +1134,6 @@ func shallowCopyData(data map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
-}
-
-func deepCopyData(data map[string]any) map[string]any {
-	raw, err := json.Marshal(data)
-	if err != nil {
-		return data // fallback: return original on marshal error
-	}
-	var cp map[string]any
-	if err := json.Unmarshal(raw, &cp); err != nil {
-		return data
-	}
-	return cp
 }
 
 // ---------------------------------------------------------------------------

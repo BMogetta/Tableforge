@@ -315,10 +315,7 @@ func handleRematch(lobbySvc *lobby.Service, rt *runtime.Service, hub *ws.Hub) ht
 				})
 			} else {
 				rt.StartSession(r.Context(), newSession, hub, runtime.DefaultReadyTimeout)
-				hub.Broadcast(roomID, ws.Event{
-					Type:    ws.EventGameStarted,
-					Payload: map[string]any{"session": newSession},
-				})
+				rt.BroadcastSessionStarted(r.Context(), hub, newSession)
 
 				// If the first player to move is a bot, fire immediately.
 				var initialState struct {
