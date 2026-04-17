@@ -26,7 +26,7 @@ CD debe sólo publicar si CI terminó exitoso.
 
 - [x] **1.1.a** Reemplazar trigger `push: [main]` en `cd.yml` por `workflow_run`
   - Cambio: `on: workflow_run: { workflows: ["CI"], types: [completed], branches: [main] }`
-- [ ] **1.1.b** Añadir `if: github.event.workflow_run.conclusion == 'success'` a todos los jobs de CD
+- [x] **1.1.b** Añadir `if: github.event.workflow_run.conclusion == 'success'` a todos los jobs de CD
 - [ ] **1.1.c** Re-resolver el SHA con `${{ github.event.workflow_run.head_sha }}` en checkout y tags
 - [ ] **Validación 1.1**
   - Abrir PR rojo (ej: romper un test de game-server)
