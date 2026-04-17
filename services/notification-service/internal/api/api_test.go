@@ -97,11 +97,19 @@ func (m *mockStore) MarkRead(_ context.Context, id uuid.UUID) error {
 }
 
 func (m *mockStore) SetAction(_ context.Context, id uuid.UUID, action string) error {
-	if n, ok := m.notifications[id]; ok {
-		n.ActionTaken = &action
-		m.notifications[id] = n
-		m.actions[id] = action
+	n, ok := m.notifications[id]
+	if !ok {
+		return store.ErrActionUnavailable
 	}
+	if n.ActionTaken != nil {
+		return store.ErrActionUnavailable
+	}
+	if n.ActionExpiresAt != nil && time.Now().After(*n.ActionExpiresAt) {
+		return store.ErrActionUnavailable
+	}
+	n.ActionTaken = &action
+	m.notifications[id] = n
+	m.actions[id] = action
 	return nil
 }
 
@@ -331,8 +339,10 @@ func TestAccept_Expired(t *testing.T) {
 	handler := newTestHandler(st, pub)
 	rec := postAs(t, handler, "/api/v1/notifications/"+notifID.String()+"/accept", playerID, nil)
 
-	if rec.Code != http.StatusGone {
-		t.Errorf("expected 410, got %d", rec.Code)
+	// Expired + already-taken are collapsed into a generic 409 so clients
+	// don't need to branch on two near-identical failure modes.
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected 409, got %d", rec.Code)
 	}
 }
 

@@ -25,10 +25,9 @@ const (
 )
 
 var (
-	errNotificationNotFound      = errors.New("notification not found")
-	errActionNotSupported        = errors.New("this notification type does not support actions")
-	errActionAlreadyTaken        = errors.New("action already taken")
-	errNotificationActionExpired = errors.New("notification action has expired")
+	errNotificationNotFound = errors.New("notification not found")
+	errActionNotSupported   = errors.New("this notification type does not support actions")
+	errActionUnavailable    = errors.New("notification action is no longer available")
 )
 
 // Publisher delivers real-time notifications to clients via Redis pub/sub.
@@ -183,15 +182,14 @@ func (h *Handler) takeAction(w http.ResponseWriter, r *http.Request, action stri
 		writeError(w, http.StatusUnprocessableEntity, errActionNotSupported.Error())
 		return
 	}
-	if n.ActionTaken != nil {
-		writeError(w, http.StatusConflict, errActionAlreadyTaken.Error())
-		return
-	}
-	if n.ActionExpiresAt != nil && time.Now().After(*n.ActionExpiresAt) {
-		writeError(w, http.StatusGone, errNotificationActionExpired.Error())
-		return
-	}
+	// The expiry + claim are collapsed into SetAction's single UPDATE — the
+	// old split check/claim path allowed two concurrent takers to both pass
+	// validation and each believe they succeeded.
 	if err := h.store.SetAction(r.Context(), notificationID, action); err != nil {
+		if errors.Is(err, store.ErrActionUnavailable) {
+			writeError(w, http.StatusConflict, errActionUnavailable.Error())
+			return
+		}
 		h.log.Error("set notification action", "notification_id", notificationID, "error", err)
 		writeError(w, http.StatusInternalServerError, apierrors.InternalError)
 		return

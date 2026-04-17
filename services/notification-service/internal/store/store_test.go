@@ -3,6 +3,8 @@ package store_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -173,14 +175,82 @@ func TestSetAction(t *testing.T) {
 		t.Errorf("expected action_taken=accepted, got %v", fetched.ActionTaken)
 	}
 
-	// Second call should be a no-op (WHERE action_taken IS NULL).
-	if err := s.SetAction(ctx, n.ID, "declined"); err != nil {
-		t.Fatalf("SetAction second call: %v", err)
+	// Second call must report the action as unavailable and keep the
+	// existing value intact.
+	if err := s.SetAction(ctx, n.ID, "declined"); !errors.Is(err, store.ErrActionUnavailable) {
+		t.Fatalf("expected ErrActionUnavailable on second call, got %v", err)
 	}
 
 	fetched, _ = s.Get(ctx, n.ID)
 	if *fetched.ActionTaken != "accepted" {
 		t.Errorf("expected action_taken to remain accepted, got %s", *fetched.ActionTaken)
+	}
+}
+
+func TestSetAction_RejectsExpired(t *testing.T) {
+	s, playerID := newTestStore(t)
+	ctx := context.Background()
+
+	expired := time.Now().Add(-time.Hour)
+	payload, _ := json.Marshal(store.PayloadFriendRequest{FromPlayerID: uuid.New().String()})
+	n, err := s.Create(ctx, store.CreateParams{
+		PlayerID:        playerID,
+		Type:            store.NotificationTypeFriendRequest,
+		Payload:         payload,
+		ActionExpiresAt: &expired,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	if err := s.SetAction(ctx, n.ID, "accepted"); !errors.Is(err, store.ErrActionUnavailable) {
+		t.Fatalf("expected ErrActionUnavailable for expired action, got %v", err)
+	}
+}
+
+func TestSetAction_ConcurrentOnlyOneWins(t *testing.T) {
+	s, playerID := newTestStore(t)
+	ctx := context.Background()
+
+	n := createNotification(t, s, playerID, store.NotificationTypeFriendRequest)
+
+	const workers = 8
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	start := make(chan struct{})
+	results := make(chan error, workers)
+
+	for i := 0; i < workers; i++ {
+		action := "accepted"
+		if i%2 == 0 {
+			action = "declined"
+		}
+		go func(a string) {
+			defer wg.Done()
+			<-start
+			results <- s.SetAction(ctx, n.ID, a)
+		}(action)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	var winners, losers int
+	for err := range results {
+		switch {
+		case err == nil:
+			winners++
+		case errors.Is(err, store.ErrActionUnavailable):
+			losers++
+		default:
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+	if winners != 1 {
+		t.Errorf("expected exactly 1 winner, got %d", winners)
+	}
+	if losers != workers-1 {
+		t.Errorf("expected %d losers, got %d", workers-1, losers)
 	}
 }
 

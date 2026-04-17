@@ -3,12 +3,19 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// ErrActionUnavailable is returned by SetAction when the notification cannot
+// be actioned: the action was already taken by another caller, the action
+// window has expired, or the row does not exist. The check and the claim
+// run inside a single UPDATE so there is no TOCTOU race between them.
+var ErrActionUnavailable = errors.New("notification action is no longer available")
 
 // NotificationType identifies the kind of inbox notification.
 type NotificationType string
@@ -182,10 +189,24 @@ func (s *Store) MarkRead(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+// SetAction atomically records the action if the notification is unactioned
+// and not expired. On 0 rows affected it returns ErrActionUnavailable so
+// the caller cannot distinguish a race loss from an expiry — both map to a
+// generic 409 at the API layer.
 func (s *Store) SetAction(ctx context.Context, id uuid.UUID, action string) error {
-	_, err := s.db.Exec(ctx,
-		`UPDATE notifications SET action_taken = $2 WHERE id = $1 AND action_taken IS NULL`,
+	tag, err := s.db.Exec(ctx,
+		`UPDATE notifications
+		 SET action_taken = $2
+		 WHERE id = $1
+		   AND action_taken IS NULL
+		   AND (action_expires_at IS NULL OR action_expires_at > NOW())`,
 		id, action,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrActionUnavailable
+	}
+	return nil
 }
