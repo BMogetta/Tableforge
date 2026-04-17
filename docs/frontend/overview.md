@@ -102,6 +102,8 @@ Two languages supported: English (`en.json`) and Spanish (`es.json`) in `src/loc
 
 Flat namespace with section prefixes: `common.*`, `settings.*`, `lobby.*`, `game.*`, etc. Language changes are persisted in player settings and applied via `i18n.changeLanguage()`.
 
+**Positional keys for cross-service contracts.** When the backend publishes an identifier that the frontend renders as text — e.g. achievement tier names — the backend stores the i18n key, not the resolved string. Achievements follow the positional scheme `achievements.{key}.name`, `achievements.{key}.description`, `achievements.{key}.tiers.{N}.name`, `achievements.{key}.tiers.{N}.description`, with `{{threshold}}` interpolation for tiered descriptions. The registry lives in `services/user-service/internal/achievements/registry.go`; translations live in `src/locales/{en,es}.json`. Downstream consumers (notification-service, WS events) carry the key verbatim and resolve at render time.
+
 ## Games
 
 See [game-packages.md](game-packages.md) for the plugin architecture and package boundaries.

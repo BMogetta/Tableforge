@@ -339,5 +339,56 @@
     "tooManyRequests": "Too many requests. Slow down.",
     "serverError": "Server error occurred.",
     "networkError": "Network error. Check your connection."
+  },
+  "achievements": {
+    "games_played": {
+      "name": "Player",
+      "tiers": {
+        "1": { "name": "Newcomer", "description": "Play your first game" },
+        "2": { "name": "Regular", "description": "Play {{threshold}} games" },
+        "3": { "name": "Dedicated", "description": "Play {{threshold}} games" },
+        "4": { "name": "Veteran", "description": "Play {{threshold}} games" },
+        "5": { "name": "Legend", "description": "Play {{threshold}} games" }
+      }
+    },
+    "games_won": {
+      "name": "Winner",
+      "tiers": {
+        "1": { "name": "First Blood", "description": "Win your first game" },
+        "2": { "name": "Skilled", "description": "Win {{threshold}} games" },
+        "3": { "name": "Dominant", "description": "Win {{threshold}} games" },
+        "4": { "name": "Champion", "description": "Win {{threshold}} games" }
+      }
+    },
+    "win_streak": {
+      "name": "On Fire",
+      "tiers": {
+        "1": { "name": "Hot Streak", "description": "Win {{threshold}} games in a row" },
+        "2": { "name": "Unstoppable", "description": "Win {{threshold}} games in a row" },
+        "3": { "name": "Legendary", "description": "Win {{threshold}} games in a row" }
+      }
+    },
+    "first_draw": {
+      "name": "Stalemate",
+      "description": "Draw a game",
+      "tiers": {
+        "1": { "name": "Stalemate", "description": "Draw a game" }
+      }
+    },
+    "ttt_perfect_game": {
+      "name": "Perfect Game",
+      "description": "Win a tic-tac-toe game in the minimum possible moves",
+      "tiers": {
+        "1": { "name": "Perfect Game", "description": "Win in the minimum possible moves" }
+      }
+    },
+    "ttt_games_played": {
+      "name": "Tic-Tac-Toe Fan",
+      "tiers": {
+        "1": { "name": "Beginner", "description": "Play {{threshold}} tic-tac-toe games" },
+        "2": { "name": "Enthusiast", "description": "Play {{threshold}} tic-tac-toe games" },
+        "3": { "name": "Addict", "description": "Play {{threshold}} tic-tac-toe games" }
+      }
+    }
   }
 }

@@ -9,6 +9,10 @@ type Progress struct {
 }
 
 // Unlock is returned when progress crosses a tier threshold.
+//
+// TierName carries the i18n key for the tier's display name (not the resolved
+// text). Downstream consumers — notification-service and WS clients — store
+// and forward the key verbatim and resolve it at render time.
 type Unlock struct {
 	Key      string
 	NewTier  int
@@ -91,7 +95,7 @@ func checkTierUp(def Definition, cur Progress, newProgress int) *Unlock {
 			return &Unlock{
 				Key:      def.Key,
 				NewTier:  1,
-				TierName: def.Tiers[0].Name,
+				TierName: def.Tiers[0].NameKey,
 				Progress: newProgress,
 			}
 		}
@@ -117,7 +121,7 @@ func checkTierUp(def Definition, cur Progress, newProgress int) *Unlock {
 		return &Unlock{
 			Key:      def.Key,
 			NewTier:  newTier,
-			TierName: def.Tiers[newTier-1].Name,
+			TierName: def.Tiers[newTier-1].NameKey,
 			Progress: newProgress,
 		}
 	}

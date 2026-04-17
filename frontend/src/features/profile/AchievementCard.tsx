@@ -1,14 +1,20 @@
+import { useTranslation } from 'react-i18next'
 import type { PlayerAchievement } from '@/lib/api'
 import { testId } from '@/utils/testId'
 import styles from './AchievementCard.module.css'
 
-/** Achievement definition from the registry (mirrors backend). */
+/**
+ * Achievement definition mirroring the backend registry. String fields hold
+ * positional i18n keys (achievements.{key}.name, ...tiers.{N}.description) —
+ * resolution happens at render time so the same record serves both locales.
+ */
 export interface AchievementDef {
   key: string
-  name: string
+  nameKey: string
+  descriptionKey?: string
   type: 'flat' | 'tiered'
   gameId: string
-  tiers: { threshold: number; name: string; description: string }[]
+  tiers: { threshold: number; nameKey: string; descriptionKey: string }[]
 }
 
 interface Props {
@@ -17,6 +23,7 @@ interface Props {
 }
 
 export function AchievementCard({ def, achievement }: Props) {
+  const { t } = useTranslation()
   const unlocked = achievement != null && achievement.tier > 0
   const tier = achievement?.tier ?? 0
   const progress = achievement?.progress ?? 0
@@ -28,6 +35,15 @@ export function AchievementCard({ def, achievement }: Props) {
 
   const progressPct = nextThreshold > 0 ? Math.min((progress / nextThreshold) * 100, 100) : 100
 
+  const displayName = unlocked && currentTierDef ? t(currentTierDef.nameKey) : t(def.nameKey)
+  const displayDescription = (() => {
+    if (unlocked && currentTierDef) {
+      return t(currentTierDef.descriptionKey, { threshold: currentTierDef.threshold })
+    }
+    const firstTier = def.tiers[0]
+    return t(firstTier.descriptionKey, { threshold: firstTier.threshold })
+  })()
+
   return (
     <div
       className={`${styles.card} ${unlocked ? styles.unlocked : styles.locked}`}
@@ -36,12 +52,8 @@ export function AchievementCard({ def, achievement }: Props) {
       <div className={styles.icon}>{unlocked ? tierBadge(tier) : '?'}</div>
 
       <div className={styles.info}>
-        <div className={styles.name}>
-          {unlocked && currentTierDef ? currentTierDef.name : def.name}
-        </div>
-        <div className={styles.description}>
-          {unlocked && currentTierDef ? currentTierDef.description : def.tiers[0].description}
-        </div>
+        <div className={styles.name}>{displayName}</div>
+        <div className={styles.description}>{displayDescription}</div>
 
         {def.gameId && <div className={styles.gameTag}>{def.gameId}</div>}
       </div>
@@ -57,17 +69,12 @@ export function AchievementCard({ def, achievement }: Props) {
         </div>
       )}
 
-      {def.type === 'tiered' && atMax && unlocked && (
-        <div className={styles.maxTier}>MAX</div>
-      )}
+      {def.type === 'tiered' && atMax && unlocked && <div className={styles.maxTier}>MAX</div>}
 
       {def.type === 'tiered' && (
         <div className={styles.tierDots}>
           {def.tiers.map((_, i) => (
-            <span
-              key={i}
-              className={`${styles.dot} ${i < tier ? styles.dotFilled : ''}`}
-            />
+            <span key={i} className={`${styles.dot} ${i < tier ? styles.dotFilled : ''}`} />
           ))}
         </div>
       )}
@@ -76,6 +83,13 @@ export function AchievementCard({ def, achievement }: Props) {
 }
 
 function tierBadge(tier: number): string {
-  const badges = ['', '\u2605', '\u2605\u2605', '\u2605\u2605\u2605', '\u2605\u2605\u2605\u2605', '\u2605\u2605\u2605\u2605\u2605']
+  const badges = [
+    '',
+    '\u2605',
+    '\u2605\u2605',
+    '\u2605\u2605\u2605',
+    '\u2605\u2605\u2605\u2605',
+    '\u2605\u2605\u2605\u2605\u2605',
+  ]
   return badges[Math.min(tier, badges.length - 1)]
 }

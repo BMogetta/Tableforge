@@ -339,5 +339,56 @@
     "tooManyRequests": "Demasiadas solicitudes. Esper\u00e1 un momento.",
     "serverError": "Error del servidor.",
     "networkError": "Error de red. Verific\u00e1 tu conexi\u00f3n."
+  },
+  "achievements": {
+    "games_played": {
+      "name": "Jugador",
+      "tiers": {
+        "1": { "name": "Reci\u00e9n llegado", "description": "Jug\u00e1 tu primera partida" },
+        "2": { "name": "Habitual", "description": "Jug\u00e1 {{threshold}} partidas" },
+        "3": { "name": "Dedicado", "description": "Jug\u00e1 {{threshold}} partidas" },
+        "4": { "name": "Veterano", "description": "Jug\u00e1 {{threshold}} partidas" },
+        "5": { "name": "Leyenda", "description": "Jug\u00e1 {{threshold}} partidas" }
+      }
+    },
+    "games_won": {
+      "name": "Ganador",
+      "tiers": {
+        "1": { "name": "Primera sangre", "description": "Gan\u00e1 tu primera partida" },
+        "2": { "name": "H\u00e1bil", "description": "Gan\u00e1 {{threshold}} partidas" },
+        "3": { "name": "Dominante", "description": "Gan\u00e1 {{threshold}} partidas" },
+        "4": { "name": "Campe\u00f3n", "description": "Gan\u00e1 {{threshold}} partidas" }
+      }
+    },
+    "win_streak": {
+      "name": "En racha",
+      "tiers": {
+        "1": { "name": "Racha caliente", "description": "Gan\u00e1 {{threshold}} partidas seguidas" },
+        "2": { "name": "Imparable", "description": "Gan\u00e1 {{threshold}} partidas seguidas" },
+        "3": { "name": "Legendario", "description": "Gan\u00e1 {{threshold}} partidas seguidas" }
+      }
+    },
+    "first_draw": {
+      "name": "Empate",
+      "description": "Empat\u00e1 una partida",
+      "tiers": {
+        "1": { "name": "Empate", "description": "Empat\u00e1 una partida" }
+      }
+    },
+    "ttt_perfect_game": {
+      "name": "Partida perfecta",
+      "description": "Gan\u00e1 una partida de tic-tac-toe en la menor cantidad de movimientos posible",
+      "tiers": {
+        "1": { "name": "Partida perfecta", "description": "Gan\u00e1 en la menor cantidad de movimientos posible" }
+      }
+    },
+    "ttt_games_played": {
+      "name": "Fan\u00e1tico del Tic-Tac-Toe",
+      "tiers": {
+        "1": { "name": "Principiante", "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe" },
+        "2": { "name": "Entusiasta", "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe" },
+        "3": { "name": "Adicto", "description": "Jug\u00e1 {{threshold}} partidas de tic-tac-toe" }
+      }
+    }
   }
 }

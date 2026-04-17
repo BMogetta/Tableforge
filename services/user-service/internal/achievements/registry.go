@@ -1,21 +1,34 @@
 // Package achievements defines achievement definitions and evaluation logic.
+//
+// String fields hold i18n keys, not display text. Keys follow a positional
+// scheme so the frontend can derive them from (key, tier) alone without a
+// server-side lookup:
+//
+//	achievements.{Key}.name
+//	achievements.{Key}.description
+//	achievements.{Key}.tiers.{N}.name        (N is 1-based)
+//	achievements.{Key}.tiers.{N}.description ({{threshold}} interpolates)
+//
+// Translations live in frontend/src/locales/{en,es}.json. Anything published
+// over Redis (AchievementUnlocked.TierName, notification payloads) carries
+// the i18n key, not the resolved string — clients resolve at render time.
 package achievements
 
 // Tier represents a single milestone within an achievement.
 type Tier struct {
-	Threshold   int
-	Name        string
-	Description string
+	Threshold      int
+	NameKey        string
+	DescriptionKey string
 }
 
 // Definition describes an achievement that can be earned by players.
 type Definition struct {
-	Key         string
-	Name        string // display name
-	Description string // supports {threshold} template for tiered
-	GameID      string // "" = global, "tictactoe" = game-specific
-	Type        string // "flat" | "tiered"
-	Tiers       []Tier
+	Key            string
+	NameKey        string // i18n key for the display name
+	DescriptionKey string // i18n key for the description (flat achievements)
+	GameID         string // "" = global, "tictactoe" = game-specific
+	Type           string // "flat" | "tiered"
+	Tiers          []Tier
 }
 
 const (
@@ -23,76 +36,98 @@ const (
 	TypeTiered = "tiered"
 )
 
+// nameKey / descKey / tierNameKey / tierDescKey build the positional i18n
+// keys the frontend resolves at render time. Centralised here so the
+// registry entries below stay short and hard to get out of sync.
+func nameKey(id string) string { return "achievements." + id + ".name" }
+func descKey(id string) string { return "achievements." + id + ".description" }
+func tierNameKey(id string, tier int) string {
+	return "achievements." + id + ".tiers." + itoa(tier) + ".name"
+}
+func tierDescKey(id string, tier int) string {
+	return "achievements." + id + ".tiers." + itoa(tier) + ".description"
+}
+
+// Tiny, allocation-cheap int-to-string for single-digit tiers. Avoids pulling
+// strconv into the registry's init path for a known-small domain (1-9).
+func itoa(n int) string {
+	if n >= 0 && n <= 9 {
+		return string(rune('0' + n))
+	}
+	// Fallback for future growth; covers 10-99.
+	return string(rune('0'+n/10)) + string(rune('0'+n%10))
+}
+
 // Registry holds all known achievement definitions.
 var Registry = []Definition{
 	// --- Global achievements ---
 	{
-		Key:    "games_played",
-		Name:   "Player",
-		GameID: "",
-		Type:   TypeTiered,
+		Key:     "games_played",
+		NameKey: nameKey("games_played"),
+		GameID:  "",
+		Type:    TypeTiered,
 		Tiers: []Tier{
-			{Threshold: 1, Name: "Newcomer", Description: "Play your first game"},
-			{Threshold: 10, Name: "Regular", Description: "Play 10 games"},
-			{Threshold: 50, Name: "Dedicated", Description: "Play 50 games"},
-			{Threshold: 100, Name: "Veteran", Description: "Play 100 games"},
-			{Threshold: 500, Name: "Legend", Description: "Play 500 games"},
+			{Threshold: 1, NameKey: tierNameKey("games_played", 1), DescriptionKey: tierDescKey("games_played", 1)},
+			{Threshold: 10, NameKey: tierNameKey("games_played", 2), DescriptionKey: tierDescKey("games_played", 2)},
+			{Threshold: 50, NameKey: tierNameKey("games_played", 3), DescriptionKey: tierDescKey("games_played", 3)},
+			{Threshold: 100, NameKey: tierNameKey("games_played", 4), DescriptionKey: tierDescKey("games_played", 4)},
+			{Threshold: 500, NameKey: tierNameKey("games_played", 5), DescriptionKey: tierDescKey("games_played", 5)},
 		},
 	},
 	{
-		Key:    "games_won",
-		Name:   "Winner",
-		GameID: "",
-		Type:   TypeTiered,
+		Key:     "games_won",
+		NameKey: nameKey("games_won"),
+		GameID:  "",
+		Type:    TypeTiered,
 		Tiers: []Tier{
-			{Threshold: 1, Name: "First Blood", Description: "Win your first game"},
-			{Threshold: 10, Name: "Skilled", Description: "Win 10 games"},
-			{Threshold: 50, Name: "Dominant", Description: "Win 50 games"},
-			{Threshold: 100, Name: "Champion", Description: "Win 100 games"},
+			{Threshold: 1, NameKey: tierNameKey("games_won", 1), DescriptionKey: tierDescKey("games_won", 1)},
+			{Threshold: 10, NameKey: tierNameKey("games_won", 2), DescriptionKey: tierDescKey("games_won", 2)},
+			{Threshold: 50, NameKey: tierNameKey("games_won", 3), DescriptionKey: tierDescKey("games_won", 3)},
+			{Threshold: 100, NameKey: tierNameKey("games_won", 4), DescriptionKey: tierDescKey("games_won", 4)},
 		},
 	},
 	{
-		Key:    "win_streak",
-		Name:   "On Fire",
-		GameID: "",
-		Type:   TypeTiered,
+		Key:     "win_streak",
+		NameKey: nameKey("win_streak"),
+		GameID:  "",
+		Type:    TypeTiered,
 		Tiers: []Tier{
-			{Threshold: 3, Name: "Hot Streak", Description: "Win 3 games in a row"},
-			{Threshold: 5, Name: "Unstoppable", Description: "Win 5 games in a row"},
-			{Threshold: 10, Name: "Legendary", Description: "Win 10 games in a row"},
+			{Threshold: 3, NameKey: tierNameKey("win_streak", 1), DescriptionKey: tierDescKey("win_streak", 1)},
+			{Threshold: 5, NameKey: tierNameKey("win_streak", 2), DescriptionKey: tierDescKey("win_streak", 2)},
+			{Threshold: 10, NameKey: tierNameKey("win_streak", 3), DescriptionKey: tierDescKey("win_streak", 3)},
 		},
 	},
 	{
-		Key:         "first_draw",
-		Name:        "Stalemate",
-		Description: "Draw a game",
-		GameID:      "",
-		Type:        TypeFlat,
+		Key:            "first_draw",
+		NameKey:        nameKey("first_draw"),
+		DescriptionKey: descKey("first_draw"),
+		GameID:         "",
+		Type:           TypeFlat,
 		Tiers: []Tier{
-			{Threshold: 1, Name: "Stalemate", Description: "Draw a game"},
+			{Threshold: 1, NameKey: tierNameKey("first_draw", 1), DescriptionKey: tierDescKey("first_draw", 1)},
 		},
 	},
 
 	// --- TicTacToe achievements ---
 	{
-		Key:         "ttt_perfect_game",
-		Name:        "Perfect Game",
-		Description: "Win a tic-tac-toe game in 3 moves",
-		GameID:      "tictactoe",
-		Type:        TypeFlat,
+		Key:            "ttt_perfect_game",
+		NameKey:        nameKey("ttt_perfect_game"),
+		DescriptionKey: descKey("ttt_perfect_game"),
+		GameID:         "tictactoe",
+		Type:           TypeFlat,
 		Tiers: []Tier{
-			{Threshold: 1, Name: "Perfect Game", Description: "Win in the minimum possible moves"},
+			{Threshold: 1, NameKey: tierNameKey("ttt_perfect_game", 1), DescriptionKey: tierDescKey("ttt_perfect_game", 1)},
 		},
 	},
 	{
-		Key:    "ttt_games_played",
-		Name:   "Tic-Tac-Toe Fan",
-		GameID: "tictactoe",
-		Type:   TypeTiered,
+		Key:     "ttt_games_played",
+		NameKey: nameKey("ttt_games_played"),
+		GameID:  "tictactoe",
+		Type:    TypeTiered,
 		Tiers: []Tier{
-			{Threshold: 5, Name: "Beginner", Description: "Play 5 tic-tac-toe games"},
-			{Threshold: 25, Name: "Enthusiast", Description: "Play 25 tic-tac-toe games"},
-			{Threshold: 100, Name: "Addict", Description: "Play 100 tic-tac-toe games"},
+			{Threshold: 5, NameKey: tierNameKey("ttt_games_played", 1), DescriptionKey: tierDescKey("ttt_games_played", 1)},
+			{Threshold: 25, NameKey: tierNameKey("ttt_games_played", 2), DescriptionKey: tierDescKey("ttt_games_played", 2)},
+			{Threshold: 100, NameKey: tierNameKey("ttt_games_played", 3), DescriptionKey: tierDescKey("ttt_games_played", 3)},
 		},
 	},
 }

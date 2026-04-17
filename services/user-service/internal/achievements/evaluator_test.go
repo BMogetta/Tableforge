@@ -109,8 +109,8 @@ func TestEvaluate_TieredProgression(t *testing.T) {
 			if u.NewTier != 2 {
 				t.Errorf("expected tier 2, got %d", u.NewTier)
 			}
-			if u.TierName != "Regular" {
-				t.Errorf("expected tier name Regular, got %s", u.TierName)
+			if u.TierName != "achievements.games_played.tiers.2.name" {
+				t.Errorf("expected tier name key for games_played tier 2, got %s", u.TierName)
 			}
 		}
 	}
