@@ -150,7 +150,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 ### 3.3 Coverage agregado
 - [x] **3.3.a** Subir coverage consolidado con `codecov/codecov-action@v4` (o Coveralls)
   - Usado `codecov/codecov-action@v6.0.0` (v6 ya estable). Flag por servicio (`flags: ${{ matrix.service }}`). Token optional para public repo; `CODECOV_TOKEN` se consulta pero no requerido. `fail_ci_if_error: false` para que un outage de codecov no rompa CI.
-- [ ] **3.3.b** Definir umbral (ej: 60% proyecto-wide, sin regresión por PR)
+- [x] **3.3.b** Definir umbral (ej: 60% proyecto-wide, sin regresión por PR)
+  - `codecov.yml` en root: target 60% project-wide, `patch.target: auto` (sin regresión), comment en PR con diff+flags, ignore de `*.pb.go`, `*_test.go` y `shared/schemas/`.
 - [ ] **Validación 3.3** — badge en README se actualiza; PR que baja coverage bajo umbral ⇒ rojo
 
 ### 3.4 Validación de compose por perfil

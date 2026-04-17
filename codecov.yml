@@ -1,0 +1,46 @@
+coverage:
+  precision: 2
+  round: down
+  range: "50...80"
+  status:
+    project:
+      default:
+        target: 60%
+        threshold: 1%
+        if_no_uploads: error
+        if_not_found: success
+      go-services:
+        target: 60%
+        flags: [game-server, auth-service, user-service, chat-service, rating-service, match-service, notification-service, ws-gateway]
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+flags:
+  game-server:
+    paths: [services/game-server/]
+  auth-service:
+    paths: [services/auth-service/]
+  user-service:
+    paths: [services/user-service/]
+  chat-service:
+    paths: [services/chat-service/]
+  rating-service:
+    paths: [services/rating-service/]
+  match-service:
+    paths: [services/match-service/]
+  notification-service:
+    paths: [services/notification-service/]
+  ws-gateway:
+    paths: [services/ws-gateway/]
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+
+ignore:
+  - "**/*.pb.go"
+  - "**/*_test.go"
+  - "shared/schemas/"
