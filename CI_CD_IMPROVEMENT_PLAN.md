@@ -207,10 +207,11 @@ ArgoCD detecta el commit → sync → rolling update en el cluster
   - Nota: en este repo los tags generados son throwaway (se descarta el `.git` al migrar al repo limpio). El manifest y los workflows sí viajan como archivos finales; en el primer push del repo limpio empiezan a acumular historial real desde cero.
 - [x] **4.5.c** `.github/workflows/release-please.yml` en `push: main`
   - Acción pineada `googleapis/release-please-action@5c625bf…` (v4.4.1). Permisos mínimos: `contents: write` (commit de release PR) + `pull-requests: write` (abrir el PR).
-- [ ] **4.5.d** `.github/workflows/release.yml` en `push: tags: ['*-v*']`:
+- [x] **4.5.d** `.github/workflows/release.yml` en `push: tags: ['*-v*']`:
   - Parsea tag (`${tag%%-v*}` = componente, `${tag##*-v}` = versión)
   - Buildea, publica con tags `vX.Y.Z`, `vX.Y`, `latest`, cosign + SBOM + provenance
   - **Bumpea** `infra/k8s/<component>/values.yaml` (`image.tag: X.Y.Z`) y commitea a main con `[skip ci]`
+  - Notas: (a) el bump es **no-op con warning** si `infra/k8s/apps/<svc>/values.yaml` no existe (Fase 5 todavía); (b) parseo `major_minor=${version%.*}` es simplista — para prereleases tipo `0.1.0-alpha.1` queda `0.1.0-alpha` (imperfecto pero sólo afecta al tag flotante, no al vX.Y.Z exacto); (c) checkout separado a `main-wt` porque el tag apunta a commit que puede no estar en HEAD de main.
 - [ ] **4.5.e** Conventional commits con scope por componente (`feat(game-server): …`). Documentar en `CLAUDE.md`
 - [ ] **4.5.f** Documentar flujo completo en `RELEASING.md`
 - [ ] **Validación 4.5**
