@@ -108,8 +108,10 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
   - Pendiente humano: local detecta 1 vuln **crítica** en `protobufjs@7.5.4` (GHSA-xq3m-2v4x-88gg), transitiva de `@opentelemetry/exporter-logs-otlp-http` → `@opentelemetry/otlp-transformer`. El step romperá CI hasta que se aplique un fix. Opciones: `npm audit fix` (bump menor si compatible), `overrides` en `frontend/package.json` fijando `protobufjs >=7.5.5`, o bumpear la librería OTel exporter. Decisión fuera del scope CI/CD.
 
 ### 2.3 Trivy sobre imágenes en CD
-- [ ] **2.3.a** Step `aquasecurity/trivy-action` post-build, pre-push, `severity: CRITICAL,HIGH`, `exit-code: 1`, `ignore-unfixed: true`
-- [ ] **2.3.b** Upload SARIF a GitHub Security
+- [x] **2.3.a** Step `aquasecurity/trivy-action` post-build, pre-push, `severity: CRITICAL,HIGH`, `exit-code: 1`, `ignore-unfixed: true`
+  - Patrón: build local single-arch (linux/amd64) con `load: true` → trivy scan → push multi-arch (reusa cache). Trivy pineado en `v0.35.0`. Aplicado a los 2 jobs (services + frontend).
+- [x] **2.3.b** Upload SARIF a GitHub Security
+  - `github/codeql-action/upload-sarif@v3` con `if: always()` (aun si trivy sale con exit-code 1 subimos el reporte). Requiere `security-events: write` — agregado al `permissions` del job.
 - [ ] **Validación 2.3** — imagen base vieja temporal → rojo; revertir → verde
 
 ### 2.4 Gitleaks en CI
