@@ -85,8 +85,10 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 
 ### 1.5 Status check "paraguas" para branch protection
 
-- [ ] **1.5.a** Añadir job `ci-success` al final de `ci.yml` que `needs:` todos los jobs y usa `if: always()` + check de results
+- [x] **1.5.a** Añadir job `ci-success` al final de `ci.yml` que `needs:` todos los jobs y usa `if: always()` + check de results
+  - Lógica: `jq -e 'all(.value.result == "success" or "skipped")'` sobre `toJson(needs)`. Probado localmente con escenarios docs-only (skipped todo) y lint-fail.
 - [ ] **1.5.b** Configurar branch protection: required check = `CI Success`
+  - Pendiente humano: UI de GitHub → Settings → Branches → Add rule para `main` → Require status checks to pass → seleccionar `CI Success`. O vía API: `gh api repos/BMogetta/Tableforge/branches/main/protection -X PUT ...` (requiere JSON completo de config).
 - [ ] **Validación 1.5**
   - PR con sólo docs (ningún job corre) ⇒ `CI Success` verde
   - PR que rompe lint ⇒ `CI Success` falla
