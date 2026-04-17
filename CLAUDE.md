@@ -345,3 +345,49 @@ check. Example: `WHERE id = $1 AND receiver_id = $2` instead of `WHERE id = $1`.
   never from raw user input.
 - Errors: return generic messages ("forbidden", "not found"). Never reflect
   user input or internal details (query text, stack traces) in responses.
+
+## Release flow (conventional commits)
+
+Releases are automated via [release-please](https://github.com/googleapis/release-please-action).
+Each deployable (8 services + frontend) has its own version, its own release
+PR, and its own tag — bumped only by commits that scope to that component.
+
+### Commit message scope
+
+Use conventional-commit format with a **component scope** matching the release-please
+config (`release-please-config.json`). Valid scopes:
+
+| Scope | Bumps |
+|---|---|
+| `game-server`, `auth-service`, `user-service`, `chat-service`, `rating-service`, `match-service`, `notification-service`, `ws-gateway` | the matching Go service |
+| `frontend` | the React app |
+
+Examples:
+
+```
+feat(game-server): add ranked tiebreaker rule
+fix(chat): dedupe dm_read notifications
+refactor(rating): move ELO to shared/domain
+```
+
+Unscoped commits or commits scoped to anything outside the table above
+(`docs`, `ci`, `chore`, `build`, `shared`, ad-hoc scopes) **do not trigger a
+release**. They still follow conventional-commits so the changelog stays clean.
+
+### Breaking changes
+
+Add `!` after the type to mark a breaking change:
+
+```
+feat(game-server)!: remove deprecated /v1/rooms endpoint
+```
+
+This bumps major even for `0.x` components (treating the component as "post-v1" for
+semver purposes).
+
+### Tag format
+
+Release-please creates tags like `<component>-v<version>` (e.g., `game-server-v1.2.3`).
+The release workflow parses this tag and builds/publishes
+`ghcr.io/<owner>/tableforge-<component>:v<version>` (+ `vX.Y` + `latest` tags),
+then bumps `infra/k8s/apps/<component>/values.yaml` so ArgoCD syncs the new tag.
