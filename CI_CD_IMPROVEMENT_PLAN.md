@@ -164,7 +164,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 ## Fase 4 — DX / Supply-chain / Releases
 
 ### 4.1 Dependabot
-- [ ] **4.1.a** `.github/dependabot.yml` con ecosystems: `github-actions`, `gomod` (por servicio, grupo), `npm`, `docker`
+- [x] **4.1.a** `.github/dependabot.yml` con ecosystems: `github-actions`, `gomod` (por servicio, grupo), `npm`, `docker`
+  - `github-actions` weekly en monday; `gomod` × 9 (8 servicios + `shared`); `npm` en frontend separando dev/prod; `docker` × 9 (cada Dockerfile). Grupos habilitados en gomod y github-actions para reducir ruido de PRs.
 - [ ] **Validación 4.1** — al menos 1 PR abierto por Dependabot en el primer ciclo
 
 ### 4.2 CODEOWNERS

@@ -1,0 +1,194 @@
+version: 2
+
+updates:
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # Go modules — per service, grouped.
+  - package-ecosystem: gomod
+    directory: /services/game-server
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(game-server)
+
+  - package-ecosystem: gomod
+    directory: /services/auth-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(auth-service)
+
+  - package-ecosystem: gomod
+    directory: /services/user-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(user-service)
+
+  - package-ecosystem: gomod
+    directory: /services/chat-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(chat-service)
+
+  - package-ecosystem: gomod
+    directory: /services/rating-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(rating-service)
+
+  - package-ecosystem: gomod
+    directory: /services/match-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(match-service)
+
+  - package-ecosystem: gomod
+    directory: /services/notification-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(notification-service)
+
+  - package-ecosystem: gomod
+    directory: /services/ws-gateway
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(ws-gateway)
+
+  - package-ecosystem: gomod
+    directory: /shared
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gomod:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore(shared)
+
+  # Frontend npm
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-dev:
+        dependency-type: development
+      npm-prod:
+        dependency-type: production
+    commit-message:
+      prefix: chore(frontend)
+
+  # Docker base images — one per Dockerfile location.
+  - package-ecosystem: docker
+    directory: /services/game-server
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(game-server)
+
+  - package-ecosystem: docker
+    directory: /services/auth-service
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(auth-service)
+
+  - package-ecosystem: docker
+    directory: /services/user-service
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(user-service)
+
+  - package-ecosystem: docker
+    directory: /services/chat-service
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(chat-service)
+
+  - package-ecosystem: docker
+    directory: /services/rating-service
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(rating-service)
+
+  - package-ecosystem: docker
+    directory: /services/match-service
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(match-service)
+
+  - package-ecosystem: docker
+    directory: /services/notification-service
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(notification-service)
+
+  - package-ecosystem: docker
+    directory: /services/ws-gateway
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(ws-gateway)
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(frontend)
