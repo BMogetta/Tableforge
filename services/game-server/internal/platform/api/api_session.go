@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -420,9 +419,12 @@ func handleVotePause(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 		}
 
 		if result.AllVoted {
+			// Use the DB-assigned suspended_at so the broadcast timestamp
+			// matches persisted state exactly — otherwise replay / audit
+			// tooling would see a fresh wall-clock reading per handler call.
 			hub.Broadcast(session.RoomID, ws.Event{
 				Type:    ws.EventSessionSuspended,
-				Payload: map[string]any{"suspended_at": time.Now()},
+				Payload: map[string]any{"suspended_at": session.SuspendedAt},
 			})
 		} else {
 			hub.Broadcast(session.RoomID, ws.Event{
@@ -477,9 +479,13 @@ func handleVoteResume(rt *runtime.Service, hub *ws.Hub) http.HandlerFunc {
 		}
 
 		if result.AllVoted {
+			// last_move_at is the DB-authoritative moment the turn clock
+			// restarts on resume (ResumeSession back-dates it by 60% of the
+			// turn timeout). Use it instead of a fresh wall-clock reading
+			// so the broadcast is deterministic and replayable.
 			hub.Broadcast(session.RoomID, ws.Event{
 				Type:    ws.EventSessionResumed,
-				Payload: map[string]any{"resumed_at": time.Now()},
+				Payload: map[string]any{"resumed_at": session.LastMoveAt},
 			})
 		} else {
 			hub.Broadcast(session.RoomID, ws.Event{
