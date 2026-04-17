@@ -24,7 +24,7 @@ Cada tarea tiene un paso de **validación** obligatorio antes de marcarla como c
 ### 1.1 Gate CD ← CI
 CD debe sólo publicar si CI terminó exitoso.
 
-- [ ] **1.1.a** Reemplazar trigger `push: [main]` en `cd.yml` por `workflow_run`
+- [x] **1.1.a** Reemplazar trigger `push: [main]` en `cd.yml` por `workflow_run`
   - Cambio: `on: workflow_run: { workflows: ["CI"], types: [completed], branches: [main] }`
 - [ ] **1.1.b** Añadir `if: github.event.workflow_run.conclusion == 'success'` a todos los jobs de CD
 - [ ] **1.1.c** Re-resolver el SHA con `${{ github.event.workflow_run.head_sha }}` en checkout y tags
