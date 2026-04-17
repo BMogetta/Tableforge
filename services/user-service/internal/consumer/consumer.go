@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/recess/services/user-service/internal/achievements"
 	"github.com/recess/services/user-service/internal/store"
+	"github.com/recess/shared/achievements"
 	"github.com/recess/shared/events"
 )
 

@@ -20,6 +20,11 @@ import (
 	"github.com/recess/shared/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
+
+	// Blank imports wire the achievement registry via init(). Adding a new
+	// game with achievements means adding one more line here.
+	_ "github.com/recess/shared/achievements/games/tictactoe"
+	_ "github.com/recess/shared/achievements/global"
 )
 
 func main() {
