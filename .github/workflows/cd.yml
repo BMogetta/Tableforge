@@ -104,6 +104,8 @@ jobs:
           file: services/${{ matrix.service }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          provenance: mode=max
+          sbom: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-${{ matrix.service }}:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}
@@ -173,6 +175,8 @@ jobs:
           context: ./frontend
           platforms: linux/amd64,linux/arm64
           push: true
+          provenance: mode=max
+          sbom: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-frontend:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-frontend:${{ github.event.workflow_run.head_sha }}

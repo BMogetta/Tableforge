@@ -120,7 +120,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 2.4** — commit de fake key → rojo; revertir → verde
 
 ### 2.5 SBOM + provenance en build-push-action
-- [ ] **2.5.a** `provenance: mode=max` y `sbom: true` en ambos jobs de build
+- [x] **2.5.a** `provenance: mode=max` y `sbom: true` en ambos jobs de build
+  - Aplicado sólo al step de build-and-push multi-arch (el scan image single-arch no necesita attestations).
 - [ ] **Validación 2.5** — `cosign download sbom` devuelve SPDX válido; `cosign verify-attestation --type slsaprovenance` OK
 
 ### 2.6 CodeQL
