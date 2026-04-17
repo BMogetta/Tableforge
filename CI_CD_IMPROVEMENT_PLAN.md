@@ -178,7 +178,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 4.3** — `gh pr create` muestra el template
 
 ### 4.4 SHA pinning de actions y base images
-- [ ] **4.4.a** Reemplazar `@vN` por SHA en todos los workflows
+- [x] **4.4.a** Reemplazar `@vN` por SHA en todos los workflows
+  - Pineados todos los `uses:` en ci.yml, cd.yml, codeql.yml, e2e.yml. Comentario `# vX.Y.Z` al lado del SHA para legibilidad. Verificado con `grep -cE "uses: [^@#]+@v[0-9]" .github/workflows/*.yml` → 0.
 - [ ] **4.4.b** Pinear base images (`golang:1.26-alpine@sha256:…`, `alpine:3.19@sha256:…`, `nginx:alpine@sha256:…`, `node:20-alpine@sha256:…`)
 - [ ] **4.4.c** Dependabot las actualiza (reglas `docker` + `github-actions`)
 - [ ] **Validación 4.4** — `grep -E "uses: [^@]+@v[0-9]+$" .github/workflows/*.yml` sin resultados
