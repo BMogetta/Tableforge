@@ -74,13 +74,21 @@ jobs:
           cache: true
       - name: Run tests
         run: go test -race -count=1 -coverprofile=coverage.out ./services/${{ matrix.service }}/...
-      - name: Upload coverage
+      - name: Upload coverage (artifact)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.service }}
           path: coverage.out
           retention-days: 7
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v6.0.0
+        with:
+          files: coverage.out
+          flags: ${{ matrix.service }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   frontend-ci:
     name: Frontend
