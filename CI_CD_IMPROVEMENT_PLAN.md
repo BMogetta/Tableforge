@@ -125,7 +125,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 2.5** — `cosign download sbom` devuelve SPDX válido; `cosign verify-attestation --type slsaprovenance` OK
 
 ### 2.6 CodeQL
-- [ ] **2.6.a** `.github/workflows/codeql.yml` con matrix `[go, javascript-typescript]`, `push` main + `schedule` semanal
+- [x] **2.6.a** `.github/workflows/codeql.yml` con matrix `[go, javascript-typescript]`, `push` main + `schedule` semanal
+  - Schedule `17 5 * * 1` (lunes 05:17 UTC). Pull requests también disparan análisis. `security-extended` query pack habilitado.
 - [ ] **Validación 2.6** — Security tab del repo muestra análisis
 
 ---
