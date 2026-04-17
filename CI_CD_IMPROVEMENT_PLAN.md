@@ -155,7 +155,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 3.3** — badge en README se actualiza; PR que baja coverage bajo umbral ⇒ rojo
 
 ### 3.4 Validación de compose por perfil
-- [ ] **3.4.a** `compose-validate` itera sobre profiles: `""`, `app`, `monitoring`, `production`, `test`
+- [x] **3.4.a** `compose-validate` itera sobre profiles: `""`, `app`, `monitoring`, `production`, `test`
+  - Convertido a matrix (5 entradas: base, app, monitoring, production, test). Cada combo espeja el `make up*` correspondiente. `CLOUDFLARE_TUNNEL_TOKEN=stub-for-validation` para que `up-prod` config pase las guardas. Todos validan localmente OK.
 - [ ] **Validación 3.4** — sintaxis inválida en `docker-compose.monitoring.yml` → rojo
 
 ---

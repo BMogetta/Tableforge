@@ -178,14 +178,31 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   compose-validate:
-    name: Validate Compose
+    name: "Validate Compose: ${{ matrix.profile.name }}"
     needs: changes
     if: ${{ needs.changes.outputs.compose == 'true' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile:
+          - name: base
+            cmd: docker compose config --quiet
+          - name: app
+            cmd: docker compose --profile app config --quiet
+          - name: monitoring
+            cmd: docker compose --profile app --profile monitoring config --quiet
+          - name: production
+            cmd: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml --profile production --profile app --profile monitoring config --quiet
+          - name: test
+            cmd: docker compose -f docker-compose.yml --profile app config --quiet
+    env:
+      CLOUDFLARE_TUNNEL_TOKEN: stub-for-validation
+      TEST_MODE: 'true'
     steps:
       - uses: actions/checkout@v4
-      - name: Validate docker-compose files
-        run: docker compose config --quiet
+      - name: ${{ matrix.profile.name }}
+        run: ${{ matrix.profile.cmd }}
 
   ci-success:
     name: CI Success
