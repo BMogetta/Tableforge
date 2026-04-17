@@ -35,38 +35,12 @@ jobs:
         with:
           base: ${{ github.event.workflow_run.head_branch }}
           ref: ${{ github.event.workflow_run.head_sha }}
-          filters: |
-            game-server:
-              - 'services/game-server/**'
-              - 'shared/**'
-            auth-service:
-              - 'services/auth-service/**'
-              - 'shared/**'
-            user-service:
-              - 'services/user-service/**'
-              - 'shared/**'
-            chat-service:
-              - 'services/chat-service/**'
-              - 'shared/**'
-            rating-service:
-              - 'services/rating-service/**'
-              - 'shared/**'
-            match-service:
-              - 'services/match-service/**'
-              - 'shared/**'
-            notification-service:
-              - 'services/notification-service/**'
-              - 'shared/**'
-            ws-gateway:
-              - 'services/ws-gateway/**'
-              - 'shared/**'
-            frontend:
-              - 'frontend/**'
+          filters: .github/paths-filters.yml
       - name: Build service matrix
         id: services
         run: |
           raw='${{ steps.filter.outputs.changes }}'
-          matrix=$(echo "$raw" | jq -c '[.[] | select(. != "frontend")]')
+          matrix=$(echo "$raw" | jq -c '[.[] | select(. != "frontend" and . != "compose")]')
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   build-services:

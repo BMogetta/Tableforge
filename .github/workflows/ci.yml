@@ -27,37 +27,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          filters: |
-            game-server:
-              - 'services/game-server/**'
-              - 'shared/**'
-            auth-service:
-              - 'services/auth-service/**'
-              - 'shared/**'
-            user-service:
-              - 'services/user-service/**'
-              - 'shared/**'
-            chat-service:
-              - 'services/chat-service/**'
-              - 'shared/**'
-            rating-service:
-              - 'services/rating-service/**'
-              - 'shared/**'
-            match-service:
-              - 'services/match-service/**'
-              - 'shared/**'
-            notification-service:
-              - 'services/notification-service/**'
-              - 'shared/**'
-            ws-gateway:
-              - 'services/ws-gateway/**'
-              - 'shared/**'
-            frontend:
-              - 'frontend/**'
-            compose:
-              - 'docker-compose*.yml'
-              - 'infra/**'
-              - 'Makefile'
+          filters: .github/paths-filters.yml
 
       - name: Build Go service matrix
         id: go-services

@@ -77,7 +77,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
   - `shared/domain/matchmaking/**` → match-service (+ game-server, ver 1.4.a)
   - `shared/middleware|telemetry|config|db|redis|errors/**` → todos (común)
   - Implementación: `.github/paths-filters.yml` (creado en este commit). Listas planas por servicio — dorny/paths-filter no aplanea secuencias anidadas, así que explicito cada patrón en cada servicio.
-- [ ] **1.4.c** Extraer filtros a `.github/paths-filters.yml` (DRY entre ci.yml y cd.yml)
+- [x] **1.4.c** Extraer filtros a `.github/paths-filters.yml` (DRY entre ci.yml y cd.yml)
+  - Los dos workflows ahora usan `filters: .github/paths-filters.yml`. En CD también se excluyó `compose` del matrix (antes no estaba en el filtro inline de CD).
 - [ ] **Validación 1.4**
   - PR que sólo toque `shared/domain/rating/` ⇒ corre en game-server + rating-service, no en los otros 6
   - PR que toque `shared/middleware/` ⇒ corre en los 8
