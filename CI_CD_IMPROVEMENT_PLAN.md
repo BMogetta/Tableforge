@@ -103,8 +103,9 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 2.1** — CVE conocida temporal en `go.mod` → rojo; revertir → verde
 
 ### 2.2 `npm audit` para frontend
-- [ ] **2.2.a** Step `npm audit --audit-level=high --omit=dev` en `frontend-ci`
+- [x] **2.2.a** Step `npm audit --audit-level=high --omit=dev` en `frontend-ci`
 - [ ] **Validación 2.2** — verde en `main`; local coincide
+  - Pendiente humano: local detecta 1 vuln **crítica** en `protobufjs@7.5.4` (GHSA-xq3m-2v4x-88gg), transitiva de `@opentelemetry/exporter-logs-otlp-http` → `@opentelemetry/otlp-transformer`. El step romperá CI hasta que se aplique un fix. Opciones: `npm audit fix` (bump menor si compatible), `overrides` en `frontend/package.json` fijando `protobufjs >=7.5.5`, o bumpear la librería OTel exporter. Decisión fuera del scope CI/CD.
 
 ### 2.3 Trivy sobre imágenes en CD
 - [ ] **2.3.a** Step `aquasecurity/trivy-action` post-build, pre-push, `severity: CRITICAL,HIGH`, `exit-code: 1`, `ignore-unfixed: true`
