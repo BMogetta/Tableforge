@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "0cb4a83",
+  "separate-pull-requests": true,
+  "include-component-in-tag": true,
+  "tag-separator": "-v",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "refactor", "section": "Refactors" },
+    { "type": "docs", "section": "Documentation" }
+  ],
+  "packages": {
+    "services/game-server": {
+      "release-type": "go",
+      "package-name": "game-server",
+      "component": "game-server"
+    },
+    "services/auth-service": {
+      "release-type": "go",
+      "package-name": "auth-service",
+      "component": "auth-service"
+    },
+    "services/user-service": {
+      "release-type": "go",
+      "package-name": "user-service",
+      "component": "user-service"
+    },
+    "services/chat-service": {
+      "release-type": "go",
+      "package-name": "chat-service",
+      "component": "chat-service"
+    },
+    "services/rating-service": {
+      "release-type": "go",
+      "package-name": "rating-service",
+      "component": "rating-service"
+    },
+    "services/match-service": {
+      "release-type": "go",
+      "package-name": "match-service",
+      "component": "match-service"
+    },
+    "services/notification-service": {
+      "release-type": "go",
+      "package-name": "notification-service",
+      "component": "notification-service"
+    },
+    "services/ws-gateway": {
+      "release-type": "go",
+      "package-name": "ws-gateway",
+      "component": "ws-gateway"
+    },
+    "frontend": {
+      "release-type": "node",
+      "package-name": "frontend",
+      "component": "frontend"
+    }
+  }
+}
