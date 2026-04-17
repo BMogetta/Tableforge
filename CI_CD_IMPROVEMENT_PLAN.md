@@ -214,7 +214,7 @@ ArgoCD detecta el commit → sync → rolling update en el cluster
   - Notas: (a) el bump es **no-op con warning** si `infra/k8s/apps/<svc>/values.yaml` no existe (Fase 5 todavía); (b) parseo `major_minor=${version%.*}` es simplista — para prereleases tipo `0.1.0-alpha.1` queda `0.1.0-alpha` (imperfecto pero sólo afecta al tag flotante, no al vX.Y.Z exacto); (c) checkout separado a `main-wt` porque el tag apunta a commit que puede no estar en HEAD de main.
 - [x] **4.5.e** Conventional commits con scope por componente (`feat(game-server): …`). Documentar en `CLAUDE.md`
   - Sección "Release flow (conventional commits)" agregada al final de `CLAUDE.md`: tabla de scopes válidos, breaking changes con `!`, formato de tags.
-- [ ] **4.5.f** Documentar flujo completo en `RELEASING.md`
+- [x] **4.5.f** Documentar flujo completo en `RELEASING.md`
 - [ ] **Validación 4.5**
   - `feat(game-server): …` → PR de release → merge → tag `game-server-v0.2.0` → imagen publicada → `values.yaml` bumpeado → ArgoCD sincroniza → pod nuevo healthy
   - El frontend no se toca en ese ciclo
