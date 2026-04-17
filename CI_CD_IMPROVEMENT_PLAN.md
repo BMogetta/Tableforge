@@ -39,6 +39,7 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 
 - [x] **1.2.a** Cambiar `platforms: linux/arm64` → `linux/amd64,linux/arm64` en los 2 jobs
 - [ ] **1.2.b** Verificar overhead de QEMU en build time; si supera +8min por imagen, evaluar volver a arm64-only y que los devs buildeen local
+  - Pendiente humano: medir después del primer CD verde post-merge. Comando sugerido: `gh run list --workflow CD --limit 5 --json durationMs,conclusion` y comparar con baseline (CI p50 ~280s). Umbral: si cualquier imagen supera ~8min, revertir a `linux/arm64` en cd.yml y documentar en README que devs amd64 deben `docker buildx build --platform linux/amd64 ...` local.
 - [ ] **1.2.c** ArgoCD siempre pulleará arm64 (el nodo es arm64) — no requiere cambios en el manifest
 - [ ] **Validación 1.2**
   - `docker manifest inspect ghcr.io/<owner>/tableforge-game-server:<sha>` lista ambos arches
