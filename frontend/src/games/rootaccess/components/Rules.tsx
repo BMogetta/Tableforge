@@ -3,8 +3,12 @@ import { CARD_META, type CardName } from './CardDisplay'
 import styles from './Rules.module.css'
 
 interface Props {
-  /** Cards currently in the player's hand — highlighted in the reference table. */
-  handCards?: CardName[]
+  /**
+   * Cards currently in the player's hand — highlighted in the reference table.
+   * Accepts string[] (the generic contract with the rules modal) and narrows
+   * to CardName internally at lookup time so consumers don't need to cast.
+   */
+  handCards?: string[]
 }
 
 const CARD_ORDER: CardName[] = [

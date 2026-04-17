@@ -1,4 +1,4 @@
-import { type CardName, RootAccess, RootAccessRules, type RootAccessState } from './rootaccess'
+import { RootAccess, RootAccessRules, type RootAccessState } from './rootaccess'
 import { TicTacToeBoard, TicTacToeRules, type TicTacToeState } from './tictactoe'
 
 // ---------------------------------------------------------------------------
@@ -75,7 +75,9 @@ export const GAME_RENDERERS: Record<string, RendererComponent> = {
 interface RulesEntry {
   id: string
   label: string
-  component: React.FC<{ handCards?: CardName[] }>
+  // handCards is a generic pass-through from RulesModal — each game's rules
+  // component narrows to its own card-name union internally.
+  component: React.FC<{ handCards?: string[] }>
 }
 
 export const GAME_RULES: RulesEntry[] = [

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GAME_RULES } from '@/games/registry'
-import type { CardName } from '@/games/rootaccess'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { testId } from '@/utils/testId'
 import { ModalOverlay } from './ModalOverlay'
@@ -10,8 +9,13 @@ import styles from './RulesModal.module.css'
 interface Props {
   /** Pre-select this game's tab when opening from in-game. */
   initialGameId?: string
-  /** Cards currently in the player's hand (Root Access only). */
-  handCards?: CardName[]
+  /**
+   * Opaque per-game context forwarded to the active rules component.
+   * Current use: Root Access consumes the local player's hand as string IDs.
+   * Typed as string[] here so the modal stays game-agnostic; each game's
+   * rules component narrows to its own card-name union internally.
+   */
+  handCards?: string[]
   onClose: () => void
 }
 
