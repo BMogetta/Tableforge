@@ -66,6 +66,9 @@ import (
 
 	"github.com/recess/game-server/cmd/bot-runner/internal/client"
 	"github.com/recess/game-server/cmd/bot-runner/internal/runner"
+
+	_ "github.com/recess/game-server/games/rootaccess"
+	_ "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 )
 
 type botSpec struct {

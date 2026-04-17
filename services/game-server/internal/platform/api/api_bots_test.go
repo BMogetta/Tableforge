@@ -11,6 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/recess/game-server/internal/platform/store"
 	sharedmw "github.com/recess/shared/middleware"
+
+	_ "github.com/recess/game-server/games/rootaccess"
+	_ "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 )
 
 // deleteJSONWithBody sends a DELETE request with a JSON body and returns the response.

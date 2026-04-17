@@ -9,9 +9,16 @@ import (
 
 	ttt "github.com/recess/game-server/games/tictactoe"
 	"github.com/recess/game-server/internal/bot"
+	botadapter "github.com/recess/game-server/internal/bot/adapter"
 	"github.com/recess/game-server/internal/bot/mcts"
 	"github.com/recess/game-server/internal/domain/engine"
 )
+
+func init() {
+	botadapter.Register("tictactoe", botadapter.Factory{
+		New: func() bot.BotAdapter { return New() },
+	})
+}
 
 // Adapter implements bot.BotAdapter for TicTacToe.
 // ApplyMove delegates directly to the game engine without calling ValidateMove —

@@ -34,6 +34,7 @@ import (
 
 	_ "github.com/recess/game-server/games/rootaccess"
 	_ "github.com/recess/game-server/games/tictactoe"
+	_ "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 )
 
 func main() {

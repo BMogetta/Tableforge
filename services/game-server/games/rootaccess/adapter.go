@@ -21,10 +21,18 @@ import (
 	"math/rand"
 
 	"github.com/recess/game-server/internal/bot"
+	botadapter "github.com/recess/game-server/internal/bot/adapter"
 	"github.com/recess/game-server/internal/bot/mcts"
 	"github.com/recess/game-server/internal/domain/engine"
 	"github.com/recess/shared/platform/randutil"
 )
+
+func init() {
+	botadapter.Register("rootaccess", botadapter.Factory{
+		New:            func() bot.BotAdapter { return New() },
+		NewWithProfile: func(p bot.PersonalityProfile) bot.BotAdapter { return NewWithProfile(p) },
+	})
+}
 
 // Adapter implements bot.BotAdapter for Root Access.
 //
