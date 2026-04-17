@@ -143,7 +143,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 ### 3.2 Schema drift check
 - [x] **3.2.a** Job `schema-drift`: `make gen-types` + `git diff --exit-code frontend/src/lib/schema-generated.zod.ts`
   - **Drift existente en main**: regenerar local muestra `-461 +93` líneas en `frontend/src/lib/schema-generated.zod.ts`. El job va a fallar hasta que se corra `make gen-types` y se commitée el resultado. A resolver en la limpieza del frontend.
-- [ ] **3.2.b** Extender a `make gen-proto` + diff sobre `shared/proto/`
+- [x] **3.2.b** Extender a `make gen-proto` + diff sobre `shared/proto/`
+  - Proto locales: sin drift (regeneración limpia en local). Installs: `protoc-gen-go@v1.35.2` y `protoc-gen-go-grpc@v1.5.1` pineados; `protobuf-compiler` vía apt.
 - [ ] **Validación 3.2** — editar JSON schema sin regenerar ⇒ rojo
 
 ### 3.3 Coverage agregado
