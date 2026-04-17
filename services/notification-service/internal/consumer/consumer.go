@@ -22,10 +22,13 @@ import (
 )
 
 const (
-	channelFriendshipRequested  = "friendship.requested"
-	channelFriendshipAccepted   = "friendship.accepted"
-	channelPlayerBanned         = "player.banned"
-	channelAchievementUnlocked  = "achievement.unlocked"
+	channelFriendshipRequested = "friendship.requested"
+	channelFriendshipAccepted  = "friendship.accepted"
+	channelPlayerBanned        = "player.banned"
+	channelAchievementUnlocked = "achievement.unlocked"
+
+	dedupeKeyPrefix = "dedup:notification-service:"
+	dedupeTTL       = 24 * time.Hour
 )
 
 // NotificationCreator persists notifications. Implemented by *store.Store.
@@ -104,9 +107,16 @@ func (c *Consumer) handleFriendshipRequested(ctx context.Context, payload string
 		return fmt.Errorf("invalid addressee_id: %w", err)
 	}
 
+	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
+		c.log.Warn("dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
+	} else if seen {
+		c.log.Info("skipping duplicate friendship.requested", "event_id", evt.EventID)
+		return nil
+	}
+
 	p := store.PayloadFriendRequest{
 		FromPlayerID: evt.RequesterID,
-		FromUsername:  evt.RequesterUsername,
+		FromUsername: evt.RequesterUsername,
 	}
 	payloadJSON, err := json.Marshal(p)
 	if err != nil {
@@ -119,8 +129,13 @@ func (c *Consumer) handleFriendshipRequested(ctx context.Context, payload string
 		Type:            store.NotificationTypeFriendRequest,
 		Payload:         payloadJSON,
 		ActionExpiresAt: &expires,
+		SourceEventID:   parseSourceEventID(evt.EventID),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrDuplicateNotification) {
+			c.log.Info("friend_request notification already exists, skipping", "event_id", evt.EventID)
+			return nil
+		}
 		return fmt.Errorf("create friend_request notification: %w", err)
 	}
 
@@ -152,6 +167,13 @@ func (c *Consumer) handleFriendshipAccepted(ctx context.Context, payload string)
 		return fmt.Errorf("invalid addressee_id: %w", err)
 	}
 
+	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
+		c.log.Warn("dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
+	} else if seen {
+		c.log.Info("skipping duplicate friendship.accepted", "event_id", evt.EventID)
+		return nil
+	}
+
 	p := store.PayloadFriendRequestAccepted{
 		FromPlayerID: addresseeID.String(),
 		FromUsername: evt.AddresseeUsername,
@@ -162,11 +184,16 @@ func (c *Consumer) handleFriendshipAccepted(ctx context.Context, payload string)
 	}
 
 	n, err := c.store.Create(ctx, store.CreateParams{
-		PlayerID: requesterID,
-		Type:     store.NotificationTypeFriendRequestAccepted,
-		Payload:  payloadJSON,
+		PlayerID:      requesterID,
+		Type:          store.NotificationTypeFriendRequestAccepted,
+		Payload:       payloadJSON,
+		SourceEventID: parseSourceEventID(evt.EventID),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrDuplicateNotification) {
+			c.log.Info("friend_request_accepted notification already exists, skipping", "event_id", evt.EventID)
+			return nil
+		}
 		return fmt.Errorf("create friend_request_accepted notification: %w", err)
 	}
 
@@ -194,6 +221,13 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error
 		return fmt.Errorf("invalid player_id: %w", err)
 	}
 
+	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
+		c.log.Warn("dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
+	} else if seen {
+		c.log.Info("skipping duplicate player.banned", "event_id", evt.EventID)
+		return nil
+	}
+
 	var expiresAt time.Time
 	var durationSecs int
 	if evt.ExpiresAt != nil {
@@ -215,11 +249,16 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error
 	}
 
 	n, err := c.store.Create(ctx, store.CreateParams{
-		PlayerID: playerID,
-		Type:     store.NotificationTypeBanIssued,
-		Payload:  payloadJSON,
+		PlayerID:      playerID,
+		Type:          store.NotificationTypeBanIssued,
+		Payload:       payloadJSON,
+		SourceEventID: parseSourceEventID(evt.EventID),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrDuplicateNotification) {
+			c.log.Info("ban_issued notification already exists, skipping", "event_id", evt.EventID)
+			return nil
+		}
 		return fmt.Errorf("create ban_issued notification: %w", err)
 	}
 
@@ -247,6 +286,13 @@ func (c *Consumer) handleAchievementUnlocked(ctx context.Context, payload string
 		return fmt.Errorf("invalid player_id: %w", err)
 	}
 
+	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
+		c.log.Warn("dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
+	} else if seen {
+		c.log.Info("skipping duplicate achievement.unlocked", "event_id", evt.EventID)
+		return nil
+	}
+
 	p := store.PayloadAchievementUnlocked{
 		AchievementKey: evt.AchievementKey,
 		Tier:           evt.Tier,
@@ -258,11 +304,16 @@ func (c *Consumer) handleAchievementUnlocked(ctx context.Context, payload string
 	}
 
 	n, err := c.store.Create(ctx, store.CreateParams{
-		PlayerID: playerID,
-		Type:     store.NotificationTypeAchievementUnlocked,
-		Payload:  payloadJSON,
+		PlayerID:      playerID,
+		Type:          store.NotificationTypeAchievementUnlocked,
+		Payload:       payloadJSON,
+		SourceEventID: parseSourceEventID(evt.EventID),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrDuplicateNotification) {
+			c.log.Info("achievement_unlocked notification already exists, skipping", "event_id", evt.EventID)
+			return nil
+		}
 		return fmt.Errorf("create achievement_unlocked notification: %w", err)
 	}
 
@@ -278,4 +329,33 @@ func (c *Consumer) handleAchievementUnlocked(ctx context.Context, payload string
 		"tier", evt.Tier,
 	)
 	return nil
+}
+
+// seenEvent returns true if the event was already processed within the 24h
+// dedupe window; otherwise records it. Redis errors fail open so a flaky
+// Redis never swallows events — duplicates are still prevented by the
+// (player_id, source_event_id) unique index in the notifications table.
+func (c *Consumer) seenEvent(ctx context.Context, eventID string) (bool, error) {
+	if eventID == "" || c.rdb == nil {
+		return false, nil
+	}
+	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result()
+	if err != nil {
+		return false, err
+	}
+	return !ok, nil
+}
+
+// parseSourceEventID turns a string event_id into a pointer for CreateParams.
+// Returns nil on empty or invalid input so the NULL constraint on
+// source_event_id applies.
+func parseSourceEventID(eventID string) *uuid.UUID {
+	if eventID == "" {
+		return nil
+	}
+	id, err := uuid.Parse(eventID)
+	if err != nil {
+		return nil
+	}
+	return &id
 }

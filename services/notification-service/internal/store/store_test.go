@@ -16,7 +16,7 @@ import (
 
 func newTestStore(t *testing.T) (*store.Store, uuid.UUID) {
 	t.Helper()
-	dsn := testutil.NewTestDB(t, testutil.MigrationInitial)
+	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.Migration("009_notifications_source_event_id.sql"))
 
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {
@@ -254,6 +254,63 @@ func TestSetAction_ConcurrentOnlyOneWins(t *testing.T) {
 	}
 }
 
+func TestCreate_DuplicateSourceEventRejected(t *testing.T) {
+	s, playerID := newTestStore(t)
+	ctx := context.Background()
+
+	eventID := uuid.New()
+	payload, _ := json.Marshal(store.PayloadFriendRequest{FromPlayerID: uuid.New().String()})
+
+	if _, err := s.Create(ctx, store.CreateParams{
+		PlayerID:      playerID,
+		Type:          store.NotificationTypeFriendRequest,
+		Payload:       payload,
+		SourceEventID: &eventID,
+	}); err != nil {
+		t.Fatalf("first Create: %v", err)
+	}
+
+	_, err := s.Create(ctx, store.CreateParams{
+		PlayerID:      playerID,
+		Type:          store.NotificationTypeFriendRequest,
+		Payload:       payload,
+		SourceEventID: &eventID,
+	})
+	if !errors.Is(err, store.ErrDuplicateNotification) {
+		t.Fatalf("expected ErrDuplicateNotification on second Create, got %v", err)
+	}
+
+	// A different event_id for the same player must still succeed — the
+	// uniqueness is per (player_id, source_event_id), not per player.
+	otherEvent := uuid.New()
+	if _, err := s.Create(ctx, store.CreateParams{
+		PlayerID:      playerID,
+		Type:          store.NotificationTypeFriendRequest,
+		Payload:       payload,
+		SourceEventID: &otherEvent,
+	}); err != nil {
+		t.Fatalf("unrelated event Create: %v", err)
+	}
+}
+
+func TestCreate_NullSourceEventIDAllowsMultiple(t *testing.T) {
+	// Notifications created via the internal API (no origin event) must be
+	// able to coexist — the partial unique index skips NULLs.
+	s, playerID := newTestStore(t)
+	ctx := context.Background()
+
+	payload, _ := json.Marshal(store.PayloadFriendRequest{FromPlayerID: uuid.New().String()})
+	for i := 0; i < 3; i++ {
+		if _, err := s.Create(ctx, store.CreateParams{
+			PlayerID: playerID,
+			Type:     store.NotificationTypeFriendRequest,
+			Payload:  payload,
+		}); err != nil {
+			t.Fatalf("Create #%d: %v", i, err)
+		}
+	}
+}
+
 func TestCreateWithActionExpiry(t *testing.T) {
 	s, playerID := newTestStore(t)
 	ctx := context.Background()
@@ -287,7 +344,7 @@ func TestCreateWithActionExpiry(t *testing.T) {
 }
 
 func TestListIsolationBetweenPlayers(t *testing.T) {
-	dsn := testutil.NewTestDB(t, testutil.MigrationInitial)
+	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.Migration("009_notifications_source_event_id.sql"))
 
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {

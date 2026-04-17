@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/recess/notification-service/internal/store"
 	"github.com/recess/shared/events"
+	"github.com/recess/shared/testutil"
 	sharedws "github.com/recess/shared/ws"
 )
 
@@ -20,10 +21,25 @@ type mockStore struct {
 	params store.CreateParams
 	result store.Notification
 	err    error
+	calls  int
+	seen   map[string]bool // key "playerID:sourceEventID"
 }
 
 func (m *mockStore) Create(_ context.Context, p store.CreateParams) (store.Notification, error) {
+	m.calls++
 	m.params = p
+	if m.seen == nil {
+		m.seen = make(map[string]bool)
+	}
+	// Mirror the DB UNIQUE(player_id, source_event_id) WHERE source_event_id
+	// IS NOT NULL so consumer tests exercise the dedupe short-circuit.
+	if p.SourceEventID != nil {
+		key := p.PlayerID.String() + ":" + p.SourceEventID.String()
+		if m.seen[key] {
+			return store.Notification{}, store.ErrDuplicateNotification
+		}
+		m.seen[key] = true
+	}
 	return m.result, m.err
 }
 
@@ -41,6 +57,12 @@ func (m *mockPublisher) PublishToPlayer(_ context.Context, playerID uuid.UUID, e
 
 func newTestConsumer(st *mockStore, pub *mockPublisher) *Consumer {
 	return &Consumer{store: st, pub: pub, log: slog.Default()}
+}
+
+func newTestConsumerWithRedis(t *testing.T, st *mockStore, pub *mockPublisher) *Consumer {
+	t.Helper()
+	rdb, _ := testutil.NewTestRedis(t)
+	return &Consumer{rdb: rdb, store: st, pub: pub, log: slog.Default()}
 }
 
 // --- friendship.requested ----------------------------------------------------
@@ -215,6 +237,36 @@ func TestHandlePlayerBanned_InvalidPlayerID(t *testing.T) {
 	msg := &redis.Message{Channel: channelPlayerBanned, Payload: string(payload)}
 	if err := c.handle(context.Background(), msg); err == nil {
 		t.Fatal("expected error for invalid player_id")
+	}
+}
+
+// --- dedupe ------------------------------------------------------------------
+
+func TestHandle_DedupesByEventID(t *testing.T) {
+	st := &mockStore{result: store.Notification{ID: uuid.New()}}
+	pub := &mockPublisher{}
+	c := newTestConsumerWithRedis(t, st, pub)
+
+	addresseeID := uuid.New()
+	eventID := uuid.NewString()
+	evt := events.FriendshipRequested{
+		Meta:              events.Meta{EventID: eventID},
+		RequesterID:       uuid.NewString(),
+		RequesterUsername: "alice",
+		AddresseeID:       addresseeID.String(),
+	}
+	payload, _ := json.Marshal(evt)
+	msg := &redis.Message{Channel: channelFriendshipRequested, Payload: string(payload)}
+
+	if err := c.handle(context.Background(), msg); err != nil {
+		t.Fatalf("first handle: %v", err)
+	}
+	if err := c.handle(context.Background(), msg); err != nil {
+		t.Fatalf("second handle: %v", err)
+	}
+
+	if st.calls != 1 {
+		t.Errorf("expected Create to run once, got %d calls", st.calls)
 	}
 }
 

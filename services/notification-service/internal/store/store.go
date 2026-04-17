@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,6 +17,11 @@ import (
 // window has expired, or the row does not exist. The check and the claim
 // run inside a single UPDATE so there is no TOCTOU race between them.
 var ErrActionUnavailable = errors.New("notification action is no longer available")
+
+// ErrDuplicateNotification is returned by Create when a notification row for
+// (player_id, source_event_id) already exists — the authoritative signal
+// that a Redis consumer received a re-delivered event.
+var ErrDuplicateNotification = errors.New("notification already exists for this source event")
 
 // NotificationType identifies the kind of inbox notification.
 type NotificationType string
@@ -54,6 +60,10 @@ type CreateParams struct {
 	Type            NotificationType
 	Payload         json.RawMessage
 	ActionExpiresAt *time.Time
+	// SourceEventID, when set, is the event_id of the Redis event that
+	// triggered this notification. The (player_id, source_event_id) pair is
+	// uniquely indexed so re-delivered events cannot produce duplicate rows.
+	SourceEventID *uuid.UUID
 }
 
 // PayloadFriendRequest is the payload for friend_request notifications.
@@ -111,14 +121,18 @@ func New(ctx context.Context, dsn string) (*Store, error) {
 func (s *Store) Create(ctx context.Context, p CreateParams) (Notification, error) {
 	var n Notification
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO notifications (player_id, type, payload, action_expires_at)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO notifications (player_id, type, payload, action_expires_at, source_event_id)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, player_id, type, payload, read_at, action_taken, action_expires_at, created_at
-	`, p.PlayerID, p.Type, p.Payload, p.ActionExpiresAt).Scan(
+	`, p.PlayerID, p.Type, p.Payload, p.ActionExpiresAt, p.SourceEventID).Scan(
 		&n.ID, &n.PlayerID, &n.Type, &n.Payload,
 		&n.ReadAt, &n.ActionTaken, &n.ActionExpiresAt, &n.CreatedAt,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return Notification{}, ErrDuplicateNotification
+		}
 		return Notification{}, fmt.Errorf("notification store: create: %w", err)
 	}
 	return n, nil
