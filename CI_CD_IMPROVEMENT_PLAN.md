@@ -174,7 +174,7 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 4.2** — PR que toca un workflow solicita review al owner
 
 ### 4.3 Pull request template
-- [ ] **4.3.a** `.github/pull_request_template.md` con: Summary / Breaking changes / Tests / Rollback
+- [x] **4.3.a** `.github/pull_request_template.md` con: Summary / Breaking changes / Tests / Rollback
 - [ ] **Validación 4.3** — `gh pr create` muestra el template
 
 ### 4.4 SHA pinning de actions y base images
