@@ -141,7 +141,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
   - **Pausado 2026-04-17** por pedido del usuario. Blockers detectados localmente: (a) `npm run build` falla con TS2774 en `src/features/game/Replay.tsx:169`; (b) `biome check` reporta drift remanente después de `biome check --write`; (c) `npm audit` (2.2.a) ya detecta CVE crítica de `protobufjs`. Retomar después de limpiar el frontend.
 
 ### 3.2 Schema drift check
-- [ ] **3.2.a** Job `schema-drift`: `make gen-types` + `git diff --exit-code frontend/src/lib/schema-generated.zod.ts`
+- [x] **3.2.a** Job `schema-drift`: `make gen-types` + `git diff --exit-code frontend/src/lib/schema-generated.zod.ts`
+  - **Drift existente en main**: regenerar local muestra `-461 +93` líneas en `frontend/src/lib/schema-generated.zod.ts`. El job va a fallar hasta que se corra `make gen-types` y se commitée el resultado. A resolver en la limpieza del frontend.
 - [ ] **3.2.b** Extender a `make gen-proto` + diff sobre `shared/proto/`
 - [ ] **Validación 3.2** — editar JSON schema sin regenerar ⇒ rojo
 
