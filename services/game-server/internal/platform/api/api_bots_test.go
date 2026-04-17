@@ -13,7 +13,7 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 
 	_ "github.com/recess/game-server/games/rootaccess"
-	_ "github.com/recess/game-server/internal/bot/adapter/tictactoe"
+	_ "github.com/recess/game-server/games/tictactoe"
 )
 
 // deleteJSONWithBody sends a DELETE request with a JSON body and returns the response.

@@ -32,9 +32,10 @@ import (
 	sharedredis "github.com/recess/shared/redis"
 	"github.com/recess/shared/telemetry"
 
+	// Game plugins: each package's init() registers both the engine
+	// (games.Register) and the bot adapter (adapter.Register).
 	_ "github.com/recess/game-server/games/rootaccess"
 	_ "github.com/recess/game-server/games/tictactoe"
-	_ "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 )
 
 func main() {

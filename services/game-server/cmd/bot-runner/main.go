@@ -67,8 +67,9 @@ import (
 	"github.com/recess/game-server/cmd/bot-runner/internal/client"
 	"github.com/recess/game-server/cmd/bot-runner/internal/runner"
 
+	// Game plugins: engine + bot adapter register from each package's init().
 	_ "github.com/recess/game-server/games/rootaccess"
-	_ "github.com/recess/game-server/internal/bot/adapter/tictactoe"
+	_ "github.com/recess/game-server/games/tictactoe"
 )
 
 type botSpec struct {

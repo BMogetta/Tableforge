@@ -5,31 +5,27 @@ import (
 	"testing"
 	"time"
 
-	ttt "github.com/recess/game-server/games/tictactoe"
+	"github.com/recess/game-server/games/tictactoe"
 	"github.com/recess/game-server/internal/bot"
-	adapter "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 	botmcts "github.com/recess/game-server/internal/bot/mcts"
 	"github.com/recess/game-server/internal/domain/engine"
 )
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 const (
 	playerX engine.PlayerID = "player-x"
 	playerO engine.PlayerID = "player-o"
 )
 
-// newGame initialises a TicTacToe BotGameState with playerX going first.
-func newGame() bot.BotGameState {
-	game := &ttt.TicTacToe{}
+// newBotState initialises a TicTacToe BotGameState with playerX going first.
+// Named distinctly from the engine-level newGame helper in tictactoe_test.go.
+func newBotState() bot.BotGameState {
+	game := &tictactoe.TicTacToe{}
 	state, err := game.Init([]engine.Player{
 		{ID: playerX, Username: "X"},
 		{ID: playerO, Username: "O"},
 	})
 	if err != nil {
-		panic("newGame: " + err.Error())
+		panic("newBotState: " + err.Error())
 	}
 	return bot.NewBotState(state)
 }
@@ -52,22 +48,18 @@ func strongCfg() bot.BotConfig {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 // TestAdapter_BotVsBot plays a full game between two bots and asserts that:
 //  1. The game terminates within the timeout.
 //  2. Every move applied passes ValidateMove (legal play throughout).
 //  3. The final result is win or draw — never an invalid state.
 func TestAdapter_BotVsBot(t *testing.T) {
-	a := adapter.New()
-	game := &ttt.TicTacToe{}
+	a := tictactoe.NewAdapter()
+	game := &tictactoe.TicTacToe{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	state := newGame()
+	state := newBotState()
 	players := []engine.PlayerID{playerX, playerO}
 	turn := 0
 
@@ -83,7 +75,6 @@ func TestAdapter_BotVsBot(t *testing.T) {
 			t.Fatalf("turn %d: Search error: %v", turn, err)
 		}
 
-		// Assert the move is legal according to the engine.
 		payload, err := move.Payload()
 		if err != nil {
 			t.Fatalf("turn %d: bad BotMove payload: %v", turn, err)
@@ -101,7 +92,6 @@ func TestAdapter_BotVsBot(t *testing.T) {
 		turn++
 	}
 
-	// Game must have ended with a valid result.
 	over, result := game.IsOver(state.EngineState())
 	if !over {
 		t.Fatal("IsTerminal returned true but IsOver returned false")
@@ -111,10 +101,8 @@ func TestAdapter_BotVsBot(t *testing.T) {
 	}
 }
 
-// TestAdapter_TakesImmediateWin asserts that the bot plays the winning move
-// when one is available on the next turn.
-//
-// Board setup (X to move, X wins by playing cell 2):
+// TestAdapter_TakesImmediateWin asserts the bot plays the winning move when
+// one is available on the next turn. Board (X to move, X wins by playing cell 2):
 //
 //	X | X | _
 //	---------
@@ -122,10 +110,9 @@ func TestAdapter_BotVsBot(t *testing.T) {
 //	---------
 //	_ | _ | _
 func TestAdapter_TakesImmediateWin(t *testing.T) {
-	a := adapter.New()
-	game := &ttt.TicTacToe{}
+	a := tictactoe.NewAdapter()
+	game := &tictactoe.TicTacToe{}
 
-	// Build the state by applying moves manually.
 	state, err := game.Init([]engine.Player{
 		{ID: playerX, Username: "X"},
 		{ID: playerO, Username: "O"},
@@ -138,11 +125,10 @@ func TestAdapter_TakesImmediateWin(t *testing.T) {
 		player engine.PlayerID
 		cell   int
 	}{
-		{playerX, 0}, // X plays cell 0
-		{playerO, 3}, // O plays cell 3
-		{playerX, 1}, // X plays cell 1
-		{playerO, 4}, // O plays cell 4
-		// X to move — cell 2 wins the top row.
+		{playerX, 0},
+		{playerO, 3},
+		{playerX, 1},
+		{playerO, 4},
 	}
 	for _, m := range moves {
 		state, err = game.ApplyMove(state, engine.Move{
@@ -157,13 +143,7 @@ func TestAdapter_TakesImmediateWin(t *testing.T) {
 
 	botState := bot.NewBotState(state)
 
-	move, err := botmcts.Search(
-		context.Background(),
-		botState,
-		playerX,
-		a,
-		strongCfg(),
-	)
+	move, err := botmcts.Search(context.Background(), botState, playerX, a, strongCfg())
 	if err != nil {
 		t.Fatalf("Search error: %v", err)
 	}
@@ -177,8 +157,6 @@ func TestAdapter_TakesImmediateWin(t *testing.T) {
 	if !ok {
 		t.Fatal("move payload missing 'cell'")
 	}
-
-	// cell comes back as float64 from JSON round-trip.
 	cellFloat, ok := cell.(float64)
 	if !ok {
 		t.Fatalf("cell is %T, want float64", cell)
@@ -188,10 +166,9 @@ func TestAdapter_TakesImmediateWin(t *testing.T) {
 	}
 }
 
-// TestAdapter_BlocksImmediateLoss asserts that the bot blocks the opponent's
-// winning move when it is the only sensible play.
-//
-// Board setup (X to move, must block O at cell 5):
+// TestAdapter_BlocksImmediateLoss asserts the bot blocks the opponent's
+// winning move when it is the only sensible play. Board (X to move, must
+// block O at cell 5):
 //
 //	X | _ | _
 //	---------
@@ -199,8 +176,8 @@ func TestAdapter_TakesImmediateWin(t *testing.T) {
 //	---------
 //	_ | _ | _
 func TestAdapter_BlocksImmediateLoss(t *testing.T) {
-	a := adapter.New()
-	game := &ttt.TicTacToe{}
+	a := tictactoe.NewAdapter()
+	game := &tictactoe.TicTacToe{}
 
 	state, err := game.Init([]engine.Player{
 		{ID: playerX, Username: "X"},
@@ -214,11 +191,10 @@ func TestAdapter_BlocksImmediateLoss(t *testing.T) {
 		player engine.PlayerID
 		cell   int
 	}{
-		{playerX, 0}, // X plays cell 0
-		{playerO, 3}, // O plays cell 3
-		{playerX, 8}, // X plays cell 8 (irrelevant)
-		{playerO, 4}, // O plays cell 4 — O threatens cell 5
-		// X must play cell 5 to block.
+		{playerX, 0},
+		{playerO, 3},
+		{playerX, 8},
+		{playerO, 4},
 	}
 	for _, m := range moves {
 		state, err = game.ApplyMove(state, engine.Move{
@@ -233,13 +209,7 @@ func TestAdapter_BlocksImmediateLoss(t *testing.T) {
 
 	botState := bot.NewBotState(state)
 
-	move, err := botmcts.Search(
-		context.Background(),
-		botState,
-		playerX,
-		a,
-		strongCfg(),
-	)
+	move, err := botmcts.Search(context.Background(), botState, playerX, a, strongCfg())
 	if err != nil {
 		t.Fatalf("Search error: %v", err)
 	}
@@ -258,11 +228,9 @@ func TestAdapter_BlocksImmediateLoss(t *testing.T) {
 	}
 }
 
-// TestAdapter_ValidMovesEmptyBoard asserts that all 9 cells are returned on
-// an empty board.
 func TestAdapter_ValidMovesEmptyBoard(t *testing.T) {
-	a := adapter.New()
-	state := newGame()
+	a := tictactoe.NewAdapter()
+	state := newBotState()
 
 	moves := a.ValidMoves(state)
 	if len(moves) != 9 {
@@ -270,13 +238,10 @@ func TestAdapter_ValidMovesEmptyBoard(t *testing.T) {
 	}
 }
 
-// TestAdapter_ValidMovesTerminalState asserts that no moves are returned for
-// a finished game.
 func TestAdapter_ValidMovesTerminalState(t *testing.T) {
-	a := adapter.New()
-	game := &ttt.TicTacToe{}
+	a := tictactoe.NewAdapter()
+	game := &tictactoe.TicTacToe{}
 
-	// X wins immediately: play top row.
 	state, err := game.Init([]engine.Player{
 		{ID: playerX, Username: "X"},
 		{ID: playerO, Username: "O"},
@@ -291,7 +256,7 @@ func TestAdapter_ValidMovesTerminalState(t *testing.T) {
 	}{
 		{playerX, 0}, {playerO, 3},
 		{playerX, 1}, {playerO, 4},
-		{playerX, 2}, // X wins
+		{playerX, 2},
 	}
 	for _, m := range sequence {
 		state, err = game.ApplyMove(state, engine.Move{
@@ -312,19 +277,15 @@ func TestAdapter_ValidMovesTerminalState(t *testing.T) {
 }
 
 // TestAdapter_ResultDraw asserts Result returns 0.5 on a drawn game for both players.
+// Drawn position:
+//
+//	X | O | X
+//	X | O | O
+//	O | X | X
 func TestAdapter_ResultDraw(t *testing.T) {
-	a := adapter.New()
-	game := &ttt.TicTacToe{}
+	a := tictactoe.NewAdapter()
+	game := &tictactoe.TicTacToe{}
 
-	// Construct a known draw:
-	// X O X
-	// X X O
-	// O X O  — wait, that has X winning. Use:
-	// X O X
-	// O X X  — X wins diag. Use a proper draw:
-	// X O X
-	// X O O
-	// O X X
 	state, err := game.Init([]engine.Player{
 		{ID: playerX, Username: "X"},
 		{ID: playerO, Username: "O"},
@@ -333,10 +294,6 @@ func TestAdapter_ResultDraw(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Draw sequence (verified manually):
-	// X O X
-	// X O O
-	// O X X
 	sequence := []struct {
 		player engine.PlayerID
 		cell   int

@@ -10,7 +10,6 @@ import (
 	"github.com/recess/game-server/games/tictactoe"
 	"github.com/recess/game-server/internal/bot"
 	botadapter "github.com/recess/game-server/internal/bot/adapter"
-	_ "github.com/recess/game-server/internal/bot/adapter/tictactoe"
 	"github.com/recess/game-server/internal/bot/mcts"
 	"github.com/recess/game-server/internal/domain/engine"
 	"github.com/recess/game-server/internal/domain/runtime"

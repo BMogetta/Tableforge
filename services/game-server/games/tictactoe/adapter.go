@@ -1,13 +1,15 @@
-// Package tictactoe provides a bot.BotAdapter implementation for TicTacToe.
+// BotAdapter implementation for TicTacToe — co-located with the game plugin so
+// the package is a single self-contained unit (engine + rules + bot adapter).
+// Registration happens in init() via adapter.Register.
+//
 // TicTacToe has no hidden information, so Determinize is an identity function
 // and RolloutPolicy uses uniform random selection.
+
 package tictactoe
 
 import (
-	"fmt"
 	"time"
 
-	ttt "github.com/recess/game-server/games/tictactoe"
 	"github.com/recess/game-server/internal/bot"
 	botadapter "github.com/recess/game-server/internal/bot/adapter"
 	"github.com/recess/game-server/internal/bot/mcts"
@@ -15,21 +17,21 @@ import (
 )
 
 func init() {
-	botadapter.Register("tictactoe", botadapter.Factory{
-		New: func() bot.BotAdapter { return New() },
+	botadapter.Register(gameID, botadapter.Factory{
+		New: func() bot.BotAdapter { return NewAdapter() },
 	})
 }
 
-// Adapter implements bot.BotAdapter for TicTacToe.
-// ApplyMove delegates directly to the game engine without calling ValidateMove —
-// it is the caller's responsibility to only pass moves returned by ValidMoves.
+// Adapter implements bot.BotAdapter for TicTacToe. ApplyMove delegates
+// directly to the game engine without calling ValidateMove — callers must
+// only pass moves returned by ValidMoves.
 type Adapter struct {
-	game *ttt.TicTacToe
+	game *TicTacToe
 }
 
-// New returns a new TicTacToe Adapter.
-func New() *Adapter {
-	return &Adapter{game: &ttt.TicTacToe{}}
+// NewAdapter returns a fresh TicTacToe bot adapter.
+func NewAdapter() *Adapter {
+	return &Adapter{game: &TicTacToe{}}
 }
 
 // ValidMoves returns one move per empty cell as {"cell":N} JSON payloads.
@@ -37,7 +39,6 @@ func New() *Adapter {
 func (a *Adapter) ValidMoves(s bot.BotGameState) []bot.BotMove {
 	state := s.EngineState()
 
-	// Guard: do not enumerate moves on a finished game.
 	if over, _ := a.game.IsOver(state); over {
 		return nil
 	}
@@ -91,12 +92,11 @@ func (a *Adapter) IsTerminal(s bot.BotGameState) bool {
 }
 
 // Result returns the score for playerID at a terminal state.
-// 1.0 = win, 0.0 = loss, 0.5 = draw.
-// Must only be called when IsTerminal returns true.
+// 1.0 = win, 0.0 = loss, 0.5 = draw. Must only be called when IsTerminal is true.
 func (a *Adapter) Result(s bot.BotGameState, playerID engine.PlayerID) float64 {
 	_, result := a.game.IsOver(s.EngineState())
 	if result.WinnerID == nil {
-		return 0.5 // draw
+		return 0.5
 	}
 	if *result.WinnerID == playerID {
 		return 1.0
@@ -114,38 +114,8 @@ func (a *Adapter) Determinize(s bot.BotGameState, _ engine.PlayerID) bot.BotGame
 	return s
 }
 
-// RolloutPolicy delegates to uniform random selection.
-// TicTacToe has no meaningful heuristic that would justify a guided rollout.
+// RolloutPolicy delegates to uniform random selection. TicTacToe has no
+// meaningful heuristic that would justify a guided rollout.
 func (a *Adapter) RolloutPolicy(s bot.BotGameState, moves []bot.BotMove) bot.BotMove {
 	return mcts.RandomRolloutPolicy(s, moves)
-}
-
-// getBoard reads the board from state.Data, handling both the native [9]string
-// form and the []any form that results from a JSON round-trip in bot.Clone().
-func getBoard(state engine.GameState) ([9]string, error) {
-	raw, ok := state.Data["board"]
-	if !ok {
-		return [9]string{}, fmt.Errorf("tictactoe adapter: state missing 'board'")
-	}
-	switch v := raw.(type) {
-	case [9]string:
-		return v, nil
-	case []any:
-		if len(v) != 9 {
-			return [9]string{}, fmt.Errorf("tictactoe adapter: board has %d cells, want 9", len(v))
-		}
-		var board [9]string
-		for i, cell := range v {
-			if cell == nil {
-				board[i] = ""
-			} else if s, ok := cell.(string); ok {
-				board[i] = s
-			} else {
-				return [9]string{}, fmt.Errorf("tictactoe adapter: board cell %d is not a string", i)
-			}
-		}
-		return board, nil
-	default:
-		return [9]string{}, fmt.Errorf("tictactoe adapter: unexpected board type %T", raw)
-	}
 }
