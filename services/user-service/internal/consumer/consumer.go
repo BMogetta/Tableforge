@@ -97,23 +97,16 @@ func (c *Consumer) evaluatePlayer(ctx context.Context, evt events.GameSessionFin
 		}
 	}
 
-	// Compute win streak from existing state.
-	// The win_streak achievement tracks the current streak in its progress field.
-	winStreak := currentState["win_streak"].Progress
-	if sp.Outcome == "win" {
-		winStreak++
-	} else {
-		winStreak = 0
-	}
-
-	// Evaluate for unlocks.
-	unlocks := achievements.Evaluate(evt, sp.Outcome, currentState, winStreak)
+	// Evaluate for unlocks. Each Definition.ComputeProgress closure derives
+	// its own new-progress value from the event + outcome + cur, so no
+	// per-achievement parameters need to leak into this orchestration.
+	unlocks := achievements.Evaluate(evt, sp.Outcome, currentState)
 
 	// Also update progress for all applicable definitions (even without tier-up).
 	defs := achievements.ForGame(evt.GameID)
 	for _, def := range defs {
 		cur := currentState[def.Key]
-		newProgress, changed := achievements.ComputeNewProgress(def, cur, evt, sp.Outcome, winStreak)
+		newProgress, changed := achievements.ComputeNewProgress(def, cur, evt, sp.Outcome)
 		if !changed {
 			continue
 		}

@@ -20,63 +20,45 @@ type Unlock struct {
 	Progress int
 }
 
+// ProgressFunc computes the next progress value for an achievement given a
+// finished game event. It returns the new value and whether the achievement
+// was affected by this event.
+//
+//   - (value > cur.Progress, true)  — progress increased; may trigger tier-up
+//   - (value, true) with value ≤ cur — progress was reset or adjusted; persisted
+//     but cannot tier-up
+//   - (_, false)                     — this event is not applicable; skip both
+//
+// The closure receives the player's pre-event Progress, the session event,
+// and the outcome string ("win" | "loss" | "draw" | "forfeit"). It must be
+// deterministic with respect to those inputs.
+type ProgressFunc func(cur Progress, evt events.GameSessionFinished, outcome string) (int, bool)
+
 // Evaluate checks all applicable achievements for a single player given the
 // game session event and the player's current achievement state.
 // Returns a list of new unlocks/tier-ups.
+//
+// The generic loop: every Definition.ComputeProgress closure decides whether
+// and how this event affects its achievement. Adding a new achievement is a
+// single Registry entry — no switch here to edit.
 func Evaluate(
 	evt events.GameSessionFinished,
-	playerOutcome string, // "win" | "loss" | "draw" | "forfeit"
+	playerOutcome string,
 	currentState map[string]Progress,
-	winStreak int,
 ) []Unlock {
 	defs := ForGame(evt.GameID)
 	var unlocks []Unlock
 
 	for _, def := range defs {
-		cur := currentState[def.Key]
-
-		var newProgress int
-		switch def.Key {
-		case "games_played":
-			newProgress = cur.Progress + 1
-		case "games_won":
-			if playerOutcome == "win" {
-				newProgress = cur.Progress + 1
-			} else {
-				continue
-			}
-		case "win_streak":
-			if playerOutcome == "win" {
-				newProgress = winStreak
-			} else {
-				continue
-			}
-		case "first_draw":
-			if playerOutcome == "draw" {
-				newProgress = 1
-			} else {
-				continue
-			}
-		case "ttt_perfect_game":
-			if evt.GameID != "tictactoe" || playerOutcome != "win" {
-				continue
-			}
-			// Perfect game = exactly 5 total moves (3 winner + 2 loser).
-			if evt.MoveCount != 5 {
-				continue
-			}
-			newProgress = 1
-		case "ttt_games_played":
-			if evt.GameID != "tictactoe" {
-				continue
-			}
-			newProgress = cur.Progress + 1
-		default:
+		if def.ComputeProgress == nil {
 			continue
 		}
-
-		u := checkTierUp(def, cur, newProgress)
-		if u != nil {
+		cur := currentState[def.Key]
+		newProgress, applicable := def.ComputeProgress(cur, evt, playerOutcome)
+		if !applicable {
+			continue
+		}
+		if u := checkTierUp(def, cur, newProgress); u != nil {
 			unlocks = append(unlocks, *u)
 		}
 	}
@@ -125,49 +107,24 @@ func checkTierUp(def Definition, cur Progress, newProgress int) *Unlock {
 			Progress: newProgress,
 		}
 	}
-
-	// Progress changed but no tier up — still need to persist progress.
-	// Return nil for unlock, but the consumer will update progress separately.
 	return nil
 }
 
 // ComputeNewProgress returns the updated progress value for a definition,
 // without checking tier thresholds. Used by the consumer to persist progress
 // even when no unlock happens.
+//
+// Thin wrapper around Definition.ComputeProgress that keeps the old call
+// shape and returns the cur.Progress + false sentinel for Definitions with
+// no closure (e.g. future metadata-only entries).
 func ComputeNewProgress(
 	def Definition,
 	cur Progress,
 	evt events.GameSessionFinished,
 	playerOutcome string,
-	winStreak int,
 ) (int, bool) {
-	switch def.Key {
-	case "games_played":
-		return cur.Progress + 1, true
-	case "games_won":
-		if playerOutcome == "win" {
-			return cur.Progress + 1, true
-		}
-	case "win_streak":
-		if playerOutcome == "win" {
-			return winStreak, true
-		}
-		// Reset streak on non-win: progress goes to 0 but tier stays.
-		if cur.Progress > 0 {
-			return 0, true
-		}
-	case "first_draw":
-		if playerOutcome == "draw" {
-			return 1, true
-		}
-	case "ttt_perfect_game":
-		if evt.GameID == "tictactoe" && playerOutcome == "win" && evt.DurationSecs <= 60 {
-			return 1, true
-		}
-	case "ttt_games_played":
-		if evt.GameID == "tictactoe" {
-			return cur.Progress + 1, true
-		}
+	if def.ComputeProgress == nil {
+		return cur.Progress, false
 	}
-	return cur.Progress, false
+	return def.ComputeProgress(cur, evt, playerOutcome)
 }

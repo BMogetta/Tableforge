@@ -14,6 +14,8 @@
 // the i18n key, not the resolved string — clients resolve at render time.
 package achievements
 
+import "github.com/recess/shared/events"
+
 // Tier represents a single milestone within an achievement.
 type Tier struct {
 	Threshold      int
@@ -22,13 +24,20 @@ type Tier struct {
 }
 
 // Definition describes an achievement that can be earned by players.
+//
+// ComputeProgress captures the rule for this specific achievement: given the
+// player's current progress and a finished-game event, it returns the new
+// progress value and whether the event applied. Co-locating the rule with
+// the metadata keeps the evaluator generic — adding a new achievement means
+// appending a Registry entry, never editing evaluator.go.
 type Definition struct {
-	Key            string
-	NameKey        string // i18n key for the display name
-	DescriptionKey string // i18n key for the description (flat achievements)
-	GameID         string // "" = global, "tictactoe" = game-specific
-	Type           string // "flat" | "tiered"
-	Tiers          []Tier
+	Key             string
+	NameKey         string // i18n key for the display name
+	DescriptionKey  string // i18n key for the description (flat achievements)
+	GameID          string // "" = global, "tictactoe" = game-specific
+	Type            string // "flat" | "tiered"
+	Tiers           []Tier
+	ComputeProgress ProgressFunc
 }
 
 const (
@@ -73,6 +82,9 @@ var Registry = []Definition{
 			{Threshold: 100, NameKey: tierNameKey("games_played", 4), DescriptionKey: tierDescKey("games_played", 4)},
 			{Threshold: 500, NameKey: tierNameKey("games_played", 5), DescriptionKey: tierDescKey("games_played", 5)},
 		},
+		ComputeProgress: func(cur Progress, _ events.GameSessionFinished, _ string) (int, bool) {
+			return cur.Progress + 1, true
+		},
 	},
 	{
 		Key:     "games_won",
@@ -85,6 +97,12 @@ var Registry = []Definition{
 			{Threshold: 50, NameKey: tierNameKey("games_won", 3), DescriptionKey: tierDescKey("games_won", 3)},
 			{Threshold: 100, NameKey: tierNameKey("games_won", 4), DescriptionKey: tierDescKey("games_won", 4)},
 		},
+		ComputeProgress: func(cur Progress, _ events.GameSessionFinished, outcome string) (int, bool) {
+			if outcome != "win" {
+				return cur.Progress, false
+			}
+			return cur.Progress + 1, true
+		},
 	},
 	{
 		Key:     "win_streak",
@@ -96,6 +114,18 @@ var Registry = []Definition{
 			{Threshold: 5, NameKey: tierNameKey("win_streak", 2), DescriptionKey: tierDescKey("win_streak", 2)},
 			{Threshold: 10, NameKey: tierNameKey("win_streak", 3), DescriptionKey: tierDescKey("win_streak", 3)},
 		},
+		// Progress tracks the current streak. Wins advance it; any other
+		// outcome resets to 0 but keeps the achieved tier (checkTierUp never
+		// demotes). A reset on cur.Progress == 0 is a no-op to avoid churn.
+		ComputeProgress: func(cur Progress, _ events.GameSessionFinished, outcome string) (int, bool) {
+			if outcome == "win" {
+				return cur.Progress + 1, true
+			}
+			if cur.Progress > 0 {
+				return 0, true
+			}
+			return cur.Progress, false
+		},
 	},
 	{
 		Key:            "first_draw",
@@ -105,6 +135,12 @@ var Registry = []Definition{
 		Type:           TypeFlat,
 		Tiers: []Tier{
 			{Threshold: 1, NameKey: tierNameKey("first_draw", 1), DescriptionKey: tierDescKey("first_draw", 1)},
+		},
+		ComputeProgress: func(cur Progress, _ events.GameSessionFinished, outcome string) (int, bool) {
+			if outcome != "draw" {
+				return cur.Progress, false
+			}
+			return 1, true
 		},
 	},
 
@@ -118,6 +154,14 @@ var Registry = []Definition{
 		Tiers: []Tier{
 			{Threshold: 1, NameKey: tierNameKey("ttt_perfect_game", 1), DescriptionKey: tierDescKey("ttt_perfect_game", 1)},
 		},
+		// A perfect game is exactly 5 total moves: 3 by the winner, 2 by the
+		// loser. Only awarded to the winner.
+		ComputeProgress: func(cur Progress, evt events.GameSessionFinished, outcome string) (int, bool) {
+			if outcome != "win" || evt.MoveCount != 5 {
+				return cur.Progress, false
+			}
+			return 1, true
+		},
 	},
 	{
 		Key:     "ttt_games_played",
@@ -128,6 +172,11 @@ var Registry = []Definition{
 			{Threshold: 5, NameKey: tierNameKey("ttt_games_played", 1), DescriptionKey: tierDescKey("ttt_games_played", 1)},
 			{Threshold: 25, NameKey: tierNameKey("ttt_games_played", 2), DescriptionKey: tierDescKey("ttt_games_played", 2)},
 			{Threshold: 100, NameKey: tierNameKey("ttt_games_played", 3), DescriptionKey: tierDescKey("ttt_games_played", 3)},
+		},
+		ComputeProgress: func(cur Progress, _ events.GameSessionFinished, _ string) (int, bool) {
+			// ForGame already filtered to GameID == "tictactoe", so every event
+			// that reaches this closure is a TTT game regardless of outcome.
+			return cur.Progress + 1, true
 		},
 	},
 }
