@@ -1,12 +1,12 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAppStore } from '@/stores/store'
-import type { SessionEvent, Move } from '@/lib/schema-generated.zod'
-import { keys } from '@/lib/queryClient'
-import { TicTacToeBoard, type TicTacToeState } from '@/games/tictactoe'
-import styles from './Replay.module.css'
+import { useState } from 'react'
+import { GAME_RENDERERS, type GameData } from '@/games/registry'
 import { sessions } from '@/lib/api/sessions'
+import { keys } from '@/lib/queryClient'
+import type { Move, SessionEvent } from '@/lib/schema-generated.zod'
+import { useAppStore } from '@/stores/store'
 import { testId } from '@/utils/testId'
+import styles from './Replay.module.css'
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -76,7 +76,8 @@ function EventRow({ event, base, index }: { event: SessionEvent; base: string; i
           {label}
         </span>
         {hasPayload && (
-          <button type="button"
+          <button
+            type='button'
             className={styles.eventToggle}
             onClick={() => setOpen(o => !o)}
             aria-label='toggle payload'
@@ -97,7 +98,7 @@ function EventRow({ event, base, index }: { event: SessionEvent; base: string; i
 
 // --- Replay ------------------------------------------------------------------
 
-function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
+export function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
   const [step, setStep] = useState(0)
 
   if (moves.length === 0) {
@@ -112,19 +113,14 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
   const stateAfter = currentMove?.state_after
     ? (() => {
         try {
-          return JSON.parse(atob(currentMove.state_after!)) as {
-            current_player_id: string
-            data: unknown
-          }
+          return JSON.parse(atob(currentMove.state_after!)) as GameData
         } catch {
           return null
         }
       })()
     : null
-  const boardState: TicTacToeState | undefined =
-    step === 0 && gameId === 'tictactoe'
-      ? { board: Array(9).fill('') as string[], marks: {}, players: [] }
-      : (stateAfter?.data as TicTacToeState | undefined)
+
+  const Renderer = GAME_RENDERERS[gameId]
 
   return (
     <div className={styles.replayRoot}>
@@ -139,14 +135,20 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
         )}
       </div>
 
-      <div className={styles.replayBoard}>
-        {gameId === 'tictactoe' && boardState ? (
-          <TicTacToeBoard
-            state={boardState}
-            currentPlayerId=''
+      <div className={styles.replayBoard} {...testId('replay-board')}>
+        {step === 0 ? (
+          <div className={styles.replayNoRenderer} {...testId('replay-initial-placeholder')}>
+            <span>Starting position — press → to advance.</span>
+          </div>
+        ) : Renderer && stateAfter ? (
+          <Renderer
+            gameId={gameId}
+            gameData={stateAfter}
             localPlayerId=''
             onMove={() => {}}
             disabled={true}
+            isOver={step === moves.length}
+            players={[]}
           />
         ) : (
           <div className={styles.replayNoRenderer}>
@@ -161,14 +163,16 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
       </div>
 
       <div className={styles.replayControls}>
-        <button type="button"
+        <button
+          type='button'
           className={`btn btn-ghost ${styles.replayBtn}`}
           onClick={() => setStep(0)}
           disabled={step === 0}
         >
           ⏮
         </button>
-        <button type="button"
+        <button
+          type='button'
           className={`btn btn-ghost ${styles.replayBtn}`}
           onClick={() => setStep(s => Math.max(0, s - 1))}
           disabled={step === 0}
@@ -192,7 +196,8 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
           />
         </div>
 
-        <button type="button"
+        <button
+          type='button'
           className={`btn btn-ghost ${styles.replayBtn}`}
           {...testId('replay-next-btn')}
           onClick={() => setStep(s => Math.min(moves.length, s + 1))}
@@ -200,7 +205,8 @@ function ReplayView({ moves, gameId }: { moves: Move[]; gameId: string }) {
         >
           →
         </button>
-        <button type="button"
+        <button
+          type='button'
           className={`btn btn-ghost ${styles.replayBtn}`}
           {...testId('replay-last-btn')}
           onClick={() => setStep(moves.length)}
@@ -316,14 +322,16 @@ export function Replay({ sessionId }: { sessionId: string }) {
 
         {/* Tabs */}
         <div className={styles.tabs}>
-          <button type="button"
+          <button
+            type='button'
             className={`${styles.tab} ${tab === 'events' ? styles.tabActive : ''}`}
             {...testId('tab-events')}
             onClick={() => setTab('events')}
           >
             EVENT LOG
           </button>
-          <button type="button"
+          <button
+            type='button'
             className={`${styles.tab} ${tab === 'replay' ? styles.tabActive : ''}`}
             {...testId('tab-replay')}
             onClick={() => setTab('replay')}
