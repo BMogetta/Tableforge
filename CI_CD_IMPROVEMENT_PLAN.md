@@ -13,8 +13,9 @@ Cada tarea tiene un paso de **validación** obligatorio antes de marcarla como c
   - Validación: archivo `CI_CD_IMPROVEMENT_PLAN.md` existe y está commiteado
 - [x] **0.2** ~~Crear rama `chore/ci-cd-hardening` para toda la serie~~
   - Superseded: el usuario decidió trabajar directo en `main` (repo throwaway a nivel git, sin prod real).
-- [ ] **0.3** Snapshot de métricas actuales (duración de CI, CD, coste estimado, RAM/CPU en la Pi)
+- [x] **0.3** Snapshot de métricas actuales (duración de CI, CD, coste estimado, RAM/CPU en la Pi)
   - Validación: tabla en este doc al final, sección "Baseline"
+  - Datos CI/CD medidos el 2026-04-17 con `gh run list` (n=60 de últimos 60 runs en main). Métricas RPi marcadas "pendiente humano" (requieren acceso físico/SSH a la Pi, que todavía no está provisionada).
 
 ---
 
@@ -434,19 +435,24 @@ Migrar Tempo, Loki, Prometheus, Grafana, OTel Collector y Alertmanager de docker
 
 ---
 
-## Baseline (rellenar en 0.3)
+## Baseline (medido 2026-04-17)
 
-| Métrica | Valor |
-|---|---|
-| CI duración p50 (PR típico) | _tbd_ |
-| CI duración p95 | _tbd_ |
-| CD duración (main → publicado) | _tbd_ |
-| Deploy duración (tag → pod healthy) | _tbd_ |
-| Minutos-mes GitHub Actions | _tbd_ |
-| # PRs/semana | _tbd_ |
-| RPi RAM idle (compose actual) | _tbd_ |
-| RPi RAM con k3s + ArgoCD | _tbd_ |
-| RPi CPU idle | _tbd_ |
+Fuente CI/CD: `gh run list --limit 60` sobre `main`. Últimos 30 días: 91 runs totales. 0 PRs (workflow actual es push directo a `main`). Repo público → minutos GitHub Actions gratuitos ilimitados.
+
+| Métrica | Valor | Nota |
+|---|---|---|
+| CI duración p50 (push a main) | ~280s (4m40s) | sample n=30 |
+| CI duración p95 | ~306s (5m6s) | sample n=30 |
+| CI duración máx observada | 315s | |
+| CD duración p50 | ~42s | casi todos los runs son skip (detect-changes sin matches) |
+| CD duración p95 | ~63s | incluye intentos de build frontend que fallan rápido |
+| CD "main → publicado" exitoso | N/A | últimos 30 runs CD son failure o skip; no hay imágenes publicadas recientes |
+| Deploy duración (tag → pod healthy) | N/A | Fase 4.5/5 todavía no implementadas |
+| Runs/mes GitHub Actions | ~90 | últimos 30 días |
+| # PRs/semana | 0 | workflow actual es push directo a main |
+| RPi RAM idle (compose actual) | _pendiente humano_ | medir con `free -h` en la Pi |
+| RPi RAM con k3s + ArgoCD | _pendiente humano_ | medir post Fase 5.3 |
+| RPi CPU idle | _pendiente humano_ | medir con `top`/`vmstat` en la Pi |
 
 ## Notas / decisiones
 
