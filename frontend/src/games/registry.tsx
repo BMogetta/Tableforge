@@ -63,7 +63,7 @@ const RootAccessRenderer: RendererComponent = ({
   />
 )
 
-export const GAME_RENDERERS: Record<string, RendererComponent> = {
+export const GAME_RENDERERS: Partial<Record<string, RendererComponent>> = {
   tictactoe: TicTacToeRenderer,
   rootaccess: RootAccessRenderer,
 }
