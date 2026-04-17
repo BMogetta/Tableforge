@@ -1,0 +1,31 @@
+# Default owner: anything not matched by a rule below.
+*                                   @BMogetta
+
+# CI/CD workflows and tooling.
+/.github/workflows/                 @BMogetta
+/.github/dependabot.yml             @BMogetta
+/.github/paths-filters.yml          @BMogetta
+/.github/CODEOWNERS                 @BMogetta
+/codecov.yml                        @BMogetta
+
+# Cross-service contracts — protobuf + event schemas.
+/shared/proto/                      @BMogetta
+/shared/events/                     @BMogetta
+/shared/schemas/                    @BMogetta
+
+# Infrastructure & deploy (k3s/Helm/ArgoCD manifests — added in Fase 5).
+/infra/                             @BMogetta
+/infra/k8s/                         @BMogetta
+
+# Per-service owners.
+/services/game-server/              @BMogetta
+/services/auth-service/             @BMogetta
+/services/user-service/             @BMogetta
+/services/chat-service/             @BMogetta
+/services/rating-service/           @BMogetta
+/services/match-service/            @BMogetta
+/services/notification-service/     @BMogetta
+/services/ws-gateway/               @BMogetta
+
+# Frontend.
+/frontend/                          @BMogetta

@@ -169,7 +169,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 4.1** — al menos 1 PR abierto por Dependabot en el primer ciclo
 
 ### 4.2 CODEOWNERS
-- [ ] **4.2.a** `.github/CODEOWNERS` con reglas mínimas para `.github/workflows/`, `shared/proto/`, `infra/k8s/`, `services/<svc>/`
+- [x] **4.2.a** `.github/CODEOWNERS` con reglas mínimas para `.github/workflows/`, `shared/proto/`, `infra/k8s/`, `services/<svc>/`
+  - Todo `@BMogetta` por ahora (repo single-maintainer). Reglas por workflow/dependabot/paths-filters/CODEOWNERS/codecov.yml, proto+events+schemas, infra/, y cada servicio + frontend. Cuando se sumen colaboradores, reemplazar handlers por grupos.
 - [ ] **Validación 4.2** — PR que toca un workflow solicita review al owner
 
 ### 4.3 Pull request template
