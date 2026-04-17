@@ -98,7 +98,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 ## Fase 2 — Seguridad
 
 ### 2.1 `govulncheck` para Go
-- [ ] **2.1.a** Job `go-vuln` en `ci.yml` con `govulncheck` pineado
+- [x] **2.1.a** Job `go-vuln` en `ci.yml` con `govulncheck` pineado
+  - Pineado a `govulncheck@v1.2.0`. Condicional: corre sólo si hay cambios en servicios Go (mismo gating que `go-lint`/`go-test`). Agregado a `ci-success.needs`.
 - [ ] **Validación 2.1** — CVE conocida temporal en `go.mod` → rojo; revertir → verde
 
 ### 2.2 `npm audit` para frontend

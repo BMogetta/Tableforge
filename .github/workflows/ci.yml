@@ -108,6 +108,22 @@ jobs:
         continue-on-error: true
         run: node ../scripts/check-i18n.mjs --warn
 
+  go-vuln:
+    name: "Go: govulncheck"
+    needs: changes
+    if: ${{ needs.changes.outputs.go-services != '[]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache: true
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
+      - name: Run govulncheck
+        run: govulncheck ./...
+
   compose-validate:
     name: Validate Compose
     needs: changes
@@ -120,7 +136,7 @@ jobs:
 
   ci-success:
     name: CI Success
-    needs: [changes, go-lint, go-test, frontend-ci, compose-validate]
+    needs: [changes, go-lint, go-test, go-vuln, frontend-ci, compose-validate]
     if: always()
     runs-on: ubuntu-latest
     steps:
