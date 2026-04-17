@@ -28,9 +28,13 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          base: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event.workflow_run.head_sha }}
           filters: |
             game-server:
               - 'services/game-server/**'
@@ -76,6 +80,8 @@ jobs:
         service: ${{ fromJson(needs.changes.outputs.services) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -95,7 +101,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-${{ matrix.service }}:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-${{ matrix.service }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
       - name: Install cosign
@@ -114,6 +120,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -132,7 +140,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-frontend:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/tableforge-frontend:${{ github.event.workflow_run.head_sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
       - name: Install cosign
