@@ -115,7 +115,8 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [ ] **Validación 2.3** — imagen base vieja temporal → rojo; revertir → verde
 
 ### 2.4 Gitleaks en CI
-- [ ] **2.4.a** Job `gitleaks` sobre PR diff con `fetch-depth: 0`
+- [x] **2.4.a** Job `gitleaks` sobre PR diff con `fetch-depth: 0`
+  - Acción `gitleaks/gitleaks-action@v2.3.9`. Sin license key → corre en modo free (PRs públicos + push a main). Agregado a `ci-success.needs`.
 - [ ] **Validación 2.4** — commit de fake key → rojo; revertir → verde
 
 ### 2.5 SBOM + provenance en build-push-action
