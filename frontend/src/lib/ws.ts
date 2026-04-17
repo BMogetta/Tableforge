@@ -282,7 +282,9 @@ export class GatewaySocket {
     this.ws.onmessage = e => {
       try {
         const event: WsEvent = JSON.parse(e.data)
-        this.handlers.forEach(h => h(event))
+        this.handlers.forEach(h => {
+          h(event)
+        })
       } catch {
         // ignore malformed messages
       }
@@ -359,6 +361,8 @@ export class GatewaySocket {
   }
 
   private emitSynthetic(type: 'ws_connected' | 'ws_reconnecting' | 'ws_disconnected') {
-    this.handlers.forEach(h => h({ type, payload: null }))
+    this.handlers.forEach(h => {
+      h({ type, payload: null })
+    })
   }
 }

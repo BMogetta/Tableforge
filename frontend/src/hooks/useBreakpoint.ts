@@ -47,7 +47,9 @@ export function useBreakpoint(): BreakpointState {
     })
 
     return () => {
-      mediaQueries.forEach(mq => mq.removeEventListener('change', handler))
+      mediaQueries.forEach(mq => {
+        mq.removeEventListener('change', handler)
+      })
     }
   }, [])
 
