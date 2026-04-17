@@ -1,0 +1,152 @@
+# Shared path filters for CI and CD workflows.
+# Consumed by dorny/paths-filter via `filters: .github/paths-filters.yml`.
+# See CI_CD_IMPROVEMENT_PLAN.md 1.4.a for the import audit that drives these groupings.
+#
+# Convention: each service lists its own dir plus every shared/ subtree it actually imports.
+# Keep the lists flat (paths-filter does not flatten nested sequences) and in the same
+# order as the audit in the plan to make drift obvious.
+
+game-server:
+  - 'services/game-server/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/events/**'
+  - 'shared/ws/**'
+  - 'shared/proto/game/**'
+  - 'shared/proto/lobby/**'
+  - 'shared/proto/user/**'
+  - 'shared/domain/rating/**'
+  - 'shared/domain/matchmaking/**'
+  - 'shared/platform/**'
+
+auth-service:
+  - 'services/auth-service/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/events/**'
+
+user-service:
+  - 'services/user-service/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/events/**'
+  - 'shared/proto/user/**'
+  - 'shared/achievements/**'
+
+chat-service:
+  - 'services/chat-service/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/proto/user/**'
+
+rating-service:
+  - 'services/rating-service/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/events/**'
+  - 'shared/proto/rating/**'
+  - 'shared/domain/rating/**'
+
+match-service:
+  - 'services/match-service/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/events/**'
+  - 'shared/ws/**'
+  - 'shared/proto/game/**'
+  - 'shared/proto/lobby/**'
+  - 'shared/proto/rating/**'
+  - 'shared/domain/rating/**'
+  - 'shared/domain/matchmaking/**'
+
+notification-service:
+  - 'services/notification-service/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/events/**'
+  - 'shared/ws/**'
+  - 'shared/proto/user/**'
+
+ws-gateway:
+  - 'services/ws-gateway/**'
+  - 'shared/config/**'
+  - 'shared/middleware/**'
+  - 'shared/redis/**'
+  - 'shared/telemetry/**'
+  - 'shared/testutil/**'
+  - 'shared/schemas/**'
+  - 'shared/db/**'
+  - 'shared/errors/**'
+  - 'shared/go.mod'
+  - 'shared/go.sum'
+  - 'shared/events/**'
+  - 'shared/ws/**'
+  - 'shared/proto/game/**'
+  - 'shared/proto/user/**'
+
+# Frontend depends on shared/schemas because make gen-types emits the Zod types from JSON Schema.
+frontend:
+  - 'frontend/**'
+  - 'shared/schemas/**'
+
+# Compose/infra bundle (CI-only).
+compose:
+  - 'docker-compose*.yml'
+  - 'infra/**'
+  - 'Makefile'

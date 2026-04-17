@@ -70,12 +70,13 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
     - **domain/matchmaking**: match-service, **game-server** _(idem; el plan original sólo listaba match-service)_
     - **platform**: game-server
     - **achievements**: user-service
-- [ ] **1.4.b** Reescribir filtros:
+- [x] **1.4.b** Reescribir filtros:
   - `shared/proto/**` → sólo consumidores de ese proto
   - `shared/events/**` → sólo pub/sub consumidores
   - `shared/domain/rating/**` → game-server + rating-service (+ match-service, ver 1.4.a)
   - `shared/domain/matchmaking/**` → match-service (+ game-server, ver 1.4.a)
   - `shared/middleware|telemetry|config|db|redis|errors/**` → todos (común)
+  - Implementación: `.github/paths-filters.yml` (creado en este commit). Listas planas por servicio — dorny/paths-filter no aplanea secuencias anidadas, así que explicito cada patrón en cada servicio.
 - [ ] **1.4.c** Extraer filtros a `.github/paths-filters.yml` (DRY entre ci.yml y cd.yml)
 - [ ] **Validación 1.4**
   - PR que sólo toque `shared/domain/rating/` ⇒ corre en game-server + rating-service, no en los otros 6
