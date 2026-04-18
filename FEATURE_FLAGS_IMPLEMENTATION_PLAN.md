@@ -75,8 +75,8 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 1.4 Tests
 
-- [ ] **1.4.a** Test shell: `infra/unleash/seed_test.sh` o similar — corre `seed.sh` contra unleash local, verifica con `jq` que cada flag existe y tiene el estado esperado. Ejecutable vía `make seed-test` o similar.
-- [ ] **Validación 1.4**: `make seed-test` pasa con el stack corriendo.
+- [x] **1.4.a** Test shell: `infra/unleash/seed_test.sh` corre `seed.sh` dos veces (verifica idempotencia) y luego pide cada flag via API y compara enabled contra `environments.json`. Ejecutable vía `make test-unleash-seed` (nombre elegido para no colisionar con el `seed-test` existente que crea test players).
+- [x] **Validación 1.4**: `make test-unleash-seed` pasa con el stack corriendo.
 
 ---
 

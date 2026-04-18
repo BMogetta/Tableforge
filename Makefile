@@ -100,6 +100,15 @@ coverage:
 test-routing:
 	@bash scripts/test-routing.sh
 
+# Verify the Unleash seeder reconciles state from infra/unleash/*.json.
+# Requires: make up-app first (unleash must be healthy).
+test-unleash-seed:
+	@docker run --rm --network data_network \
+	  -e UNLEASH_URL=http://unleash:4242/api \
+	  -e UNLEASH_TOKEN='*:*.unleash-insecure-api-token' \
+	  -v "$(PWD)/infra/unleash:/seed:ro" \
+	  alpine:3.20 sh -c "apk add --no-cache curl jq >/dev/null && /seed/seed_test.sh"
+
 # Run Playwright tests and update the e2e section in README.md.
 # Requires: make up-test && make seed-test first.
 test-e2e-readme:
