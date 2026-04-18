@@ -179,13 +179,15 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 4.2 Capability hook
 
-- [ ] **4.2.a** Crear `frontend/src/features/auth/useCapability.ts`:
-  - Hook que consume `GET /auth/me/capabilities` vía TanStack Query.
-  - Query key namespaced: `['capabilities']`.
-  - Refetch on focus + cada 5min.
-  - Devuelve `{ canSeeDevtools: boolean }` con loading/error states.
-- [ ] **4.2.b** Test con MSW o mock de `fetch`: hook devuelve el value correcto para varias respuestas del server.
-- [ ] **Validación 4.2**: test vitest verde.
+- [x] **4.2.a** Crear `frontend/src/features/auth/useCapability.ts`:
+  - Usa `useQuery` con `keys.capabilities()` y `validatedRequest(getMeCapabilitiesResponseSchema, '/auth/me/capabilities')`.
+  - `staleTime: 5 * 60_000`, `retry: false` (401 no debe retry).
+  - Devuelve `{capabilities, isLoading, isError}`. `capabilities` siempre es un objeto — si el request falla (401 para unauth), cae al `EMPTY_CAPABILITIES` (todas las caps false) para que el UI quede safe por default.
+- [x] **4.2.b** Test con `vi.mock('@/lib/api')` stubeando `validatedRequest`:
+  - Éxito → devuelve las caps del server.
+  - Error (401) → `isError=true` pero caps siguen siendo el zero-value.
+  - Pending → `isLoading=true`, caps ya son zero-value (no undefined).
+- [x] **Validación 4.2**: `npx vitest run src/features/auth/__tests__/useCapability.test.ts` → 3/3.
 
 ### 4.3 Maintenance banner
 
