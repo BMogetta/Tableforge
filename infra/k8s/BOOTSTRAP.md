@@ -556,6 +556,64 @@ pg-rw.recess-data.svc.cluster.local:5432
 
 For HA reads (none on a 1-instance cluster, but the service exists): `pg-ro.recess-data.svc.cluster.local:5432`.
 
+### 5.6.e — Applying SQL migrations
+
+CNPG's `initdb.postInitApplicationSQL` only creates the `users` and `ratings` schemas (see 5.6.b). The rest of the DDL — tables, indexes, enums, schema `admin` — lives in `shared/db/migrations/`. Those files run automatically on a docker-compose bring-up (they're mounted into Postgres' `docker-entrypoint-initdb.d`), but on CNPG we have to apply them ourselves.
+
+**What to apply and what to skip**:
+
+| File | Apply on CNPG? | Why |
+| --- | --- | --- |
+| `000_init-databases.sh` | No | Creates the `recess` user and `unleash` DB. CNPG already creates the `recess` user via `initdb.owner`. Unleash isn't deployed yet (Phase 5.5+). |
+| `001_initial.sql` … `009_notifications_source_event_id.sql` | **Yes** | Pure SQL, idempotent `CREATE SCHEMA IF NOT EXISTS`, no `DROP`. |
+| `998_grant_permissions.sh` | No (for now) | Creates a `claude_mcp_ro` read-only user and sets default privileges. Nice-to-have for local dev tooling, not required for service operation. |
+| `999_seed.sql` | No | Only loads test-mode fixtures. |
+
+**Run as the application user over TCP**. The in-pod OS user is `postgres` (superuser), but we want tables owned by the `recess` application role, so we connect with its password explicitly:
+
+```bash
+PG_PASS=$(kubectl -n recess-data get secret pg-app -o jsonpath='{.data.password}' | base64 -d)
+for f in shared/db/migrations/00[1-9]_*.sql; do
+  echo "-- applying $f"
+  cat "$f"
+done | kubectl -n recess-data exec -i pg-1 -c postgres -- \
+    env PGPASSWORD="$PG_PASS" \
+    psql -v ON_ERROR_STOP=1 -h localhost -U recess -d recess
+unset PG_PASS
+```
+
+`-v ON_ERROR_STOP=1` halts at the first error instead of marching on through cascading failures. Expected output: ~30-50 `CREATE TABLE` / `CREATE INDEX` / `CREATE TYPE` lines plus `UPDATE 0` on migration 005 (rebrand, no rows to touch on a fresh DB).
+
+**Verify** the expected tables exist:
+
+```bash
+kubectl -n recess-data exec pg-1 -c postgres -- psql -d recess -c "\dt public.*" | head -20
+kubectl -n recess-data exec pg-1 -c postgres -- psql -d recess -c "\dn"
+```
+
+Expected: schemas `public`, `users`, `ratings`, `admin` (the first three owned by `recess`, `admin` created by migration 004); tables `players`, `allowed_emails`, `oauth_identities`, `rooms`, `sessions`, etc. in `public`.
+
+**Sustainable pattern — TODO**: manual `kubectl exec` is fine for bootstrap but it has known weaknesses:
+
+- Nothing tracks which migrations already ran; a re-run fails because most of these `.sql` files use `CREATE TABLE` (without `IF NOT EXISTS`).
+- A fresh cluster depends on someone remembering the command above.
+- On a future `010_*.sql` there's no safe way to apply only the new file.
+- No concurrent-apply protection, no rollback path.
+
+**Picked solution for the next pass: Option A — `golang-migrate` + ArgoCD-managed Job.**
+
+Plan when we pick this up:
+
+1. Split each existing `00N_*.sql` into `00N_<name>.up.sql` (plus optional `.down.sql`). The SQL bodies stay the same.
+2. Build a small OCI image that bundles the `migrate` binary + the `shared/db/migrations/` directory (multi-stage Dockerfile, push to GHCR).
+3. New ArgoCD Application `db-migrations` with a Job manifest that runs:
+   `migrate -source file:///migrations -database "$DATABASE_URL" up`
+   against the CNPG primary (`pg-rw.recess-data.svc.cluster.local`). Job consumes a SealedSecret in `recess-data` for the admin DSN.
+4. Annotate the Job with `argocd.argoproj.io/sync-wave: "-10"` so it runs before every service Application in the root App-of-Apps. `golang-migrate` keeps its state in `schema_migrations`, so re-runs are no-ops when there's nothing pending.
+5. Rejected alternatives: Atlas Operator (heavier dependency for the current scale), CNPG `postInitApplicationSQLRefs` (init-only, can't retrofit), per-service PreSync hooks (migrations are shared across all 8 services, splitting them doesn't map).
+
+Until that lands, treat the manual `kubectl exec` block above as the source of truth for recreating the DB from scratch, and flag every new `shared/db/migrations/*.sql` at review time so it actually gets applied on the cluster.
+
 ### 5.6 — Validation
 
 - [x] CNPG operator pod Running
@@ -564,8 +622,10 @@ For HA reads (none on a 1-instance cluster, but the service exists): `pg-ro.rece
 - [x] PVC `pg-1` Bound to 20Gi on `local-path`
 - [x] `pg-app` Secret present with 11 keys
 - [x] Schemas `public`, `users`, `ratings` exist and are owned correctly
+- [x] Migrations 001-009 applied; schema `admin` + all application tables present
 - [ ] PgBouncer Pooler CR — deferred until we see connection-count pressure (CNPG includes a `Pooler` CR, trivial to add later)
 - [ ] Backups via `barmanObjectStore` — deferred (see 5.1.f)
+- [ ] Sustainable migration runner (Job / Atlas / PreSync Hook) — deferred, see 5.6.e
 
 ---
 
@@ -758,7 +818,151 @@ kubectl -n recess-data get secret
 - [x] `Secret/redis-auth` materialised with the `redis-password` key
 - [x] Redis re-deployed using `existingSecret`; PING succeeds with the sealed password
 - [ ] Postgres credentials sealed — deferred (CNPG manages `pg-app` adequately; revisit when cluster recreation becomes a scenario)
-- [ ] JWT secret sealed — deferred to Phase 5.4 when the first service that consumes it is deployed
-- [ ] GHCR image-pull secret sealed — deferred to Phase 5.4
+- [x] JWT secret sealed — see 5.4.a (`infra/k8s/secrets/jwt.yaml`)
+- [ ] GHCR image-pull secret sealed — deferred; GHCR images are public today, flip when we move to private repos
 - [ ] CLOUDFLARE_TUNNEL_TOKEN sealed — deferred to Phase 5.8
 - [ ] Key rotation procedure documented — deferred hardening task
+
+---
+
+## 5.4 Canary: auth-service
+
+First ArgoCD-managed workload, deployed after the data layer is up (Order B). Validates the end-to-end GitOps flow — Helm chart in git, per-service values, SealedSecrets, automated sync — before rolling the remaining seven services through the same chart in Phase 5.5.
+
+### 5.4.a — Per-service SealedSecrets
+
+`auth-service` needs five env vars backed by Secrets. Four are sealed fresh in namespace `recess`; the fifth (`JWT_SECRET`) replaces the one we sealed in Phase 5.9 with a cleaner name.
+
+| Secret | Key | SealedSecret file | Source |
+| --- | --- | --- | --- |
+| `db-auth` | `DATABASE_URL` | `infra/k8s/secrets/db-auth.yaml` | CNPG `pg-app.password` + hard-coded DSN to `pg-rw.recess-data.svc.cluster.local` |
+| `redis-url` | `REDIS_URL` | `infra/k8s/secrets/redis-url.yaml` | SealedSecret `redis-auth.redis-password` + hard-coded DSN to `redis-master.recess-data.svc.cluster.local` |
+| `github-oauth` | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | `infra/k8s/secrets/github-oauth.yaml` | Real GitHub OAuth app creds (saved in 1Password) |
+| `jwt` | `JWT_SECRET` | `infra/k8s/secrets/jwt.yaml` | Freshly generated HS256 key (`openssl rand -base64 48`); saved in 1Password. Replaced the earlier `jw`/`secret` sealing from 5.9.b — name and key now match the env var convention. |
+
+All four SealedSecrets are picked up by the `secrets` Application (see 5.9.d), which directory-syncs `infra/k8s/secrets/`. The moment we commit a new file there, ArgoCD + the sealed-secrets controller materialise the plain `Secret` into the target namespace.
+
+**Reproducing the seals** on a fresh cluster: `/tmp/seal-canary-secrets.sh` and `/tmp/seal-jwt.sh` (kept in this workstation's `/tmp/`, not in the repo — they take plaintext inputs and rewrite the sealed files). The cluster-specific controller key lives in `kube-system/sealed-secrets-key-*`; if that key is lost, the only recovery path is re-sealing from the 1Password-stored plaintext.
+
+**Why cross-namespace DSNs and not Secret replication** (Reflector / ESO): both are viable but add a controller. For a single canary we preferred sealing dedicated DSN Secrets in the app namespace — each service has its own `DATABASE_URL` / `REDIS_URL` sealed into `recess`, with the DSN pinning the full DNS of the data-tier Service. If we add more namespaces later, a replicator becomes worth it; for now it would be extra moving parts for no benefit.
+
+**Known follow-up**: the `pg-app` password is still CNPG-managed (auto-generated on Cluster creation, never rotated). A rotation rotates only inside `recess-data` and silently invalidates the sealed `DATABASE_URL`. When rotation becomes a requirement we'll need either a pre-sealed bootstrap secret on the Cluster CR (`spec.bootstrap.initdb.secret.name`) or a controller that refreshes the sealed DSN whenever the source Secret changes.
+
+### 5.4.b — The `go-service` Helm chart
+
+Reusable chart at `infra/k8s/charts/go-service/`, consumed by one ArgoCD Application per service. All eight Go services share this chart; per-service differences live in `values/<service>.yaml`.
+
+**Layout**:
+
+```text
+infra/k8s/charts/go-service/
+├── Chart.yaml
+├── values.yaml            # defaults — all feature gates off
+├── templates/
+│   ├── _helpers.tpl       # name / label / SA helpers
+│   ├── deployment.yaml    # HTTP always, gRPC port conditional on service.grpcPort > 0
+│   ├── service.yaml       # same port-gating as deployment
+│   ├── serviceaccount.yaml
+│   ├── ingressroute.yaml  # gated on ingress.enabled (Traefik CRD)
+│   ├── servicemonitor.yaml# gated on metrics.enabled (Prometheus CRD)
+│   └── hpa.yaml           # gated on autoscaling.enabled
+└── values/
+    └── auth-service.yaml  # per-service overrides; one file per service
+```
+
+**Values contract** — two env-var maps plus the usual image / resources / probes:
+
+```yaml
+env:                          # plain literal env vars
+  ENV: production
+  OTEL_SERVICE_NAME: auth-service
+
+envFromSecret:                # env vars bound to Secrets in the same namespace
+  DATABASE_URL:
+    secretName: db-auth
+    key: DATABASE_URL
+```
+
+The deployment template renders each entry of `env` as `name/value` and each entry of `envFromSecret` as `name/valueFrom.secretKeyRef`. `ADDR` is auto-injected from `service.httpPort` so the Go binary binds to the same port the Service expects.
+
+**What is gated off by default and why**:
+
+| Gate | Default | Flip on when |
+| --- | --- | --- |
+| `ingress.enabled` | `false` | Phase 5.8 — Cloudflare Tunnel lands and we start routing `*.recess.io` via Traefik IngressRoutes. |
+| `metrics.enabled` | `false` | Phase 6 — `kube-prometheus-stack` is installed and the services expose `/metrics`. |
+| `autoscaling.enabled` | `false` | After Phase 6 — HPA needs metrics to be useful. |
+
+**Rendering locally** to preview a change before pushing:
+
+```bash
+helm template auth-service infra/k8s/charts/go-service \
+  -f infra/k8s/charts/go-service/values/auth-service.yaml \
+  --namespace recess
+```
+
+### 5.4.c — auth-service Application
+
+Single-source ArgoCD Application at `infra/k8s/apps/auth-service.yaml`:
+
+- `repoURL` + `path` point at the chart directory in this repo; `helm.valueFiles` uses a path relative to the chart (`values/auth-service.yaml`). A multi-source Application is not needed because chart and values live together.
+- `spec.project: recess` (enforced by the AppProject).
+- `automated.selfHeal: true` + `prune: true` so drift / deleted resources get reconciled.
+- Destination `namespace: recess`, `CreateNamespace=false` (the namespace is owned by `namespaces.yaml`, not by this Application — prevents two Applications fighting over it).
+- `ServerSideApply=true` avoids the client-side apply warnings on large CRDs.
+
+No finalizer gymnastics beyond the repo-wide `resources-finalizer.argocd.argoproj.io` — deleting the Application cleans up its rendered resources.
+
+### 5.4.d — Sync, rollout, and smoke test
+
+The root App-of-Apps reconciles every ~30 s. When the commit lands, the new Application CR shows up under `recess-root → auth-service` and should walk through:
+
+```text
+Sync Status: OutOfSync  →  Progressing  →  Synced
+Health:      Missing    →  Progressing  →  Healthy
+```
+
+If it stalls in `Progressing` for more than a few minutes, the first thing to check is that the four SealedSecrets in `infra/k8s/secrets/` were materialised into `recess` (the `secrets` Application syncs them, and the pod's env binding needs them to exist before it can start).
+
+**Smoke test** (run once the Application reports Healthy):
+
+```bash
+# 1. Pod Running and the image pulled from GHCR
+kubectl -n recess get pods -l app.kubernetes.io/name=auth-service
+
+# 2. All five env vars bound (no `envFrom` surprises)
+kubectl -n recess describe deploy auth-service | grep -A1 "Environment"
+
+# 3. Logs show DB + Redis connected and the HTTP server listening
+kubectl -n recess logs -l app.kubernetes.io/name=auth-service --tail=50
+
+# 4. Health check via port-forward
+kubectl -n recess port-forward svc/auth-service 8081:8081 &
+curl -s http://localhost:8081/healthz         # expect: ok
+kill %1
+```
+
+**Expected log lines** (abbreviated):
+
+```text
+redis: connected
+auth-service listening addr=:8081
+unleash: error (Get "http://unleash:4242/api/client/features": dial tcp: lookup unleash on ...: no such host)
+```
+
+The Unleash error is expected and harmless in this phase — `featureflags.Init()` fails open (see `shared/featureflags/client.go`), and `IsEnabled` returns the caller-supplied default on a nil client. Unleash lands in Phase 5.5 alongside the other services that use feature flags.
+
+### 5.4 — Validation
+
+Authored: checkboxes flip as the smoke test in 5.4.d passes.
+
+- [x] Four new SealedSecrets in `infra/k8s/secrets/` (db-auth, redis-url, github-oauth, jwt)
+- [x] Reusable `go-service` chart renders cleanly under `helm template` with per-service values
+- [x] `auth-service` Application CR committed under `infra/k8s/apps/`
+- [ ] `secrets` Application syncs the four new SealedSecrets; plain Secrets visible in `recess`
+- [ ] `Application auth-service` is `Synced` + `Healthy` in ArgoCD
+- [ ] Pod `auth-service-*` is `Running`, image pulled from GHCR
+- [ ] `curl http://auth-service:8081/healthz` returns `ok` from inside the cluster
+- [ ] Logs show `redis: connected` and `auth-service listening`
+- [ ] GitHub OAuth end-to-end flow — deferred to Phase 5.8 when the service is reachable from the public internet via Cloudflare Tunnel; the full login flow needs the callback URL registered with GitHub.
+- [ ] ServiceAccount → IRSA / Workload Identity — N/A on a homelab cluster (no cloud IAM); revisit if we ever move to EKS/GKE.
