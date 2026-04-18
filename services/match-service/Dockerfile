@@ -14,7 +14,7 @@ COPY services/match-service/ ./services/match-service/
 WORKDIR /app/services/match-service
 RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/match-service ./cmd/server
 
-FROM alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+FROM alpine:3.23@sha256:310c62b5e7ca5b08167e4384c68db0fd2905dd9c7493756d356e893909057601
 RUN apk --no-cache add ca-certificates tzdata wget
 
 WORKDIR /app

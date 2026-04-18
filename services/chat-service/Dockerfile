@@ -24,7 +24,7 @@ WORKDIR /app/services/chat-service
 RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/chat-service ./cmd/server
 
 # --- Run stage ---
-FROM alpine:3.19@sha256:b58899f069c47216f6002a6850143dc6fae0d35eb8b0df9300bbe6327b9c2171
+FROM alpine:3.23@sha256:310c62b5e7ca5b08167e4384c68db0fd2905dd9c7493756d356e893909057601
 RUN apk --no-cache add ca-certificates tzdata wget
 
 # Copy the compiled binary from the builder stage
