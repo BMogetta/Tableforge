@@ -288,3 +288,149 @@ Expected: five namespaces in `Active` state with the labels below.
 
 - [x] `kubectl get ns` lists `recess`, `recess-data`, `observability`, `argocd`, `cloudflared` as `Active`
 - [x] Every namespace carries `app.kubernetes.io/part-of=recess` and a `recess.io/tier` label
+
+---
+
+## 5.3 ArgoCD
+
+Single-instance ArgoCD for homelab. No OIDC yet, no Slack/email notifications, no HA Redis. Access is via `kubectl port-forward` in this phase; public exposure via Cloudflare Tunnel lands in Phase 5.8.
+
+### 5.3.a — Add the chart repo
+
+```bash
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+helm search repo argo/argo-cd --versions | head -3
+```
+
+Pinned chart: **`argo/argo-cd 9.5.2`** (app version `v3.3.7`). Re-pin by re-running the `helm search` and editing `infra/k8s/argocd/values.yaml` header comment + the install command in 5.3.b.
+
+### 5.3.b — Install
+
+Values live in `infra/k8s/argocd/values.yaml`. Key settings and why:
+
+| Setting | Value | Reason |
+| --- | --- | --- |
+| `configs.params.server.insecure` | `true` | No TLS inside the cluster. Traefik + cloudflared terminate TLS externally (Phase 5.8). |
+| `redis-ha.enabled` | `false` | Single-node cluster — HA Redis would schedule three pods that cannot colocate. |
+| `dex.enabled` | `false` | No OIDC login yet; admin password is enough. Saves one pod. |
+| `notifications.enabled` | `false` | No alerting channels configured. Saves one pod. |
+| `*.replicas` | `1` | Single-instance across every component. |
+| `*.resources.*` | small | Conservative requests/limits — see the values file for per-component numbers. |
+
+Install:
+
+```bash
+helm upgrade --install argocd argo/argo-cd --version 9.5.2 --namespace argocd -f infra/k8s/argocd/values.yaml --wait --timeout 10m
+```
+
+The `--wait` flag blocks until every Deployment / StatefulSet is `ready`. Expect 2-4 minutes on a Pi 5 (image pulls + probe warm-up).
+
+**Validation**:
+
+```bash
+kubectl -n argocd get pods
+kubectl -n argocd get svc
+```
+
+Five long-lived pods must be `Running` (one-shot Jobs like `argocd-redis-secret-init-*` finish `Completed`):
+
+- `argocd-application-controller-0` (StatefulSet)
+- `argocd-applicationset-controller-*`
+- `argocd-redis-*`
+- `argocd-repo-server-*`
+- `argocd-server-*`
+
+Four ClusterIP services: `argocd-server` (80/443), `argocd-redis` (6379), `argocd-repo-server` (8081), `argocd-applicationset-controller` (7000).
+
+**Accessing the UI** (port-forward, leave running in a dedicated terminal):
+
+```bash
+KUBECONFIG=~/.kube/config-recess kubectl -n argocd port-forward svc/argocd-server 8080:80
+```
+
+Retrieve the auto-generated admin password:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
+```
+
+Open <http://localhost:8080>, log in as `admin` + the password above. The initial-admin secret is meant to be deleted once you set your own password or wire OIDC — `kubectl -n argocd delete secret argocd-initial-admin-secret` when ready.
+
+### 5.3.c — Register this repo
+
+For a public repo no credentials are needed, but registering it as a `Secret` with label `argocd.argoproj.io/secret-type: repository` makes it show up in ArgoCD's Settings → Repositories and simplifies the switch back to private (add `password` / `sshPrivateKey` to the same Secret).
+
+Manifest: `infra/k8s/argocd-apps/repo.yaml`.
+
+```bash
+kubectl apply -f infra/k8s/argocd-apps/repo.yaml
+```
+
+In the UI, `Settings → Repositories` lists `https://github.com/BMogetta/tableforge.git` with `Connection Status: Successful`.
+
+### 5.3.d — Root App-of-Apps
+
+**Pattern chosen**: plain `Application` root + directory sync. The root Application points at `infra/k8s/apps/` in git; ArgoCD reads every YAML under that path as a child Application.
+
+Manifest: `infra/k8s/argocd-apps/root.yaml`.
+
+> Note on the original plan: 5.3.d called for an `ApplicationSet`, but 5.4.d prescribes a full `Application` CR per service file — which is incompatible with ApplicationSet's git-file generator (where files are template-var configs, not CRs). The canonical App-of-Apps pattern from the ArgoCD docs uses a plain `Application` root. Documented here as the resolved approach; 5.3.d's phrasing was imprecise.
+
+**Sync policy**: `automated: { prune: true, selfHeal: true }`. Together they mean (a) drift from git is silently reverted on the cluster, and (b) a file removed from `infra/k8s/apps/` deletes the corresponding child Application (and, transitively, its workload) on the next reconcile.
+
+**Finalizer**: `resources-finalizer.argocd.argoproj.io`. Without it, deleting the root Application leaves children orphaned.
+
+Apply:
+
+```bash
+kubectl apply -f infra/k8s/argocd-apps/root.yaml
+```
+
+> On apply you may see a k8s warning:
+> `metadata.finalizers: "resources-finalizer.argocd.argoproj.io": prefer a domain-qualified finalizer name including a path (/)`
+> — Cosmetic. The name is ArgoCD's own well-known value and will be fixed upstream. A future chart upgrade will replace it.
+
+Expected state in the UI within ~30 s:
+
+- Applications list shows `recess-root` with **Sync Status: Synced**, **Health: Healthy**, **0 child resources** (the `apps/` path only contains `.gitkeep`).
+
+As Phase 5.4+ adds child Application CRs to `infra/k8s/apps/`, the root automatically picks them up.
+
+### 5.3.e — Resource footprint
+
+Idle footprint measured 2026-04-18, a few minutes after ArgoCD install, no child Applications yet:
+
+```text
+kubectl top pods -n argocd
+NAME                                                CPU(cores)   MEMORY(bytes)
+argocd-application-controller-0                     6m           81Mi
+argocd-applicationset-controller-6685cdfd44-cglt7   2m           23Mi
+argocd-redis-6d8578cb6f-cbqrt                       8m           6Mi
+argocd-repo-server-6f7b79498f-fhb85                 2m           32Mi
+argocd-server-78db985d75-5ptcp                      1m           42Mi
+```
+
+Pod totals: **19m CPU, 184Mi memory**.
+
+Node totals (k3s baseline + ArgoCD):
+
+```text
+kubectl top node
+NAME        CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)
+recess-pi   72m          1%       1509Mi          9%
+```
+
+Node delta vs. the 5.1.b baseline (49m / 946Mi): **+23m CPU, +563Mi memory**. The memory delta is larger than the pod RSS sum because `kubectl top pod` reports container working-set only — container init, image decompression, and containerd overhead add on top. Normal.
+
+Plenty of headroom on a 16GB Pi 5 — the eight Go services, frontend, Postgres, Redis, and observability stack will fit well within budget.
+
+### 5.3 — Validation
+
+- [x] `helm list -n argocd` shows `argocd 9.5.2` deployed
+- [x] All five ArgoCD pods are `Running`
+- [x] Admin login via port-forward succeeds at `http://localhost:8080`
+- [x] Settings → Repositories lists the repo as `Successful`
+- [x] `recess-root` Application is `Synced` + `Healthy` with zero child resources
+- [ ] GitHub OAuth — deferred (Phase 5.3.b roadmap; enable when ready)
+- [ ] Public exposure via cloudflared — deferred to Phase 5.8
