@@ -81,9 +81,14 @@
   border-right: 1px solid var(--color-border);
 }
 
-.tab:hover {
+.tab:hover:not(:disabled) {
   color: var(--color-text-secondary);
   background: var(--color-bg-elevated);
+}
+
+.tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .tabActive {
