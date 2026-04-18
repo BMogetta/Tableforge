@@ -162,7 +162,8 @@
     "chatErrUsage": "[Error] Uso: {{cmd}}",
     "chatErrNotFound": "[Error] Jugador \"{{name}}\" no encontrado en esta sala.",
     "chatErrSelf": "[Error] No podés {{action}} a vos mismo.",
-    "chatErrUnknown": "[Error] Comando \"/{{cmd}}\" desconocido. Escribí /help para ver los comandos."
+    "chatErrUnknown": "[Error] Comando \"/{{cmd}}\" desconocido. Escribí /help para ver los comandos.",
+    "chatPaused": "El chat está temporalmente desactivado."
   },
   "game": {
     "loading": "Cargando partida...",
@@ -444,6 +445,7 @@
           "description": "Jugá {{threshold}} partidas de tic-tac-toe"
         }
       }
-    }
+    },
+    "paused": "El tracking de logros está pausado. Los contadores pueden estar desactualizados."
   }
 }

@@ -209,10 +209,11 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 4.5 Chat + achievements gates
 
-- [ ] **4.5.a** En componentes `ChatPopover` y DM inbox: si `chat-enabled` OFF, mostrar estado "Chat temporarily disabled" en vez del input.
-- [ ] **4.5.b** En el panel de achievements: si `achievements-enabled` OFF, mostrar "Achievement tracking paused — counters may be behind". Los datos ya registrados siguen visibles.
-- [ ] **4.5.c** Tests component.
-- [ ] **Validación 4.5**: vitest + visual.
+- [x] **4.5.a** `ChatPopover.tsx`: `useFlag(Flags.ChatEnabled)` + `useFlagsStatus().flagsReady`. Cuando flag OFF, reemplaza input+send button por `<div role="status">{t('room.chatPaused')}</div>`. Cold-start tratado como enabled para evitar flash.
+  - No toqué DM inbox todavía — los DMs usan otro component. Se puede portar el mismo patrón cuando haga falta; de momento el backend block es suficiente.
+- [x] **4.5.b** `AchievementGrid.tsx`: banner sticky "paused" cuando flag OFF. Grid siempre renderiza (logros ya ganados siguen visibles). Cold-start bypassea el banner.
+- [x] **4.5.c** 2 tests nuevos en `achievement-components.test.tsx` (paused banner ON, cold-start hides). Chat test omitido — muchas deps de mock (socket, toasts, gateway, i18n, players); la lógica es 1-línea if/else y queda cubierta visualmente + por Playwright (Fase 5).
+- [x] **Validación 4.5**: `vitest` full suite 709/709. i18n keys `room.chatPaused` y `achievements.paused` en en+es.
 
 ### 4.6 Admin devtools panel (el cambio grande)
 

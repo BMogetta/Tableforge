@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useFlag, useFlagsStatus } from '@unleash/proxy-client-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { mutes, rooms } from '@/features/room/api'
+import { Flags } from '@/lib/flags'
 import { keys } from '@/lib/queryClient'
 import type { GetRoomMessagesResponse, RoomMessage, RoomPlayer } from '@/lib/schema-generated.zod'
 import { sfx } from '@/lib/sfx'
@@ -47,6 +49,11 @@ export function ChatPopover({
   const gateway = useSocketStore(s => s.gateway)
   const qc = useQueryClient()
   const toast = useToast()
+  // Default-on flag: treat cold-start (flags not ready) as enabled to avoid
+  // a "paused" flash during the first Unleash fetch.
+  const { flagsReady } = useFlagsStatus()
+  const chatFlag = useFlag(Flags.ChatEnabled)
+  const chatEnabled = !flagsReady || chatFlag
 
   const [draft, setDraft] = useState('')
   const [systemMessages, setSystemMessages] = useState<SystemMessage[]>([])
@@ -280,38 +287,44 @@ export function ChatPopover({
         <div ref={bottomRef} />
       </div>
 
-      <div className={styles.inputRow}>
-        <input
-          ref={inputRef}
-          className={`input ${styles.input}`}
-          aria-label='Chat message'
-          placeholder={t('room.typeMessage')}
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
-          maxLength={500}
-        />
-        <button
-          type='button'
-          className={styles.sendBtn}
-          onClick={handleSend}
-          disabled={!draft.trim() || sendMessage.isPending}
-          title={t('room.send')}
-        >
-          <svg
-            aria-hidden='true'
-            width='14'
-            height='14'
-            viewBox='0 0 24 24'
-            fill='none'
-            stroke='currentColor'
-            strokeWidth='1.5'
+      {chatEnabled ? (
+        <div className={styles.inputRow}>
+          <input
+            ref={inputRef}
+            className={`input ${styles.input}`}
+            aria-label='Chat message'
+            placeholder={t('room.typeMessage')}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSend()}
+            maxLength={500}
+          />
+          <button
+            type='button'
+            className={styles.sendBtn}
+            onClick={handleSend}
+            disabled={!draft.trim() || sendMessage.isPending}
+            title={t('room.send')}
           >
-            <line x1='22' y1='2' x2='11' y2='13' />
-            <polygon points='22 2 15 22 11 13 2 9 22 2' />
-          </svg>
-        </button>
-      </div>
+            <svg
+              aria-hidden='true'
+              width='14'
+              height='14'
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeWidth='1.5'
+            >
+              <line x1='22' y1='2' x2='11' y2='13' />
+              <polygon points='22 2 15 22 11 13 2 9 22 2' />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        <div className={styles.pausedRow} role='status'>
+          {t('room.chatPaused')}
+        </div>
+      )}
     </div>
   )
 }

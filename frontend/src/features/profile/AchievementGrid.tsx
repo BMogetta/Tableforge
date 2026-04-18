@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { useFlag, useFlagsStatus } from '@unleash/proxy-client-react'
 import { useTranslation } from 'react-i18next'
 import { achievements as achievementsApi, type PlayerAchievement } from '@/lib/api'
+import { Flags } from '@/lib/flags'
 import { keys } from '@/lib/queryClient'
 import type { AchievementDefinition } from '@/lib/schema-generated.zod'
 import { testId } from '@/utils/testId'
@@ -30,6 +32,11 @@ interface Props {
 
 export function AchievementGrid({ achievements: progress, isLoading }: Props) {
   const { t } = useTranslation()
+  // Default-on flag: cold start keeps tracking-paused notice hidden.
+  const { flagsReady } = useFlagsStatus()
+  const achievementsFlag = useFlag(Flags.AchievementsEnabled)
+  const trackingPaused = flagsReady && !achievementsFlag
+
   const { data, isLoading: defsLoading } = useQuery({
     queryKey: keys.achievementDefinitions(),
     // Registry is static per deploy; cache aggressively.
@@ -45,10 +52,21 @@ export function AchievementGrid({ achievements: progress, isLoading }: Props) {
   const achievementMap = new Map(progress.map(a => [a.achievement_key, a]))
 
   return (
-    <div className={styles.grid} {...testId('achievement-grid')}>
-      {defs.map(def => (
-        <AchievementCard key={def.key} def={def} achievement={achievementMap.get(def.key)} />
-      ))}
-    </div>
+    <>
+      {trackingPaused && (
+        <div
+          className={styles.pausedBanner}
+          role="status"
+          {...testId('achievements-paused')}
+        >
+          {t('achievements.paused')}
+        </div>
+      )}
+      <div className={styles.grid} {...testId('achievement-grid')}>
+        {defs.map(def => (
+          <AchievementCard key={def.key} def={def} achievement={achievementMap.get(def.key)} />
+        ))}
+      </div>
+    </>
   )
 }

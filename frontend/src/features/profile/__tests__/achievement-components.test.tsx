@@ -6,6 +6,13 @@ import { AchievementCard, type AchievementDef } from '../AchievementCard'
 import { AchievementGrid } from '../AchievementGrid'
 import '@/lib/i18n'
 
+// Control achievements-enabled flag from individual tests.
+const flagState = { flagsReady: true, achievementsEnabled: true }
+vi.mock('@unleash/proxy-client-react', () => ({
+  useFlagsStatus: () => ({ flagsReady: flagState.flagsReady, flagsError: null }),
+  useFlag: (_name: string) => flagState.achievementsEnabled,
+}))
+
 // Static registry fetched by AchievementGrid. Mocked here so the component
 // test exercises the mapping + rendering path without hitting the network.
 vi.mock('@/lib/api', async () => {
@@ -212,5 +219,37 @@ describe('AchievementGrid', () => {
   it('matches achievements to definitions and resolves tier label', async () => {
     renderGrid([makeAchievement('games_played', 2, 15)], false)
     await waitFor(() => expect(screen.getByText('Regular')).toBeInTheDocument())
+  })
+
+  it('shows a paused banner when achievements-enabled flag is OFF', async () => {
+    flagState.flagsReady = true
+    flagState.achievementsEnabled = false
+    try {
+      renderGrid([], false)
+      await waitFor(() =>
+        expect(screen.getByTestId('achievements-paused')).toBeInTheDocument(),
+      )
+      // Grid itself still renders — existing progress stays visible.
+      expect(screen.getByTestId('achievement-grid')).toBeInTheDocument()
+    } finally {
+      flagState.achievementsEnabled = true
+    }
+  })
+
+  it('hides the paused banner until flagsReady is true', async () => {
+    flagState.flagsReady = false
+    flagState.achievementsEnabled = false
+    try {
+      renderGrid([], false)
+      await waitFor(() =>
+        expect(screen.getByTestId('achievement-grid')).toBeInTheDocument(),
+      )
+      // Cold-start: avoid flashing a paused banner even if the flag happens
+      // to evaluate OFF before the first fetch.
+      expect(screen.queryByTestId('achievements-paused')).not.toBeInTheDocument()
+    } finally {
+      flagState.flagsReady = true
+      flagState.achievementsEnabled = true
+    }
   })
 })

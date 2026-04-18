@@ -162,7 +162,8 @@
     "chatErrUsage": "[Error] Usage: {{cmd}}",
     "chatErrNotFound": "[Error] Player \"{{name}}\" not found in this room.",
     "chatErrSelf": "[Error] You cannot {{action}} yourself.",
-    "chatErrUnknown": "[Error] Unknown command \"/{{cmd}}\". Type /help for available commands."
+    "chatErrUnknown": "[Error] Unknown command \"/{{cmd}}\". Type /help for available commands.",
+    "chatPaused": "Chat is temporarily disabled."
   },
   "game": {
     "loading": "Loading game...",
@@ -444,6 +445,7 @@
           "description": "Play {{threshold}} tic-tac-toe games"
         }
       }
-    }
+    },
+    "paused": "Achievement tracking is paused. Counters may be behind."
   }
 }
