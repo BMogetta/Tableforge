@@ -5,9 +5,9 @@
     "type": "kill-switch"
   },
   {
-    "name": "ranked-matchmaking-disabled",
-    "description": "When on, match-service rejects new entries to the ranked queue and the frontend hides the ranked button. Existing matches finish normally.",
-    "type": "kill-switch"
+    "name": "ranked-matchmaking-enabled",
+    "description": "Gate for the ranked matchmaking queue. Default ON. When OFF, match-service rejects new /queue entries (503 ranked_disabled) and the frontend disables the Ranked tab. Already-proposed matches can still be accepted/declined.",
+    "type": "release"
   },
   {
     "name": "chat-enabled",

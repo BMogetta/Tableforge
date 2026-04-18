@@ -15,10 +15,11 @@ import (
 	sharedmw "github.com/recess/shared/middleware"
 )
 
-// FlagRankedDisabled is the Unleash flag that, when ON, stops new enqueue
-// requests. Already-proposed matches can still be accepted/declined — the
-// block is only on the entry point to the ranked queue.
-const FlagRankedDisabled = "ranked-matchmaking-disabled"
+// FlagRankedEnabled gates new enqueue requests into the ranked queue.
+// Default ON so missing flag / Unleash outage keeps ranked working.
+// Flag OFF = kill switch; already-proposed matches can still be accepted
+// or declined, only the entry point is blocked.
+const FlagRankedEnabled = "ranked-matchmaking-enabled"
 
 // NewRouter builds the match-service HTTP router.
 // schemas may be nil — request validation is skipped (tests only).
@@ -57,7 +58,7 @@ func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler, schem
 // 409 if the player is already in the queue.
 func handleJoinQueue(svc *queue.Service, flags featureflags.Checker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if flags != nil && flags.IsEnabled(FlagRankedDisabled, false) {
+		if flags != nil && !flags.IsEnabled(FlagRankedEnabled, true) {
 			writeError(w, http.StatusServiceUnavailable, "ranked_disabled")
 			return
 		}

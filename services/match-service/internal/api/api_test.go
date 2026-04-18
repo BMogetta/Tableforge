@@ -77,11 +77,10 @@ func TestJoinQueue_Unauthorized(t *testing.T) {
 	assertErrorJSON(t, rec, "unauthorized")
 }
 
-func TestJoinQueue_FlagDisabled_Returns503(t *testing.T) {
-	// Flag ON shortcuts before the auth check — we don't even need a player
-	// ID in context. The queue service is nil because the handler returns
-	// before touching it.
-	flags := stubFlags{flags: map[string]bool{FlagRankedDisabled: true}}
+func TestJoinQueue_FlagOff_Returns503(t *testing.T) {
+	// Flag OFF (ranked killed) short-circuits before the auth check. Queue
+	// service is nil because the handler returns before touching it.
+	flags := stubFlags{flags: map[string]bool{FlagRankedEnabled: false}}
 	router := NewRouter(nil, noopAuthMW, nil, flags)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/queue", nil)
@@ -89,15 +88,15 @@ func TestJoinQueue_FlagDisabled_Returns503(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503 with flag ON, got %d", rec.Code)
+		t.Fatalf("expected 503 with flag OFF, got %d", rec.Code)
 	}
 	assertErrorJSON(t, rec, "ranked_disabled")
 }
 
-func TestJoinQueue_FlagEnabled_FallsThroughToAuth(t *testing.T) {
-	// Flag OFF means the gate doesn't trip and the handler continues to the
-	// auth check. No player in context → 401 (same as the unflagged case).
-	flags := stubFlags{flags: map[string]bool{FlagRankedDisabled: false}}
+func TestJoinQueue_FlagOn_FallsThroughToAuth(t *testing.T) {
+	// Flag ON (normal ranked operation) lets the handler continue. No player
+	// in context → 401.
+	flags := stubFlags{flags: map[string]bool{FlagRankedEnabled: true}}
 	router := NewRouter(nil, noopAuthMW, nil, flags)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/queue", nil)

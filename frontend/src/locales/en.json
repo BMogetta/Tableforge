@@ -111,7 +111,8 @@
     "declineMatch": "Decline",
     "rankedNote": "Ranked games affect your",
     "displayRating": "display rating",
-    "backToLobby": "← Lobby"
+    "backToLobby": "← Lobby",
+    "rankedPaused": "Ranked matchmaking is temporarily disabled. Queue access is paused; matches in progress continue normally."
   },
   "room": {
     "loading": "Loading room...",

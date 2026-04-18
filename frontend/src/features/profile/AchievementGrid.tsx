@@ -35,7 +35,10 @@ export function AchievementGrid({ achievements: progress, isLoading }: Props) {
   // Default-on flag: cold start keeps tracking-paused notice hidden.
   const { flagsReady } = useFlagsStatus()
   const achievementsFlag = useFlag(Flags.AchievementsEnabled)
-  const trackingPaused = flagsReady && !achievementsFlag
+  const maintenanceOn = useFlag(Flags.MaintenanceMode)
+  // Under maintenance, the global banner covers the paused reason — don't
+  // stack a feature-specific notice on top.
+  const trackingPaused = flagsReady && !achievementsFlag && !maintenanceOn
 
   const { data, isLoading: defsLoading } = useQuery({
     queryKey: keys.achievementDefinitions(),

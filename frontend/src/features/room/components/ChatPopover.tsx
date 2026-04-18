@@ -53,7 +53,11 @@ export function ChatPopover({
   // a "paused" flash during the first Unleash fetch.
   const { flagsReady } = useFlagsStatus()
   const chatFlag = useFlag(Flags.ChatEnabled)
-  const chatEnabled = !flagsReady || chatFlag
+  const maintenanceOn = useFlag(Flags.MaintenanceMode)
+  // Under maintenance, the global banner already covers the "why" — collapse
+  // the feature-specific paused state into a regular input-disabled look so
+  // we don't stack redundant notices.
+  const chatEnabled = !flagsReady || chatFlag || maintenanceOn
 
   const [draft, setDraft] = useState('')
   const [systemMessages, setSystemMessages] = useState<SystemMessage[]>([])

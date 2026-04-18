@@ -26,7 +26,7 @@ export const flagsConfig = {
  */
 export const Flags = {
   MaintenanceMode: 'maintenance-mode',
-  RankedMatchmakingDisabled: 'ranked-matchmaking-disabled',
+  RankedMatchmakingEnabled: 'ranked-matchmaking-enabled',
   ChatEnabled: 'chat-enabled',
   AchievementsEnabled: 'achievements-enabled',
   GameTicTacToeEnabled: 'game-tictactoe-enabled',

@@ -111,7 +111,8 @@
     "declineMatch": "Rechazar",
     "rankedNote": "Las partidas competitivas afectan tu",
     "displayRating": "rating visible",
-    "backToLobby": "← Lobby"
+    "backToLobby": "← Lobby",
+    "rankedPaused": "El matchmaking ranked está temporalmente desactivado. No se aceptan ingresos a la cola; las partidas en curso siguen normalmente."
   },
   "room": {
     "loading": "Cargando sala...",

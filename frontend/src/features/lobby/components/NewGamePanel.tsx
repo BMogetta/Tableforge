@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { useFlag, useFlagsStatus } from '@unleash/proxy-client-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { queue } from '@/features/lobby/api'
 import { rooms } from '@/features/room/api'
+import { Flags } from '@/lib/flags'
 import { keys } from '@/lib/queryClient'
 import type { GameInfo } from '@/lib/schema-generated.zod'
 import { sfx } from '@/lib/sfx'
@@ -36,6 +38,16 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
   const { t } = useTranslation()
   const navigate = useNavigate()
   const qc = useQueryClient()
+
+  // Default-on gate: cold-start treats ranked as enabled to avoid flashing a
+  // paused state during the first Unleash fetch.
+  const { flagsReady } = useFlagsStatus()
+  const rankedFlag = useFlag(Flags.RankedMatchmakingEnabled)
+  const maintenanceOn = useFlag(Flags.MaintenanceMode)
+  const rankedEnabled = !flagsReady || rankedFlag
+  // When maintenance is ON, the global banner already explains the whole
+  // app is paused — don't stack a ranked-specific banner on top.
+  const showRankedPaused = !rankedEnabled && !maintenanceOn
 
   const [tab, setTab] = useState<Tab>('casual')
   const [joinCode, setJoinCode] = useState('')
@@ -243,13 +255,24 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
 
         {tab === 'ranked' && (
           <div className={styles.rankedBody}>
+            {showRankedPaused && (
+              <div
+                className={styles.pausedBanner}
+                role='status'
+                {...testId('ranked-paused-banner')}
+              >
+                {t('lobby.rankedPaused')}
+              </div>
+            )}
             {queueStatus === 'idle' && (
               <button
                 type='button'
                 {...testId('find-match-btn')}
                 className='btn btn-primary'
                 onClick={() => joinQueue.mutate()}
-                disabled={disabled || joinQueue.isPending || !effectiveGame}
+                disabled={
+                  disabled || joinQueue.isPending || !effectiveGame || !rankedEnabled
+                }
               >
                 {joinQueue.isPending ? t('lobby.joiningMatch') : t('lobby.findMatch')}
               </button>
