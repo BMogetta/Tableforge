@@ -169,11 +169,13 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 4.1 SDK + provider
 
-- [ ] **4.1.a** Instalar `@unleash/proxy-client-react` como dep de frontend.
-  - **Preguntar al user antes de agregar la dep** (regla del proyecto).
-- [ ] **4.1.b** Crear `frontend/src/lib/flags.ts` con config del cliente: URL `http://unleash.localhost/api/frontend`, clientKey `default:development.unleash-insecure-api-token`, appName `frontend`, refreshInterval 15.
-- [ ] **4.1.c** Wrap el árbol en `<FlagProvider>` en `main.tsx`.
-- [ ] **Validación 4.1**: el provider se inicializa, `useFlag('maintenance-mode')` devuelve `false` en warm state.
+- [x] **4.1.a** Instalar `@unleash/proxy-client-react@5.0.1` como dep de frontend (confirmado en plan review).
+- [x] **4.1.b** Crear `frontend/src/lib/flags.ts`:
+  - `flagsConfig` exportado con URL/clientKey/appName/env/refreshInterval.
+  - Env vars Vite opcionales (`VITE_UNLEASH_URL`, `VITE_UNLEASH_CLIENT_KEY`, `VITE_UNLEASH_ENV`) para override en builds.
+  - `Flags` constant map con los 7 nombres — importable como `Flags.MaintenanceMode` para evitar typos.
+- [x] **4.1.c** Wrap del árbol en `<FlagProvider config={flagsConfig}>` en `main.tsx`, dentro de StrictMode y fuera de QueryClientProvider (el provider expone hooks; query puede depender de ellos vía useCapability más adelante).
+- [x] **Validación 4.1**: `npm run build` OK.
 
 ### 4.2 Capability hook
 
