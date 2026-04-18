@@ -7,6 +7,7 @@
 #   - ws:/wss: WebSocket connections to ws-gateway
 #   - /otlp: browser-side OpenTelemetry trace export
 #   - blob: used by audio/SFX playback
+#   - unleash.localhost: feature flag SDK fetches (/api/frontend)
 
 http:
   middlewares:
@@ -31,6 +32,6 @@ http:
           style-src 'self' 'unsafe-inline';
           font-src 'self';
           img-src 'self' data: https://avatars.githubusercontent.com;
-          connect-src 'self' ws: wss: https://l4kdz58q3w.ufs.sh;
+          connect-src 'self' ws: wss: http://unleash.localhost https://l4kdz58q3w.ufs.sh;
           media-src 'self' blob: https://l4kdz58q3w.ufs.sh;
           frame-ancestors 'none'
