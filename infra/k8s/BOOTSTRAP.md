@@ -367,7 +367,7 @@ Manifest: `infra/k8s/argocd-apps/repo.yaml`.
 kubectl apply -f infra/k8s/argocd-apps/repo.yaml
 ```
 
-In the UI, `Settings → Repositories` lists `https://github.com/BMogetta/tableforge.git` with `Connection Status: Successful`.
+In the UI, `Settings → Repositories` lists `https://github.com/BMogetta/recess.git` with `Connection Status: Successful`.
 
 ### 5.3.d — Root App-of-Apps
 

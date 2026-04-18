@@ -22,7 +22,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/BMogetta/tableforge.git
+    repoURL: https://github.com/BMogetta/recess.git
     targetRevision: main
     path: infra/k8s/apps
     directory:

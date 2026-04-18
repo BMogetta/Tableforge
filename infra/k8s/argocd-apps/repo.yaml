@@ -12,4 +12,4 @@ metadata:
     argocd.argoproj.io/secret-type: repository
 stringData:
   type: git
-  url: https://github.com/BMogetta/tableforge.git
+  url: https://github.com/BMogetta/recess.git
