@@ -295,15 +295,10 @@ func handleStartGame(svc *lobby.Service, rt *runtime.Service, hub *ws.Hub) http.
 		rt.StartSession(r.Context(), session, hub, runtime.DefaultReadyTimeout)
 		rt.BroadcastSessionStarted(r.Context(), hub, session)
 
-		// If the first player to move is a registered bot, fire immediately.
-		var initialState struct {
-			CurrentPlayerID string `json:"current_player_id"`
-		}
-		if err := json.Unmarshal(session.State, &initialState); err == nil {
-			if firstPlayer, err := uuid.Parse(initialState.CurrentPlayerID); err == nil {
-				rt.MaybeFireBot(r.Context(), hub, session.ID, firstPlayer)
-			}
-		}
+		// Bot firing on "bot goes first" scenarios lives in OnAllReady now.
+		// Firing here would run the bot's move during the ready phase, before
+		// the human clicks Ready — the frontend is still on the ready screen,
+		// ignores the move event, then renders a stale "bot's turn" board.
 
 		writeJSON(w, http.StatusOK, session)
 		activeSessions.Inc()

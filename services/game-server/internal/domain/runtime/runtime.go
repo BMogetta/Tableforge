@@ -630,6 +630,22 @@ func (svc *Service) OnAllReady(ctx context.Context, session store.GameSession, h
 			Payload: map[string]any{"session_id": session.ID},
 		})
 	}
+
+	// If the first player to move is a bot, fire now — NOT from handleStartGame.
+	// Firing earlier would execute the bot's move during the ready phase, when
+	// the frontend is still on the ready screen and ignores move events; the
+	// human would then see a stale "bot's turn" board and time out on what
+	// the server already records as their own turn.
+	var state engine.GameState
+	if err := json.Unmarshal(session.State, &state); err != nil {
+		svc.log.Error("OnAllReady: unmarshal state", "session_id", session.ID, "error", err)
+		return
+	}
+	currentID, err := uuid.Parse(string(state.CurrentPlayerID))
+	if err != nil {
+		return
+	}
+	svc.MaybeFireBot(ctx, hub, session.ID, currentID)
 }
 
 // ErrNotFinished is returned when a rematch is requested on an active session.
