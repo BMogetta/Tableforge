@@ -18,9 +18,11 @@ export function CardZone<T>({
   useImperativeHandle(zoneRef, () => containerRef.current!, [])
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: fieldset would break layout styling
     <div
       ref={containerRef}
       className={styles[layoutMode]}
+      role='group'
       aria-label='Card zone'
       {...testId('card-zone')}
     >

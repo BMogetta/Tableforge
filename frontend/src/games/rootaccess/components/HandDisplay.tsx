@@ -129,7 +129,8 @@ export function HandDisplay({
   }
 
   return (
-    <div className={styles.hand} aria-label={t('rootaccess.yourHand')}>
+    // biome-ignore lint/a11y/useSemanticElements: fieldset would break hand layout
+    <div className={styles.hand} role='group' aria-label={t('rootaccess.yourHand')}>
       <AnimatePresence mode='popLayout'>
         {cards.map((card, i) => {
           const isBlocked = blockedCards.includes(card)

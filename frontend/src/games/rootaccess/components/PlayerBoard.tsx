@@ -70,13 +70,14 @@ export function PlayerBoard({
               <span
                 className={styles.presenceDot}
                 data-online={String(isOnline)}
+                role='img'
                 aria-label={isOnline ? t('game.opponentOnline') : t('game.opponentOffline')}
                 {...testId('opponent-presence-dot')}
               />
             )}
             <span className={styles.username}>{username}</span>
             {isBot && (
-              <span className={styles.botBadge} aria-label={t('room.bot')}>
+              <span className={styles.botBadge}>
                 {t('room.bot')}
                 {botProfile && (
                   <>
@@ -90,7 +91,11 @@ export function PlayerBoard({
             )}
             {isLocal && <span className={styles.youBadge}>{t('common.you')}</span>}
             {isBotThinking && (
-              <span className={styles.thinking} aria-label={t('rootaccess.botThinking')}>
+              <span
+                className={styles.thinking}
+                role='status'
+                aria-label={t('rootaccess.botThinking')}
+              >
                 <span className={styles.dot} />
                 <span className={styles.dot} />
                 <span className={styles.dot} />
@@ -116,22 +121,23 @@ export function PlayerBoard({
           </div>
         </div>
 
-        <div
-          className={styles.tokens}
-          aria-label={t('rootaccess.tokenCount', { current: tokens, total: tokensToWin })}
-        >
+        <div className={styles.tokens}>
           {Array.from({ length: tokensToWin }).map((_, i) => (
             <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: tokens are positional and index-keyed by design
               key={i}
               className={[styles.token, i < tokens ? styles.tokenFilled : ''].join(' ')}
+              role='img'
               aria-label={i < tokens ? t('rootaccess.tokenEarned') : t('rootaccess.tokenPending')}
             />
           ))}
         </div>
 
         {!isLocal && handSize > 0 && !isEliminated && (
+          // biome-ignore lint/a11y/useSemanticElements: fieldset would break layout
           <div
             className={styles.opponentHand}
+            role='group'
             aria-label={t('rootaccess.opponentHand', { name: username })}
           >
             <CardPile count={handSize} faceDown={true} />

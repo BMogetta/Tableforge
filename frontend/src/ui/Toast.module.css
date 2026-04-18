@@ -21,9 +21,30 @@
   border: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
   pointer-events: all;
-  cursor: pointer;
   overflow: hidden;
   animation: slideIn 200ms ease forwards;
+}
+
+.dismissBtn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.dismissBtn:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+}
+
+.dismissBtn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 @keyframes slideIn {

@@ -55,20 +55,13 @@ export function MatchHistory({
     <>
       <div className={styles.matchList}>
         {matches.map((match, i) => (
-          <div
+          <button
             key={match.id}
             {...testId(`match-row-${i}`)}
+            type='button'
             className={styles.matchRow}
             style={{ animationDelay: `${i * 30}ms` }}
             onClick={() => onViewReplay(match.session_id)}
-            role='button'
-            tabIndex={0}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onViewReplay(match.session_id)
-              }
-            }}
           >
             <span className={styles.matchOutcome} data-outcome={match.outcome}>
               {match.outcome}
@@ -97,7 +90,7 @@ export function MatchHistory({
               <span>{formatDuration(match.duration_secs)}</span>
               <span>{formatDate(match.created_at)}</span>
             </span>
-          </div>
+          </button>
         ))}
       </div>
 

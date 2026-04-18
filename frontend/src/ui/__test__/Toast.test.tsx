@@ -121,10 +121,10 @@ describe('ToastProvider / useToast', () => {
     expect(screen.getByText('internal server error')).toBeInTheDocument()
   })
 
-  it('dismisses on click', () => {
+  it('dismisses when clicking the dismiss button', () => {
     renderToast()
     fireEvent.click(screen.getByTestId('show-error'))
-    fireEvent.click(screen.getByRole('alert'))
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }))
     expect(screen.queryByText('internal server error')).toBeNull()
   })
 

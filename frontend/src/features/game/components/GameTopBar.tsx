@@ -47,7 +47,7 @@ export function GameTopBar({
   const { t } = useTranslation()
 
   return (
-    <header className={styles.bar} role='status' aria-live='polite'>
+    <div className={styles.bar} role='status' aria-live='polite'>
       <button
         type='button'
         className={`btn btn-ghost btn-sm ${styles.lobbyBtn}`}
@@ -90,6 +90,6 @@ export function GameTopBar({
           </button>
         )}
       </div>
-    </header>
+    </div>
   )
 }

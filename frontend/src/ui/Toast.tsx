@@ -148,17 +148,20 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: str
   }[toast.variant]
 
   return (
-    <div
-      className={`${styles.toast} ${styles[toast.variant]}`}
-      role='alert'
-      onClick={dismiss}
-      title='Click to dismiss'
-    >
+    <div className={`${styles.toast} ${styles[toast.variant]}`} role='alert'>
       <span className={styles.icon}>{icon}</span>
       <div className={styles.body}>
         <span className={styles.message}>{toast.message}</span>
         {toast.code && <span className={styles.code}>{toast.code}</span>}
       </div>
+      <button
+        type='button'
+        className={styles.dismissBtn}
+        onClick={dismiss}
+        aria-label='Dismiss notification'
+      >
+        ×
+      </button>
       <div className={styles.progress}>
         <div className={styles.progressBar} style={{ animationDuration: `${AUTO_DISMISS_MS}ms` }} />
       </div>

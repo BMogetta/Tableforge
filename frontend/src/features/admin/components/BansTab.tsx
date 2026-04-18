@@ -113,6 +113,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
       </div>
 
       {showDialog && (
+        // biome-ignore lint/a11y/useSemanticElements: backdrop is a click-outside target, not a button
         <div
           className={styles.dialogBackdrop}
           role='button'
@@ -121,6 +122,7 @@ export function BansTab({ callerRole, initialPlayerId }: Props) {
           onClick={() => setShowDialog(false)}
           onKeyDown={e => e.key === 'Escape' && setShowDialog(false)}
         >
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation on the dialog card is only to block backdrop clicks */}
           <div
             className={`card ${styles.dialog}`}
             role='dialog'

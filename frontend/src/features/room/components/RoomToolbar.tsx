@@ -46,6 +46,7 @@ export function RoomToolbar({ items, activePopover, onToggle, children }: Props)
 
       {activePopover && (
         <>
+          {/* biome-ignore lint/a11y/useSemanticElements: backdrop is a click-outside target, not a button */}
           <div
             className={styles.popoverBackdrop}
             role='button'
@@ -65,6 +66,7 @@ export function RoomToolbar({ items, activePopover, onToggle, children }: Props)
 
 export const SettingsIcon = (
   <svg
+    aria-hidden='true'
     width='16'
     height='16'
     viewBox='0 0 24 24'
@@ -79,6 +81,7 @@ export const SettingsIcon = (
 
 export const BotIcon = (
   <svg
+    aria-hidden='true'
     width='16'
     height='16'
     viewBox='0 0 24 24'
@@ -96,6 +99,7 @@ export const BotIcon = (
 
 export const InviteIcon = (
   <svg
+    aria-hidden='true'
     width='16'
     height='16'
     viewBox='0 0 24 24'
@@ -110,6 +114,7 @@ export const InviteIcon = (
 
 export const ChatIcon = (
   <svg
+    aria-hidden='true'
     width='16'
     height='16'
     viewBox='0 0 24 24'

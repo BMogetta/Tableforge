@@ -204,12 +204,22 @@ export function DesignPage() {
         <Section title='Inputs'>
           <div className={styles.stack}>
             <div>
-              <label className='label'>Room Code</label>
-              <input className='input' placeholder='Enter code...' style={{ maxWidth: 280 }} />
+              <label className='label' htmlFor='design-room-code'>
+                Room Code
+              </label>
+              <input
+                id='design-room-code'
+                className='input'
+                placeholder='Enter code...'
+                style={{ maxWidth: 280 }}
+              />
             </div>
             <div>
-              <label className='label'>Disabled</label>
+              <label className='label' htmlFor='design-disabled-input'>
+                Disabled
+              </label>
               <input
+                id='design-disabled-input'
                 className='input'
                 placeholder='Not editable'
                 disabled={true}

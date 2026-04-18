@@ -59,6 +59,7 @@ export function AppHeader({ onLogout }: Props) {
             {...testId('rules-btn')}
           >
             <svg
+              aria-hidden='true'
               width='16'
               height='16'
               viewBox='0 0 24 24'
@@ -80,6 +81,7 @@ export function AppHeader({ onLogout }: Props) {
             onClick={() => setNotifsOpen(true)}
           >
             <svg
+              aria-hidden='true'
               width='16'
               height='16'
               viewBox='0 0 24 24'
@@ -104,6 +106,7 @@ export function AppHeader({ onLogout }: Props) {
             onClick={() => useAppStore.getState().setDmTarget('__inbox__')}
           >
             <svg
+              aria-hidden='true'
               width='16'
               height='16'
               viewBox='0 0 24 24'
@@ -127,6 +130,7 @@ export function AppHeader({ onLogout }: Props) {
             onClick={() => setSettingsOpen(true)}
           >
             <svg
+              aria-hidden='true'
               width='16'
               height='16'
               viewBox='0 0 24 24'

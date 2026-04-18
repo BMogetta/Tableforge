@@ -69,7 +69,7 @@ export function CardPile<T>({
         })}
       </AnimatePresence>
       {count > 0 && (
-        <span className={styles.count} aria-label={`${count} cards remaining`}>
+        <span className={styles.count} title={`${count} cards remaining`}>
           {count}
         </span>
       )}

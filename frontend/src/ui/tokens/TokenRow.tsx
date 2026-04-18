@@ -23,7 +23,14 @@ export function TokenRow<T>({
   const variants = getClaimVariants(claimOffset)
 
   return (
-    <div ref={containerRef} className={styles.row} aria-label='Token row' {...testId('token-row')}>
+    // biome-ignore lint/a11y/useSemanticElements: fieldset would break row layout styling
+    <div
+      ref={containerRef}
+      className={styles.row}
+      role='group'
+      aria-label='Token row'
+      {...testId('token-row')}
+    >
       {tokens.map((token, index) => {
         const claimState = getClaimState(token, index)
         const animateState = claimState ?? 'unclaimed'

@@ -68,9 +68,18 @@ function EventRow({ event, isExpanded, onToggle }: EventRowProps) {
       }}
     >
       {/* Summary row */}
+      {/* biome-ignore lint/a11y/useSemanticElements: contains a nested copy <button>, so this can't itself be a <button> */}
       <div
         {...testId('event-summary')}
         onClick={onToggle}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onToggle()
+          }
+        }}
+        role='button'
+        tabIndex={0}
         style={{
           display: 'flex',
           alignItems: 'center',

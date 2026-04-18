@@ -66,7 +66,8 @@ export function CardHand<T>({
   )
 
   return (
-    <div className={styles.hand} {...testId('card-hand')} aria-label='Your hand'>
+    // biome-ignore lint/a11y/useSemanticElements: fieldset would break fan layout styling
+    <div className={styles.hand} {...testId('card-hand')} role='group' aria-label='Your hand'>
       <AnimatePresence mode='popLayout'>
         {cards.map((card, index) => {
           const angle = getAngle(index)

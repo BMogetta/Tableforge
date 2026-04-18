@@ -78,19 +78,11 @@ export function CentralDiscard({ discardOrder, discardPiles, getUsername, pileRe
       data-empty={isEmpty}
       {...testId('central-discard')}
     >
-      <div
-        role='button'
-        tabIndex={isEmpty ? -1 : 0}
-        aria-disabled={isEmpty}
+      <button
+        type='button'
+        disabled={isEmpty}
         className={styles.pile}
         onClick={() => !isEmpty && setShowHistory(true)}
-        onKeyDown={e => {
-          if (isEmpty) return
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setShowHistory(true)
-          }
-        }}
         aria-label={isEmpty ? t('rootaccess.discardEmpty') : t('rootaccess.openDiscardHistory')}
       >
         {isEmpty ? (
@@ -133,9 +125,9 @@ export function CentralDiscard({ discardOrder, discardPiles, getUsername, pileRe
             })}
           </AnimatePresence>
         )}
-      </div>
+      </button>
       {total > 0 && (
-        <span className={styles.count} aria-label={`${total} cards discarded`}>
+        <span className={styles.count} title={`${total} cards discarded`}>
           {total}
         </span>
       )}
