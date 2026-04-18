@@ -123,6 +123,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # OCI image refs must be lowercase. github.repository_owner may contain
+      # uppercase letters (e.g. "BMogetta"), so normalise it once per job.
+      - name: Lowercase image owner
+        run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
       - name: Build scan image (amd64 only, for Trivy)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.9.0
         with:
@@ -160,8 +164,8 @@ jobs:
           provenance: mode=max
           sbom: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-${{ matrix.service }}:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-${{ matrix.service }}:${{ needs.changes.outputs.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-${{ matrix.service }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-${{ matrix.service }}:${{ needs.changes.outputs.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
       - name: Install cosign
@@ -171,7 +175,7 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-${{ matrix.service }}@${DIGEST}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-${{ matrix.service }}@${DIGEST}
 
   build-frontend:
     name: "Build: frontend"
@@ -196,6 +200,9 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # OCI image refs must be lowercase. See build-services job above for context.
+      - name: Lowercase image owner
+        run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
       - name: Build scan image (amd64 only, for Trivy)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.9.0
         with:
@@ -231,8 +238,8 @@ jobs:
           provenance: mode=max
           sbom: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-frontend:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-frontend:${{ needs.changes.outputs.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-frontend:${{ needs.changes.outputs.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
       - name: Install cosign
@@ -242,4 +249,4 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-frontend@${DIGEST}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-frontend@${DIGEST}
