@@ -10,6 +10,7 @@ metadata:
   namespace: argocd
   labels:
     argocd.argoproj.io/secret-type: repository
+    app.kubernetes.io/part-of: recess
 stringData:
   type: git
   url: https://github.com/BMogetta/recess.git

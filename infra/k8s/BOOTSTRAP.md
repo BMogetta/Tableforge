@@ -369,11 +369,17 @@ kubectl apply -f infra/k8s/argocd-apps/repo.yaml
 
 In the UI, `Settings → Repositories` lists `https://github.com/BMogetta/recess.git` with `Connection Status: Successful`.
 
-### 5.3.d — Root App-of-Apps
+### 5.3.d — AppProject + Root App-of-Apps
 
-**Pattern chosen**: plain `Application` root + directory sync. The root Application points at `infra/k8s/apps/` in git; ArgoCD reads every YAML under that path as a child Application.
+**AppProject `recess`** (`infra/k8s/argocd-apps/project.yaml`) — narrower scoping than the built-in `default` Project:
 
-Manifest: `infra/k8s/argocd-apps/root.yaml`.
+- `sourceRepos`: only `https://github.com/BMogetta/recess.git`. An Application inside this Project cannot reference any other git URL.
+- `destinations`: only the five project namespaces + `kube-system` / `cnpg-system` (where operators live). Prevents a misconfigured Application from landing in a random namespace.
+- Resource whitelists kept permissive (`*/*`) — the cluster runs operators that create arbitrary CRDs / ClusterRoles; tightening is a later hardening task.
+
+Every Recess Application sets `spec.project: recess`.
+
+**Root `Application`** (`infra/k8s/argocd-apps/root.yaml`) — plain `Application` + directory sync, not an ApplicationSet. Points at `infra/k8s/apps/` in git; ArgoCD reads every YAML under that path as a child Application.
 
 > Note on the original plan: 5.3.d called for an `ApplicationSet`, but 5.4.d prescribes a full `Application` CR per service file — which is incompatible with ApplicationSet's git-file generator (where files are template-var configs, not CRs). The canonical App-of-Apps pattern from the ArgoCD docs uses a plain `Application` root. Documented here as the resolved approach; 5.3.d's phrasing was imprecise.
 
@@ -381,10 +387,10 @@ Manifest: `infra/k8s/argocd-apps/root.yaml`.
 
 **Finalizer**: `resources-finalizer.argocd.argoproj.io`. Without it, deleting the root Application leaves children orphaned.
 
-Apply:
+Apply (order matters — Project must exist before the root references it):
 
 ```bash
-kubectl apply -f infra/k8s/argocd-apps/root.yaml
+kubectl apply -f infra/k8s/argocd-apps/project.yaml -f infra/k8s/argocd-apps/repo.yaml -f infra/k8s/argocd-apps/root.yaml
 ```
 
 > On apply you may see a k8s warning:
@@ -393,9 +399,10 @@ kubectl apply -f infra/k8s/argocd-apps/root.yaml
 
 Expected state in the UI within ~30 s:
 
-- Applications list shows `recess-root` with **Sync Status: Synced**, **Health: Healthy**, **0 child resources** (the `apps/` path only contains `.gitkeep`).
+- `Settings → Projects` lists `recess` alongside `default`.
+- Applications list shows `recess-root` under project `recess`, with **Sync Status: Synced**, **Health: Healthy**, **0 child resources** (the `apps/` path only contains `.gitkeep`).
 
-As Phase 5.4+ adds child Application CRs to `infra/k8s/apps/`, the root automatically picks them up.
+As Phase 5.4+ adds child Application CRs to `infra/k8s/apps/`, the root automatically picks them up — and they too must declare `spec.project: recess` to satisfy the Project's scope.
 
 ### 5.3.e — Resource footprint
 

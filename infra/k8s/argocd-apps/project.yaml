@@ -1,0 +1,49 @@
+# ArgoCD AppProject — scoping for every Application that belongs to Recess.
+#
+# Compared to the built-in `default` project, this one restricts:
+#   - `sourceRepos` → only the Recess repo is an allowed source.
+#   - `destinations` → only namespaces that are part of this platform.
+#
+# Resource types are kept unrestricted (`*/*`) because the cluster runs
+# operators (CNPG, sealed-secrets, prometheus-operator) that create many
+# cluster-scoped resources (CRDs, ClusterRoles, etc.). Tightening these
+# whitelists is a later hardening task, not a bootstrap concern.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: recess
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+spec:
+  description: Recess — single-cluster homelab on Raspberry Pi 5.
+
+  sourceRepos:
+    - https://github.com/BMogetta/recess.git
+
+  destinations:
+    # Five namespaces from infra/k8s/namespaces.yaml.
+    - server: https://kubernetes.default.svc
+      namespace: recess
+    - server: https://kubernetes.default.svc
+      namespace: recess-data
+    - server: https://kubernetes.default.svc
+      namespace: observability
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+    - server: https://kubernetes.default.svc
+      namespace: cloudflared
+    # Operator / system namespaces we will install into in later phases
+    # (sealed-secrets controller, CNPG operator, etc.).
+    - server: https://kubernetes.default.svc
+      namespace: kube-system
+    - server: https://kubernetes.default.svc
+      namespace: cnpg-system
+
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

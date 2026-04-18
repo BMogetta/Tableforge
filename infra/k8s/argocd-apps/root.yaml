@@ -14,13 +14,15 @@ kind: Application
 metadata:
   name: recess-root
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
   finalizers:
     # Cascade delete: removing the root Application also removes the child
     # Applications it manages. Without this finalizer, children would be
     # orphaned in the cluster.
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: recess
   source:
     repoURL: https://github.com/BMogetta/recess.git
     targetRevision: main
