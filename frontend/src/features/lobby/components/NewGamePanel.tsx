@@ -161,8 +161,10 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
     <section className={styles.section}>
       <h2 className={styles.title}>{t('lobby.newGame')}</h2>
 
-      {/* Game selector — shown for both tabs when multiple games exist */}
-      {gameList.length > 1 && (
+      {/* Game selector — always visible when at least one game is playable.
+          With a single game (e.g. after a feature-flag disable) we still show
+          the chip so the user knows which game they're about to create. */}
+      {gameList.length > 0 && (
         <div className={styles.gameSelector}>
           {gameList.map((g: GameInfo) => (
             <button

@@ -1,5 +1,6 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useFlagsStatus, useUnleashClient } from '@unleash/proxy-client-react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { gameRegistry } from '@/features/lobby/api'
 import { keys } from '@/lib/queryClient'
 
@@ -7,16 +8,23 @@ import { keys } from '@/lib/queryClient'
  * useEnabledGames returns the games list filtered by client-side flag state.
  * The server (game-server) already does the authoritative filtering on
  * `GET /api/v1/games`; this hook layers the same check so the UI reflects
- * flag flips instantly in the browser instead of waiting for the next
- * queryClient refetch + server SDK refresh (~15s window).
+ * flag flips instantly in the browser.
  *
- * Policy details:
+ * Freshness strategy:
  *
- *   - Before `flagsReady` is true (cold start), filtering is skipped. The
- *     SDK's `isEnabled` returns false for every flag during this window,
- *     which would hide all games — not what we want.
- *   - Once flags are ready, a game with no matching flag is kept (defaults
- *     to enabled). This matches the server default-true behavior.
+ *   - The games query uses a short staleTime so React Query refetches on
+ *     any explicit invalidate or focus change.
+ *   - We subscribe to the Unleash client's `update` event and invalidate
+ *     the games query whenever flags change. This keeps the server-returned
+ *     list aligned with the latest flag state without forcing the user to
+ *     reload.
+ *   - The client-side filter is kept as belt-and-suspenders so the UI
+ *     reflects a flag flip even in the tiny window before the refetch
+ *     resolves.
+ *
+ * Cold-start: before `flagsReady` is true, the SDK's `isEnabled` returns
+ * false for every flag. Filtering is skipped in that window so we don't
+ * flash an empty lobby.
  *
  * Returns `{ games, isLoading, isError }`. `games` is always an array so
  * callers don't have to deal with `undefined`.
@@ -24,10 +32,23 @@ import { keys } from '@/lib/queryClient'
 export function useEnabledGames() {
   const unleash = useUnleashClient()
   const { flagsReady } = useFlagsStatus()
+  const qc = useQueryClient()
+
   const query = useQuery({
     queryKey: keys.games(),
     queryFn: gameRegistry.list,
+    staleTime: 0,
   })
+
+  // Invalidate the games query whenever flag state changes server-side.
+  // TinyEmitter's `on` returns the emitter; we clean up via `off` on unmount.
+  useEffect(() => {
+    const handler = () => qc.invalidateQueries({ queryKey: keys.games() })
+    unleash.on('update', handler)
+    return () => {
+      unleash.off('update', handler)
+    }
+  }, [unleash, qc])
 
   const allGames = query.data ?? []
   const games = !flagsReady

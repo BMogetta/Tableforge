@@ -18,6 +18,8 @@ vi.mock('@unleash/proxy-client-react', () => ({
       const t = sdkState.toggles.find(x => x.name === name)
       return t ? t.enabled : false
     },
+    on: () => {},
+    off: () => {},
   }),
 }))
 
