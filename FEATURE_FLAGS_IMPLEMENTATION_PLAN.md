@@ -21,8 +21,8 @@ Plan de implementación de Unleash feature flags para Tableforge: seeder de flag
 
 - [x] **0.1** Env de Unleash: usar `development` en dev local; en k3s prod se usa `production`. El seeder del compose solo toca `development`.
   - Verificado local: Unleash v6 ya trae ambos envs (`development`, `production`) habilitados por default. No hace falta crearlos. El seeder va a omitir el POST de envs e ir directo a habilitar flags en `development`.
-- [ ] **0.2** Token convention: `*:*.unleash-insecure-api-token` (ya seedeado por `INIT_ADMIN_API_TOKENS` en compose). Unscoped, sirve tanto para `/api/client` (backend SDK) como `/api/frontend` (React SDK). En k3s prod se rotará a tokens scoped.
-  - Validación: el token ya está presente, `GET /api/admin/api-tokens` lo muestra.
+- [x] **0.2** Token convention: `*:*.unleash-insecure-api-token` (ya seedeado por `INIT_ADMIN_API_TOKENS` en compose). Unscoped, sirve tanto para `/api/client` (backend SDK) como `/api/frontend` (React SDK). En k3s prod se rotará a tokens scoped.
+  - Verificado local: `GET /api/admin/api-tokens` lista `*:*.unleash-insecure-api-token` con type `admin`, environment `*`.
 - [ ] **0.3** Config shared: env vars nuevas en `.env.example` y `shared/config`:
   - `UNLEASH_URL` (default `http://unleash:4242/api`)
   - `UNLEASH_API_TOKEN` (default `*:*.unleash-insecure-api-token`)
