@@ -350,9 +350,14 @@ export function WsDevtools() {
         {...testId('event-list')}
         onScroll={handleScroll}
         style={{
+          // Fill available space when the host panel has bounded height,
+          // but keep a sensible floor so events remain visible even when
+          // the parent uses height:auto (e.g. changed by a devtools-core
+          // upgrade). 360px is enough for ~8 event rows before scrolling.
           flex: 1,
           overflowY: 'auto',
-          minHeight: 0,
+          minHeight: 360,
+          maxHeight: '70vh',
         }}
       >
         {visibleEvents.length === 0 ? (
