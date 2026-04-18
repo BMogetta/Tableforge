@@ -9,7 +9,7 @@ require (
 	github.com/recess/shared v0.0.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/riandyrn/otelchi v0.12.2
-	google.golang.org/grpc v1.79.2
+	google.golang.org/grpc v1.80.0
 )
 
 require (
