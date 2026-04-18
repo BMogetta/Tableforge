@@ -6,6 +6,7 @@ Unleash provides runtime feature flags for both backend and frontend. It runs as
 
 - **UI**: `http://${UNLEASH_HOST}` (default: `unleash.localhost`)
 - **API**: same host, port 4242 internally
+- **Auth**: disabled (`AUTH_TYPE=none`). Every request to the admin UI is bound to a synthetic admin user. Safe only because the service is not exposed outside Traefik + cloudflared. For anything public, flip to `AUTH_TYPE=open-source` and seed admin credentials via `INIT_ADMIN_USERNAME` / `INIT_ADMIN_PASSWORD`.
 
 ## Architecture
 
