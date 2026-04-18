@@ -59,18 +59,19 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 1.3 Integración al compose
 
-- [ ] **1.3.a** Agregar service `unleash-seeder` a `docker-compose.services.yml`:
-  - Image: `alpine:3.20` (ya pineado en Fase 4.4 CI plan)
-  - Profiles: `app`
-  - Depends on: `unleash (healthy)`
-  - Command: `sh /seed/seed.sh`
-  - Volume: `./infra/unleash:/seed:ro`
-  - Env: `UNLEASH_URL=http://unleash:4242`, `UNLEASH_TOKEN=*:*.unleash-insecure-api-token`
-  - `restart: no` (corre una vez)
-- [ ] **1.3.b** Actualizar `docs/infrastructure/feature-flags.md`:
-  - Sección nueva "Flag seeding" explicando el patrón, el formato de JSON, y cómo agregar un flag nuevo.
-  - Nota de que en Fase 5 (k3s) esto muta a ArgoCD PostSync hook pero el JSON se reutiliza.
-- [ ] **Validación 1.3**: `make down && make up-app` → después de ~30s, `curl http://unleash.localhost/api/admin/projects/default/features` devuelve los 7 flags con el estado esperado.
+- [x] **1.3.a** Agregar service `unleash-seeder` a `docker-compose.services.yml`:
+  - Image: `alpine:3.20@sha256:...` (pineado).
+  - Profiles: `app`.
+  - Depends on: `unleash (healthy)`.
+  - Command: `apk add curl jq && /seed/seed.sh`.
+  - Volume: `./infra/unleash:/seed:ro`.
+  - Env: `UNLEASH_URL`, `UNLEASH_TOKEN`.
+  - `restart: "no"`.
+- [x] **1.3.b** Actualizar `docs/infrastructure/feature-flags.md`:
+  - Nueva sección "Configuration" con el flujo JSON → seed.sh → reconcile; instrucciones para agregar flags nuevas.
+  - Env vars del seeder documentadas.
+  - CLI import/export legacy mantenido como alternativa para migrations ad-hoc.
+- [x] **Validación 1.3**: `docker compose up -d unleash-seeder` → exit 0, logs muestran los 7 `= exists` + estados aplicados.
 
 ### 1.4 Tests
 

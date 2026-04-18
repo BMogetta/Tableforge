@@ -449,6 +449,32 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  unleash-seeder:
+    image: alpine:3.20@sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    container_name: unleash-seeder
+    profiles: [app]
+    networks:
+      - data_network
+    depends_on:
+      unleash:
+        condition: service_healthy
+    environment:
+      UNLEASH_URL: http://unleash:4242/api
+      UNLEASH_TOKEN: "*:*.unleash-insecure-api-token"
+    volumes:
+      - ./infra/unleash:/seed:ro
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl jq >/dev/null && /seed/seed.sh
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "1"
+
   # ── Production profile ───────────────────────────────────────────────────────
 
   pgbouncer:

@@ -19,14 +19,33 @@ Backend  (Go SDK)    -----> directly --->
 
 ## Configuration
 
-Unleash is primarily configured through its UI or REST API. For reproducibility across environments, use the CLI for export/import:
+Flags live in `infra/unleash/`:
+
+- `flags.json` — one entry per flag: `{name, description, type}`.
+- `environments.json` — per-(flag, environment) enabled state.
+- `seed.sh` — idempotent script that reads both JSONs and reconciles Unleash state via the admin API.
+
+On `make up-app`, a short-lived `unleash-seeder` service runs `seed.sh` after the Unleash container is healthy, creates any missing flag, and flips the env states to match the JSON. Re-runs are no-ops; adding a new flag = edit the JSON + restart the seeder (`docker compose up -d unleash-seeder`).
+
+### Adding a new flag
+
+1. Append an entry to `infra/unleash/flags.json`.
+2. Append the desired state to `infra/unleash/environments.json` (one entry per env).
+3. Restart the seeder: `docker compose up -d unleash-seeder`.
+4. Use it from code via `useFlag('your-flag')` (frontend) or `flags.IsEnabled("your-flag", default)` (backend).
+
+### Seeder env vars
+
+- `UNLEASH_URL` — base URL (accepts both `http://host:4242` and `http://host:4242/api`; the script normalizes).
+- `UNLEASH_TOKEN` — admin API token. Defaults to the compose-seeded `*:*.unleash-insecure-api-token`.
+
+### Manual export/import (alternative)
+
+For ad-hoc migrations between environments:
 
 ```bash
-# Export flags
-unleash export --url http://unleash.localhost --token <token> > flags.json
-
-# Import to another environment
-unleash import --url http://prod-unleash --token <token> < flags.json
+unleash export --url http://unleash.localhost --token <token> > state.json
+unleash import --url http://prod-unleash --token <token> < state.json
 ```
 
 ## SDK Integration
