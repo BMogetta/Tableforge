@@ -183,6 +183,7 @@ func main() {
 		userClient,
 		schemaReg,
 		rdb,
+		flags,
 	)
 
 	var handler http.Handler = router

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -196,7 +197,23 @@ func newTestRouterWithUC(st store.Store, uc UserChecker) http.Handler {
 	// Stub publisher with nil redis — events logged but not published.
 	pub := &Publisher{rdb: nil}
 	noopAuth := func(next http.Handler) http.Handler { return next }
-	return NewRouter(st, pub, noopAuth, nil, "chat-service-test", uc)
+	return NewRouter(st, pub, noopAuth, nil, "chat-service-test", uc, nil)
+}
+
+// stubFlags implements featureflags.Checker without a real Unleash client.
+type stubFlags struct{ flags map[string]bool }
+
+func (s stubFlags) IsEnabled(name string, def bool) bool {
+	if v, ok := s.flags[name]; ok {
+		return v
+	}
+	return def
+}
+
+func newTestRouterWithFlags(st store.Store, uc UserChecker, flags map[string]bool) http.Handler {
+	pub := &Publisher{rdb: nil}
+	noopAuth := func(next http.Handler) http.Handler { return next }
+	return NewRouter(st, pub, noopAuth, nil, "chat-service-test", uc, stubFlags{flags: flags})
 }
 
 func withAuth(r *http.Request, playerID uuid.UUID, role string) *http.Request {
@@ -268,6 +285,49 @@ func TestSendRoomMessage(t *testing.T) {
 	}
 	if msgs[0].Content != "hello room" {
 		t.Errorf("expected content 'hello room', got %q", msgs[0].Content)
+	}
+}
+
+func TestSendRoomMessage_FlagDisabled_Returns503(t *testing.T) {
+	// chat-enabled = false → send rejected with 503 chat_disabled, regardless
+	// of participant state or content validity.
+	st := newMockStore()
+	roomID := uuid.New()
+	playerID := uuid.New()
+	st.participants[st.participantKey(roomID, playerID)] = true
+
+	router := newTestRouterWithFlags(st, nil, map[string]bool{FlagChatEnabled: false})
+	rec := postJSONAs(t, router, "/api/v1/rooms/"+roomID.String()+"/messages", playerID, sharedmw.RolePlayer, map[string]string{
+		"content": "hi",
+	})
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 with flag OFF, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"error":"chat_disabled"`) {
+		t.Errorf("expected chat_disabled in body, got %s", rec.Body.String())
+	}
+	if len(st.roomMessages[roomID]) != 0 {
+		t.Error("flag-disabled send should not have reached the store")
+	}
+}
+
+func TestGetRoomMessages_FlagDisabled_StillWorks(t *testing.T) {
+	// Reads are not gated — an operator muted chat should still be able to
+	// inspect history for moderation.
+	st := newMockStore()
+	roomID := uuid.New()
+	playerID := uuid.New()
+	st.participants[st.participantKey(roomID, playerID)] = true
+
+	router := newTestRouterWithFlags(st, nil, map[string]bool{FlagChatEnabled: false})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/rooms/"+roomID.String()+"/messages", nil)
+	req = withAuth(req, playerID, sharedmw.RolePlayer)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on read with flag OFF, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -544,7 +604,7 @@ func TestMarkDMRead_NotifiesSenderChannel(t *testing.T) {
 	pub := NewPublisher(rdb)
 
 	noopAuth := func(next http.Handler) http.Handler { return next }
-	router := NewRouter(st, pub, noopAuth, nil, "chat-service-test", nil)
+	router := NewRouter(st, pub, noopAuth, nil, "chat-service-test", nil, nil)
 
 	ctx := context.Background()
 	senderSub := rdb.Subscribe(ctx, "ws:player:"+sender.String())

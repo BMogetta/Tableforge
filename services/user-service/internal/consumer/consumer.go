@@ -13,9 +13,15 @@ import (
 	"github.com/recess/services/user-service/internal/store"
 	"github.com/recess/shared/achievements"
 	"github.com/recess/shared/events"
+	"github.com/recess/shared/featureflags"
 )
 
 const channelSessionFinished = "game.session.finished"
+
+// FlagAchievementsEnabled gates achievement evaluation. When OFF, the consumer
+// still drains the subscription (so Redis doesn't back up) but skips any
+// progress updates. Existing rows in the DB stay visible.
+const FlagAchievementsEnabled = "achievements-enabled"
 
 // AchievementPublisher publishes achievement unlock events.
 type AchievementPublisher interface {
@@ -28,10 +34,13 @@ type Consumer struct {
 	store store.Store
 	pub   AchievementPublisher
 	log   *slog.Logger
+	flags featureflags.Checker
 }
 
-func New(rdb *redis.Client, st store.Store, pub AchievementPublisher, log *slog.Logger) *Consumer {
-	return &Consumer{rdb: rdb, store: st, pub: pub, log: log}
+// New constructs a Consumer. flags may be nil — evaluation treats an absent
+// client as "flag unknown" and uses the default-on behavior.
+func New(rdb *redis.Client, st store.Store, pub AchievementPublisher, log *slog.Logger, flags featureflags.Checker) *Consumer {
+	return &Consumer{rdb: rdb, store: st, pub: pub, log: log, flags: flags}
 }
 
 // Run blocks until ctx is cancelled.
@@ -63,6 +72,14 @@ func (c *Consumer) handleSessionFinished(ctx context.Context, payload string) er
 	var evt events.GameSessionFinished
 	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
 		return fmt.Errorf("unmarshal GameSessionFinished: %w", err)
+	}
+
+	// Flag OFF → drop the event on the floor (already decoded, so parse
+	// errors still surface). Players will not get credit for this session;
+	// previously recorded achievements stay intact.
+	if c.flags != nil && !c.flags.IsEnabled(FlagAchievementsEnabled, true) {
+		c.log.Debug("achievements-enabled is OFF; skipping", "session_id", evt.SessionID)
+		return nil
 	}
 
 	for _, sp := range evt.Players {

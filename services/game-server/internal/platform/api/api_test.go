@@ -89,7 +89,26 @@ func newTestRouter(t *testing.T) (http.Handler, *fakeStore) {
 	reg := newFakeRegistry(&stubGame{}, &stubTicTacToeGame{})
 	svc := lobby.New(s, reg)
 	rt := runtime.New(s, reg, nil, nil, nil)
-	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil, nil, nil), s
+	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil, nil, nil, nil), s
+}
+
+// stubFlags is a minimal Checker for tests that want to drive flag state.
+type stubFlags struct{ m map[string]bool }
+
+func (s stubFlags) IsEnabled(name string, def bool) bool {
+	if v, ok := s.m[name]; ok {
+		return v
+	}
+	return def
+}
+
+func newTestRouterWithFlags(t *testing.T, flags stubFlags) (http.Handler, *fakeStore) {
+	t.Helper()
+	s := newFakeStore()
+	reg := newFakeRegistry(&stubGame{}, &stubTicTacToeGame{})
+	svc := lobby.New(s, reg)
+	rt := runtime.New(s, reg, nil, nil, nil)
+	return api.NewRouter(svc, rt, s, nil, nil, nil, nil, nil, nil, nil, flags), s
 }
 
 func postJSON(t *testing.T, router http.Handler, path string, body any) *httptest.ResponseRecorder {

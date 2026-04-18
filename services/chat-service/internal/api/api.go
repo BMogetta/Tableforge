@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/riandyrn/otelchi"
 	"github.com/recess/services/chat-service/internal/store"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 )
 
@@ -18,7 +19,12 @@ type UserChecker interface {
 	AreFriends(ctx context.Context, playerAID, playerBID string) (bool, error)
 }
 
-func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry, serviceName string, uc UserChecker) http.Handler {
+// FlagChatEnabled is the Unleash flag that gates message sends (room + DM).
+// When OFF, send endpoints return 503; reads, reports, and moderation still
+// work so a temporarily-disabled chat can still be inspected/cleaned up.
+const FlagChatEnabled = "chat-enabled"
+
+func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry, serviceName string, uc UserChecker, flags featureflags.Checker) http.Handler {
 	r := chi.NewRouter()
 	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
@@ -36,18 +42,20 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 		return schemas.ValidateBody(name)
 	}
 
+	sendGate := chatSendGate(flags)
+
 	r.Group(func(r chi.Router) {
 		r.Use(authMW)
 
 	// --- Room chat -----------------------------------------------------------
-	r.With(validate("send_room_message.request")).Post("/api/v1/rooms/{roomID}/messages", handleSendRoomMessage(st, pub))
+	r.With(sendGate, validate("send_room_message.request")).Post("/api/v1/rooms/{roomID}/messages", handleSendRoomMessage(st, pub))
 	r.Get("/api/v1/rooms/{roomID}/messages", handleGetRoomMessages(st))
 	r.Post("/api/v1/rooms/{roomID}/messages/{messageID}/report", handleReportRoomMessage(st))
 	r.With(requireRole(sharedmw.RoleManager)).
 		Delete("/api/v1/rooms/{roomID}/messages/{messageID}", handleHideRoomMessage(st, pub))
 
 	// --- Direct messages -----------------------------------------------------
-	r.With(validate("send_dm.request")).Post("/api/v1/players/{playerID}/dm", handleSendDM(st, pub, uc))
+	r.With(sendGate, validate("send_dm.request")).Post("/api/v1/players/{playerID}/dm", handleSendDM(st, pub, uc))
 	r.Get("/api/v1/players/{playerID}/dm/conversations", handleListDMConversations(st))
 	r.Get("/api/v1/players/{playerID}/dm/unread", handleGetUnreadDMCount(st))
 	r.Get("/api/v1/players/{playerID}/dm/{otherPlayerID}", handleGetDMHistory(st))
@@ -56,6 +64,21 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	}) // end auth group
 
 	return r
+}
+
+// chatSendGate returns a middleware that rejects requests with 503 when the
+// chat-enabled flag is OFF. Default when the flag is unknown (cold start,
+// Unleash unreachable) is ON, so chat stays usable by default.
+func chatSendGate(flags featureflags.Checker) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if flags != nil && !flags.IsEnabled(FlagChatEnabled, true) {
+				writeError(w, http.StatusServiceUnavailable, "chat_disabled")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // --- helpers -----------------------------------------------------------------

@@ -77,7 +77,7 @@ func main() {
 	// --- HTTP server ---------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
 	pub := api.NewPublisher(rdb)
-	router := api.NewRouter(st, pub, authMW, schemaReg, serviceName, userChecker)
+	router := api.NewRouter(st, pub, authMW, schemaReg, serviceName, userChecker, flags)
 	handler := sharedmw.Maintenance(flags)(router)
 
 	addr := config.Env("HTTP_ADDR", ":8083")

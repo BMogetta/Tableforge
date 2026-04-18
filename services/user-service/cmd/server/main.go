@@ -122,7 +122,7 @@ func main() {
 	}()
 
 	// --- Achievement consumer ------------------------------------------------
-	achievementConsumer := consumer.New(rdb, st, pub, slog.Default())
+	achievementConsumer := consumer.New(rdb, st, pub, slog.Default(), flags)
 	go func() {
 		if err := achievementConsumer.Run(ctx); err != nil {
 			slog.Error("achievement consumer error", "error", err)

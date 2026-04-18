@@ -16,6 +16,7 @@ import (
 	"github.com/recess/game-server/internal/platform/store"
 	"github.com/recess/game-server/internal/platform/ws"
 	error_message "github.com/recess/shared/errors"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 )
 
@@ -30,26 +31,45 @@ type gameInfo struct {
 	Settings   []engine.LobbySetting `json:"settings"`
 }
 
+// FlagPrefixGame is the prefix for per-game toggle flags. For a game with ID
+// "tictactoe", the flag is "game-tictactoe-enabled". Default when unknown is
+// true (a game with no matching flag is considered enabled).
+const FlagPrefixGame = "game-"
+
+// FlagSuffixEnabled is the trailing half of the per-game flag name.
+const FlagSuffixEnabled = "-enabled"
+
+func gameEnabledFlag(gameID string) string {
+	return FlagPrefixGame + gameID + FlagSuffixEnabled
+}
+
 // GET /api/v1/games
-func handleListGames(w http.ResponseWriter, r *http.Request) {
-	list := games.All()
-	result := make([]gameInfo, 0, len(list))
-	for _, g := range list {
-		settings := engine.DefaultLobbySettings()
-		if provider, ok := g.(engine.LobbySettingsProvider); ok {
-			for _, s := range provider.LobbySettings() {
-				settings = upsertLobbySetting(settings, s)
+// Returns the playable-games list, filtered by the per-game feature flags
+// (`game-{id}-enabled`). A game with the flag OFF is hidden from the lobby.
+func handleListGames(flags featureflags.Checker) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		list := games.All()
+		result := make([]gameInfo, 0, len(list))
+		for _, g := range list {
+			if flags != nil && !flags.IsEnabled(gameEnabledFlag(g.ID()), true) {
+				continue
 			}
+			settings := engine.DefaultLobbySettings()
+			if provider, ok := g.(engine.LobbySettingsProvider); ok {
+				for _, s := range provider.LobbySettings() {
+					settings = upsertLobbySetting(settings, s)
+				}
+			}
+			result = append(result, gameInfo{
+				ID:         g.ID(),
+				Name:       g.Name(),
+				MinPlayers: g.MinPlayers(),
+				MaxPlayers: g.MaxPlayers(),
+				Settings:   settings,
+			})
 		}
-		result = append(result, gameInfo{
-			ID:         g.ID(),
-			Name:       g.Name(),
-			MinPlayers: g.MinPlayers(),
-			MaxPlayers: g.MaxPlayers(),
-			Settings:   settings,
-		})
+		writeJSON(w, http.StatusOK, result)
 	}
-	writeJSON(w, http.StatusOK, result)
 }
 
 func upsertLobbySetting(settings []engine.LobbySetting, s engine.LobbySetting) []engine.LobbySetting {

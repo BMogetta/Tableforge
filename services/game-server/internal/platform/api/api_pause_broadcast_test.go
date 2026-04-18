@@ -36,7 +36,7 @@ func TestVotePause_BroadcastSuspendedAtMatchesSession(t *testing.T) {
 	reg := newFakeRegistry(&stubGame{}, &stubTicTacToeGame{})
 	lobbySvc := lobby.New(fs, reg)
 	rt := runtime.New(fs, reg, nil, rdb, nil)
-	router := api.NewRouter(lobbySvc, rt, fs, hub, nil, nil, nil, nil, nil, nil)
+	router := api.NewRouter(lobbySvc, rt, fs, hub, nil, nil, nil, nil, nil, nil, nil)
 
 	// Seed: two humans in a running session.
 	ownerID := uuid.New()

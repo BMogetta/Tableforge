@@ -27,7 +27,18 @@ func noopAuthMW(next http.Handler) http.Handler { return next }
 // newTestRouter builds a router with a nil queue.Service.
 // Only handlers that return before calling any Service method are safe to hit.
 func newTestRouter() http.Handler {
-	return NewRouter(nil, noopAuthMW, nil)
+	return NewRouter(nil, noopAuthMW, nil, nil)
+}
+
+// stubFlags implements featureflags.Checker without a real Unleash client.
+// Returns whatever is in the flags map, or the default for anything missing.
+type stubFlags struct{ flags map[string]bool }
+
+func (s stubFlags) IsEnabled(name string, def bool) bool {
+	if v, ok := s.flags[name]; ok {
+		return v
+	}
+	return def
 }
 
 // stubRatingClient returns default rating for any request.
@@ -45,7 +56,7 @@ func newTestRouterWithService(t *testing.T) (http.Handler, *queue.Service, *mini
 	rdb, mr := testutil.NewTestRedis(t)
 
 	svc := queue.New(rdb, &stubRatingClient{}, nil, nil, "", nil, nil)
-	router := NewRouter(svc, noopAuthMW, nil)
+	router := NewRouter(svc, noopAuthMW, nil, nil)
 	return router, svc, mr
 }
 
@@ -64,6 +75,38 @@ func TestJoinQueue_Unauthorized(t *testing.T) {
 		t.Fatalf("expected 401, got %d", rec.Code)
 	}
 	assertErrorJSON(t, rec, "unauthorized")
+}
+
+func TestJoinQueue_FlagDisabled_Returns503(t *testing.T) {
+	// Flag ON shortcuts before the auth check — we don't even need a player
+	// ID in context. The queue service is nil because the handler returns
+	// before touching it.
+	flags := stubFlags{flags: map[string]bool{FlagRankedDisabled: true}}
+	router := NewRouter(nil, noopAuthMW, nil, flags)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/queue", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 with flag ON, got %d", rec.Code)
+	}
+	assertErrorJSON(t, rec, "ranked_disabled")
+}
+
+func TestJoinQueue_FlagEnabled_FallsThroughToAuth(t *testing.T) {
+	// Flag OFF means the gate doesn't trip and the handler continues to the
+	// auth check. No player in context → 401 (same as the unflagged case).
+	flags := stubFlags{flags: map[string]bool{FlagRankedDisabled: false}}
+	router := NewRouter(nil, noopAuthMW, nil, flags)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/queue", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 with flag OFF, got %d", rec.Code)
+	}
 }
 
 // ---------------------------------------------------------------------------

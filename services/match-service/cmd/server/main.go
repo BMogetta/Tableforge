@@ -179,7 +179,7 @@ func main() {
 		return
 	}
 
-	r.Mount("/", api.NewRouter(queueSvc, authMW, schemaReg))
+	r.Mount("/", api.NewRouter(queueSvc, authMW, schemaReg, flags))
 
 	// --- HTTP server ---------------------------------------------------------
 	addr := config.Env("HTTP_ADDR", ":8087")

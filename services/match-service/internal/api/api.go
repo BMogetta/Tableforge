@@ -11,12 +11,19 @@ import (
 	"github.com/recess/match-service/internal/queue"
 	"github.com/recess/shared/config"
 	apierrors "github.com/recess/shared/errors"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 )
 
+// FlagRankedDisabled is the Unleash flag that, when ON, stops new enqueue
+// requests. Already-proposed matches can still be accepted/declined — the
+// block is only on the entry point to the ranked queue.
+const FlagRankedDisabled = "ranked-matchmaking-disabled"
+
 // NewRouter builds the match-service HTTP router.
 // schemas may be nil — request validation is skipped (tests only).
-func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry) http.Handler {
+// flags may be nil — gating falls back to "flag OFF" (never block).
+func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler, schemas *sharedmw.SchemaRegistry, flags featureflags.Checker) http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +40,7 @@ func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler, schem
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMW)
 
-		r.Post("/queue", handleJoinQueue(svc))
+		r.Post("/queue", handleJoinQueue(svc, flags))
 		r.Delete("/queue", handleLeaveQueue(svc))
 		r.With(validate("accept_match.request")).Post("/queue/accept", handleAcceptMatch(svc))
 		r.With(validate("decline_match.request")).Post("/queue/decline", handleDeclineMatch(svc))
@@ -45,10 +52,16 @@ func NewRouter(svc *queue.Service, authMW func(http.Handler) http.Handler, schem
 
 // POST /api/v1/queue
 // Adds the authenticated player to the ranked matchmaking queue.
+// 503 if the ranked-matchmaking-disabled feature flag is ON (homelab/ops kill switch).
 // 429 if the player is currently banned from queueing.
 // 409 if the player is already in the queue.
-func handleJoinQueue(svc *queue.Service) http.HandlerFunc {
+func handleJoinQueue(svc *queue.Service, flags featureflags.Checker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if flags != nil && flags.IsEnabled(FlagRankedDisabled, false) {
+			writeError(w, http.StatusServiceUnavailable, "ranked_disabled")
+			return
+		}
+
 		playerID, ok := sharedmw.PlayerIDFromContext(r.Context())
 		if !ok {
 			writeError(w, http.StatusUnauthorized, apierrors.Unauthorized)

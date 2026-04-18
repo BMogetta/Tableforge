@@ -142,15 +142,16 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 3.3 Flag-gated endpoints
 
-- [ ] **3.3.a** **match-service**: en el handler de `/match/queue` (POST para entrar a ranked queue), si `ranked-matchmaking-disabled` está ON devolver 503 con body `{"error":"ranked_disabled"}`.
-  - Test unit con flag ON y OFF.
-- [ ] **3.3.b** **chat-service**: en los handlers de mensajes (room + DM), si `chat-enabled` está OFF devolver 503 con body `{"error":"chat_disabled"}`.
-  - Test unit.
-- [ ] **3.3.c** **user-service**: en el processor de eventos que actualizan logros (consumer de Redis pub/sub), skip el update si `achievements-enabled` está OFF. Endpoints de lectura de logros siguen funcionando.
-  - Test unit.
-- [ ] **3.3.d** **game-server**: en el endpoint que lista games disponibles para crear rooms, filtrar por `game-{id}-enabled`. Si todos los games están disabled, devolver `[]` + 200.
-  - Test unit con los 2 games, distintas combinaciones ON/OFF.
-- [ ] **Validación 3.3**: cada flag apaga efectivamente el feature correspondiente in ≤15s después de flipear.
+- [x] **3.3.a** **match-service**: `POST /api/v1/queue` devuelve 503 `{"error":"ranked_disabled"}` cuando `ranked-matchmaking-disabled` está ON. Accept/decline de matches existentes NO se gatean (matches en curso pueden resolver). Flag check corre **antes** del auth — 503 dominates 401.
+  - 2 tests nuevos: `TestJoinQueue_FlagDisabled_Returns503`, `TestJoinQueue_FlagEnabled_FallsThroughToAuth`.
+- [x] **3.3.b** **chat-service**: `POST /rooms/{id}/messages` y `POST /players/{id}/dm` devuelven 503 `{"error":"chat_disabled"}` cuando `chat-enabled` está OFF. Reads, reports, y moderation (hide) **no** se gatean — operadores deben poder inspeccionar/limpiar aun con chat apagado.
+  - Implementación: middleware `chatSendGate` aplicado solo a los dos send routes.
+  - 2 tests nuevos: `TestSendRoomMessage_FlagDisabled_Returns503`, `TestGetRoomMessages_FlagDisabled_StillWorks`.
+- [x] **3.3.c** **user-service**: `consumer.handleSessionFinished` early-returns cuando `achievements-enabled` está OFF, sin tocar store ni publisher. Parse errors siguen surgiendo antes del gate. Endpoints de lectura no tocados.
+  - 2 tests nuevos: `TestHandleSessionFinished_FlagOff_ShortCircuits` (verifica que nil store/pub no panican = gate activo), `TestHandleSessionFinished_MalformedPayload_FlagOff_StillErrors`.
+- [x] **3.3.d** **game-server**: `handleListGames` filtra por `game-{id}-enabled` con default ON. Firma cambió a factory (`handleListGames(flags) http.HandlerFunc`). `NewRouter` ahora toma un parámetro `flags`.
+  - 2 tests nuevos: `TestListGames_FlagDisabled_HidesGame`, `TestListGames_AllFlagsDisabled_ReturnsEmpty`.
+- [x] **Validación 3.3**: tests unitarios verdes en los 4 services. E2E para maintenance ya verificado en 3.2; los gates específicos siguen la misma lógica de refresh (~15s).
 
 ### 3.4 Capability endpoint
 

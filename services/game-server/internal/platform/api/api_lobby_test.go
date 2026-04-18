@@ -52,6 +52,51 @@ func TestListGames(t *testing.T) {
 	}
 }
 
+func TestListGames_FlagDisabled_HidesGame(t *testing.T) {
+	// handleListGames reads from the global games.All() registry. Other
+	// test files (api_bots_test.go) register tictactoe + rootaccess via
+	// blank imports, so both end up in the response by default. Turning
+	// tictactoe's flag OFF should remove it without affecting rootaccess.
+	flags := stubFlags{m: map[string]bool{"game-tictactoe-enabled": false}}
+	router, _ := newTestRouterWithFlags(t, flags)
+
+	w := getJSON(t, router, "/api/v1/games")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var games []map[string]any
+	json.NewDecoder(w.Body).Decode(&games)
+
+	ids := make(map[string]bool)
+	for _, g := range games {
+		ids[g["id"].(string)] = true
+	}
+	if ids["tictactoe"] {
+		t.Error("tictactoe should have been filtered out")
+	}
+	if !ids["rootaccess"] {
+		t.Error("rootaccess should still be present (flag defaults to ON)")
+	}
+}
+
+func TestListGames_AllFlagsDisabled_ReturnsEmpty(t *testing.T) {
+	flags := stubFlags{m: map[string]bool{
+		"game-tictactoe-enabled":  false,
+		"game-rootaccess-enabled": false,
+	}}
+	router, _ := newTestRouterWithFlags(t, flags)
+
+	w := getJSON(t, router, "/api/v1/games")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var games []map[string]any
+	json.NewDecoder(w.Body).Decode(&games)
+	if len(games) != 0 {
+		t.Errorf("expected empty list when all games disabled, got %d: %v", len(games), games)
+	}
+}
+
 // --- GET /api/v1/rooms/{roomID} ----------------------------------------------
 
 func TestGetRoom_Success(t *testing.T) {

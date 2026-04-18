@@ -20,6 +20,7 @@ import (
 	"github.com/recess/game-server/internal/platform/store"
 	"github.com/recess/game-server/internal/platform/userclient"
 	"github.com/recess/game-server/internal/platform/ws"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 )
 
@@ -38,6 +39,7 @@ func NewRouter(
 	userClient *userclient.Client,
 	schemas *sharedmw.SchemaRegistry,
 	rdb *redis.Client,
+	flags featureflags.Checker,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -86,7 +88,7 @@ func NewRouter(
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMW)
 
-		r.Get("/games", handleListGames)
+		r.Get("/games", handleListGames(flags))
 		r.Get("/bots/profiles", handleListBotProfiles())
 
 		r.Get("/players/{playerID}/sessions", handleListPlayerSessions(st))
