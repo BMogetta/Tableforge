@@ -1,0 +1,37 @@
+[
+  {
+    "name": "maintenance-mode",
+    "description": "Global kill switch. When on, mutation endpoints return 503 and the frontend shows a maintenance banner. Does not affect /healthz, /readyz, /metrics.",
+    "type": "kill-switch"
+  },
+  {
+    "name": "ranked-matchmaking-disabled",
+    "description": "When on, match-service rejects new entries to the ranked queue and the frontend hides the ranked button. Existing matches finish normally.",
+    "type": "kill-switch"
+  },
+  {
+    "name": "chat-enabled",
+    "description": "Gate for in-room chat + DMs. When off, chat handlers reject sends with 503 and the UI shows a paused state.",
+    "type": "release"
+  },
+  {
+    "name": "achievements-enabled",
+    "description": "Gate for achievement tracking. When off, the event consumer skips progress updates; previously earned achievements remain visible.",
+    "type": "release"
+  },
+  {
+    "name": "game-tictactoe-enabled",
+    "description": "Enable TicTacToe as a playable game. When off, it's filtered from the games list in the lobby.",
+    "type": "release"
+  },
+  {
+    "name": "game-rootaccess-enabled",
+    "description": "Enable Root Access as a playable game. When off, it's filtered from the games list in the lobby.",
+    "type": "release"
+  },
+  {
+    "name": "devtools-for-admins",
+    "description": "Expose TanStack router/query devtools + WsDevtools + ScenarioPicker in production builds, but only to users with the owner role. Requires BOTH this flag and an owner role to render.",
+    "type": "experiment"
+  }
+]

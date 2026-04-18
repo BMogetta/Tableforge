@@ -1,0 +1,9 @@
+[
+  { "feature": "maintenance-mode",            "environment": "development", "enabled": false },
+  { "feature": "ranked-matchmaking-disabled", "environment": "development", "enabled": false },
+  { "feature": "chat-enabled",                "environment": "development", "enabled": true  },
+  { "feature": "achievements-enabled",        "environment": "development", "enabled": true  },
+  { "feature": "game-tictactoe-enabled",      "environment": "development", "enabled": true  },
+  { "feature": "game-rootaccess-enabled",     "environment": "development", "enabled": true  },
+  { "feature": "devtools-for-admins",         "environment": "development", "enabled": false }
+]

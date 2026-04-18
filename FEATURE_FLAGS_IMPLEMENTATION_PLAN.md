@@ -38,12 +38,12 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 1.1 Definición del seed
 
-- [ ] **1.1.a** Crear `infra/unleash/flags.json` con los 7 flags.
-  - Formato: array de objetos con `name`, `description`, `type` (`kill-switch` | `release` | `experiment`), `project: "default"`, `impressionData: false`.
-- [ ] **1.1.b** Crear `infra/unleash/environments.json` con el estado por env:
-  - Array de `{ feature, environment, enabled, strategies: [{name: "default"}] }`.
-  - 7 flags × 1 env (development) = 7 entradas.
-- [ ] **Validación 1.1**: `jq` valida los dos JSON; cada flag tiene un estado `enabled` correspondiente a la decisión (OFF para killswitches + devtools, ON para gates).
+- [x] **1.1.a** Crear `infra/unleash/flags.json` con los 7 flags.
+  - Formato simplificado vs plan original: array de `{name, description, type}`. `project`, `impressionData` y otros campos opcionales los default la API al crear — no los repito en el seed para reducir ruido.
+- [x] **1.1.b** Crear `infra/unleash/environments.json` con el estado por env:
+  - Array de `{feature, environment, enabled}`. La estrategia `default` la agrega el script (la API no permite enabled=true sin estrategia asociada, pero la maneja el seed.sh, no el JSON).
+  - 7 entradas, todas en `development`. Para agregar otro env en el futuro, agregar entradas al mismo array.
+- [x] **Validación 1.1**: ambos JSON válidos (jq length == 7); los flags listados en `flags.json` matchean 1:1 con los de `environments.json` (`jq -s` diff).
 
 ### 1.2 Script de seeding
 
