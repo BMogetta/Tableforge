@@ -24,22 +24,23 @@
   flex: 1;
 }
 
-/* Broadcast severity variants. Info reuses the default interactive palette;
-   warning/error lean on the semantic tokens. */
+/* Broadcast severity variants. Info reuses the default interactive palette
+   (amber). Warning and error use distinct semantic tokens with stronger
+   contrast so they're visibly different from each other and from info. */
 .banner[data-severity='warning'] {
-  background: color-mix(in srgb, var(--color-interactive) 18%, transparent);
-  border-bottom-color: var(--color-interactive);
+  background: color-mix(in srgb, var(--color-warning) 35%, transparent);
+  border-bottom: 2px solid var(--color-warning);
 }
-.banner[data-severity='warning'] .title {
-  color: var(--color-interactive);
+.banner[data-severity='warning'] .message {
+  color: var(--color-text-primary);
 }
 
 .banner[data-severity='error'] {
-  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
-  border-bottom-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 35%, transparent);
+  border-bottom: 2px solid var(--color-danger);
 }
-.banner[data-severity='error'] .title {
-  color: var(--color-danger);
+.banner[data-severity='error'] .message {
+  color: var(--color-text-primary);
 }
 
 .dismiss {
