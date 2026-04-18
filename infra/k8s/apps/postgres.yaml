@@ -1,0 +1,29 @@
+# Application CR that tells ArgoCD to sync the CNPG `Cluster` manifest
+# under infra/k8s/data/postgres/. Managed by the recess-root App-of-Apps.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: main
+    path: infra/k8s/data/postgres
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recess-data
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

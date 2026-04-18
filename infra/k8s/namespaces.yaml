@@ -37,3 +37,11 @@ metadata:
   labels:
     app.kubernetes.io/part-of: recess
     recess.io/tier: ingress
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnpg-system
+  labels:
+    app.kubernetes.io/part-of: recess
+    recess.io/tier: platform

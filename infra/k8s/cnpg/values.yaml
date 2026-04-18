@@ -1,0 +1,19 @@
+# CloudNativePG operator Helm values — Recess homelab.
+# Chart: cnpg/cloudnative-pg 0.28.0 (app 1.29.0)
+#
+# The operator is lightweight (~50Mi RSS idle). Overrides here keep requests
+# small so the operator does not compete with application workloads on the
+# single Pi 5 node, and line it up with Recess conventions.
+
+# Conservative resources for the operator controller.
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Prometheus scraping. Off until kube-prometheus-stack lands in Phase 6.
+monitoring:
+  podMonitorEnabled: false
