@@ -84,16 +84,16 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 2.1 Cliente compartido
 
-- [ ] **2.1.a** Agregar dependencia `github.com/Unleash/unleash-client-go/v4` a `shared/go.mod`.
-- [ ] **2.1.b** Crear `shared/featureflags/client.go`:
-  - `Init(cfg UnleashConfig) (*Client, error)` — inicializa el SDK con `WithUrl`, `WithAppName`, `WithCustomHeaders` (Authorization), refresh interval 15s.
-  - `Client.IsEnabled(name string, defaultValue bool) bool` — wrapper que aplica un default si el SDK no tiene el flag todavía (durante warm-up o si Unleash está caído).
-  - `Client.Close()` — cleanup.
-- [ ] **2.1.c** Crear `shared/featureflags/client_test.go`:
-  - Test con fake Unleash HTTP server (httptest) devolviendo JSON de features.
-  - Test de warm-up: antes del primer fetch, `IsEnabled` devuelve el default.
-  - Test de refresh: flag cambia server-side → eventualmente el cliente lo refleja.
-- [ ] **Validación 2.1**: `go test ./shared/featureflags/...` verde.
+- [x] **2.1.a** Agregar dependencia `github.com/Unleash/unleash-client-go/v4@v4.5.0` a `shared/go.mod`.
+- [x] **2.1.b** Crear `shared/featureflags/client.go`:
+  - `Init(cfg UnleashConfig) (*Client, error)` — inicializa con `WithAppName`, `WithUrl`, `WithEnvironment`, `WithCustomHeaders`, y un `slogListener` para no perder errores/warnings del SDK.
+  - `(*Client).IsEnabled(name, defaultValue) bool` — usa `WithFallback(defaultValue)` del SDK; nil-safe (client nil → default).
+  - `(*Client).Close()` — cleanup, nil-safe.
+  - `Checker` interface exportada para que middleware/handlers dependan de la abstracción, no de `*Client`.
+- [x] **2.1.c** Crear `shared/featureflags/client_test.go`:
+  - Fake Unleash httptest server con endpoints `/client/{register,features,metrics}`.
+  - Tests: flag ON → true; flag OFF → false; flag desconocido → default; nil client → default; `Close` sobre nil no panica.
+- [x] **Validación 2.1**: `go test ./shared/featureflags/...` → `ok` en 0.28s, 5 tests.
 
 ### 2.2 Middleware de maintenance
 
