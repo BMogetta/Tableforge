@@ -40,14 +40,12 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
   const qc = useQueryClient()
 
   // Default-on gate: cold-start treats ranked as enabled to avoid flashing a
-  // paused state during the first Unleash fetch.
+  // disabled tab during the first Unleash fetch. The app-wide explanation
+  // lives in SystemBanner; this hook only drives local UI (tab enabled,
+  // Find Match button enabled).
   const { flagsReady } = useFlagsStatus()
   const rankedFlag = useFlag(Flags.RankedMatchmakingEnabled)
-  const maintenanceOn = useFlag(Flags.MaintenanceMode)
   const rankedEnabled = !flagsReady || rankedFlag
-  // When maintenance is ON, the global banner already explains the whole
-  // app is paused — don't stack a ranked-specific banner on top.
-  const showRankedPaused = !rankedEnabled && !maintenanceOn
 
   const [tab, setTab] = useState<Tab>('casual')
   const [joinCode, setJoinCode] = useState('')
@@ -210,6 +208,8 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
           {...testId('tab-ranked')}
           className={`${styles.tab} ${tab === 'ranked' ? styles.tabActive : ''}`}
           onClick={() => setTab('ranked')}
+          disabled={!rankedEnabled}
+          title={rankedEnabled ? undefined : t('systemStatus.rankedPausedTitle')}
         >
           {t('lobby.ranked')}
         </button>
@@ -255,15 +255,6 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
 
         {tab === 'ranked' && (
           <div className={styles.rankedBody}>
-            {showRankedPaused && (
-              <div
-                className={styles.pausedBanner}
-                role='status'
-                {...testId('ranked-paused-banner')}
-              >
-                {t('lobby.rankedPaused')}
-              </div>
-            )}
             {queueStatus === 'idle' && (
               <button
                 type='button'

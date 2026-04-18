@@ -119,17 +119,6 @@
   gap: var(--space-2);
 }
 
-/* Paused state — shown in the Ranked tab body when ranked-matchmaking-enabled is OFF.
-   Shared look with AchievementGrid.pausedBanner + ChatPopover.pausedRow. */
-.pausedBanner {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-surface);
-  border-radius: var(--radius);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  font-style: italic;
-}
 
 /* Queue status card — shown while searching for a match */
 .queueStatus {

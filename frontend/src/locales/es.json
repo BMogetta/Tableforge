@@ -25,6 +25,10 @@
     "message": "Partidas nuevas y acciones de escritura están en pausa. Las partidas en curso siguen funcionando.",
     "actionBlocked": "Acción bloqueada — mantenimiento activo."
   },
+  "systemStatus": {
+    "rankedPausedTitle": "Matchmaking ranked pausado",
+    "rankedPausedMessage": "No se aceptan nuevas entradas a la cola. Partidas casuales y matches en curso no se ven afectados."
+  },
   "auth": {
     "loginWithGithub": "Continuar con GitHub",
     "waitingForGithub": "Esperando a GitHub...",
@@ -111,8 +115,7 @@
     "declineMatch": "Rechazar",
     "rankedNote": "Las partidas competitivas afectan tu",
     "displayRating": "rating visible",
-    "backToLobby": "← Lobby",
-    "rankedPaused": "El matchmaking ranked está temporalmente desactivado. No se aceptan ingresos a la cola; las partidas en curso siguen normalmente."
+    "backToLobby": "← Lobby"
   },
   "room": {
     "loading": "Cargando sala...",

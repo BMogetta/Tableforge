@@ -25,6 +25,10 @@
     "message": "New games and write actions are paused. Existing matches keep running.",
     "actionBlocked": "Action blocked — maintenance mode is active."
   },
+  "systemStatus": {
+    "rankedPausedTitle": "Ranked matchmaking is paused",
+    "rankedPausedMessage": "New queue entries are blocked. Casual rooms and matches in progress are not affected."
+  },
   "auth": {
     "loginWithGithub": "Continue with GitHub",
     "waitingForGithub": "Waiting for GitHub...",
@@ -111,8 +115,7 @@
     "declineMatch": "Decline",
     "rankedNote": "Ranked games affect your",
     "displayRating": "display rating",
-    "backToLobby": "← Lobby",
-    "rankedPaused": "Ranked matchmaking is temporarily disabled. Queue access is paused; matches in progress continue normally."
+    "backToLobby": "← Lobby"
   },
   "room": {
     "loading": "Loading room...",
