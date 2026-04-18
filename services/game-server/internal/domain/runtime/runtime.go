@@ -331,9 +331,9 @@ func (svc *Service) ApplyMove(ctx context.Context, sessionID, playerID uuid.UUID
 		}
 
 		players, _ := svc.store.ListRoomPlayers(ctx, session.RoomID)
-		if session.Mode == store.SessionModeRanked {
-			svc.publishGameFinished(ctx, session, players, gameResult)
-		}
+		// Publish for every mode. Subscribers filter on their own concerns:
+		// rating-service skips non-ranked, achievements consumer counts all.
+		svc.publishGameFinished(ctx, session, players, gameResult)
 
 		if svc.events != nil {
 			svc.events.Append(ctx, sessionID, events.TypeMoveApplied, &playerID, map[string]any{
@@ -537,9 +537,8 @@ func (svc *Service) Surrender(ctx context.Context, sessionID, playerID uuid.UUID
 		svc.log.Error("Surrender: record game result", "session_id", sessionID, "error", err)
 	}
 
-	if session.Mode == store.SessionModeRanked {
-		svc.publishGameFinished(ctx, session, players, gameResult)
-	}
+	// See ApplyMove: publish for every mode and let consumers filter.
+	svc.publishGameFinished(ctx, session, players, gameResult)
 
 	if svc.events != nil {
 		svc.events.Append(ctx, sessionID, events.TypePlayerSurrendered, &playerID, map[string]any{
@@ -757,6 +756,12 @@ func (svc *Service) publishGameFinished(
 	payload, err := json.Marshal(evt)
 	if err != nil {
 		svc.log.Error("publishGameFinished: marshal", "session_id", session.ID, "error", err)
+		return
+	}
+
+	// Some tests construct Service without a Redis client; keep this nil-safe
+	// so the guard removal (now every mode publishes) doesn't regress them.
+	if svc.rdb == nil {
 		return
 	}
 
