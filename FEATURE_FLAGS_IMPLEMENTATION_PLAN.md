@@ -97,17 +97,14 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 2.2 Middleware de maintenance
 
-- [ ] **2.2.a** Crear `shared/middleware/maintenance.go`:
-  - `Maintenance(client *featureflags.Client) func(http.Handler) http.Handler`
-  - Cuando `maintenance-mode` está ON y el método es `POST|PUT|PATCH|DELETE`, devolver 503 con body `{"error":"maintenance"}`.
-  - GET/HEAD/OPTIONS nunca se bloquean (queremos que la UI siga mostrando estado).
-  - Routes allowlist: `/healthz`, `/readyz`, `/metrics` nunca se bloquean.
-- [ ] **2.2.b** Crear `shared/middleware/maintenance_test.go`:
-  - Test: flag OFF → todos los verbs pasan.
-  - Test: flag ON + POST → 503.
-  - Test: flag ON + GET → 200.
-  - Test: flag ON + POST /healthz → 200 (allowlist).
-- [ ] **Validación 2.2**: `go test ./shared/middleware/...` verde.
+- [x] **2.2.a** Crear `shared/middleware/maintenance.go`:
+  - `Maintenance(flags featureflags.Checker) func(http.Handler) http.Handler` — toma la interface, no el struct, para facilitar stubs.
+  - POST/PUT/PATCH/DELETE con flag ON → 503 `{"error":"maintenance"}`.
+  - GET/HEAD/OPTIONS siempre pasan.
+  - `MaintenancePaths` exportado (`/healthz`, `/readyz`, `/metrics`) para que los healthchecks no caigan bajo mantenimiento.
+  - Nil-safe: si Checker es nil (SDK init falló), nunca bloquea.
+- [x] **2.2.b** `shared/middleware/maintenance_test.go`: 5 tests cubriendo flag OFF con todos los verbs, flag ON bloqueando mutaciones, lecturas siempre pasando, allowlist, nil-checker.
+- [x] **Validación 2.2**: `go test ./middleware/...` → `ok` en 0.16s.
 
 ### 2.3 Capability helper
 
