@@ -86,6 +86,11 @@ func handleListPendingReports(st store.Store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to list reports")
 			return
 		}
+		// Go serializes a nil slice as JSON `null`; the frontend expects an
+		// array and calls `.filter()` on the result.
+		if reports == nil {
+			reports = []store.PlayerReport{}
+		}
 		writeJSON(w, http.StatusOK, reports)
 	}
 }
@@ -101,6 +106,9 @@ func handleListReportsByPlayer(st store.Store) http.HandlerFunc {
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to list reports")
 			return
+		}
+		if reports == nil {
+			reports = []store.PlayerReport{}
 		}
 		writeJSON(w, http.StatusOK, reports)
 	}

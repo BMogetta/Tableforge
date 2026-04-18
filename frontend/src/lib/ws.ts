@@ -55,6 +55,8 @@ export type WsEventType =
   | 'match_ready'
   // Notifications
   | 'notification_received'
+  // Admin broadcasts (fan-out from user-service via ws-gateway)
+  | 'broadcast'
   // Synthetic client-side connection events
   | 'ws_connected'
   | 'ws_reconnecting'
@@ -194,6 +196,13 @@ export interface WsPayloadSessionResumed {
 
 export interface WsPayloadNotificationReceived extends Notification {}
 
+/** Admin broadcast — announcement sent by moderators to all online players. */
+export interface WsPayloadBroadcast {
+  message: string
+  /** 'info' | 'warning' | 'error'; server-owned string, don't enum it here. */
+  broadcast_type: string
+}
+
 export interface WsPayloadRoomSubscribed {
   room_id: string
   spectator: boolean
@@ -232,6 +241,7 @@ export type WsEvent =
   | { type: 'match_cancelled'; payload: WsPayloadMatchCancelled }
   | { type: 'match_ready'; payload: WsPayloadMatchReady }
   | { type: 'notification_received'; payload: WsPayloadNotificationReceived }
+  | { type: 'broadcast'; payload: WsPayloadBroadcast }
   | { type: 'ws_connected'; payload: null }
   | { type: 'ws_reconnecting'; payload: null }
   | { type: 'ws_disconnected'; payload: null }

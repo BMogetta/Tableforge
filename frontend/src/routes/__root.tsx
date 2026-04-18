@@ -8,7 +8,9 @@ import { friends } from '@/features/friends/api'
 import { DMInboxPanel } from '@/features/friends/components/DMInboxPanel'
 import { FriendsButton, FriendsPanel } from '@/features/friends/components/FriendsPanel'
 import { AppHeader } from '@/features/lobby/components/AppHeader'
+import { BroadcastBanners } from '@/features/system-status/BroadcastBanners'
 import { SystemBanner } from '@/features/system-status/SystemBanner'
+import alertsStyles from '@/features/system-status/topAlerts.module.css'
 import { auth, playerSettings, wsPlayerUrl } from '@/lib/api'
 import { getDeviceContextAttrs } from '@/lib/device'
 import { keys } from '@/lib/queryClient'
@@ -128,7 +130,10 @@ function RootComponent() {
     <ToastProvider>
       <ErrorBoundary>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <SystemBanner />
+          <div className={alertsStyles.topAlerts}>
+            <SystemBanner />
+            <BroadcastBanners />
+          </div>
           {player && <AppHeader onLogout={handleLogout} />}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <Outlet />

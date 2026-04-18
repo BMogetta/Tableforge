@@ -24,7 +24,9 @@ export function ModerationTab({ callerRole, onBanPlayer }: Props) {
     setLoading(true)
     admin
       .listReports(filter)
-      .then(setReports)
+      // Go serializes an empty slice as JSON `null`; coerce to [] so every
+      // downstream `.filter` / `.map` is safe.
+      .then(data => setReports(data ?? []))
       .catch(e => toast.showError(catchToAppError(e)))
       .finally(() => setLoading(false))
   }, [filter, toast.showError])

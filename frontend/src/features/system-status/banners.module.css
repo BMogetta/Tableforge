@@ -1,0 +1,77 @@
+/* Shared styles for SystemBanner (flag-driven) + BroadcastBanners (event-driven).
+   Both sit inside the .topAlerts region of the root layout and adopt the same
+   visual language so the app has a single "heads-up" zone at the top. */
+
+.banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-interactive-glow);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-interactive);
+  font-size: var(--text-sm);
+}
+
+.title {
+  font-weight: 600;
+  color: var(--color-interactive);
+}
+
+.message {
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+/* Broadcast severity variants. Info reuses the default interactive palette;
+   warning/error lean on the semantic tokens. */
+.banner[data-severity='warning'] {
+  background: color-mix(in srgb, var(--color-interactive) 18%, transparent);
+  border-bottom-color: var(--color-interactive);
+}
+.banner[data-severity='warning'] .title {
+  color: var(--color-interactive);
+}
+
+.banner[data-severity='error'] {
+  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  border-bottom-color: var(--color-danger);
+}
+.banner[data-severity='error'] .title {
+  color: var(--color-danger);
+}
+
+.dismiss {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.dismiss:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+}
+.dismiss:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+  .banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+  }
+  .dismiss {
+    position: absolute;
+    top: var(--space-1);
+    right: var(--space-2);
+  }
+}

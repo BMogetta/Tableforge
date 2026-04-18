@@ -1,0 +1,11 @@
+/* Sticky top-alerts region. SystemBanner + BroadcastBanners render inside.
+   Individual banners no longer own sticky/z-index — the wrapper does, so
+   the stack grows without fighting per-child sticky behavior. */
+
+.topAlerts {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+}

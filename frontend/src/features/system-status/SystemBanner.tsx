@@ -2,7 +2,7 @@ import { useFlag, useFlagsStatus } from '@unleash/proxy-client-react'
 import { useTranslation } from 'react-i18next'
 import { Flags } from '@/lib/flags'
 import { testId } from '@/utils/testId'
-import styles from './SystemBanner.module.css'
+import styles from './banners.module.css'
 
 /**
  * Top-of-app status banner. Surfaces any feature flag whose state affects
