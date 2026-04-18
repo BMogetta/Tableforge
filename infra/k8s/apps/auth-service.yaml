@@ -1,0 +1,40 @@
+# auth-service — first canary deployment of Phase 5.4.
+#
+# Consumes the reusable go-service Helm chart at
+# infra/k8s/charts/go-service/ with per-service overrides at
+# values/auth-service.yaml (path is relative to the chart directory).
+#
+# Secrets read at runtime (must exist in namespace `recess` before sync):
+#   - db-auth.DATABASE_URL       → sealed in infra/k8s/secrets/db-auth.yaml
+#   - redis-url.REDIS_URL        → sealed in infra/k8s/secrets/redis-url.yaml
+#   - github-oauth.GITHUB_CLIENT_ID / .GITHUB_CLIENT_SECRET
+#   - jwt.JWT_SECRET
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/charts/go-service
+    helm:
+      releaseName: auth-service
+      valueFiles:
+        - values/auth-service.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recess
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

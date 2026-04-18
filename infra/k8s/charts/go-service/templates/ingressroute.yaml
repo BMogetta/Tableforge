@@ -1,0 +1,21 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "go-service.fullname" . }}
+  labels:
+    {{- include "go-service.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - {{ .Values.ingress.entryPoint }}
+  routes:
+    - match: Host(`{{ .Values.ingress.host }}`)
+      kind: Rule
+      services:
+        - name: {{ include "go-service.fullname" . }}
+          port: {{ .Values.service.httpPort }}
+  {{- if .Values.ingress.tlsSecretName }}
+  tls:
+    secretName: {{ .Values.ingress.tlsSecretName }}
+  {{- end }}
+{{- end -}}

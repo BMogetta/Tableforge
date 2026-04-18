@@ -1,0 +1,43 @@
+# auth-service overrides for the go-service chart.
+# Consumed by infra/k8s/apps/auth-service.yaml (ArgoCD Application).
+
+nameOverride: auth-service
+fullnameOverride: auth-service
+
+image:
+  repository: ghcr.io/bmogetta/recess-auth-service
+  tag: latest
+
+service:
+  httpPort: 8081
+
+env:
+  ENV: production
+  OTEL_SERVICE_NAME: auth-service
+  # OTLP endpoint is intentionally unset until Phase 6 lands the observability
+  # stack; telemetry.Setup fails open and the service boots without it.
+
+envFromSecret:
+  JWT_SECRET:
+    secretName: jwt
+    key: JWT_SECRET
+  GITHUB_CLIENT_ID:
+    secretName: github-oauth
+    key: GITHUB_CLIENT_ID
+  GITHUB_CLIENT_SECRET:
+    secretName: github-oauth
+    key: GITHUB_CLIENT_SECRET
+  DATABASE_URL:
+    secretName: db-auth
+    key: DATABASE_URL
+  REDIS_URL:
+    secretName: redis-url
+    key: REDIS_URL
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 192Mi

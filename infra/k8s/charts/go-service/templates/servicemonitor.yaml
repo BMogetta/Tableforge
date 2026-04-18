@@ -1,0 +1,16 @@
+{{- if .Values.metrics.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "go-service.fullname" . }}
+  labels:
+    {{- include "go-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "go-service.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: {{ .Values.metrics.path }}
+      interval: 30s
+{{- end -}}
