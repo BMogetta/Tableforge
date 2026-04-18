@@ -108,10 +108,12 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 2.3 Capability helper
 
-- [ ] **2.3.a** Crear `shared/featureflags/capability.go`:
-  - `CanSeeDevtools(client *Client, role string) bool` — devuelve `role == RoleOwner && client.IsEnabled("devtools-for-admins", false)`.
-  - Test equivalente.
-- [ ] **Validación 2.3**: test unit verde, cubre las 4 combinaciones (owner+ON, owner+OFF, player+ON, player+OFF).
+- [x] **2.3.a** Crear `shared/featureflags/capability.go`:
+  - `Compute(flags Checker, role string) Capabilities` devuelve `{CanSeeDevtools: role == "owner" && flags.IsEnabled(FlagDevtoolsForAdmins, false)}`.
+  - Constant `FlagDevtoolsForAdmins` exportada para compartirla entre handler y test.
+  - Cambio vs plan inicial: función devuelve un struct `Capabilities` en vez de un bool, así agregar futuras capabilities no cambia la firma del handler. El struct tiene JSON tags listos para el endpoint `/auth/me/capabilities`.
+  - Anti-drift: `roleOwner = "owner"` se duplica (import cycle con middleware); documentado en comments.
+- [x] **Validación 2.3**: 6 tests en `capability_test.go` (owner+ON, owner+OFF, player+ON, manager+ON, nil-checker+owner, empty-role+ON). Todos pasan.
 
 ---
 
