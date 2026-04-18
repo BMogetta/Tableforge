@@ -217,22 +217,16 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 4.6 Admin devtools panel (el cambio grande)
 
-- [ ] **4.6.a** Crear `frontend/src/features/devtools/AdminDevtoolsPanel.tsx`:
-  - Default export (para que `React.lazy` funcione).
-  - Importa `TanStackRouterDevtoolsInProd` (no el dev-only), `ReactQueryDevtoolsPanel`, `WsDevtools`, `ScenarioPicker`.
-  - **No incluye** `pacerDevtoolsPlugin` (es no-op en prod builds; ver conversación).
-  - Arma el TanStackDevtools wrapper con los 4 plugins.
-- [ ] **4.6.b** En `main.tsx`:
-  - Mantener el render actual de devtools en dev (`isDev`) como está.
-  - Agregar en paralelo un componente nuevo `<AdminDevtoolsGate />` que en prod builds usa `useCapability()`:
-    - Si `canSeeDevtools === true` → renderiza `<Suspense><LazyAdminDevtoolsPanel /></Suspense>`
-    - Si no → null
-  - El lazy import: `const AdminDevtoolsPanel = lazy(() => import('./features/devtools/AdminDevtoolsPanel'))`.
-- [ ] **4.6.c** Verificar tree-shaking: `npm run build` + inspect que `AdminDevtoolsPanel` queda en un chunk separado, no en el entry principal. Usar `vite-bundle-analyzer` o similar si hace falta.
-- [ ] **4.6.d** Tests:
-  - Vitest con el capability mocked a `false` → panel no renderiza.
-  - Vitest con capability a `true` → el Suspense renderiza algo (asserción laxa, el contenido del devtools no se puede aserter sin mocks complejos).
-- [ ] **Validación 4.6**: build de prod; flag ON + user owner → devtools aparece; flag OFF o user player → no. Chunk separado confirmado en `dist/assets/`.
+- [x] **4.6.a** `frontend/src/features/devtools/AdminDevtoolsPanel.tsx` (default export para `React.lazy`):
+  - Render inline de `TanStackRouterDevtoolsInProd` (floating trigger propio), `ReactQueryDevtoolsPanel`, `WsDevtools`, `ScenarioPicker` dentro de un `<details>` drawer con CSS module.
+  - **No usa `TanStackDevtools` del aggregator** — el plugin `@tanstack/devtools-vite` strip-ea cualquier archivo que importe `@tanstack/react-devtools` en prod builds. Usar los devtools individuales (que NO están en la strip list) evita que el archivo se borre. Trade-off UX: múltiples triggers en vez de un panel tabbeado.
+  - `pacerDevtoolsPlugin` omitido (no tiene InProd variant; siempre no-op en prod).
+- [x] **4.6.b** `main.tsx`:
+  - `isDev` block intacto (ternary ahora, era `&&` antes) — dev sigue igual.
+  - Prod build rama: `<AdminDevtoolsGate />` chequea `useCapability().canSeeDevtools` y renderiza `<Suspense><LazyAdminDevtoolsPanel/></Suspense>`.
+- [x] **4.6.c** Verificado tree-shaking: `dist/assets/AdminDevtoolsPanel-*.js` es chunk separado, `FloatingTanStackRouterDevtools-*.js` también. Index chunk NO los contiene — non-admin users no los descargan.
+- [x] **4.6.d** 2 tests (`AdminDevtoolsGate.test.tsx`): canSeeDevtools=false → null; canSeeDevtools=true → panel lazy-loaded y asserted via testid stub.
+- [x] **Validación 4.6**: vitest 711/711, `npm run build` OK, chunks separados confirmados.
 
 ### 4.7 Limpieza
 

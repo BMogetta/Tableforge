@@ -28,6 +28,7 @@ import { routeTree } from './routeTree.gen'
 import './lib/i18n'
 import './styles/fonts.css'
 import './styles/global.css'
+import { AdminDevtoolsGate } from './features/devtools/AdminDevtoolsGate'
 import { ScenarioPicker } from './features/devtools/ScenarioPicker'
 import { useWsDevtools } from './features/devtools/useWsDevtools'
 import { WsDevtools } from './features/devtools/WsDevtools'
@@ -52,7 +53,7 @@ createRoot(document.getElementById('root')!).render(
     <FlagProvider config={flagsConfig}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
-        {isDev && (
+        {isDev ? (
           <>
             <DevtoolsCapture />
             <TanStackDevtools
@@ -77,6 +78,11 @@ createRoot(document.getElementById('root')!).render(
               ]}
             ></TanStackDevtools>
           </>
+        ) : (
+          // Prod build: owners can unlock devtools via the
+          // devtools-for-admins flag. The panel (including router devtools)
+          // is lazy-loaded so other users never download it.
+          <AdminDevtoolsGate />
         )}
       </QueryClientProvider>
     </FlagProvider>
