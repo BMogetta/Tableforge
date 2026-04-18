@@ -26,10 +26,17 @@ spec:
       values: |
         architecture: standalone
 
-        # Password auto-generated on first install → Secret `redis`.
-        # Subsequent upgrades preserve it. Phase 5.9 seals this secret.
+        # Password is managed out-of-band as a SealedSecret in
+        # infra/k8s/secrets/redis-auth.yaml (decrypts into Secret
+        # `redis-auth` in this namespace). The chart reads from that
+        # Secret instead of auto-generating a value, which makes the
+        # cluster reproducible — a fresh install gets the same password
+        # because the SealedSecret is deterministic against the
+        # controller's cluster-specific key.
         auth:
           enabled: true
+          existingSecret: redis-auth
+          existingSecretPasswordKey: redis-password
 
         # Applied to every redis role (master/replica). The chart ships no
         # maxmemory limit by default, so LRU eviction never fires even with
