@@ -566,3 +566,199 @@ For HA reads (none on a 1-instance cluster, but the service exists): `pg-ro.rece
 - [x] Schemas `public`, `users`, `ratings` exist and are owned correctly
 - [ ] PgBouncer Pooler CR — deferred until we see connection-count pressure (CNPG includes a `Pooler` CR, trivial to add later)
 - [ ] Backups via `barmanObjectStore` — deferred (see 5.1.f)
+
+---
+
+## 5.7 Redis
+
+Single-instance Redis for session state, pub/sub channels, rate limiting, and Asynq task queues. Bitnami chart, standalone architecture. Managed by ArgoCD (unlike CNPG, which is a direct helm install — Redis is a pure workload, not an operator).
+
+### 5.7.a — Whitelist the bitnami Helm repo in the AppProject
+
+Because `AppProject recess.sourceRepos` only listed this git repo, ArgoCD rejects any Application whose source is a Helm repo. Add `https://charts.bitnami.com/bitnami` to `infra/k8s/argocd-apps/project.yaml` (will grow as new chart sources appear — sealed-secrets, kube-prometheus-stack, Loki, Tempo).
+
+```bash
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+helm search repo bitnami/redis --versions | head -3
+```
+
+Pinned chart: **`bitnami/redis 25.3.11`** (app version `8.6.2`).
+
+Re-apply the project manifest so ArgoCD picks up the new `sourceRepos` entry:
+
+```bash
+kubectl apply -f infra/k8s/argocd-apps/project.yaml
+```
+
+### 5.7.b — Application CR
+
+Manifest: `infra/k8s/apps/redis.yaml`. Values are inlined in the Application's `spec.source.helm.values` block because the config is small. When it grows, split into `infra/k8s/redis/values.yaml` + multi-source Application.
+
+Key settings:
+
+| Value | Reason |
+| --- | --- |
+| `architecture: standalone` | Single Redis pod, no sentinel, no cluster. Homelab only needs one. |
+| `auth.enabled: true` | Random password is generated into Secret `redis` (key `redis-password`). Phase 5.9 seals this. |
+| `commonConfiguration: maxmemory 200mb + allkeys-lru` | Bitnami's default leaves `maxmemory` unset so LRU eviction never fires even at the resource limit. Setting an explicit value mirrors the docker-compose config. |
+| `master.persistence: 5Gi, local-path` | Small PV on the default StorageClass. |
+| `master.resources` | req `25m / 64Mi`, lim `200m / 256Mi`. Sized for the session-state workload. |
+| `metrics.enabled: false` | Prometheus exporter lives in Phase 6. |
+
+### 5.7.c — Apply and verify
+
+Commit + push the Application; ArgoCD syncs automatically (root App-of-Apps picks up the new file). To skip polling:
+
+```bash
+kubectl -n argocd patch app recess-root --type merge -p '{"operation":{"sync":{}}}'
+kubectl -n argocd patch app redis --type merge -p '{"operation":{"sync":{}}}'
+```
+
+Expected state in `recess-data` within ~2 min:
+
+```bash
+kubectl -n recess-data get pods,pvc,secret
+```
+
+- Pod `redis-master-0` (StatefulSet) Running.
+- PVC `redis-data-redis-master-0` Bound, 5Gi.
+- Secret `redis` with key `redis-password`.
+
+**Ping test**:
+
+```bash
+kubectl -n recess-data exec redis-master-0 -- sh -c 'redis-cli -a "$(cat $REDIS_PASSWORD_FILE)" ping'
+```
+
+Returns `PONG`. The Bitnami image mounts the Secret as a file at `$REDIS_PASSWORD_FILE`; the env var `REDIS_PASSWORD` is *not* set. Using `$REDIS_PASSWORD` as plain env fails with `AUTH failed`.
+
+### 5.7.d — Gotcha: ArgoCD repo-server OOM
+
+First-time rendering of `bitnami/redis` OOMKilled the ArgoCD repo-server at the `512Mi` limit we originally set in `infra/k8s/argocd/values.yaml`, then again at `1Gi`. It succeeded at `2Gi`. Bitnami charts expand heavily at template time (dependencies, macros, included templates) and the repo-server renders every source it sees.
+
+Fix: `repoServer.resources.limits.memory: 2Gi` in `infra/k8s/argocd/values.yaml`. Apply with:
+
+```bash
+helm upgrade --install argocd argo/argo-cd --version 9.5.2 --namespace argocd -f infra/k8s/argocd/values.yaml --wait --timeout 10m
+```
+
+Detection: the Application's ArgoCD UI shows `ComparisonError: failed to generate manifest ... transport: connection refused` and `kubectl -n argocd get pods -l app.kubernetes.io/name=argocd-repo-server` shows a recent `RESTARTS` count. `lastState.terminated.reason` is `OOMKilled`.
+
+Rule of thumb: whenever a new upstream Helm chart joins the cluster (bitnami/*, prometheus-community/*, grafana/*), watch the first sync for a repo-server restart. If it OOMs, bump the limit. 2Gi covers every chart we plan to use; if that changes, raise again — the Pi 5 has 16Gi.
+
+### 5.7 — Validation
+
+- [x] AppProject `recess` whitelists `https://charts.bitnami.com/bitnami`
+- [x] ArgoCD `redis` Application `Synced + Healthy`
+- [x] Pod `redis-master-0` Running; PVC `redis-data-redis-master-0` Bound
+- [x] Secret `redis` contains `redis-password`
+- [x] `redis-cli -a $(cat $REDIS_PASSWORD_FILE) ping` returns `PONG`
+- [x] ArgoCD repo-server memory bumped to 2Gi (prevents OOM on large Helm charts)
+
+---
+
+## 5.9 SealedSecrets (partial — Redis first)
+
+This phase covers the end-to-end flow: controller, CLI, one SealedSecret, one application consuming it. The full Secret inventory (Postgres, JWT, GitHub OAuth, CLOUDFLARE_TUNNEL_TOKEN, GHCR pull) gets migrated in follow-up passes as each service needs them.
+
+### 5.9.a — Controller
+
+Installed with Helm directly (same pattern as CNPG — platform component, not ArgoCD-managed):
+
+```bash
+helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+helm repo update
+helm search repo sealed-secrets/sealed-secrets --versions | head -3
+```
+
+Pinned chart: **`sealed-secrets/sealed-secrets 2.18.5`** (app version `0.36.6`).
+
+Values in `infra/k8s/sealed-secrets/values.yaml` only trim the request size.
+
+```bash
+helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets --version 2.18.5 --namespace kube-system -f infra/k8s/sealed-secrets/values.yaml --wait --timeout 5m
+```
+
+**Validation**:
+
+```bash
+kubectl -n kube-system get pods -l app.kubernetes.io/name=sealed-secrets
+```
+
+One pod `sealed-secrets-*` Running. A single restart right after install is normal — the controller regenerates the RSA master key on first boot and cycles once.
+
+### 5.9.b — kubeseal CLI on the workstation
+
+Pinned to the matching app version so the wire format and API stay in sync with the controller.
+
+```bash
+cd /tmp && curl -sLO https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/kubeseal-0.36.6-linux-amd64.tar.gz
+tar -xzf /tmp/kubeseal-0.36.6-linux-amd64.tar.gz -C /tmp kubeseal && chmod +x /tmp/kubeseal && mv /tmp/kubeseal ~/.local/bin/kubeseal && hash -r
+kubeseal --version
+```
+
+### 5.9.c — Sealing the Redis password
+
+The Bitnami Redis chart auto-generates a password into Secret `redis` on first install. That is not reproducible (fresh clusters get fresh passwords) and it lives only as cluster state, not in git. We replace it with a SealedSecret.
+
+Generate a random password, save it in a password manager (e.g. 1Password — the private key cannot be recovered from git), pipe the plain Secret through `kubeseal`, commit the sealed output:
+
+```bash
+REDIS_PASS=$(openssl rand -base64 32 | tr -d '\n')
+echo "Save in 1Password: $REDIS_PASS"
+kubectl create secret generic redis-auth --from-literal=redis-password="$REDIS_PASS" --namespace=recess-data --dry-run=client -o yaml | kubeseal --controller-name=sealed-secrets --controller-namespace=kube-system --format yaml > infra/k8s/secrets/redis-auth.yaml
+unset REDIS_PASS
+```
+
+The resulting file `infra/k8s/secrets/redis-auth.yaml` contains a `SealedSecret` CR with an `encryptedData.redis-password` block. It is asymmetrically encrypted against this cluster's controller key and is safe to commit in a public repo — only this cluster's controller can decrypt it.
+
+**Portability caveat**: the SealedSecret is tied to the current controller's RSA key. If the controller is reinstalled (losing `kube-system/sealed-secrets-key-*` Secrets), previously sealed files cannot be decrypted. Back up those Secrets, or be prepared to re-seal from the 1Password-stored plaintext. A full key-rotation procedure belongs in a later hardening pass.
+
+### 5.9.d — Wiring the Redis chart to the SealedSecret
+
+1. A dedicated Application `secrets` (in `infra/k8s/apps/secrets.yaml`) directory-syncs `infra/k8s/secrets/`. Any new SealedSecret file committed to that directory becomes a `SealedSecret` CR in the cluster, which the controller decrypts into the namespace declared in the CR's `metadata`.
+2. The Redis Application's Helm values switch from auto-generation to `auth.existingSecret`:
+
+   ```yaml
+   auth:
+     enabled: true
+     existingSecret: redis-auth
+     existingSecretPasswordKey: redis-password
+   ```
+
+   The chart now reads the password from our managed Secret instead of generating one.
+
+### 5.9.e — Verify the cascade
+
+```bash
+kubectl -n recess-data get sealedsecret
+```
+
+```text
+NAME         STATUS   SYNCED   AGE
+redis-auth            True     ...
+```
+
+```bash
+kubectl -n recess-data get secret
+```
+
+`secret/redis-auth` appears (the controller materialised it from the SealedSecret). `secret/redis` is gone — the chart no longer generates its own since `existingSecret` is set. Redis StatefulSet re-deploys with the new password; pod `redis-master-0` shows a fresh `AGE`.
+
+`redis-cli -a "$(cat $REDIS_PASSWORD_FILE)" ping` returns `PONG` against the sealed password.
+
+### 5.9 — Validation
+
+- [x] sealed-secrets controller pod Running in `kube-system`
+- [x] `kubeseal` CLI installed and reports the same app version as the controller (`0.36.6`)
+- [x] `infra/k8s/secrets/redis-auth.yaml` committed; contains `kind: SealedSecret` with `encryptedData`
+- [x] `Application secrets` Synced + Healthy in ArgoCD
+- [x] `SealedSecret/redis-auth` status `SYNCED: True`
+- [x] `Secret/redis-auth` materialised with the `redis-password` key
+- [x] Redis re-deployed using `existingSecret`; PING succeeds with the sealed password
+- [ ] Postgres credentials sealed — deferred (CNPG manages `pg-app` adequately; revisit when cluster recreation becomes a scenario)
+- [ ] JWT secret sealed — deferred to Phase 5.4 when the first service that consumes it is deployed
+- [ ] GHCR image-pull secret sealed — deferred to Phase 5.4
+- [ ] CLOUDFLARE_TUNNEL_TOKEN sealed — deferred to Phase 5.8
+- [ ] Key rotation procedure documented — deferred hardening task

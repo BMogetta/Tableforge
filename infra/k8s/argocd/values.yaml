@@ -41,16 +41,20 @@ server:
   ingress:
     enabled: false
 
-# Git / manifest renderer.
+# Git / manifest renderer. Memory bumped 512Mi → 2Gi after the first
+# rendering of the bitnami/redis Helm chart OOMKilled the pod twice at
+# 512Mi and 1Gi — large umbrella charts (bitnami/redis, kube-prometheus-stack)
+# spike memory heavily during template expansion. The Pi 5 has 16Gi,
+# burning 2Gi on the repo-server is cheap.
 repoServer:
   replicas: 1
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 2Gi
 
 # ApplicationSet controller (needed for the App-of-Apps root in 5.3.d).
 applicationSet:
