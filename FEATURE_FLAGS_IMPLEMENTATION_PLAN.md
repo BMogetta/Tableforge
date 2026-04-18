@@ -191,13 +191,13 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 4.3 Maintenance banner
 
-- [ ] **4.3.a** Crear `frontend/src/features/maintenance/MaintenanceBanner.tsx`:
-  - Usa `useFlag('maintenance-mode')`.
-  - Renderiza banner fijo superior con mensaje i18n'd cuando está ON.
-  - Integrado en `App.tsx` / root layout.
-- [ ] **4.3.b** i18n keys: `maintenance.banner.title`, `maintenance.banner.message`.
-- [ ] **4.3.c** Test component: flag ON → banner visible; flag OFF → no renderiza.
-- [ ] **Validación 4.3**: `vitest` verde; visual: flipear flag → banner aparece en ≤15s.
+- [x] **4.3.a** Crear `frontend/src/features/maintenance/MaintenanceBanner.tsx`:
+  - Usa `useFlag(Flags.MaintenanceMode)` del `@unleash/proxy-client-react`.
+  - Sticky top, `role="status"` + `aria-live="polite"` para screen readers.
+  - Integrado en `__root.tsx` antes del `AppHeader` — siempre visible, incluso pre-login.
+- [x] **4.3.b** i18n keys: `maintenance.title`, `maintenance.message` (en + es). Namespace nuevo insertado después de `common` por prioridad visual en los JSON.
+- [x] **4.3.c** 3 tests: flag OFF → null; flag ON → banner con título+mensaje visibles; aria-live correcto.
+- [x] **Validación 4.3**: `vitest` verde. Visual pendiente (flipear flag live).
 
 ### 4.4 Game registry gate
 
