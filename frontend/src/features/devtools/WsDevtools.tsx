@@ -228,10 +228,14 @@ export function WsDevtools() {
     <div
       {...testId('ws-devtools')}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
+        // Grid (auto 1fr) instead of flex column: devtools-core cascades a
+        // `height: 100%` onto our flex children that made the toolbar eat
+        // the full panel height and pushed the list off-screen. Grid rows
+        // are immune to that cascade.
+        display: 'grid',
+        gridTemplateRows: 'auto 1fr',
         height: '100%',
-        minHeight: 0,
+        minHeight: 420,
         fontFamily: 'var(--font-mono, monospace)',
       }}
     >
@@ -350,14 +354,10 @@ export function WsDevtools() {
         {...testId('event-list')}
         onScroll={handleScroll}
         style={{
-          // Fill available space when the host panel has bounded height,
-          // but keep a sensible floor so events remain visible even when
-          // the parent uses height:auto (e.g. changed by a devtools-core
-          // upgrade). 360px is enough for ~8 event rows before scrolling.
-          flex: 1,
+          // Outer is grid `auto 1fr`; this cell takes the 1fr row and
+          // scrolls internally.
           overflowY: 'auto',
-          minHeight: 360,
-          maxHeight: '70vh',
+          minHeight: 0,
         }}
       >
         {visibleEvents.length === 0 ? (
