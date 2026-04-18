@@ -52,47 +52,97 @@ unleash import --url http://prod-unleash --token <token> < state.json
 
 ### Go (backend)
 
-```go
-import unleash "github.com/Unleash/unleash-client-go/v4"
+Services get their SDK client from `shared/featureflags`:
 
-unleash.Initialize(
-    unleash.WithAppName("game-server"),
-    unleash.WithUrl("http://unleash:4242/api"),
-    unleash.WithCustomHeaders(http.Header{
-        "Authorization": []string{"*:development.unleash-insecure-api-token"},
-    }),
+```go
+import (
+    "github.com/recess/shared/config"
+    "github.com/recess/shared/featureflags"
 )
 
-if unleash.IsEnabled("new-feature") {
+flags, err := featureflags.Init(config.LoadUnleash("game-server"))
+if err != nil {
+    slog.Warn("feature flags init failed, using defaults", "error", err)
+}
+defer flags.Close()
+
+// Always pass a default — cold start + Unleash outages fall back to it.
+if flags.IsEnabled("new-feature", false) {
     // new code path
 }
 ```
+
+### Go middleware
+
+Every service (except auth-service) wraps its router with
+`sharedmw.Maintenance(flags)`. This middleware returns `503 {"error":"maintenance"}`
+for `POST/PUT/PATCH/DELETE` when `maintenance-mode` is ON; `GET/HEAD/OPTIONS`
+always pass, and `/healthz`, `/readyz`, `/metrics` are exempt regardless of
+method. Auth-service is not wrapped so users can always log in / refresh.
 
 ### React (frontend)
 
 ```tsx
 import { FlagProvider, useFlag } from "@unleash/proxy-client-react"
+import { flagsConfig, Flags } from "@/lib/flags"
 
-<FlagProvider config={{
-    url: "http://unleash.localhost/api/frontend",
-    clientKey: "default:development.unleash-insecure-api-token",
-    appName: "frontend",
-}}>
+<FlagProvider config={flagsConfig}>
     <App />
 </FlagProvider>
 
 // In components
-const enabled = useFlag("new-feature")
+const chatEnabled = useFlag(Flags.ChatEnabled)
+```
+
+`Flags` is the exported enum in `src/lib/flags.ts` — always import from
+there instead of stringly-typed names so typos fail at compile time.
+
+### `useFlag` vs `useCapability`
+
+Two different patterns, pick the right one:
+
+- **`useFlag('foo')`** — reads the frontend SDK's live value. Good for purely
+  cosmetic / UX gates (maintenance banner, chat paused state, per-game
+  visibility in the lobby). The flag value is fully client-controllable —
+  a user can flip a localStorage entry to override it. Never use this for
+  security decisions.
+- **`useCapability()`** — calls `GET /auth/me/capabilities`, which the server
+  computes from JWT role + live Unleash state. Authoritative because the
+  server enforces it. Use this whenever the gate's output unlocks privileged
+  code (e.g. loading admin devtools). The hook caches for 5 minutes and
+  returns a zero-capability object on 401 so callers don't have to handle
+  unauth separately.
+
+The admin devtools panel is a real example of the second pattern: the React
+Lazy chunk is fetched only when `capabilities.canSeeDevtools === true`, which
+the server returns only for the owner role + flag ON combination.
+
+### Cold-start behavior
+
+The frontend SDK returns `false` for every flag during the first ~200ms
+before the first fetch resolves. For default-ON flags (chat, achievements,
+games), pair `useFlag` with `useFlagsStatus().flagsReady` and treat the
+"not ready" state as enabled — otherwise users see a flash of disabled UI
+on every page load.
+
+```tsx
+const { flagsReady } = useFlagsStatus()
+const raw = useFlag(Flags.ChatEnabled)
+const chatEnabled = !flagsReady || raw
 ```
 
 ## Maintenance Mode
 
-A `maintenance-mode` flag can serve as a kill switch:
+A `maintenance-mode` flag serves as a kill switch:
 
-- **Frontend**: check the flag early and render a maintenance screen
-- **Backend**: global middleware that returns `503 Service Unavailable`
+- **Frontend** (`MaintenanceBanner.tsx`): full-width banner at the top of
+  every route when flag is ON.
+- **Backend** (`shared/middleware/maintenance.go`): global middleware wired
+  into 7 of 8 services (see above).
 
-For maintenance when the app itself is down (DB crash, deploy failure), use a Traefik-level redirect to a static Nginx page instead -- Unleash won't be reachable if the stack is down.
+For maintenance when the app itself is down (DB crash, deploy failure), use
+a Traefik-level redirect to a static Nginx page instead — Unleash won't be
+reachable if the stack is down.
 
 ## Environment Variables
 

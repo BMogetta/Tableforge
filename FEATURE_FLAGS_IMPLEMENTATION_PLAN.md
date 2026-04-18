@@ -230,11 +230,12 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 4.7 Limpieza
 
-- [ ] **4.7.a** Update `docs/infrastructure/feature-flags.md` y/o crear `docs/frontend/feature-flags.md`:
-  - Cómo agregar un flag nuevo (seed + código).
-  - Patrón `useFlag` vs `useCapability` (diferencia: flag es cliente público, capability es server-calculada).
-  - Cuándo preferir una u otra.
-- [ ] **Validación 4.7**: doc review.
+- [x] **4.7.a** Actualizado `docs/infrastructure/feature-flags.md` con:
+  - Sección "Go middleware" explicando maintenance wiring + exclusión de auth-service.
+  - `useFlag` vs `useCapability` con reglas de cuándo usar cada uno (cosmético vs privileged/security).
+  - Patrón de cold-start usando `useFlagsStatus().flagsReady` para flags default-ON.
+  - Snippets actualizados para usar `shared/featureflags.Init` + `flagsConfig`/`Flags` constants del frontend.
+- [x] **Validación 4.7**: doc coherente con el código commiteado en Phases 1-4.
 
 ---
 
