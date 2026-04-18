@@ -110,7 +110,21 @@ func (m *mockStore) GetPlayer(_ context.Context, id uuid.UUID) (Player, error) {
 // --- helpers -----------------------------------------------------------------
 
 func newHandler(st Store) *Handler {
-	return New(st, "test-client-id", "test-client-secret", "test-jwt-secret-32bytes-long!!!!", false)
+	return New(st, "test-client-id", "test-client-secret", "test-jwt-secret-32bytes-long!!!!", false, nil)
+}
+
+// stubFlags implements featureflags.Checker for capability tests.
+type stubFlags struct{ enabled map[string]bool }
+
+func (s stubFlags) IsEnabled(name string, def bool) bool {
+	if v, ok := s.enabled[name]; ok {
+		return v
+	}
+	return def
+}
+
+func newHandlerWithFlags(st Store, flags stubFlags) *Handler {
+	return New(st, "test-client-id", "test-client-secret", "test-jwt-secret-32bytes-long!!!!", false, flags)
 }
 
 func withAuth(r *http.Request, playerID uuid.UUID, role string) *http.Request {
@@ -177,6 +191,80 @@ func TestHandleMe_PlayerNotFound(t *testing.T) {
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", rec.Code)
+	}
+}
+
+// ── Capabilities ────────────────────────────────────────────────────────────
+
+func TestHandleCapabilities_OwnerFlagOn_CanSeeDevtools(t *testing.T) {
+	h := newHandlerWithFlags(newMockStore(), stubFlags{enabled: map[string]bool{
+		"devtools-for-admins": true,
+	}})
+	req := httptest.NewRequest(http.MethodGet, "/auth/me/capabilities", nil)
+	req = withAuth(req, uuid.New(), middleware.RoleOwner)
+	rec := httptest.NewRecorder()
+
+	h.HandleCapabilities(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var caps struct {
+		CanSeeDevtools bool `json:"canSeeDevtools"`
+	}
+	_ = json.NewDecoder(rec.Body).Decode(&caps)
+	if !caps.CanSeeDevtools {
+		t.Error("owner + flag ON → expected canSeeDevtools=true")
+	}
+}
+
+func TestHandleCapabilities_OwnerFlagOff_CannotSeeDevtools(t *testing.T) {
+	h := newHandlerWithFlags(newMockStore(), stubFlags{enabled: map[string]bool{
+		"devtools-for-admins": false,
+	}})
+	req := httptest.NewRequest(http.MethodGet, "/auth/me/capabilities", nil)
+	req = withAuth(req, uuid.New(), middleware.RoleOwner)
+	rec := httptest.NewRecorder()
+
+	h.HandleCapabilities(rec, req)
+
+	var caps struct {
+		CanSeeDevtools bool `json:"canSeeDevtools"`
+	}
+	_ = json.NewDecoder(rec.Body).Decode(&caps)
+	if caps.CanSeeDevtools {
+		t.Error("owner + flag OFF → expected canSeeDevtools=false")
+	}
+}
+
+func TestHandleCapabilities_PlayerFlagOn_CannotSeeDevtools(t *testing.T) {
+	h := newHandlerWithFlags(newMockStore(), stubFlags{enabled: map[string]bool{
+		"devtools-for-admins": true,
+	}})
+	req := httptest.NewRequest(http.MethodGet, "/auth/me/capabilities", nil)
+	req = withAuth(req, uuid.New(), middleware.RolePlayer)
+	rec := httptest.NewRecorder()
+
+	h.HandleCapabilities(rec, req)
+
+	var caps struct {
+		CanSeeDevtools bool `json:"canSeeDevtools"`
+	}
+	_ = json.NewDecoder(rec.Body).Decode(&caps)
+	if caps.CanSeeDevtools {
+		t.Error("non-owner must not see devtools even with flag ON")
+	}
+}
+
+func TestHandleCapabilities_Unauthorized(t *testing.T) {
+	h := newHandler(newMockStore())
+	req := httptest.NewRequest(http.MethodGet, "/auth/me/capabilities", nil)
+	rec := httptest.NewRecorder()
+
+	h.HandleCapabilities(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("no role in context → expected 401, got %d", rec.Code)
 	}
 }
 

@@ -155,16 +155,13 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 3.4 Capability endpoint
 
-- [ ] **3.4.a** Agregar endpoint `GET /me/capabilities` en auth-service (junto a `/auth/me`).
-  - Response: `{"canSeeDevtools": bool}`
-  - Calcula `CanSeeDevtools(flags, role)` con el role del JWT context.
-- [ ] **3.4.b** Registrar en JSON schema (`shared/schemas/get_me_capabilities.response.json`) y regenerar Zod types (`make gen-types`).
-- [ ] **3.4.c** Test handler:
-  - owner + flag ON → `{"canSeeDevtools": true}`
-  - player + flag ON → `{"canSeeDevtools": false}`
-  - owner + flag OFF → `{"canSeeDevtools": false}`
-  - sin JWT → 401
-- [ ] **Validación 3.4**: `curl -H "Authorization: Bearer <owner-jwt>" .../auth/me/capabilities` con flag ON → `true`.
+- [x] **3.4.a** Agregar endpoint `GET /auth/me/capabilities` en auth-service.
+  - Response: `{"canSeeDevtools": bool}` via `featureflags.Compute(h.flags, role)`.
+  - Auth-service ahora inicializa su cliente de Unleash (único service que lo hace **solo** para capabilities, sin maintenance middleware — ver 3.1 nota).
+  - `handler.New` gana un parámetro `flags featureflags.Checker` (nil-safe).
+- [x] **3.4.b** `shared/schemas/get_me_capabilities.response.json` + `make gen-types` regenera `frontend/src/lib/schema-generated.zod.ts`. `GetMeCapabilitiesResponse` type disponible para 4.2.
+- [x] **3.4.c** 4 tests handler: owner+ON, owner+OFF, player+ON, sin role → 401.
+- [x] **Validación 3.4**: `GET /auth/me/capabilities` sin cookie → 401 (ruta wireada). La matriz role×flag está cubierta por unit tests.
 
 ---
 

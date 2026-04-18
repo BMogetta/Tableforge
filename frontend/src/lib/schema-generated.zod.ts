@@ -184,6 +184,9 @@ export const getLeaderboardResponseSchema = z.object({
 })
 export type GetLeaderboardResponse = z.infer<typeof getLeaderboardResponseSchema>
 
+export const getMeCapabilitiesResponseSchema = z.object({ "canSeeDevtools": z.boolean().describe("True iff the user is an owner AND the devtools-for-admins flag is ON. Used to lazy-load the admin devtools panel in prod.") }).strict().describe("Server-computed capability flags for the authenticated user. Combines JWT role with live Unleash flag state so the frontend doesn't re-implement gating.")
+export type GetMeCapabilitiesResponse = z.infer<typeof getMeCapabilitiesResponseSchema>
+
 export const getMutesResponseSchema = z.array(playerMuteSchema)
 export type GetMutesResponse = z.infer<typeof getMutesResponseSchema>
 

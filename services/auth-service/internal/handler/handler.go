@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	authjwt "github.com/recess/auth-service/internal/jwt"
+	"github.com/recess/shared/featureflags"
 	"github.com/recess/shared/middleware"
 )
 
@@ -76,16 +77,19 @@ type Handler struct {
 	clientSecret string
 	jwtSecret    []byte
 	secure       bool
+	flags        featureflags.Checker
 }
 
-// New constructs a Handler.
-func New(st Store, clientID, clientSecret, jwtSecret string, secure bool) *Handler {
+// New constructs a Handler. flags may be nil — capability lookups fall back
+// to a conservative zero state where every capability is false.
+func New(st Store, clientID, clientSecret, jwtSecret string, secure bool, flags featureflags.Checker) *Handler {
 	return &Handler{
 		store:        st,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		jwtSecret:    []byte(jwtSecret),
 		secure:       secure,
+		flags:        flags,
 	}
 }
 
@@ -232,6 +236,21 @@ func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(player)
+}
+
+// HandleCapabilities returns the server-computed capability map for the
+// authenticated user. Pairs role (from JWT) with live feature-flag state so
+// the frontend doesn't have to re-implement any gating logic. Must be kept
+// small: only surface things the client genuinely needs to know about.
+func (h *Handler) HandleCapabilities(w http.ResponseWriter, r *http.Request) {
+	role, ok := middleware.RoleFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	caps := featureflags.Compute(h.flags, role)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(caps)
 }
 
 // HandleLogout revokes the refresh session and clears both cookies.

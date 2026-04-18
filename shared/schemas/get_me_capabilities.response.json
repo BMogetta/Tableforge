@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "get_me_capabilities.response.json",
+  "title": "GetMeCapabilitiesResponse",
+  "description": "Server-computed capability flags for the authenticated user. Combines JWT role with live Unleash flag state so the frontend doesn't re-implement gating.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "canSeeDevtools": {
+      "type": "boolean",
+      "description": "True iff the user is an owner AND the devtools-for-admins flag is ON. Used to lazy-load the admin devtools panel in prod."
+    }
+  },
+  "required": ["canSeeDevtools"]
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/recess/auth-service/internal/handler"
 	"github.com/recess/auth-service/internal/store"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 	sharedredis "github.com/recess/shared/redis"
 	"github.com/recess/shared/telemetry"
@@ -61,7 +62,13 @@ func main() {
 		consErr <- cons.Run(ctx)
 	}()
 
-	h := handler.New(st, clientID, clientSecret, jwtSecret, secure)
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
+	h := handler.New(st, clientID, clientSecret, jwtSecret, secure, flags)
 	authMW := sharedmw.Require([]byte(jwtSecret))
 
 	r := chi.NewRouter()
@@ -79,6 +86,7 @@ func main() {
 		r.Post("/refresh", h.HandleRefresh) // No auth middleware — access token may be expired
 		r.With(authMW).Post("/logout", h.HandleLogout)
 		r.With(authMW).Get("/me", h.HandleMe)
+		r.With(authMW).Get("/me/capabilities", h.HandleCapabilities)
 
 		if handler.TestModeEnabled() {
 			r.Get("/test-login", h.HandleTestLogin)
