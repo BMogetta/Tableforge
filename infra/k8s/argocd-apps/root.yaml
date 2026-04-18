@@ -1,0 +1,42 @@
+# Root Application ("App-of-Apps"). ArgoCD reads every YAML under
+# `infra/k8s/apps/` and applies them as child Applications. Each child
+# Application in turn targets its own workload (Helm chart, manifests, etc.)
+# and lands on its own namespace.
+#
+# Pattern reference:
+# https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/
+#
+# When a file is added to `infra/k8s/apps/` in git and the change is pushed
+# to `main`, ArgoCD notices, creates the new child Application, and begins
+# syncing it. When a file is removed, `prune: true` deletes the child.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: recess-root
+  namespace: argocd
+  finalizers:
+    # Cascade delete: removing the root Application also removes the child
+    # Applications it manages. Without this finalizer, children would be
+    # orphaned in the cluster.
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/BMogetta/tableforge.git
+    targetRevision: main
+    path: infra/k8s/apps
+    directory:
+      recurse: true
+  destination:
+    # The root only creates Application CRs, which live in the argocd
+    # namespace. Child Applications set their own destination.namespace.
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      # Drift from git → reverted.
+      selfHeal: true
+      # Files removed from git → resources deleted from cluster.
+      prune: true
+    syncOptions:
+      - CreateNamespace=false

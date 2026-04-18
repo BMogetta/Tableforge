@@ -23,6 +23,8 @@
       "!**/tsconfig.*",
       "!**/routeTree.gen.ts",
       "!src/lib/schema-generated.zod.ts",
+      "!playwright.config.ts",
+      "!vite.config.ts",
       "!**/vite-env.d.ts"
     ]
   },

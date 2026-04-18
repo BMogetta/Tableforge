@@ -1,0 +1,82 @@
+# ArgoCD Helm values — Recess homelab (single-node k3s on Raspberry Pi 5).
+# Chart: argo/argo-cd 9.5.2 (app v3.3.7)
+#
+# Strategy for this phase (5.3):
+#   - Single replica per component (no HA).
+#   - TLS disabled on the server; access via `kubectl port-forward` until cloudflared lands in Phase 5.8.
+#   - Optional components (dex, notifications) disabled to save memory.
+#   - Conservative resource requests/limits tuned for Pi 5 (16GB).
+
+configs:
+  params:
+    # Accept plain HTTP. Traefik/cloudflared will terminate TLS later.
+    server.insecure: true
+
+# Force single-instance Redis (no HA).
+redis-ha:
+  enabled: false
+
+# Application reconciliation controller — heaviest component.
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# API + web UI.
+server:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  # Ingress is off for now; port-forward for access. Phase 5.8 will flip this on.
+  ingress:
+    enabled: false
+
+# Git / manifest renderer.
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ApplicationSet controller (needed for the App-of-Apps root in 5.3.d).
+applicationSet:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+
+# In-cluster cache.
+redis:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# No OIDC yet — admin password auth is fine for this phase.
+dex:
+  enabled: false
+
+# No Slack/email/Discord hooks yet.
+notifications:
+  enabled: false
