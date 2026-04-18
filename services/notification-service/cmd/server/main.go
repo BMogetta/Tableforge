@@ -15,6 +15,7 @@ import (
 	"github.com/recess/notification-service/internal/publisher"
 	"github.com/recess/notification-service/internal/store"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 	userv1 "github.com/recess/shared/proto/user/v1"
 	sharedredis "github.com/recess/shared/redis"
@@ -76,11 +77,19 @@ func main() {
 	handler := api.New(st, pub, executor, log)
 	cons := consumer.New(rdb, st, pub, log)
 
+	// ── Feature flags ─────────────────────────────────────────────────────────
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
 	// ── HTTP ──────────────────────────────────────────────────────────────────
 	r := chi.NewRouter()
 	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
 	r.Use(sharedmw.MaxBodySize(16 << 10)) // 16 KB
+	r.Use(sharedmw.Maintenance(flags))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))

@@ -14,6 +14,7 @@ import (
 	usgrpc "github.com/recess/services/user-service/internal/grpc"
 	"github.com/recess/services/user-service/internal/store"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 	sharedredis "github.com/recess/shared/redis"
 	userv1 "github.com/recess/shared/proto/user/v1"
@@ -90,14 +91,22 @@ func main() {
 		}
 	}()
 
+	// --- Feature flags -------------------------------------------------------
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
 	// --- HTTP server ---------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
 	router := api.NewRouter(st, pub, authMW, schemaReg)
+	handler := sharedmw.Maintenance(flags)(router)
 
 	httpAddr := config.Env("HTTP_ADDR", ":8082")
 	srv := &http.Server{
 		Addr:              httpAddr,
-		Handler:           router,
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

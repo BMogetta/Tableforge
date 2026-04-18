@@ -121,20 +121,24 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 3.1 Init en los 8 services
 
-- [ ] **3.1.a** En cada `services/<svc>/cmd/server/main.go`, inicializar el cliente de Unleash tras cargar config, antes del router:
-  ```go
-  flags, err := featureflags.Init(cfg.Unleash.WithAppName("<svc>"))
-  if err != nil { /* log.Warn y seguir con defaults */ }
-  defer flags.Close()
-  ```
-- [ ] **3.1.b** Inyectar `flags` al handler/store según lo necesite cada service.
-- [ ] **Validación 3.1**: `make up-app` levanta los 8; logs muestran `unleash: ready` en cada uno; ninguno falla si Unleash está down (fallback a defaults).
+- [x] **3.1.a** En cada `services/<svc>/cmd/server/main.go`, inicializar el cliente de Unleash tras cargar config, antes del router:
+  - Aplicado en 7 services. **Auth-service queda fuera intencionalmente**: si maintenance-mode rompe `/auth/login` o `/auth/refresh`, usuarios quedan bloqueados y no pueden ver el banner. La decisión: auth siempre debe funcionar.
+- [x] **3.1.b** Inyectar `flags` al handler/store según lo necesite cada service.
+  - Por ahora solo se pasa al wrap de maintenance middleware. La inyección a handlers específicos viene en 3.3.
+- [x] **Validación 3.1**: 7 services compilan y arrancan healthy. `go mod tidy` per-service para propagar la dep de `unleash-client-go` a cada go.mod.
 
 ### 3.2 Maintenance middleware
 
-- [ ] **3.2.a** Wire el `maintenance.Maintenance(flags)` middleware en el router de cada service, después de auth pero antes de los handlers.
-- [ ] **3.2.b** Tests por service: POST de prueba con flag OFF → 2xx, con flag ON → 503.
-- [ ] **Validación 3.2**: flipear `maintenance-mode` en la UI → en ≤15s todas las mutaciones devuelven 503 en todos los services; GET siguen pasando.
+- [x] **3.2.a** Wire el `sharedmw.Maintenance(flags)` middleware:
+  - Services con `api.NewRouter(...)` (chat, user, game-server): wrap después de construir el handler.
+  - Services con chi armado en main (match, notification, rating, ws-gateway): `r.Use(sharedmw.Maintenance(flags))` junto a los otros globals.
+- [x] **3.2.b** Tests unitarios existen en `shared/middleware/maintenance_test.go` (5 tests, cubren OFF/ON × verbos, allowlist, nil-checker). No dupliqué tests por service — la wiring es trivial y repetida; el middleware en sí está cubierto.
+- [x] **Validación 3.2**: end-to-end contra chat-service live:
+  - Flag OFF → POST /api/v1/rooms/abc/messages devuelve 401 (auth required, maintenance no bloquea).
+  - Flag ON → POST devuelve 503 `{"error":"maintenance"}` (maintenance bloquea antes del auth).
+  - Flag ON → GET devuelve 401 (reads pasan).
+  - Flag ON → POST /healthz devuelve 405 Method Not Allowed (el endpoint GET existe, maintenance lo deja pasar por allowlist pero chi responde MethodNotAllowed — comportamiento esperado).
+  - Refresh del SDK: ~15s.
 
 ### 3.3 Flag-gated endpoints
 

@@ -20,6 +20,7 @@ import (
 	"github.com/recess/rating-service/internal/service"
 	"github.com/recess/rating-service/internal/store"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	"github.com/recess/shared/domain/rating"
 	sharedmw "github.com/recess/shared/middleware"
 	sharedredis "github.com/recess/shared/redis"
@@ -85,11 +86,19 @@ func main() {
 		}
 	}()
 
+	// ── Feature flags ─────────────────────────────────────────────────────────
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
 	// ── HTTP server ───────────────────────────────────────────────────────────
 	r := chi.NewRouter()
 	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
 	r.Use(sharedmw.MaxBodySize(16 << 10)) // 16 KB
+	r.Use(sharedmw.Maintenance(flags))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))

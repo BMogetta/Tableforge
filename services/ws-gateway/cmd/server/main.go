@@ -17,6 +17,7 @@ import (
 	"github.com/recess/services/ws-gateway/internal/hub"
 	"github.com/recess/services/ws-gateway/internal/presence"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 	gamev1 "github.com/recess/shared/proto/game/v1"
 	userv1 "github.com/recess/shared/proto/user/v1"
@@ -92,12 +93,20 @@ func main() {
 		consErr <- cons.Run(ctx)
 	}()
 
+	// --- Feature flags -------------------------------------------------------
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
 	// --- Router --------------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
 
 	r := chi.NewRouter()
 	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
+	r.Use(sharedmw.Maintenance(flags))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))

@@ -11,6 +11,7 @@ import (
 	"github.com/recess/services/chat-service/internal/api"
 	"github.com/recess/services/chat-service/internal/store"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 	sharedredis "github.com/recess/shared/redis"
 	"github.com/recess/shared/telemetry"
@@ -66,15 +67,23 @@ func main() {
 	}
 	defer userChecker.Close()
 
+	// --- Feature flags -------------------------------------------------------
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
 	// --- HTTP server ---------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
 	pub := api.NewPublisher(rdb)
 	router := api.NewRouter(st, pub, authMW, schemaReg, serviceName, userChecker)
+	handler := sharedmw.Maintenance(flags)(router)
 
 	addr := config.Env("HTTP_ADDR", ":8083")
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           router,
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

@@ -20,6 +20,7 @@ import (
 	"github.com/recess/match-service/internal/consumer"
 	"github.com/recess/match-service/internal/queue"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 	sharedredis "github.com/recess/shared/redis"
 	gamev1 "github.com/recess/shared/proto/game/v1"
@@ -152,6 +153,13 @@ func main() {
 		}
 	}()
 
+	// --- Feature flags -------------------------------------------------------
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
 	// --- Router --------------------------------------------------------------
 	authMW := sharedmw.Require([]byte(jwtSecret))
 
@@ -159,6 +167,7 @@ func main() {
 	r.Use(sharedmw.Recoverer)
 	r.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(r)))
 	r.Use(sharedmw.MaxBodySize(16 << 10)) // 16 KB
+	r.Use(sharedmw.Maintenance(flags))
 	r.Get("/metrics", promhttp.HandlerFor(
 		prometheus.DefaultGatherer,
 		promhttp.HandlerOpts{},

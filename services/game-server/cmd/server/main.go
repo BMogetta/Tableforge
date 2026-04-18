@@ -26,6 +26,7 @@ import (
 	"github.com/recess/game-server/internal/platform/userclient"
 	"github.com/recess/game-server/internal/platform/ws"
 	"github.com/recess/shared/config"
+	"github.com/recess/shared/featureflags"
 	sharedmw "github.com/recess/shared/middleware"
 	gamev1 "github.com/recess/shared/proto/game/v1"
 	lobbyv1 "github.com/recess/shared/proto/lobby/v1"
@@ -165,6 +166,12 @@ func main() {
 		}
 	}
 
+	flags, err := featureflags.Init(config.LoadUnleash(serviceName))
+	if err != nil {
+		slog.Warn("feature flags init failed, using defaults", "error", err)
+	}
+	defer func() { _ = flags.Close() }()
+
 	router := api.NewRouter(
 		lobbyService,
 		runtimeService,
@@ -182,6 +189,7 @@ func main() {
 	if limiter != nil {
 		handler = limiter.Middleware(router)
 	}
+	handler = sharedmw.Maintenance(flags)(handler)
 
 	addr := config.Env("ADDR", ":8080")
 	srv := &http.Server{
