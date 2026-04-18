@@ -20,6 +20,10 @@ spec:
 
   sourceRepos:
     - https://github.com/BMogetta/recess.git
+    # Upstream Helm repos consumed by ArgoCD-managed Applications.
+    # Each repo is whitelisted explicitly; add a new entry when a new chart
+    # source is introduced (e.g. kube-prometheus-stack, sealed-secrets, etc.).
+    - https://charts.bitnami.com/bitnami
 
   destinations:
     # Five namespaces from infra/k8s/namespaces.yaml.
