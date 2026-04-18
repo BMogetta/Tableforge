@@ -134,11 +134,11 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 ## Fase 3 — Calidad del pipeline
 
 ### 3.1 Frontend build real en CI
-- [ ] **3.1.a** Reemplazar `tsc --noEmit` por `npm run build` (usa `tsconfig.build.json` + vite)
-- [ ] **3.1.b** Añadir `npx biome check ./src` además de `biome lint`
-- [ ] **3.1.c** Subir bundle como artefacto (retención 3 días)
+- [x] **3.1.a** Reemplazar `tsc --noEmit` por `npm run build` (usa `tsconfig.build.json` + vite)
+- [x] **3.1.b** Añadir `npx biome check ./src` además de `biome lint`
+- [x] **3.1.c** Subir bundle como artefacto (retención 3 días)
 - [ ] **Validación 3.1** — PR que rompe `tsconfig.build.json` sin romper el dev ⇒ ahora falla
-  - **Pausado 2026-04-17** por pedido del usuario. Blockers detectados localmente: (a) `npm run build` falla con TS2774 en `src/features/game/Replay.tsx:169`; (b) `biome check` reporta drift remanente después de `biome check --write`; (c) `npm audit` (2.2.a) ya detecta CVE crítica de `protobufjs`. Retomar después de limpiar el frontend.
+  - Reanudado 2026-04-18 después de limpiar el frontend: (a) TS build clean, (b) biome check clean (0 errors; 33 warnings quedan pero son nivel `warn` por config), (c) `npm audit --omit=dev` clean, (d) `make gen-types` sin drift. Los tres steps se agregan juntos. `actions/upload-artifact` SHA-pineado como el resto.
 
 ### 3.2 Schema drift check
 - [x] **3.2.a** Job `schema-drift`: `make gen-types` + `git diff --exit-code frontend/src/lib/schema-generated.zod.ts`

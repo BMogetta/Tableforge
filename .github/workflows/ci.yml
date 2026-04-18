@@ -110,13 +110,22 @@ jobs:
         run: npm audit --audit-level=high --omit=dev
       - name: Biome lint
         run: npx @biomejs/biome lint ./src
-      - name: TypeScript check
-        run: npx tsc --noEmit
+      - name: Biome check (formatting + lint + import sort)
+        run: npx @biomejs/biome check ./src
+      - name: Production build (tsc + vite)
+        run: npm run build
       - name: Vitest
         run: npx vitest run
       - name: i18n key coverage
         continue-on-error: true
         run: node ../scripts/check-i18n.mjs --warn
+      - name: Upload production bundle
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-bundle
+          path: frontend/dist
+          retention-days: 3
 
   go-vuln:
     name: "Go: govulncheck"
