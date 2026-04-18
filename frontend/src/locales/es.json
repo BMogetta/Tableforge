@@ -22,7 +22,8 @@
   },
   "maintenance": {
     "title": "Tableforge está en mantenimiento",
-    "message": "Partidas nuevas y acciones de escritura están en pausa. Las partidas en curso siguen funcionando."
+    "message": "Partidas nuevas y acciones de escritura están en pausa. Las partidas en curso siguen funcionando.",
+    "actionBlocked": "Acción bloqueada — mantenimiento activo."
   },
   "auth": {
     "loginWithGithub": "Continuar con GitHub",

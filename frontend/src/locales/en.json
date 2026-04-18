@@ -22,7 +22,8 @@
   },
   "maintenance": {
     "title": "Tableforge is in maintenance mode",
-    "message": "New games and write actions are paused. Existing matches keep running."
+    "message": "New games and write actions are paused. Existing matches keep running.",
+    "actionBlocked": "Action blocked — maintenance mode is active."
   },
   "auth": {
     "loginWithGithub": "Continue with GitHub",

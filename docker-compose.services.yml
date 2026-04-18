@@ -92,10 +92,11 @@ services:
       #   /api/v1/players/{id}/mute (+ /mute/*, /mutes)
       #   /api/v1/players/{id}/achievements
       #   /api/v1/players/{id}/report
+      #   /api/v1/achievements/definitions  (registry, not per-player)
       #   /api/v1/admin/players/{id}/ban (+ /bans)
       #   /api/v1/admin/bans/*
       #   /api/v1/admin/reports (+ /reports/*)
-      - "traefik.http.routers.user-service.rule=PathRegexp(`^/api/v1/players/search`) || PathRegexp(`^/api/v1/players/[^/]+/(profile|friends|block|mute|mutes|achievements|report|settings)`) || PathRegexp(`^/api/v1/admin/(players|allowed-emails|bans|reports|broadcast|audit-logs)`)"
+      - "traefik.http.routers.user-service.rule=PathRegexp(`^/api/v1/players/search`) || PathRegexp(`^/api/v1/players/[^/]+/(profile|friends|block|mute|mutes|achievements|report|settings)`) || Path(`/api/v1/achievements/definitions`) || PathRegexp(`^/api/v1/admin/(players|allowed-emails|bans|reports|broadcast|audit-logs)`)"
       - "traefik.http.routers.user-service.entrypoints=web"
       - "traefik.http.routers.user-service.priority=50"
       - "traefik.http.routers.user-service.middlewares=security-headers@file,user-service-ratelimit"

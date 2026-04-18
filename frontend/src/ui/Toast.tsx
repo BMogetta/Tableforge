@@ -7,6 +7,8 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useTranslation } from 'react-i18next'
+import { setMaintenanceHandler } from '@/lib/api'
 import type { AppError } from '@/utils/errors'
 import styles from './Toast.module.css'
 
@@ -82,6 +84,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     },
     [add],
   )
+
+  // Wire api.ts → toast for maintenance-mode notices. The api layer can't
+  // own the toast context (it's not a component), so it exposes a setter
+  // and we register the handler once per mount here.
+  const { t } = useTranslation()
+  useEffect(() => {
+    setMaintenanceHandler(() => {
+      add({ variant: 'warning', message: t('maintenance.actionBlocked') })
+    })
+    return () => setMaintenanceHandler(null)
+  }, [add, t])
 
   return (
     <ToastContext.Provider value={{ showError, showWarning, showInfo }}>

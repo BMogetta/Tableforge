@@ -185,6 +185,34 @@ async function tryRefresh(): Promise<boolean> {
   return refreshPromise
 }
 
+// ----------------------------------------------------------------------------
+// Maintenance-mode notifier.
+//
+// When the backend maintenance middleware returns 503 {"error":"maintenance"}
+// we fire a global toast so every mutation in the app gets consistent user
+// feedback. The api.ts module can't depend on React context directly, so
+// the ToastProvider registers itself via setMaintenanceHandler at mount.
+//
+// Debounced at 3s: a rapid-fire failing batch shouldn't stack toasts on top
+// of the already-visible maintenance banner.
+// ----------------------------------------------------------------------------
+
+type MaintenanceHandler = () => void
+let maintenanceHandler: MaintenanceHandler | null = null
+let lastMaintenanceNotifyAt = 0
+const MAINTENANCE_NOTIFY_DEBOUNCE_MS = 3000
+
+export function setMaintenanceHandler(fn: MaintenanceHandler | null): void {
+  maintenanceHandler = fn
+}
+
+function notifyMaintenance(): void {
+  const now = Date.now()
+  if (now - lastMaintenanceNotifyAt < MAINTENANCE_NOTIFY_DEBOUNCE_MS) return
+  lastMaintenanceNotifyAt = now
+  maintenanceHandler?.()
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase()
   const url = BASE + path
@@ -239,6 +267,14 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
         // Redirect to dedicated page on rate limit so the user gets clear feedback.
         if (res.status === 429) {
           window.location.href = '/rate-limited'
+        }
+
+        // Maintenance mode gets a global toast so the user notices the
+        // action was rejected even if the caller only renders an inline
+        // error. The banner already tells them why; the toast confirms
+        // "this click did not go through".
+        if (res.status === 503 && body?.error === 'maintenance') {
+          notifyMaintenance()
         }
 
         throw new ApiError(res.status, body.error ?? res.statusText)
