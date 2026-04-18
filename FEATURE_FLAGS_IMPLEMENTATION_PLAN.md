@@ -47,14 +47,15 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 1.2 Script de seeding
 
-- [ ] **1.2.a** Crear `infra/unleash/seed.sh`:
+- [x] **1.2.a** Crear `infra/unleash/seed.sh`:
   - Espera `/health` (timeout 60s, backoff).
   - Itera `flags.json`: `POST /api/admin/projects/default/features` (409 = ya existe, OK).
   - Itera `environments.json`: `POST /api/admin/projects/default/features/{name}/environments/{env}/on|off` + `POST .../strategies` con `default`.
   - Exit 0 en éxito total, ≠ 0 si algún POST devuelve 5xx.
   - Idempotente: volver a correr no rompe nada.
-- [ ] **1.2.b** Shebang `#!/bin/sh`, deps: `curl`, `jq` (ambos en `alpine:3.20`).
-- [ ] **Validación 1.2**: correr `seed.sh` contra una instancia vacía crea los 7 flags; correrlo de nuevo no crea duplicados y termina con exit 0.
+  - Detalle: strip `/api` trailing si está presente en `UNLEASH_URL`, así la misma env var (convención Go SDK con `/api`) funciona para el seeder.
+- [x] **1.2.b** Shebang `#!/bin/sh`, deps: `curl`, `jq` (ambos en `alpine:3.20`).
+- [x] **Validación 1.2**: probado local contra Unleash live. Primer run: crea los 7 flags + aplica estados. Segundo run: `= exists` en los 7 (409 → success). Estado final verificado vía `/api/admin/projects/default/features` — matchea la decisión (maintenance/ranked/devtools OFF, resto ON).
 
 ### 1.3 Integración al compose
 
