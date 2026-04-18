@@ -201,10 +201,11 @@ Init container que corre post-healthy de Unleash y crea las 7 flags de forma ide
 
 ### 4.4 Game registry gate
 
-- [ ] **4.4.a** En `frontend/src/games/registry.tsx`, crear un hook `useEnabledGames()` que lee `useFlag('game-tictactoe-enabled')` y `useFlag('game-rootaccess-enabled')` y devuelve el subset filtrado de `GAME_RENDERERS`.
-- [ ] **4.4.b** El lobby usa `useEnabledGames()` en vez de `GAME_RENDERERS` directo para la grilla de "crear room".
-- [ ] **4.4.c** Test: ambas flags ON → 2 games visibles; una OFF → 1 game; ambas OFF → lista vacía.
-- [ ] **Validación 4.4**: vitest + visual.
+- [x] **4.4.a** `frontend/src/games/useEnabledGames.ts` llama `gameRegistry.list()` (ya filtrado por el server) y refiltra client-side con `useUnleashClient().getAllToggles()` + `isEnabled(name)`. En cold-start (`flagsReady=false`) bypasea el filtro para no dejar la grilla vacía.
+  - Cambio vs plan: no se tocó `registry.tsx` (map de renderers). El hook filtra la respuesta API del backend, no el registry local.
+- [x] **4.4.b** `Lobby.tsx` consume `useEnabledGames()`. `gameRegistry` y `keys.games()` ya no se importan allí.
+- [x] **4.4.c** 4 tests: ambas ON → 2 games, una OFF → 1, ambas OFF → [], flag desconocido → incluido (default true), cold-start → todos.
+- [x] **Validación 4.4**: `vitest` verde (4/4), `npm run build` OK.
 
 ### 4.5 Chat + achievements gates
 

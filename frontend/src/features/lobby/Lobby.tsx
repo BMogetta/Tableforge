@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { gameRegistry } from '@/features/lobby/api'
+import { useEnabledGames } from '@/games/useEnabledGames'
 import { players } from '@/lib/api'
 import { sessions } from '@/lib/api/sessions'
-import { keys } from '@/lib/queryClient'
 import { useAppStore } from '@/stores/store'
 import { useToast } from '@/ui/Toast'
 import { catchToAppError } from '@/utils/errors'
@@ -22,10 +21,7 @@ export function Lobby() {
 
   const [selectedGame, setSelectedGame] = useState('')
 
-  const { data: gameList = [] } = useQuery({
-    queryKey: keys.games(),
-    queryFn: gameRegistry.list,
-  })
+  const { games: gameList } = useEnabledGames()
 
   const { data: activeSessions = [] } = useQuery({
     queryKey: ['active-sessions', player.id],
