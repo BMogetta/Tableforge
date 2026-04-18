@@ -5,6 +5,28 @@ on:
     workflows: ["CI"]
     types: [completed]
     branches: [main]
+  # Manual rebuild escape hatch: useful for first-time bootstrap (before any
+  # service code has changed), for re-publishing a tag after a GHCR delete,
+  # or for forcing a rebuild when paths-filter would otherwise skip.
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "What to build"
+        required: true
+        default: auth-service
+        type: choice
+        options:
+          - auth-service
+          - chat-service
+          - game-server
+          - match-service
+          - notification-service
+          - rating-service
+          - user-service
+          - ws-gateway
+          - frontend
+          - all-services
+          - all
 
 concurrency:
   group: cd-main
@@ -21,32 +43,63 @@ env:
 jobs:
   changes:
     name: Detect changes
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.services.outputs.matrix }}
-      frontend: ${{ steps.filter.outputs.frontend }}
+      services: ${{ steps.resolve.outputs.services }}
+      frontend: ${{ steps.resolve.outputs.frontend }}
+      sha: ${{ steps.resolve.outputs.sha }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      # Automatic path detection only fires on the workflow_run trigger.
       - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.3
         id: filter
+        if: ${{ github.event_name == 'workflow_run' }}
         with:
           base: ${{ github.event.workflow_run.head_branch }}
           ref: ${{ github.event.workflow_run.head_sha }}
           filters: .github/paths-filters.yml
-      - name: Build service matrix
-        id: services
+      # Single step that resolves (services, frontend, sha) regardless of
+      # whether the trigger was workflow_run (paths-filter output) or
+      # workflow_dispatch (inputs.target).
+      - name: Resolve build targets
+        id: resolve
         run: |
-          raw='${{ steps.filter.outputs.changes }}'
-          matrix=$(echo "$raw" | jq -c '[.[] | select(. != "frontend" and . != "compose")]')
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            sha="${{ github.sha }}"
+            target="${{ inputs.target }}"
+            case "$target" in
+              all|all-services)
+                services='["auth-service","chat-service","game-server","match-service","notification-service","rating-service","user-service","ws-gateway"]'
+                ;;
+              frontend)
+                services='[]'
+                ;;
+              *)
+                services="[\"$target\"]"
+                ;;
+            esac
+            case "$target" in
+              frontend|all) frontend=true ;;
+              *)            frontend=false ;;
+            esac
+          else
+            sha="${{ github.event.workflow_run.head_sha }}"
+            raw='${{ steps.filter.outputs.changes }}'
+            services=$(echo "$raw" | jq -c '[.[] | select(. != "frontend" and . != "compose")]')
+            frontend='${{ steps.filter.outputs.frontend }}'
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "services=$services" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
 
   build-services:
     name: "Build: ${{ matrix.service }}"
     needs: changes
-    if: ${{ github.event.workflow_run.conclusion == 'success' && needs.changes.outputs.services != '[]' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.changes.outputs.services != '[]' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -60,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.changes.outputs.sha }}
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
         with:
           platforms: amd64,arm64
@@ -108,7 +161,7 @@ jobs:
           sbom: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-${{ matrix.service }}:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-${{ matrix.service }}:${{ needs.changes.outputs.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
       - name: Install cosign
@@ -123,7 +176,7 @@ jobs:
   build-frontend:
     name: "Build: frontend"
     needs: changes
-    if: ${{ github.event.workflow_run.conclusion == 'success' && needs.changes.outputs.frontend == 'true' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -133,7 +186,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.changes.outputs.sha }}
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
         with:
           platforms: amd64,arm64
@@ -179,7 +232,7 @@ jobs:
           sbom: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-frontend:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-frontend:${{ github.event.workflow_run.head_sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/recess-frontend:${{ needs.changes.outputs.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
       - name: Install cosign
