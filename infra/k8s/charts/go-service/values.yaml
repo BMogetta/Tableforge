@@ -8,7 +8,13 @@ fullnameOverride: ""
 image:
   repository: ""
   tag: latest
-  pullPolicy: IfNotPresent
+  # `:latest` tag + `IfNotPresent` hides new images: kubelet sees the tag
+  # cached locally and skips the pull even after CD pushes a fresh digest.
+  # For the canary phase the safe default is `Always` — small images (~25MB),
+  # rare restarts, and we always want the newest build. Follow-up task #12:
+  # once CD bumps values/<svc>.yaml to an immutable `tag: sha-<commit>` per
+  # build, flip this back to `IfNotPresent` — pulls happen on tag change only.
+  pullPolicy: Always
 
 replicaCount: 1
 

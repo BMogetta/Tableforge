@@ -844,7 +844,20 @@ All four SealedSecrets are picked up by the `secrets` Application (see 5.9.d), w
 
 **Why cross-namespace DSNs and not Secret replication** (Reflector / ESO): both are viable but add a controller. For a single canary we preferred sealing dedicated DSN Secrets in the app namespace — each service has its own `DATABASE_URL` / `REDIS_URL` sealed into `recess`, with the DSN pinning the full DNS of the data-tier Service. If we add more namespaces later, a replicator becomes worth it; for now it would be extra moving parts for no benefit.
 
-**Known follow-up**: the `pg-app` password is still CNPG-managed (auto-generated on Cluster creation, never rotated). A rotation rotates only inside `recess-data` and silently invalidates the sealed `DATABASE_URL`. When rotation becomes a requirement we'll need either a pre-sealed bootstrap secret on the Cluster CR (`spec.bootstrap.initdb.secret.name`) or a controller that refreshes the sealed DSN whenever the source Secret changes.
+**Rotation procedure** (when the Postgres or Redis password changes):
+
+```bash
+export KUBECONFIG=~/.kube/config-recess
+bash scripts/reseal-dsn-secrets.sh
+# the script prints both current passwords so you can save them in 1Password,
+# then rewrites infra/k8s/secrets/db-auth.yaml and redis-url.yaml with the
+# URL-encoded DSNs. Commit + push, force the `secrets` Application refresh
+# (command in the script's final instructions), roll the consumer services.
+```
+
+The script handles URL-encoding automatically (both `openssl rand -base64` and CNPG-generated passwords routinely include `+`, `/`, `=` — raw concat into the DSN userinfo field breaks `redis.ParseURL` and `pgxpool.New`, see 5.4.f). If the source passwords haven't rotated, re-running the script is a no-op (the sealed output is deterministic against the same plaintext + cluster key).
+
+**Known follow-up (task #11 in the longer-term backlog)**: replace the sealed-DSN pattern with a cross-namespace Secret replicator (Reflector / ESO) so rotation of `pg-app` / `redis-auth` in `recess-data` propagates automatically into `recess` without re-running `reseal-dsn-secrets.sh`. Not worth the operator cost for canary scale; revisit when Phase 5.5 rolls more services through the chart and rotation becomes a real operational concern.
 
 ### 5.4.b — The `go-service` Helm chart
 
@@ -983,13 +996,15 @@ docker run --rm --platform=linux/arm64 --entrypoint /bin/sh \
 # last line should end in "b7 00 ..." (EM_AARCH64)
 ```
 
-After the image is rebuilt, kubelet won't repull `:latest` (`imagePullPolicy: IfNotPresent` plus a cached digest). Evict explicitly:
+After the image is rebuilt, kubelet won't repull `:latest` if the chart still uses `imagePullPolicy: IfNotPresent` — it sees the tag cached locally and skips. The chart now defaults to `Always` (see `infra/k8s/charts/go-service/values.yaml`), which makes `kubectl rollout restart` enough on its own. The old manual eviction (left here as historical record) was:
 
 ```bash
 kubectl debug node/recess-pi --image=busybox --profile=general -- \
     chroot /host crictl rmi ghcr.io/bmogetta/recess-auth-service:latest
 kubectl -n recess rollout restart deploy auth-service
 ```
+
+**Follow-up (task #12)**: `Always` is a canary-stage shortcut. The robust fix is to bump `image.tag` per build to a commit SHA (immutable) and push the values change back to `main` from CD. When that lands, flip the chart default back to `IfNotPresent` — pulls happen on tag change only, no bandwidth waste on every pod restart.
 
 ### 5.4.f — Gotcha: URL-encode DSN passwords; OtelHandler swallows logs
 
