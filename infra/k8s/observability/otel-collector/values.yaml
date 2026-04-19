@@ -1,0 +1,148 @@
+# OpenTelemetry Collector — Phase 6.4. Single entrypoint for every service's
+# OTLP traffic. Routes:
+#   - traces  → Tempo (OTLP gRPC)
+#   - metrics → Prometheus (exposed on :8889 for scrape)
+#   - logs    → Loki (OTLP-native ingestion endpoint)
+#
+# Without a metrics and logs pipeline, services would get RPC errors from
+# the Collector on every export — defeating the whole point of pointing
+# OTEL_EXPORTER_OTLP_ENDPOINT at this service. So we forward all three
+# signals even though Prometheus+Promtail could serve metrics+logs
+# independently. Expect some duplication in Loki (Promtail ships stdout,
+# Collector ships OTLP). Phase 6.6 will dedupe in queries if noisy.
+
+mode: deployment
+replicaCount: 1
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+# The chart's "presets" auto-wire Kubernetes attribute enrichment and a
+# logs receiver for filelog. We don't need those — our services are OTLP
+# clients, not filelog targets.
+presets:
+  kubernetesAttributes:
+    enabled: true
+  logsCollection:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 384Mi
+
+ports:
+  otlp:
+    enabled: true
+    containerPort: 4317
+    servicePort: 4317
+    protocol: TCP
+  otlp-http:
+    enabled: true
+    containerPort: 4318
+    servicePort: 4318
+    protocol: TCP
+  metrics:
+    enabled: true
+    containerPort: 8888
+    servicePort: 8888
+    protocol: TCP
+  prometheus:
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
+    protocol: TCP
+  # Disable defaults that we don't use.
+  jaeger-compact:
+    enabled: false
+  jaeger-thrift:
+    enabled: false
+  jaeger-grpc:
+    enabled: false
+  zipkin:
+    enabled: false
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  processors:
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 75
+      spike_limit_percentage: 20
+    batch:
+      send_batch_size: 1024
+      timeout: 5s
+    k8sattributes:
+      passthrough: false
+
+  exporters:
+    otlp/tempo:
+      endpoint: tempo.observability.svc.cluster.local:4317
+      tls:
+        insecure: true
+    otlphttp/loki:
+      endpoint: http://loki.observability.svc.cluster.local:3100/otlp
+      tls:
+        insecure: true
+    prometheus:
+      endpoint: 0.0.0.0:8889
+      resource_to_telemetry_conversion:
+        enabled: true
+
+  service:
+    telemetry:
+      metrics:
+        address: 0.0.0.0:8888
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, k8sattributes, batch]
+        exporters: [otlp/tempo]
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [prometheus]
+      logs:
+        receivers: [otlp]
+        processors: [memory_limiter, k8sattributes, batch]
+        exporters: [otlphttp/loki]
+
+serviceAccount:
+  create: true
+
+# Let Prometheus pick up the :8889 scrape endpoint via ServiceMonitor.
+# Requires kube-prometheus-stack CRDs (already installed).
+serviceMonitor:
+  enabled: true
+  extraLabels:
+    release: kube-prometheus-stack
+
+clusterRole:
+  # Needed by the k8sattributes processor to enrich resource attrs.
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "namespaces", "nodes"]
+      verbs: ["get", "watch", "list"]
+    - apiGroups: ["apps"]
+      resources: ["replicasets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["extensions"]
+      resources: ["replicasets"]
+      verbs: ["get", "list", "watch"]
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001

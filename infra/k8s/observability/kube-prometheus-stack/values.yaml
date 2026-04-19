@@ -116,6 +116,23 @@ grafana:
         # Single-tenant Loki; no org header needed.
         timeout: 60
         maxLines: 5000
+    - name: Tempo
+      type: tempo
+      access: proxy
+      url: http://tempo.observability.svc.cluster.local:3200
+      isDefault: false
+      editable: false
+      jsonData:
+        # Wire trace-to-logs so clicking a span in Tempo jumps to the
+        # matching Loki log lines; both directions lit up by matching on
+        # the standard `service_name` label.
+        tracesToLogsV2:
+          datasourceUid: loki
+          filterByTraceID: true
+          filterBySpanID: false
+          tags:
+            - key: service.name
+              value: service_name
 
 # ─── Prometheus operator + Prometheus ────────────────────────────────────────
 prometheusOperator:

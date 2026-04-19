@@ -1,0 +1,46 @@
+# Tempo — Phase 6.3. Single-binary mode, filesystem storage, 3-day
+# retention. Receives OTLP traces from the OTel Collector (6.4) and
+# services can also hit it directly if the collector is bypassed.
+
+tempo:
+  # OTLP receivers bound to 0.0.0.0 so the in-cluster Collector (and any
+  # services that want to skip the hop) can push traces.
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  # Single-tenant, filesystem storage under /var/tempo.
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+  # 3-day retention matches the plan. Compactor runs every 10min.
+  retention: 72h
+  compactor:
+    compaction:
+      block_retention: 72h
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 384Mi
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClassName: local-path
+
+# ServiceMonitor off until Phase 6.5.
+serviceMonitor:
+  enabled: false

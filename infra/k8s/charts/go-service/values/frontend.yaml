@@ -22,6 +22,10 @@ service:
 env: {}
 envFromSecret: {}
 
+# Nginx doesn't emit OTLP — skip the chart's default endpoint injection.
+observability:
+  otlpEndpoint: ""
+
 resources:
   requests:
     cpu: 25m

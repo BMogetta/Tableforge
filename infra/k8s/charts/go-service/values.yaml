@@ -16,6 +16,12 @@ image:
   # build, flip this back to `IfNotPresent` — pulls happen on tag change only.
   pullPolicy: Always
 
+# OTLP endpoint auto-injected as OTEL_EXPORTER_OTLP_ENDPOINT. Set to empty
+# string (or null) in a service's values file to skip injection — useful
+# for the frontend which doesn't emit OTel signals.
+observability:
+  otlpEndpoint: otel-collector.observability.svc.cluster.local:4317
+
 replicaCount: 1
 
 service:
