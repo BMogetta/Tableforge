@@ -56,6 +56,14 @@ grafana:
   enabled: true
   replicas: 1
 
+  # The chart's default init-chown-data container fails with EPERM on
+  # subdirectories Grafana creates at runtime (pdf/png/csv) whenever the
+  # PVC survives a pod replacement — saw this after a rollout restart.
+  # The Grafana entrypoint itself sets perms correctly, so skipping the
+  # init container is both simpler and avoids a stuck CrashLoopBackOff.
+  initChownData:
+    enabled: false
+
   # Avoid chart-generated random credentials — we manage via SealedSecret.
   admin:
     existingSecret: grafana-admin
@@ -98,6 +106,17 @@ grafana:
 
 # ─── Prometheus operator + Prometheus ────────────────────────────────────────
 prometheusOperator:
+  # The admission webhook (validates PrometheusRule at admission time) ships
+  # with an adjacent `patch` Job that mints TLS certs for the webhook. The
+  # Job has ttlSecondsAfterFinished, so kube-controller-manager garbage-
+  # collects it seconds after success; ArgoCD's hook tracker sees "Job
+  # missing" and blocks the sync forever. For a homelab, we turn the whole
+  # webhook off — the operator still validates rules when loading them, so
+  # bad rules just produce an operator log error instead of a 4xx from the
+  # API server. Re-enable + install cert-manager if admission-time
+  # rejection ever becomes important.
+  admissionWebhooks:
+    enabled: false
   resources:
     requests:
       cpu: 25m

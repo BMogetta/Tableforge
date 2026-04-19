@@ -42,6 +42,3 @@ spec:
     syncOptions:
       - CreateNamespace=false
       - ServerSideApply=true
-      # CRDs from the operator are large (~10MB each); ServerSideApply
-      # handles them, but bypass the client-side size limit just in case.
-      - ApplyOutOfSyncOnly=true
