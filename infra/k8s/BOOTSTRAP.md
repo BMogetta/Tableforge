@@ -954,15 +954,55 @@ The Unleash error is expected and harmless in this phase — `featureflags.Init(
 
 ### 5.4 — Validation
 
-Authored: checkboxes flip as the smoke test in 5.4.d passes.
-
 - [x] Four new SealedSecrets in `infra/k8s/secrets/` (db-auth, redis-url, github-oauth, jwt)
 - [x] Reusable `go-service` chart renders cleanly under `helm template` with per-service values
 - [x] `auth-service` Application CR committed under `infra/k8s/apps/`
-- [ ] `secrets` Application syncs the four new SealedSecrets; plain Secrets visible in `recess`
-- [ ] `Application auth-service` is `Synced` + `Healthy` in ArgoCD
-- [ ] Pod `auth-service-*` is `Running`, image pulled from GHCR
-- [ ] `curl http://auth-service:8081/healthz` returns `ok` from inside the cluster
-- [ ] Logs show `redis: connected` and `auth-service listening`
+- [x] `secrets` Application syncs the four new SealedSecrets; plain Secrets visible in `recess`
+- [x] `Application auth-service` is `Synced` + `Healthy` in ArgoCD
+- [x] Pod `auth-service-*` is `Running`, image pulled from GHCR (arm64-native binary, see 5.4.e)
+- [x] `wget -qO- http://auth-service:8081/healthz` returns `ok` from a pod in the same cluster
+- [ ] Service logs visible in `kubectl logs` — blocked on task #10, see 5.4.f (OtelHandler swallows everything when OTLP is unreachable)
 - [ ] GitHub OAuth end-to-end flow — deferred to Phase 5.8 when the service is reachable from the public internet via Cloudflare Tunnel; the full login flow needs the callback URL registered with GitHub.
 - [ ] ServiceAccount → IRSA / Workload Identity — N/A on a homelab cluster (no cloud IAM); revisit if we ever move to EKS/GKE.
+
+### 5.4.e — Gotcha: dual-arch builds were publishing amd64 binaries in arm64 manifests
+
+First rollout attempt crashed with `exec format error` on the Pi even though the image manifest advertised an arm64 variant. Root cause: the service Dockerfiles set `GOOS=linux` but no `GOARCH`, and buildx's cache (shared scope between the amd64 "scan" step and the multi-arch push step) was baking the amd64 binary into both platform manifests. `docker manifest inspect` showed the right shape; pulling `--platform=linux/arm64` and checking `e_machine` in the ELF header showed `0x3E` (x86_64) instead of `0xB7` (aarch64).
+
+Fix applied in commit `6288399`:
+
+- Pin the builder stage to `--platform=$BUILDPLATFORM` in all 8 service Dockerfiles + `frontend/Dockerfile`.
+- Use `ARG TARGETOS` + `ARG TARGETARCH` and pass them to `go build` as `GOOS` / `GOARCH`. Go cross-compiles natively on the build host — no QEMU emulation for the compile step, and the binary that lands in the arm64 image is an actual aarch64 ELF.
+- Drop `linux/amd64` from `cd.yml` and `release.yml` entirely (scan, push, and `setup-qemu-action`). The only deploy target is the Pi; building the amd64 variant was pure waste of GitHub Actions minutes.
+
+Verification on a rebuilt image:
+
+```bash
+docker pull --platform=linux/arm64 ghcr.io/bmogetta/recess-auth-service:latest
+docker run --rm --platform=linux/arm64 --entrypoint /bin/sh \
+    ghcr.io/bmogetta/recess-auth-service:latest \
+    -c 'head -c 24 /bin/auth-service | od -An -tx1'
+# last line should end in "b7 00 ..." (EM_AARCH64)
+```
+
+After the image is rebuilt, kubelet won't repull `:latest` (`imagePullPolicy: IfNotPresent` plus a cached digest). Evict explicitly:
+
+```bash
+kubectl debug node/recess-pi --image=busybox --profile=general -- \
+    chroot /host crictl rmi ghcr.io/bmogetta/recess-auth-service:latest
+kubectl -n recess rollout restart deploy auth-service
+```
+
+### 5.4.f — Gotcha: URL-encode DSN passwords; OtelHandler swallows logs
+
+Second rollout crashed silently — pod `Running → Error (exit 1) → CrashLoopBackOff` with zero stdout and zero stderr. Two bugs compounded:
+
+**Bug 1 — `shared/telemetry` replaces `slog.Default()` with an OTLP-only handler.** After `telemetry.Setup` returns, every call to `slog.Info` / `slog.Error` / etc. goes through `NewOtelHandler(...)`, which emits to the OTLP log exporter and nothing else. The OTLP exporter connects asynchronously, so `Setup` returns nil even with a broken endpoint. On this cluster OTLP isn't deployed (Phase 6), so every log vanishes into the batch buffer — never written to stderr. Exit-via-`os.Exit(1)` (used by `config.MustEnv` and `shared/redis.Connect`) bypasses the batch flush, so we don't even get a partial log on shutdown. **Panic paths still work** because the Go runtime writes panic traces directly to `os.Stderr`; the `os.Exit` paths are the silent ones.
+
+Tracked as task #10 ("Fix OtelHandler to also write to stderr"). Workaround for diagnosis: patch the deployment to wrap the entrypoint in `sh -c '/bin/auth-service 2>&1; echo EXIT=$?; sleep 30'` so the container stays alive and its output lives in `kubectl logs`.
+
+**Bug 2 — DSN passwords were not URL-encoded.** `openssl rand -base64 32` output and CNPG-generated passwords can include `+`, `/`, `=`. Dropped raw into `redis://default:<pw>@host:6379/0` or `postgresql://recess:<pw>@host/db?sslmode=require`, those characters collide with URL reserved delimiters, `redis.ParseURL` / `pgxpool.New` reject the DSN, and `shared/redis.Connect` calls `os.Exit(1)` — which then goes silent because of Bug 1.
+
+Fix: `/tmp/seal-dsn-fix.sh` re-seals `db-auth.yaml` and `redis-url.yaml` with passwords URL-encoded (Python `urllib.parse.quote`). The password stored inside Redis / Postgres is unchanged; only its representation inside the DSN URL is encoded. The canonical seal scripts in 5.4.a need the same `urlencode` wrapper when recreated from scratch on a fresh cluster — update `/tmp/seal-canary-secrets.sh` when it's next touched.
+
+**Follow-up — task #11**: the current "seal the whole DSN as a single blob" approach is brittle. Any rotation of the source password (CNPG rotates `pg-app`, we rotate `redis-auth`) leaves the sealed DSN stale without any alert. Better design: bind the password via `envFrom` from a replicated/reflected source Secret and assemble `DATABASE_URL` / `REDIS_URL` in the Deployment template (or via a small wrapper script in the entrypoint). Cross-namespace source Secrets need either ESO, Reflector, or a custom controller to make `pg-app` visible in `recess`.
