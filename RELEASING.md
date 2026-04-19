@@ -1,6 +1,6 @@
 # Releasing
 
-This document describes the end-to-end release flow for Tableforge deployables.
+This document describes the end-to-end release flow for Recess deployables.
 
 ## Overview
 
@@ -101,9 +101,9 @@ enough.
 ## GHCR image URL pattern
 
 ```
-ghcr.io/<repo-owner>/tableforge-<component>:v<X.Y.Z>   # exact version
-ghcr.io/<repo-owner>/tableforge-<component>:v<X.Y>     # floating minor
-ghcr.io/<repo-owner>/tableforge-<component>:latest     # always latest
+ghcr.io/<repo-owner>/recess-<component>:v<X.Y.Z>   # exact version
+ghcr.io/<repo-owner>/recess-<component>:v<X.Y>     # floating minor
+ghcr.io/<repo-owner>/recess-<component>:latest     # always latest
 ```
 
 ArgoCD values should pin to the exact `vX.Y.Z` tag (set by the bump step).

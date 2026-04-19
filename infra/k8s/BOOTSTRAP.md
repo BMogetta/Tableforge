@@ -4,8 +4,6 @@ Reproducible steps to bring up the k3s + ArgoCD + Helm cluster described in Phas
 
 **Target**: single-node k3s server on Raspberry Pi 5 (arm64), Debian 13 trixie.
 
-> Note: `CI_CD_IMPROVEMENT_PLAN.md` predates the TableForge → Recess rebrand and still uses `tableforge-*` identifiers (node name, image tags). This document uses `recess-*` as the canonical form.
-
 ---
 
 ## 5.1 k3s cluster bootstrap

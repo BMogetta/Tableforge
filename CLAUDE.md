@@ -389,5 +389,5 @@ semver purposes).
 
 Release-please creates tags like `<component>-v<version>` (e.g., `game-server-v1.2.3`).
 The release workflow parses this tag and builds/publishes
-`ghcr.io/<owner>/tableforge-<component>:v<version>` (+ `vX.Y` + `latest` tags),
+`ghcr.io/<owner>/recess-<component>:v<version>` (+ `vX.Y` + `latest` tags),
 then bumps `infra/k8s/apps/<component>/values.yaml` so ArgoCD syncs the new tag.

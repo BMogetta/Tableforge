@@ -43,7 +43,7 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [x] **1.2.c** ArgoCD siempre pulleará arm64 (el nodo es arm64) — no requiere cambios en el manifest
   - Nota: declarativo, sin cambios de código. Kubernetes selecciona automáticamente el manifest correcto por `nodeSelector` / arch del nodo. Re-validar en Fase 5.4 cuando exista el chart `go-service`.
 - [ ] **Validación 1.2**
-  - `docker manifest inspect ghcr.io/<owner>/tableforge-game-server:<sha>` lista ambos arches
+  - `docker manifest inspect ghcr.io/<owner>/recess-game-server:<sha>` lista ambos arches
   - `docker pull --platform linux/arm64 …` desde la Pi funciona
 
 ### 1.3 Pinear `golangci-lint`
@@ -88,7 +88,7 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 - [x] **1.5.a** Añadir job `ci-success` al final de `ci.yml` que `needs:` todos los jobs y usa `if: always()` + check de results
   - Lógica: `jq -e 'all(.value.result == "success" or "skipped")'` sobre `toJson(needs)`. Probado localmente con escenarios docs-only (skipped todo) y lint-fail.
 - [ ] **1.5.b** Configurar branch protection: required check = `CI Success`
-  - Pendiente humano: UI de GitHub → Settings → Branches → Add rule para `main` → Require status checks to pass → seleccionar `CI Success`. O vía API: `gh api repos/BMogetta/Tableforge/branches/main/protection -X PUT ...` (requiere JSON completo de config).
+  - Pendiente humano: UI de GitHub → Settings → Branches → Add rule para `main` → Require status checks to pass → seleccionar `CI Success`. O vía API: `gh api repos/BMogetta/recess/branches/main/protection -X PUT ...` (requiere JSON completo de config).
 - [ ] **Validación 1.5**
   - PR con sólo docs (ningún job corre) ⇒ `CI Success` verde
   - PR que rompe lint ⇒ `CI Success` falla
@@ -190,7 +190,7 @@ El target de prod es **arm64** (Raspberry Pi 5). Mantenemos amd64 en el registry
 
 Estrategia: **versión independiente por componente** con `release-please` multi-package.
 Formato de tag: `<component>-vX.Y.Z` (ej: `game-server-v1.2.3`).
-Imagen publicada: `ghcr.io/<owner>/tableforge-<component>:1.2.3` + `:1.2` + `:latest`.
+Imagen publicada: `ghcr.io/<owner>/recess-<component>:1.2.3` + `:1.2` + `:latest`.
 
 **Flujo de release → deploy (full auto):**
 ```
@@ -229,8 +229,8 @@ ArgoCD detecta el commit → sync → rolling update en el cluster
 - [ ] **5.1.b** Instalar k3s (single-node, server): `curl -sfL https://get.k3s.io | sh -` con flags:
   - `--disable=traefik` → **NO**, conservamos el Traefik built-in de k3s (cumple rol de ingress controller)
   - `--write-kubeconfig-mode=644` para poder usar `kubectl` sin sudo
-  - `--node-name=tableforge-pi`
-- [ ] **5.1.c** Copiar `/etc/rancher/k3s/k3s.yaml` a la workstation como `~/.kube/config-tableforge`, reemplazar `127.0.0.1` por la IP de la Pi
+  - `--node-name=recess-pi`
+- [ ] **5.1.c** Copiar `/etc/rancher/k3s/k3s.yaml` a la workstation como `~/.kube/config-recess`, reemplazar `127.0.0.1` por la IP de la Pi
 - [ ] **5.1.d** Instalar Helm en la workstation (no en la Pi)
 - [ ] **5.1.e** Decidir storage: `local-path-provisioner` (built-in de k3s) — basta para homelab single-node
 - [ ] **5.1.f** Configurar backups del nodo: `etcd`/`k3s` state → rsync nocturno del `/var/lib/rancher/k3s` a otro disco
@@ -241,7 +241,7 @@ ArgoCD detecta el commit → sync → rolling update en el cluster
 
 ### 5.2 Namespaces y convenciones
 
-- [ ] **5.2.a** Crear namespaces: `tableforge` (apps), `tableforge-data` (pg, redis), `observability`, `argocd`, `cloudflared`
+- [ ] **5.2.a** Crear namespaces: `recess` (apps), `recess-data` (pg, redis), `observability`, `argocd`, `cloudflared`
 - [ ] **5.2.b** Documentar convención en `infra/k8s/README.md`
 - [ ] **Validación 5.2** — `kubectl get ns` lista todos
 
@@ -307,7 +307,7 @@ Los 8 servicios son todos stateless, comparten el mismo patrón (HTTP + opcional
 - [ ] **5.6.e** PgBouncer: CNPG incluye soporte built-in (`Pooler` CR) — úsalo en vez del contenedor separado
 - [ ] **Validación 5.6**
   - `kubectl cnpg status <cluster>` verde
-  - Conexión desde game-server vía ClusterIP `<cluster>-rw.tableforge-data:5432`
+  - Conexión desde game-server vía ClusterIP `<cluster>-rw.recess-data:5432`
   - Migraciones aplicadas correctamente
   - Backup nocturno en el bucket / volumen configurado
 
@@ -319,7 +319,7 @@ Los 8 servicios son todos stateless, comparten el mismo patrón (HTTP + opcional
   - `master.persistence.size: 5Gi`
   - `master.configuration` replicando `maxmemory-policy allkeys-lru` actual
   - `auth.enabled: true` + SealedSecret
-- [ ] **Validación 5.7** — ping desde game-server vía `<release>-master.tableforge-data:6379` responde PONG
+- [ ] **Validación 5.7** — ping desde game-server vía `<release>-master.recess-data:6379` responde PONG
 
 ### 5.8 Ingress: Traefik built-in de k3s + cloudflared
 
@@ -434,7 +434,7 @@ Migrar Tempo, Loki, Prometheus, Grafana, OTel Collector y Alertmanager de docker
 
 ### 6.6 Dashboards de aplicación
 
-- [ ] **6.6.a** Dashboard "TableForge Overview" con golden signals por servicio
+- [ ] **6.6.a** Dashboard "Recess Overview" con golden signals por servicio
 - [ ] **6.6.b** Dashboard "Bot Analytics" migrado (ver memory reference)
 - [ ] **6.6.c** Dashboard "SLO burn rate" con alertas
 - [ ] **Validación 6.6** — dashboards render correcto en Grafana, drill-down funciona

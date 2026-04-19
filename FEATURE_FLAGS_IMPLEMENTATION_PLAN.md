@@ -1,6 +1,6 @@
 # Feature Flags Implementation Plan
 
-Plan de implementación de Unleash feature flags para Tableforge: seeder de flags, wiring backend + frontend, gating de devtools en prod para admins/owners, y tests.
+Plan de implementación de Unleash feature flags para Recess: seeder de flags, wiring backend + frontend, gating de devtools en prod para admins/owners, y tests.
 
 **Leyenda:** `[ ]` pendiente · `[~]` en progreso · `[x]` hecho y validado · `[!]` bloqueado
 
