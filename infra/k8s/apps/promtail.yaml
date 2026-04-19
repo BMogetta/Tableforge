@@ -1,0 +1,36 @@
+# Promtail (DaemonSet) — Phase 6.2. Ships every pod's stdout to Loki.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: promtail
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  annotations:
+    # After Loki (wave 11) so the endpoint is already accepting writes.
+    argocd.argoproj.io/sync-wave: "12"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: promtail
+      targetRevision: 6.17.1
+      helm:
+        releaseName: promtail
+        valueFiles:
+          - $values/infra/k8s/observability/promtail/values.yaml
+    - repoURL: https://github.com/BMogetta/recess.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

@@ -1,0 +1,38 @@
+# Loki (SingleBinary mode) — Phase 6.2.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  annotations:
+    # After kube-prometheus-stack (wave 10). Loki doesn't depend on it,
+    # but grouping the observability stack in predictable waves makes the
+    # UI easier to read.
+    argocd.argoproj.io/sync-wave: "11"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: loki
+      targetRevision: 6.55.0
+      helm:
+        releaseName: loki
+        valueFiles:
+          - $values/infra/k8s/observability/loki/values.yaml
+    - repoURL: https://github.com/BMogetta/recess.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

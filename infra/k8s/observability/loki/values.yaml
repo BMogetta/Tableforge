@@ -1,0 +1,118 @@
+# Loki — Phase 6.2. Single-binary mode: all components (distributor,
+# ingester, querier, query-frontend, ruler) run in one pod. Fits a Pi
+# homelab; switch to `simpleScalable` or `distributed` only if request
+# volume ever outgrows a single replica (which won't happen here).
+#
+# Storage: filesystem on a 10Gi local-path PVC. Object-storage modes (S3,
+# GCS) are overkill and require external credentials we don't have.
+#
+# auth_enabled: false — single-tenant setup, everything queries the
+# synthetic tenant "fake". Services inside the cluster reach Loki via
+# ClusterIP; no external exposure until Phase 5.8.
+
+loki:
+  # Schema configuration for logs stored locally.
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+  # Retention + compaction.
+  limits_config:
+    retention_period: 168h  # 7 days, matches the plan
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
+
+  # Single-tenant mode.
+  auth_enabled: false
+
+  # Disable the chart's ruler (we don't run recording/alerting rules in
+  # Loki; Prometheus does that). Avoids an extra PVC.
+  rulerConfig:
+    alertmanager_url: ""
+
+  storage:
+    type: filesystem
+    # When type=filesystem and deploymentMode=SingleBinary, paths are
+    # rooted under /var/loki (persistence volume below). No bucket keys
+    # needed.
+
+  commonConfig:
+    replication_factor: 1
+    path_prefix: /var/loki
+
+# ─── Deployment mode: single binary, single replica ───────────────────────────
+deploymentMode: SingleBinary
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+# Turn off all the distributed-mode components so the chart doesn't render
+# StatefulSets / Deployments for them (they'd sit Pending).
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+ingester:
+  replicas: 0
+distributor:
+  replicas: 0
+querier:
+  replicas: 0
+queryFrontend:
+  replicas: 0
+queryScheduler:
+  replicas: 0
+compactor:
+  replicas: 0
+ruler:
+  replicas: 0
+indexGateway:
+  replicas: 0
+resultsCache:
+  enabled: false
+chunksCache:
+  enabled: false
+
+# Minio is bundled but we use filesystem.
+minio:
+  enabled: false
+
+# Small gateway / test / monitoring components — all off.
+gateway:
+  enabled: false
+test:
+  enabled: false
+lokiCanary:
+  enabled: false
+monitoring:
+  # ServiceMonitor/Prometheus rules for Loki itself; off until we decide
+  # we want to self-monitor Loki.
+  selfMonitoring:
+    enabled: false
+  lokiCanary:
+    enabled: false
+  serviceMonitor:
+    enabled: false

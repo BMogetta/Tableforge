@@ -101,8 +101,21 @@ grafana:
       labelValue: "1"
       searchNamespace: ALL
 
-  # Disable the default Prometheus datasource auto-config — the chart
-  # still wires one in for the in-cluster Prometheus, so we don't lose it.
+  # Additional datasources — the chart auto-provisions Prometheus pointing
+  # at the in-cluster instance. Add Loki (Phase 6.2) and Tempo (Phase 6.3
+  # when landed) here so logs and traces are queryable in Explore out of
+  # the box.
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki.observability.svc.cluster.local:3100
+      isDefault: false
+      editable: false
+      jsonData:
+        # Single-tenant Loki; no org header needed.
+        timeout: 60
+        maxLines: 5000
 
 # ─── Prometheus operator + Prometheus ────────────────────────────────────────
 prometheusOperator:

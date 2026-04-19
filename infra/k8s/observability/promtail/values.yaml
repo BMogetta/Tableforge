@@ -1,0 +1,32 @@
+# Promtail — Phase 6.2. DaemonSet that reads every pod's stdout log file
+# under /var/log/pods and ships to Loki with Kubernetes labels (namespace,
+# pod, container, app labels).
+
+config:
+  clients:
+    - url: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
+
+  # Default Promtail scrape config — includes kubernetes_sd_configs that
+  # auto-discovers pods and parses /var/log/pods/<ns>_<pod>_<uid>/<container>/*.log.
+  # Keep the chart defaults; tune labels in Phase 6.6 once we have real
+  # dashboard queries.
+  snippets:
+    pipelineStages:
+      - cri: {}
+
+# DaemonSet — single Pi node now, but future-proof for multi-node.
+daemonset:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# No ServiceMonitor self-scrape until Phase 6.5 turns on ServiceMonitors
+# everywhere.
+serviceMonitor:
+  enabled: false
