@@ -28,12 +28,14 @@ import (
 //
 // Call the returned shutdown function in a deferred block in main().
 func Setup(ctx context.Context, serviceName, otlpEndpoint string) (func(context.Context) error, error) {
-	// Always set up a text handler to stdout as fallback.
-	// It will be replaced by the OTel handler if setup succeeds.
-	fallback := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// Text handler to stdout is always active. When the OTel pipeline comes
+	// up below we fan-out to both — the OTel handler alone would swallow
+	// logs whenever the collector is down, which masks real errors on the
+	// os.Exit paths (config.MustEnv, shared/redis.Connect).
+	textHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
-	}))
-	slog.SetDefault(fallback)
+	})
+	slog.SetDefault(slog.New(textHandler))
 
 	res, err := resource.New(ctx,
 		resource.WithAttributes(semconv.ServiceName(serviceName)),
@@ -90,8 +92,10 @@ func Setup(ctx context.Context, serviceName, otlpEndpoint string) (func(context.
 	)
 	global.SetLoggerProvider(loggerProvider)
 
-	// Replace slog default with OTel handler — levels now flow correctly to Loki.
-	slog.SetDefault(slog.New(NewOtelHandler(serviceName)))
+	// Fan-out to stdout AND the OTel pipeline. Levels flow correctly to Loki
+	// via OTel; stdout stays as the ground-truth source for kubectl logs and
+	// as a safety net when the collector is unreachable.
+	slog.SetDefault(slog.New(NewMultiHandler(textHandler, NewOtelHandler(serviceName))))
 
 	slog.Info("telemetry: connected", "endpoint", otlpEndpoint)
 

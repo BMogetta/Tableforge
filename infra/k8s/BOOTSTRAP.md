@@ -959,7 +959,7 @@ The Unleash error is expected and harmless in this phase — `featureflags.Init(
 - [x] `Application auth-service` is `Synced` + `Healthy` in ArgoCD
 - [x] Pod `auth-service-*` is `Running`, image pulled from GHCR (arm64-native binary, see 5.4.e)
 - [x] `wget -qO- http://auth-service:8081/healthz` returns `ok` from a pod in the same cluster
-- [ ] Service logs visible in `kubectl logs` — blocked on task #10, see 5.4.f (OtelHandler swallows everything when OTLP is unreachable)
+- [x] Service logs visible in `kubectl logs` — fixed by the multiHandler fan-out in `shared/telemetry`, see 5.4.f. Will materialise in auth-service once the rebuilt image rolls out (task: bump tag in values or evict cache + rollout restart).
 - [ ] GitHub OAuth end-to-end flow — deferred to Phase 5.8 when the service is reachable from the public internet via Cloudflare Tunnel; the full login flow needs the callback URL registered with GitHub.
 - [ ] ServiceAccount → IRSA / Workload Identity — N/A on a homelab cluster (no cloud IAM); revisit if we ever move to EKS/GKE.
 
@@ -997,7 +997,7 @@ Second rollout crashed silently — pod `Running → Error (exit 1) → CrashLoo
 
 **Bug 1 — `shared/telemetry` replaces `slog.Default()` with an OTLP-only handler.** After `telemetry.Setup` returns, every call to `slog.Info` / `slog.Error` / etc. goes through `NewOtelHandler(...)`, which emits to the OTLP log exporter and nothing else. The OTLP exporter connects asynchronously, so `Setup` returns nil even with a broken endpoint. On this cluster OTLP isn't deployed (Phase 6), so every log vanishes into the batch buffer — never written to stderr. Exit-via-`os.Exit(1)` (used by `config.MustEnv` and `shared/redis.Connect`) bypasses the batch flush, so we don't even get a partial log on shutdown. **Panic paths still work** because the Go runtime writes panic traces directly to `os.Stderr`; the `os.Exit` paths are the silent ones.
 
-Tracked as task #10 ("Fix OtelHandler to also write to stderr"). Workaround for diagnosis: patch the deployment to wrap the entrypoint in `sh -c '/bin/auth-service 2>&1; echo EXIT=$?; sleep 30'` so the container stays alive and its output lives in `kubectl logs`.
+**Fixed** — `shared/telemetry/logbridge.go` gained a `multiHandler` that fans every record out to the text handler (stdout) AND the OTel exporter; `Setup` now calls `slog.SetDefault(slog.New(NewMultiHandler(textHandler, NewOtelHandler(serviceName))))` instead of replacing the fallback. `kubectl logs` keeps working whether or not the collector is up. Workaround for diagnosis before the fix: patch the deployment to wrap the entrypoint in `sh -c '/bin/auth-service 2>&1; echo EXIT=$?; sleep 30'` so the container stays alive and its output lives in `kubectl logs`.
 
 **Bug 2 — DSN passwords were not URL-encoded.** `openssl rand -base64 32` output and CNPG-generated passwords can include `+`, `/`, `=`. Dropped raw into `redis://default:<pw>@host:6379/0` or `postgresql://recess:<pw>@host/db?sslmode=require`, those characters collide with URL reserved delimiters, `redis.ParseURL` / `pgxpool.New` reject the DSN, and `shared/redis.Connect` calls `os.Exit(1)` — which then goes silent because of Bug 1.
 
