@@ -1,0 +1,42 @@
+# frontend overrides for the go-service chart.
+# The chart is named `go-service` but the deployment template only assumes
+# "container with an HTTP port and optional gRPC port". Works fine for the
+# Nginx-served Vite bundle too. The only thing that felt off was the default
+# `/healthz` probe path — nginx.conf now exposes that endpoint explicitly so
+# we can keep the chart defaults.
+#
+# Runtime config for the React app is baked in at build time (VITE_* env
+# vars passed to `docker build`); at pod runtime there are no secrets or
+# env vars to bind, so `env` and `envFromSecret` stay empty.
+
+nameOverride: frontend
+fullnameOverride: frontend
+
+image:
+  repository: ghcr.io/bmogetta/recess-frontend
+  tag: latest
+
+service:
+  httpPort: 3000
+
+env: {}
+envFromSecret: {}
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 200m
+    memory: 96Mi
+
+probes:
+  # Nginx boots in under a second; both probes converge quickly.
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    path: /healthz
+    initialDelaySeconds: 2
+    periodSeconds: 5

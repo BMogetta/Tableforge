@@ -1019,3 +1019,120 @@ Second rollout crashed silently — pod `Running → Error (exit 1) → CrashLoo
 Fix: `/tmp/seal-dsn-fix.sh` re-seals `db-auth.yaml` and `redis-url.yaml` with passwords URL-encoded (Python `urllib.parse.quote`). The password stored inside Redis / Postgres is unchanged; only its representation inside the DSN URL is encoded. The canonical seal scripts in 5.4.a need the same `urlencode` wrapper when recreated from scratch on a fresh cluster — update `/tmp/seal-canary-secrets.sh` when it's next touched.
 
 **Follow-up — task #11**: the current "seal the whole DSN as a single blob" approach is brittle. Any rotation of the source password (CNPG rotates `pg-app`, we rotate `redis-auth`) leaves the sealed DSN stale without any alert. Better design: bind the password via `envFrom` from a replicated/reflected source Secret and assemble `DATABASE_URL` / `REDIS_URL` in the Deployment template (or via a small wrapper script in the entrypoint). Cross-namespace source Secrets need either ESO, Reflector, or a custom controller to make `pg-app` visible in `recess`.
+
+---
+
+## 5.5 Rollout: remaining 7 Go services
+
+With the canary (`auth-service`) stable, the other seven Go services consume the same `go-service` chart with per-service values. Each gets its own ArgoCD `Application` under `infra/k8s/apps/`. All share the same SealedSecrets sealed during 5.4.a (`jwt`, `db-auth`, `redis-url`, `github-oauth`) — services that don't need a particular key simply don't bind it.
+
+### 5.5.a — Per-service values files
+
+Each service has `infra/k8s/charts/go-service/values/<svc>.yaml` with its image ref, ports, env literals, and `envFromSecret` bindings:
+
+| Service | HTTP | gRPC | DB | Redis | Service-specific env |
+| --- | --- | --- | --- | --- | --- |
+| `user-service` | 8082 | 9082 | yes | yes | — |
+| `chat-service` | 8083 | — | yes | yes | — |
+| `ws-gateway` | 8084 | — | no | yes | `USER_SERVICE_ADDR`, `GAME_SERVER_ADDR` |
+| `rating-service` | 8085 | 9085 | yes | yes | — |
+| `notification-service` | 8086 | — | yes | yes | `USER_SERVICE_ADDR` |
+| `match-service` | 8087 | — | no | yes | `RATING_SERVICE_ADDR`, `GAME_SERVER_ADDR` |
+| `game-server` | 8080 | 9080 | yes | yes | `USER_SERVICE_ADDR` |
+
+DB-less services (`ws-gateway`, `match-service`) don't bind `DATABASE_URL` — they're stateless on Postgres, all state lives in Redis. Every service binds `JWT_SECRET` (for auth middleware) and `REDIS_URL`.
+
+Inter-service DNS within `recess`: each chart sets `fullnameOverride: <svc>` so the rendered `Service` name matches the default gRPC addresses the Go code expects (e.g. `user-service:9082`). No manual host overrides needed except for documentation.
+
+### 5.5.b — Application CRs + sync-wave
+
+Every `infra/k8s/apps/<svc>.yaml` is a single-source ArgoCD `Application` pointing at `infra/k8s/charts/go-service/` with `valueFiles: values/<svc>.yaml`. Same shape as `auth-service.yaml` from 5.4.c.
+
+Three services get explicit `argocd.argoproj.io/sync-wave` annotations so ArgoCD syncs them first:
+
+| Wave | Service | Reason |
+| --- | --- | --- |
+| `-5` | `user-service` | Exposes gRPC consumed by chat-service, ws-gateway, notification-service, game-server. |
+| `-4` | `rating-service` | Exposes gRPC consumed by match-service. |
+| `-3` | `game-server` | Exposes gRPC (lobby + game) consumed by match-service and ws-gateway. |
+
+The other four default to wave 0. Ordering isn't strictly required — the Go services use `grpc.NewClient` which is lazy (connections open on first RPC, not at pod start), so all services can boot in parallel. The waves just make the ArgoCD UI chronology easier to read and help when a dependency hard-fails: the later waves stay `OutOfSync` while you debug the earlier one.
+
+### 5.5.c — Chart template extension: `HTTP_ADDR` + `GRPC_ADDR`
+
+The chart auto-injects listen addresses so per-service values files don't have to:
+
+```yaml
+env:
+  - name: ADDR
+    value: ":{{ .Values.service.httpPort }}"
+  - name: HTTP_ADDR
+    value: ":{{ .Values.service.httpPort }}"
+  {{- if gt (int .Values.service.grpcPort) 0 }}
+  - name: GRPC_ADDR
+    value: ":{{ .Values.service.grpcPort }}"
+  {{- end }}
+```
+
+Both `ADDR` (used by `auth-service` and `game-server` `main.go`) and `HTTP_ADDR` (used by the other six) are set to the same value — either convention works. `GRPC_ADDR` is only injected when `service.grpcPort > 0`, which conditionally adds a `containerPort` and a matching `ports:` entry on the `Service` too.
+
+### 5.5.d — Gotcha: CVE-2023-47108 blocked chat-service and notification-service
+
+First rollout of 5.5 failed Trivy on two services with `exit code 1` and a SARIF upload to GitHub Code Scanning. Query:
+
+```bash
+gh api "repos/BMogetta/recess/code-scanning/alerts?tool_name=Trivy&state=open"
+```
+
+Both hits were `CVE-2023-47108` in `go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.45.0` — a DoS via unbounded metadata allocation in the gRPC instrumentation. The other five Go services that import otelgrpc were already on `v0.60.0`; these two had lagged behind. Fix:
+
+```bash
+cd services/chat-service
+go get go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc@v0.60.0
+go mod tidy
+# same in services/notification-service
+```
+
+Build + unit tests still pass, so nothing in the service imports a v0.45-specific API. Rebuild (`gh workflow run cd.yml -f target=all-services`), Trivy passes, images publish, ArgoCD picks them up on next poll.
+
+**General rule**: when a Trivy SARIF fires on one service but not another, check `go.sum` version drift across services for the offending module first — monorepo services frequently skew on supporting libraries because `go mod tidy` runs per-service.
+
+### 5.5 — Validation
+
+- [x] `infra/k8s/charts/go-service/values/<svc>.yaml` exists for each of the 8 Go services
+- [x] `infra/k8s/apps/<svc>.yaml` Application CR exists for each of the 8 Go services
+- [x] `recess-root` Application picks up all 8 children after a hard refresh
+- [x] Each Application reports `Synced` + `Healthy`
+- [x] Each service's Pod is `1/1 Running`; `kubectl logs` shows normal startup lines (telemetry connected, redis connected, \<svc\> listening) alongside the expected OTLP + Unleash unreachability warnings
+- [x] Trivy findings on chat-service + notification-service cleared by the otelgrpc bump to v0.60.0
+- [x] Frontend chart + Application — lands with the `go-service` chart, see 5.5.e
+- [ ] Proper image-tag pinning (task #12 follow-up): chart default remains `imagePullPolicy: Always` until CD commits the SHA back to `values/<svc>.yaml`
+- [ ] `kubectl get svc -n recess` cross-namespace DNS smoke test (inter-service gRPC calls) — practically exercised only when an end-to-end request flow runs; revisit in Phase 5.8 when the frontend reaches through Traefik
+
+### 5.5.e — Frontend on the same chart
+
+The frontend is an Nginx container serving the Vite-built React bundle. Despite the chart being called `go-service`, its deployment template only assumes "one container with an HTTP port and optional gRPC port" — a shape that fits the Nginx+static case too. Reusing the chart was cheaper than maintaining a second chart for a single static workload.
+
+**`frontend/nginx.conf` gained a `/healthz` endpoint** so we can use the chart's default probe path without overriding:
+
+```nginx
+location = /healthz {
+    access_log off;
+    add_header Content-Type text/plain;
+    return 200 'ok';
+}
+```
+
+The returned body (`ok`) matches the probe payload the go-services emit, which keeps scripts and dashboards uniform. `access_log off` keeps kubelet's probe chatter out of the request log.
+
+**`infra/k8s/charts/go-service/values/frontend.yaml`** — just image, port 3000, and empty `env`/`envFromSecret` (the React app's runtime config is baked at `npm run build` time via `VITE_*` env vars on the `docker build` context, so the running container needs no secrets).
+
+**Deploy order when bootstrapping from scratch**:
+
+1. Commit `frontend/nginx.conf` first (the one with `/healthz`), push, trigger a frontend rebuild (`gh workflow run cd.yml -f target=frontend`). Wait for the image to land in GHCR.
+2. Commit `infra/k8s/apps/frontend.yaml`, push, and the root App-of-Apps materialises the Application on its next poll.
+3. ArgoCD syncs, pod pulls the rebuilt image, probes hit `/healthz` and pass. No CrashLoopBackOff.
+
+If steps 1 and 2 are collapsed into a single commit (as we did after the initial 5.5 rollout), the pod's first boot can race the CD build — the `:latest` tag might still point at an image without `/healthz`, triggering a crash loop until CD finishes. `imagePullPolicy: Always` on the chart (5.4.e follow-up) means a simple `kubectl rollout restart deploy/frontend -n recess` after CD completes unblocks it.
+
+**Follow-up**: the frontend doesn't need `JWT_SECRET`, `DATABASE_URL`, `REDIS_URL`, or any of the other shared secrets — keep `envFromSecret: {}` so no surprise Secret bindings appear. Traefik routing (Phase 5.8) is where the frontend gets wired into `recess.io` alongside the Go API routes.
