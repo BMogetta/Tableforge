@@ -1,5 +1,7 @@
-# Build stage
-FROM golang:1.26-alpine@sha256:80fbb8f9b2fa541a7d34378f1ad10f4f1c433817c4ed39ddb3e2f3ec3e961271 AS builder
+# Build stage (pinned to the build host's native arch; cross-compile via GOARCH).
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine@sha256:80fbb8f9b2fa541a7d34378f1ad10f4f1c433817c4ed39ddb3e2f3ec3e961271 AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /app
 
 COPY shared/go.mod shared/go.sum ./shared/
@@ -13,7 +15,7 @@ COPY shared/ ./shared/
 COPY services/notification-service/ ./services/notification-service/
 
 WORKDIR /app/services/notification-service
-RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/notification-service ./cmd/server
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GOWORK=off go build -o /bin/notification-service ./cmd/server
 
 # Run stage
 FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11

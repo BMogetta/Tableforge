@@ -1,5 +1,7 @@
-# Build stage
-FROM golang:1.26-alpine@sha256:80fbb8f9b2fa541a7d34378f1ad10f4f1c433817c4ed39ddb3e2f3ec3e961271 AS builder
+# Build stage (pinned to the build host's native arch; cross-compile via GOARCH).
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine@sha256:80fbb8f9b2fa541a7d34378f1ad10f4f1c433817c4ed39ddb3e2f3ec3e961271 AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /app
 
 # 1. Copy module definitions first to leverage Docker cache
@@ -21,7 +23,7 @@ COPY services/user-service/ ./services/user-service/
 # 4. Build the binary
 # CGO_ENABLED=0 ensures a statically linked binary for the slim alpine image
 WORKDIR /app/services/user-service
-RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -o /bin/user-service ./cmd/server
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GOWORK=off go build -o /bin/user-service ./cmd/server
 
 # --- Run stage ---
 FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
