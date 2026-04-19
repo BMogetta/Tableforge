@@ -1,0 +1,47 @@
+# kube-prometheus-stack — Phase 6.1 (observability metrics stack).
+# Prometheus + Alertmanager + Grafana + node-exporter + kube-state-metrics
+# + prometheus-operator with its CRDs (ServiceMonitor, PodMonitor,
+# PrometheusRule, AlertmanagerConfig, etc.).
+#
+# Values inlined via valueFiles pointing at the repo path — one git source,
+# since the chart lives upstream and the values alongside this manifest.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  annotations:
+    # Sync after the `secrets` Application so Grafana's admin SealedSecret
+    # has already been materialised in `observability` when the Grafana
+    # Deployment first tries to mount it.
+    argocd.argoproj.io/sync-wave: "10"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 83.6.0
+      helm:
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          - $values/infra/k8s/observability/kube-prometheus-stack/values.yaml
+    - repoURL: https://github.com/BMogetta/recess.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+      # CRDs from the operator are large (~10MB each); ServerSideApply
+      # handles them, but bypass the client-side size limit just in case.
+      - ApplyOutOfSyncOnly=true

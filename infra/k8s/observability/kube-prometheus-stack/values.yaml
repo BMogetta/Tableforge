@@ -1,0 +1,178 @@
+# kube-prometheus-stack — Phase 6.1.
+#
+# Trimmed for a single-node Raspberry Pi 5 homelab. Full stack (Prometheus,
+# Alertmanager, Grafana, node-exporter, kube-state-metrics, prometheus-
+# operator) fits in ~1.2Gi RAM.
+#
+# Decisions made here (rationale in BOOTSTRAP 6.1 when that section lands):
+#   - kubeEtcd / kubeControllerManager / kubeScheduler / kubeProxy DISABLED:
+#     k3s runs these inside its monolithic binary on loopback-only ports,
+#     no ServiceMonitor target. Leaving them enabled produces `Down`
+#     alerts permanently.
+#   - ingress off by default (Phase 5.8 when cloudflared lands).
+#   - Grafana admin password sourced from a SealedSecret so the cluster is
+#     reproducible; disable the chart's random-password generator.
+#   - Retention + storage sized for the homelab: 15d / 20Gi Prometheus,
+#     5Gi Grafana, 1Gi Alertmanager — all on the default local-path class.
+
+crds:
+  enabled: true
+
+defaultRules:
+  create: true
+  rules:
+    # k3s-specific rule skips — these subsystems don't expose metrics here.
+    etcd: false
+    kubeControllerManager: false
+    kubeScheduler: false
+    kubeProxy: false
+
+# ─── Alertmanager ────────────────────────────────────────────────────────────
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    replicas: 1
+    retention: 120h
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  ingress:
+    enabled: false
+
+# ─── Grafana ──────────────────────────────────────────────────────────────────
+grafana:
+  enabled: true
+  replicas: 1
+
+  # Avoid chart-generated random credentials — we manage via SealedSecret.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 25m
+      memory: 96Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+
+  # Expose via Ingress later (Phase 5.8); port-forward for now.
+  ingress:
+    enabled: false
+
+  # Pick up dashboard ConfigMaps labelled `grafana_dashboard: "1"`.
+  # Phase 6.6 will drop our existing `infra/grafana/*.json` here.
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      searchNamespace: ALL
+
+  # Disable the default Prometheus datasource auto-config — the chart
+  # still wires one in for the in-cluster Prometheus, so we don't lose it.
+
+# ─── Prometheus operator + Prometheus ────────────────────────────────────────
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 96Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+prometheus:
+  enabled: true
+  ingress:
+    enabled: false
+  prometheusSpec:
+    replicas: 1
+    retention: 15d
+    retentionSize: "18GB"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 384Mi
+      limits:
+        cpu: 1500m
+        memory: 1Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+    # Pick up ServiceMonitors from every namespace (the go-service chart's
+    # templates/servicemonitor.yaml landing here once we flip
+    # `metrics.enabled` on each values/<svc>.yaml in Phase 6.5).
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+
+# ─── Cluster component scrapers ───────────────────────────────────────────────
+# k3s monolith runs these in-process without externally reachable scrape
+# endpoints. Turning them off removes permanent `Down` alerts.
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# Node-local exporters — these work fine on k3s.
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+# Bundled helm-chart prometheus-node-exporter: trim resources to the Pi.
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 24Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
