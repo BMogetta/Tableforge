@@ -1,0 +1,34 @@
+# chat-service overrides for the go-service chart.
+
+nameOverride: chat-service
+fullnameOverride: chat-service
+
+image:
+  repository: ghcr.io/bmogetta/recess-chat-service
+  tag: latest
+
+service:
+  httpPort: 8083
+
+env:
+  ENV: production
+  OTEL_SERVICE_NAME: chat-service
+
+envFromSecret:
+  JWT_SECRET:
+    secretName: jwt
+    key: JWT_SECRET
+  DATABASE_URL:
+    secretName: db-auth
+    key: DATABASE_URL
+  REDIS_URL:
+    secretName: redis-url
+    key: REDIS_URL
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 192Mi

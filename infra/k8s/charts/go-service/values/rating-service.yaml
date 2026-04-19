@@ -1,0 +1,36 @@
+# rating-service overrides for the go-service chart.
+# Exposes gRPC on :9085 (consumed by match-service).
+
+nameOverride: rating-service
+fullnameOverride: rating-service
+
+image:
+  repository: ghcr.io/bmogetta/recess-rating-service
+  tag: latest
+
+service:
+  httpPort: 8085
+  grpcPort: 9085
+
+env:
+  ENV: production
+  OTEL_SERVICE_NAME: rating-service
+
+envFromSecret:
+  JWT_SECRET:
+    secretName: jwt
+    key: JWT_SECRET
+  DATABASE_URL:
+    secretName: db-auth
+    key: DATABASE_URL
+  REDIS_URL:
+    secretName: redis-url
+    key: REDIS_URL
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 192Mi

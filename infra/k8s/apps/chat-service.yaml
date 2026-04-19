@@ -1,0 +1,30 @@
+# chat-service — Phase 5.5 rollout.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chat-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/charts/go-service
+    helm:
+      releaseName: chat-service
+      valueFiles:
+        - values/chat-service.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recess
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

@@ -1,0 +1,36 @@
+# match-service overrides for the go-service chart.
+# Matchmaking: reads REDIS_URL (state + Asynq), calls rating-service and
+# game-server via gRPC. No DATABASE_URL — stateless with respect to
+# Postgres; all queue state lives in Redis.
+
+nameOverride: match-service
+fullnameOverride: match-service
+
+image:
+  repository: ghcr.io/bmogetta/recess-match-service
+  tag: latest
+
+service:
+  httpPort: 8087
+
+env:
+  ENV: production
+  OTEL_SERVICE_NAME: match-service
+  RATING_SERVICE_ADDR: rating-service:9085
+  GAME_SERVER_ADDR: game-server:9080
+
+envFromSecret:
+  JWT_SECRET:
+    secretName: jwt
+    key: JWT_SECRET
+  REDIS_URL:
+    secretName: redis-url
+    key: REDIS_URL
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 192Mi

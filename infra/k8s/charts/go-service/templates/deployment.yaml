@@ -29,8 +29,16 @@ spec:
               protocol: TCP
             {{- end }}
           env:
+            # Most services read HTTP_ADDR; game-server + auth-service read
+            # ADDR. Inject both so either convention works out of the box.
             - name: ADDR
               value: ":{{ .Values.service.httpPort }}"
+            - name: HTTP_ADDR
+              value: ":{{ .Values.service.httpPort }}"
+            {{- if gt (int .Values.service.grpcPort) 0 }}
+            - name: GRPC_ADDR
+              value: ":{{ .Values.service.grpcPort }}"
+            {{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}

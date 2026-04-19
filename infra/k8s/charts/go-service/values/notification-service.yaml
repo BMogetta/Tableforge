@@ -1,0 +1,36 @@
+# notification-service overrides for the go-service chart.
+# Reads user-service via gRPC; consumes Redis pub/sub.
+
+nameOverride: notification-service
+fullnameOverride: notification-service
+
+image:
+  repository: ghcr.io/bmogetta/recess-notification-service
+  tag: latest
+
+service:
+  httpPort: 8086
+
+env:
+  ENV: production
+  OTEL_SERVICE_NAME: notification-service
+  USER_SERVICE_ADDR: user-service:9082
+
+envFromSecret:
+  JWT_SECRET:
+    secretName: jwt
+    key: JWT_SECRET
+  DATABASE_URL:
+    secretName: db-auth
+    key: DATABASE_URL
+  REDIS_URL:
+    secretName: redis-url
+    key: REDIS_URL
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 192Mi

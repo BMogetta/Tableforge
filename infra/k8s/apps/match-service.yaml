@@ -1,0 +1,33 @@
+# match-service — Phase 5.5 rollout.
+# Calls rating-service:9085 (MMR) and game-server:9080 (lobby + game) over
+# gRPC. Those clients use grpc.NewClient (lazy), so it's OK if the peers
+# aren't up yet at boot — connections establish on first RPC.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: match-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/charts/go-service
+    helm:
+      releaseName: match-service
+      valueFiles:
+        - values/match-service.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recess
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

@@ -1,0 +1,37 @@
+# user-service — Phase 5.5 rollout.
+# Exposes gRPC on :9082; chat-service, ws-gateway, and notification-service
+# resolve it via the Service name within the `recess` namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: user-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  annotations:
+    # Deploy first — HTTP clients in other services use grpc.NewClient which
+    # is lazy, so ordering isn't strictly required, but sync-wave keeps
+    # ArgoCD UI tidy and helps when one service hard-fails.
+    argocd.argoproj.io/sync-wave: "-5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/charts/go-service
+    helm:
+      releaseName: user-service
+      valueFiles:
+        - values/user-service.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recess
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

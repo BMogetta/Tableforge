@@ -1,0 +1,30 @@
+# ws-gateway — Phase 5.5 rollout.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ws-gateway
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/charts/go-service
+    helm:
+      releaseName: ws-gateway
+      valueFiles:
+        - values/ws-gateway.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recess
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
