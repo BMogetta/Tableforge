@@ -11,7 +11,7 @@ ARG APP_VERSION=unknown
 ENV APP_VERSION=$APP_VERSION
 RUN npm run build
 
-FROM nginx:alpine@sha256:3bcf852aed06467cf075c6105892e4d5a6ebbbafa0ce22d35062db9e90ddef4c
+FROM nginx:alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
 RUN mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp \
              /var/cache/nginx/fastcgi_temp /var/cache/nginx/uwsgi_temp \
              /var/cache/nginx/scgi_temp && \
