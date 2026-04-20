@@ -1,0 +1,21 @@
+# unleash.bmogetta.com. Feature-flag admin UI. The chart exposes the UI
+# and the /api used by in-cluster clients on the same port (4242). The
+# admin UI should be gated with Cloudflare Access — the bootstrap token
+# is `*:*.unleash-insecure-api-token` which is fine for pod-to-pod calls
+# inside the cluster but worthless as external auth.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: unleash
+  namespace: recess
+  labels:
+    app.kubernetes.io/part-of: recess
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`unleash.bmogetta.com`)
+      services:
+        - name: unleash
+          port: 4242

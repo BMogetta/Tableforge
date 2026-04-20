@@ -26,6 +26,26 @@ envFromSecret: {}
 observability:
   otlpEndpoint: ""
 
+# nginx:alpine runs as uid 101, not 1001 like the Go services. Override
+# the chart defaults so kubelet's runAsNonRoot check passes.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+  capabilities:
+    drop:
+      - ALL
+
 resources:
   requests:
     cpu: 25m

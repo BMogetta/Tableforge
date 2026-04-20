@@ -80,6 +80,14 @@ serviceAccount:
 # service in values/<svc>.yaml when ready.
 podSecurityContext:
   runAsNonRoot: true
+  # UID matches `adduser -D -u 1001 appuser` in every services/*/Dockerfile.
+  # Kubelet's runAsNonRoot check requires a numeric UID at admission time —
+  # a USER-by-name directive produces "image has non-numeric user, cannot
+  # verify user is non-root" and CreateContainerConfigError. Frontend
+  # overrides to 101 (nginx).
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
   seccompProfile:
     type: RuntimeDefault
 
@@ -87,6 +95,8 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
   capabilities:
     drop:
       - ALL
