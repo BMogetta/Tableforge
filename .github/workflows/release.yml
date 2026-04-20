@@ -135,7 +135,7 @@ jobs:
         working-directory: main-wt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE_TAG: ${{ steps.tag.outputs.version }}
+          IMAGE_TAG: v${{ steps.tag.outputs.version }}
           COMPONENT: ${{ steps.tag.outputs.component }}
         run: |
           set -euo pipefail
@@ -157,15 +157,15 @@ jobs:
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          branch="chore/bump-${COMPONENT}-v${IMAGE_TAG}"
+          branch="chore/bump-${COMPONENT}-${IMAGE_TAG}"
           git checkout -b "$branch"
           git add "$values_file"
-          git commit -m "chore(${COMPONENT}): bump image.tag to v${IMAGE_TAG} [skip ci]"
+          git commit -m "chore(${COMPONENT}): bump image.tag to ${IMAGE_TAG} [skip ci]"
           git push -u origin "$branch"
 
           gh pr create \
-            --title "chore(${COMPONENT}): bump image.tag to v${IMAGE_TAG}" \
-            --body "Automated image.tag bump after successful release build of \`${COMPONENT}\` v${IMAGE_TAG}. Triggers ArgoCD sync." \
+            --title "chore(${COMPONENT}): bump image.tag to ${IMAGE_TAG}" \
+            --body "Automated image.tag bump after successful release build of \`${COMPONENT}\` ${IMAGE_TAG}. Triggers ArgoCD sync." \
             --base main \
             --head "$branch"
           gh pr merge --auto --squash --delete-branch "$branch"

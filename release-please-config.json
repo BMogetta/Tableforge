@@ -3,7 +3,6 @@
   "bootstrap-sha": "0cb4a83",
   "separate-pull-requests": true,
   "include-component-in-tag": true,
-  "tag-separator": "-v",
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Bug Fixes" },
