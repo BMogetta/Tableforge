@@ -1,0 +1,110 @@
+# Traefik IngressRoute — recess.bmogetta.com (frontend + API dispatch).
+# Priority numbers mirror the docker-compose labels; higher wins.
+# Frontend is the catch-all (priority 1).
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: recess
+  namespace: recess
+  labels:
+    app.kubernetes.io/part-of: recess
+spec:
+  entryPoints:
+    - web
+  routes:
+    # --- auth-service ---------------------------------------------------
+    - kind: Rule
+      priority: 30
+      match: Host(`recess.bmogetta.com`) && PathPrefix(`/auth`)
+      services:
+        - name: auth-service
+          port: 8081
+
+    # --- ws-gateway -----------------------------------------------------
+    - kind: Rule
+      priority: 30
+      match: Host(`recess.bmogetta.com`) && PathPrefix(`/ws`)
+      services:
+        - name: ws-gateway
+          port: 8084
+    - kind: Rule
+      priority: 30
+      match: Host(`recess.bmogetta.com`) && PathPrefix(`/api/v1/presence`)
+      services:
+        - name: ws-gateway
+          port: 8084
+
+    # --- match-service --------------------------------------------------
+    - kind: Rule
+      priority: 30
+      match: Host(`recess.bmogetta.com`) && PathPrefix(`/api/v1/queue`)
+      services:
+        - name: match-service
+          port: 8087
+
+    # --- user-service ---------------------------------------------------
+    - kind: Rule
+      priority: 30
+      match: >-
+        Host(`recess.bmogetta.com`) && (
+          PathRegexp(`^/api/v1/players/search`) ||
+          PathRegexp(`^/api/v1/players/[^/]+/(profile|friends|block|mute|mutes|achievements|report|settings)`) ||
+          Path(`/api/v1/achievements/definitions`) ||
+          PathRegexp(`^/api/v1/admin/(players|allowed-emails|bans|reports|broadcast|audit-logs)`)
+        )
+      services:
+        - name: user-service
+          port: 8082
+
+    # --- chat-service ---------------------------------------------------
+    - kind: Rule
+      priority: 30
+      match: >-
+        Host(`recess.bmogetta.com`) && (
+          (PathPrefix(`/api/v1/rooms`) && PathRegexp(`messages`)) ||
+          PathRegexp(`^/api/v1/players/[^/]+/dm`) ||
+          PathPrefix(`/api/v1/dm`)
+        )
+      services:
+        - name: chat-service
+          port: 8083
+
+    # --- rating-service -------------------------------------------------
+    - kind: Rule
+      priority: 30
+      match: >-
+        Host(`recess.bmogetta.com`) && (
+          PathRegexp(`^/api/v1/ratings/`) ||
+          PathRegexp(`^/api/v1/players/[^/]+/ratings/`)
+        )
+      services:
+        - name: rating-service
+          port: 8085
+
+    # --- notification-service -------------------------------------------
+    - kind: Rule
+      priority: 30
+      match: >-
+        Host(`recess.bmogetta.com`) && (
+          PathRegexp(`^/api/v1/players/[^/]+/notifications`) ||
+          PathRegexp(`^/api/v1/notifications/`)
+        )
+      services:
+        - name: notification-service
+          port: 8086
+
+    # --- game-server (catch-all for /api) -------------------------------
+    - kind: Rule
+      priority: 10
+      match: Host(`recess.bmogetta.com`) && PathPrefix(`/api`)
+      services:
+        - name: game-server
+          port: 8080
+
+    # --- frontend (catch-all, lowest priority) --------------------------
+    - kind: Rule
+      priority: 1
+      match: Host(`recess.bmogetta.com`)
+      services:
+        - name: frontend
+          port: 3000

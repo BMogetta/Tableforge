@@ -1,0 +1,19 @@
+# argocd.bmogetta.com. ArgoCD server runs with configs.params.server.insecure=true
+# (set in Phase 5.3 values), so HTTP from Traefik is expected. TLS termination
+# at the Cloudflare edge. Gate with Cloudflare Access.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`argocd.bmogetta.com`)
+      services:
+        - name: argocd-server
+          port: 80

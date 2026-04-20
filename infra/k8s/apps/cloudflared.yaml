@@ -1,0 +1,28 @@
+# cloudflared — Phase 5.8 tunnel controller.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudflared
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/cloudflared
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cloudflared
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

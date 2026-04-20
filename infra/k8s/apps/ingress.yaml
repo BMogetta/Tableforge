@@ -1,0 +1,36 @@
+# Traefik IngressRoutes — Phase 5.8. One file per hostname under
+# infra/k8s/ingress/; each manifest declares its own target namespace
+# (recess / observability / argocd), so this Application tolerates a
+# cross-ns manifest set like the `secrets` Application does.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  annotations:
+    # After everything is up (observability wave 10-15, cloudflared default).
+    argocd.argoproj.io/sync-wave: "25"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/ingress
+    directory:
+      recurse: false
+  destination:
+    # The manifests each declare their own namespace; this is the default
+    # for any that don't.
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
