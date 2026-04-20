@@ -31,10 +31,13 @@ tempo:
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
       cpu: 1000m
-      memory: 384Mi
+      # 384Mi OOMKilled reliably within ~6s of startup after WAL replay
+      # accumulated tenant blocks. 768Mi headroom covers replay + the
+      # per-ingester memory floor (~450Mi observed).
+      memory: 768Mi
 
 persistence:
   enabled: true
