@@ -163,8 +163,11 @@ jobs:
           sudo apt-get install -y protobuf-compiler
       - name: Install protoc-gen-go + protoc-gen-go-grpc
         run: |
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.35.2
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+          # Keep these in sync with the versions developers install locally
+          # (see make setup). Mismatches here produce Schema Drift CI fails
+          # that look like phantom changes but are just different codegen.
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.1
       - name: Install frontend deps (for gen-types)
         working-directory: frontend
         run: npm ci

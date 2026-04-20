@@ -167,7 +167,12 @@ gen-types:
 	@node scripts/gen-schema-zod.mjs
 
 # Regenerate all protobuf Go stubs from .proto definitions.
-# Requires: protoc, protoc-gen-go, protoc-gen-go-grpc
+# Requires: protoc, protoc-gen-go (v1.36.x), protoc-gen-go-grpc (v1.6.x).
+# CI pins protoc-gen-go@v1.36.11 and protoc-gen-go-grpc@v1.6.1 in
+# .github/workflows/ci.yml; mismatches cause Schema Drift failures with
+# phantom diffs in shared/proto/**/*.pb.go. Install locally with:
+#   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+#   go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.1
 gen-proto:
 	@for proto in shared/proto/*/v1/*.proto; do \
 		echo "  $$proto"; \
