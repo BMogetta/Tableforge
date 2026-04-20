@@ -10,6 +10,7 @@ permissions:
   packages: write
   id-token: write
   security-events: write
+  pull-requests: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -130,11 +131,15 @@ jobs:
           path: main-wt
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Bump image.tag in infra/k8s and push
+      - name: Bump image.tag in infra/k8s via PR
         working-directory: main-wt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ steps.tag.outputs.version }}
+          COMPONENT: ${{ steps.tag.outputs.component }}
         run: |
           set -euo pipefail
-          values_file="infra/k8s/charts/go-service/values/${{ steps.tag.outputs.component }}.yaml"
+          values_file="infra/k8s/charts/go-service/values/${COMPONENT}.yaml"
 
           if [ ! -f "$values_file" ]; then
             echo "::warning title=Values bump skipped::${values_file} does not exist yet (Fase 5 not complete). No cluster sync to trigger."
@@ -144,16 +149,23 @@ jobs:
           # yq is preinstalled on ubuntu-latest runners.
           yq -i '.image.tag = strenv(IMAGE_TAG)' "$values_file"
 
-          git config user.name  'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-
           if git diff --quiet -- "$values_file"; then
             echo "values.yaml already at ${IMAGE_TAG} — nothing to commit"
             exit 0
           fi
 
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          branch="chore/bump-${COMPONENT}-v${IMAGE_TAG}"
+          git checkout -b "$branch"
           git add "$values_file"
-          git commit -m "chore(${{ steps.tag.outputs.component }}): bump image.tag to ${IMAGE_TAG} [skip ci]"
-          git push origin main
-        env:
-          IMAGE_TAG: ${{ steps.tag.outputs.version }}
+          git commit -m "chore(${COMPONENT}): bump image.tag to v${IMAGE_TAG} [skip ci]"
+          git push -u origin "$branch"
+
+          gh pr create \
+            --title "chore(${COMPONENT}): bump image.tag to v${IMAGE_TAG}" \
+            --body "Automated image.tag bump after successful release build of \`${COMPONENT}\` v${IMAGE_TAG}. Triggers ArgoCD sync." \
+            --base main \
+            --head "$branch"
+          gh pr merge --auto --squash --delete-branch "$branch"
