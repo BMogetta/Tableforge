@@ -28,6 +28,7 @@ spec:
     - https://grafana.github.io/helm-charts
     - https://open-telemetry.github.io/opentelemetry-helm-charts
     - https://docs.getunleash.io/helm-charts
+    - https://charts.fairwinds.com/stable
 
   destinations:
     # Five namespaces from infra/k8s/namespaces.yaml.

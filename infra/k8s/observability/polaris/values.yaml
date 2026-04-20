@@ -1,0 +1,38 @@
+# Polaris — GOVERNANCE_PLAN Phase A.1. Manifest best-practice auditing.
+#
+# Dashboard-only mode (audit, no admission webhook). Reports run on a
+# timer against every namespace and surface in the dashboard UI. Switch
+# to `webhook` mode later once the cluster score is stable at 100% for a
+# couple of weeks (Phase A.3).
+
+dashboard:
+  enable: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  # Ingress off; port-forward `kubectl -n observability port-forward
+  # svc/polaris-dashboard 8080:80` for now. Flip on in Phase 5.8 with
+  # cloudflared and a SealedSecret-managed basic auth.
+  ingress:
+    enabled: false
+
+# Skip the admission webhook — it's a harder mode that requires every
+# workload to pass before it's admitted. Not worth the foot-gun until
+# we've cleaned up the baseline (tracked as A.3 in GOVERNANCE_PLAN).
+webhook:
+  enable: false
+
+# One-shot audits via a cron job that writes scores to the dashboard
+# backend. Keep the default interval (every 5 min).
+audit:
+  enable: false
+
+# ServiceMonitor disabled until we decide to alert on the Polaris score
+# itself. Dashboard polls audit data directly.
+serviceMonitor:
+  enabled: false
