@@ -7,5 +7,5 @@
   "services/match-service": "0.1.0-alpha.1",
   "services/notification-service": "0.1.0-alpha.1",
   "services/ws-gateway": "0.1.0-alpha.1",
-  "frontend": "0.1.0-alpha.1"
+  "frontend": "0.2.0-alpha.1"
 }
