@@ -4,19 +4,15 @@
 
 nameOverride: user-service
 fullnameOverride: user-service
-
 image:
   repository: ghcr.io/bmogetta/recess-user-service
-  tag: latest
-
+  tag: 0.2.0-alpha.1
 service:
   httpPort: 8082
   grpcPort: 9082
-
 env:
   ENV: production
   OTEL_SERVICE_NAME: user-service
-
 envFromSecret:
   JWT_SECRET:
     secretName: jwt
@@ -27,7 +23,6 @@ envFromSecret:
   REDIS_URL:
     secretName: redis-url
     key: REDIS_URL
-
 resources:
   requests:
     cpu: 25m
