@@ -5,6 +5,16 @@ on:
     branches: [main]
   push:
     branches: [main]
+    # Skip CI on release-please merges and the auto image.tag bumps that
+    # release.yml pushes back — the only files that change are
+    # CHANGELOGs, version manifests, and per-service values.yaml, none
+    # of which any unit test or lint exercises. Saves ~3-5 min of GHA
+    # minutes per cut (× 9 components per release wave).
+    paths-ignore:
+      - '**/CHANGELOG.md'
+      - '.release-please-manifest.json'
+      - 'release-please-config.json'
+      - 'infra/k8s/charts/go-service/values/*.yaml'
 
 concurrency:
   group: ci-${{ github.ref }}
