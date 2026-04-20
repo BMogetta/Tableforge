@@ -1,0 +1,28 @@
+# Recess workload priority classes. Workloads reference these via
+# `priorityClassName` in the pod spec; Polaris flags pods without one
+# (A.2 governance).
+#
+# Built-in `system-cluster-critical` (2000000000) and `system-node-critical`
+# (2000001000) remain reserved for k8s control-plane / node-critical
+# workloads. Our app priorities sit well below that to prevent eviction
+# priority inversion.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: recess-default
+  labels:
+    app.kubernetes.io/part-of: recess
+value: 1000
+globalDefault: false
+description: "Default priority for Recess workloads (all Go services + frontend)."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: recess-data
+  labels:
+    app.kubernetes.io/part-of: recess
+value: 10000
+globalDefault: false
+description: "Higher priority for data-tier workloads (Postgres, Redis). Evict these last."

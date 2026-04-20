@@ -38,6 +38,10 @@ podSecurityContext:
 
 containerSecurityContext:
   allowPrivilegeEscalation: false
+  # Nginx needs writable /var/cache/nginx, /var/run, /run (it writes a PID
+  # file and cache content). Moving those to emptyDir volumes is possible
+  # but invasive; leave rootfs writable until the homelab enforces strict
+  # PSS. Tracked as a follow-up to task #21.
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 101
@@ -45,6 +49,10 @@ containerSecurityContext:
   capabilities:
     drop:
       - ALL
+
+# Nginx serves from its own writable rootfs; no /tmp emptyDir needed.
+tmpEmptyDir:
+  enabled: false
 
 resources:
   requests:

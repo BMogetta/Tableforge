@@ -93,7 +93,11 @@ podSecurityContext:
 
 containerSecurityContext:
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false
+  # Root filesystem is read-only by default. Writable /tmp is provided
+  # via the `tmpEmptyDir` volume below so Go stdlib temp files still work.
+  # Frontend (nginx) must override this to false in its values file because
+  # nginx needs writable /var/cache/nginx, /var/run, and /tmp.
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1001
   runAsGroup: 1001
@@ -101,12 +105,33 @@ containerSecurityContext:
     drop:
       - ALL
 
+# Volume mounts that the template always emits when the rootfs is
+# read-only. Keeps /tmp writable for Go stdlib ioutil.TempFile and
+# similar — our services don't use it much but any dependency might.
+tmpEmptyDir:
+  enabled: true
+  sizeLimit: 128Mi
+
 # PodDisruptionBudget rendered only when replicaCount >= 2 (single-replica
 # Deployments can't have a PDB with minAvailable: 1 — it would prevent any
 # voluntary eviction and break node drains).
 podDisruptionBudget:
   enabled: true
   minAvailable: 1
+
+# Priority class — defined in infra/k8s/priorityclasses.yaml. Fixes
+# Polaris' `priorityClassNotSet` check (A.2 follow-up).
+priorityClassName: recess-default
+
+# Topology spread — meaningless on a single-node k3s cluster (all pods
+# land on the same node regardless), but makes Polaris' check pass and
+# future-proofs for multi-node. `ScheduleAnyway` so single-node doesn't
+# end up with Pending pods.
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
 
 # --- Feature gates (off by default) ------------------------------------------
 

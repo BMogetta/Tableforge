@@ -54,12 +54,12 @@ server:
 # burning 2Gi on the repo-server is cheap.
 repoServer:
   replicas: 1
-  # Parallelism-limit default is 0 (unbounded). Set explicit to cap the
-  # number of concurrent helm templates — kube-prometheus-stack takes
-  # ~10s per render, so 4 in parallel fits the 500m CPU limit without
-  # starving the controller.
-  extraArgs:
-    - --parallelism-limit=4
+  # --parallelism-limit was removed from argocd-repo-server in v3.x (the
+  # daemon accepts it but the flag prints help and exits — CrashLoopBackOff
+  # until the extraArgs line is removed). Concurrent-render throughput is
+  # controlled via ARGOCD_REPO_SERVER_PARALLELISM_LIMIT env var in newer
+  # versions, but leave defaults for now; the main win comes from bumped
+  # resources + controller workers, not render parallelism.
   resources:
     requests:
       cpu: 100m
