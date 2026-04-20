@@ -48,3 +48,7 @@ probes:
     path: /healthz
     initialDelaySeconds: 5
     periodSeconds: 10
+
+metrics:
+  enabled: true
+  path: /metrics

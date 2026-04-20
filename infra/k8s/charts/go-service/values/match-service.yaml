@@ -34,3 +34,7 @@ resources:
   limits:
     cpu: 500m
     memory: 192Mi
+
+metrics:
+  enabled: true
+  path: /metrics
