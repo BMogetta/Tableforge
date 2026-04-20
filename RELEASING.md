@@ -79,6 +79,34 @@ bump minor (release-please convention for 0.x).
 5. If ArgoCD is configured (Fase 5), it syncs automatically. Otherwise the
    image is published and ready to pull.
 
+## Mass-merging release PRs
+
+When many components accumulate changes at once (rebrand, shared refactor,
+cross-cutting dep bump), release-please opens a release PR per affected
+component — potentially all 9. Merge them in one shot with the label it
+attaches to every PR:
+
+```bash
+gh pr list --label 'autorelease: pending' --json number --jq '.[].number' \
+  | xargs -n1 -I{} gh pr merge {} --squash --delete-branch
+```
+
+That merges every currently-pending release PR. Each merge fires its own
+`release.yml` run in parallel, so GHCR sees 9 simultaneous image pushes
+and 9 values.yaml bumps land on main (all with `[skip ci]` so they don't
+retrigger CI).
+
+For selective merges, list first and pass explicit numbers:
+
+```bash
+gh pr list --label 'autorelease: pending'
+for pr in 39 40 41; do gh pr merge "$pr" --squash --delete-branch; done
+```
+
+Use the selective form when you want to cut a version for just some
+components (e.g. only the services that had real code changes, skipping
+ones whose only change was a bumped shared dep).
+
 ## Rolling back
 
 Manifest-mode release-please does **not** rewrite tags. To roll back:

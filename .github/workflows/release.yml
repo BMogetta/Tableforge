@@ -134,7 +134,7 @@ jobs:
         working-directory: main-wt
         run: |
           set -euo pipefail
-          values_file="infra/k8s/apps/${{ steps.tag.outputs.component }}/values.yaml"
+          values_file="infra/k8s/charts/go-service/values/${{ steps.tag.outputs.component }}.yaml"
 
           if [ ! -f "$values_file" ]; then
             echo "::warning title=Values bump skipped::${values_file} does not exist yet (Fase 5 not complete). No cluster sync to trigger."
