@@ -6,11 +6,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: recess
-  annotations:
-    # After kube-prometheus-stack (wave 10). Loki doesn't depend on it,
-    # but grouping the observability stack in predictable waves makes the
-    # UI easier to read.
-    argocd.argoproj.io/sync-wave: "11"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

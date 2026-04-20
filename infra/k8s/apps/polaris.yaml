@@ -9,11 +9,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: recess
-  annotations:
-    # After the observability core (kube-prometheus-stack wave 10, Loki
-    # 11, etc.) so the dashboard can link out to Grafana if we wire that
-    # up later.
-    argocd.argoproj.io/sync-wave: "20"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

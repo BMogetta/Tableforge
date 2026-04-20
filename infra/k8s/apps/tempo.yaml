@@ -6,9 +6,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: recess
-  annotations:
-    # Before the OTel Collector (wave 14) — collector exports traces here.
-    argocd.argoproj.io/sync-wave: "13"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

@@ -8,11 +8,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: recess
-  annotations:
-    # Deploy first — HTTP clients in other services use grpc.NewClient which
-    # is lazy, so ordering isn't strictly required, but sync-wave keeps
-    # ArgoCD UI tidy and helps when one service hard-fails.
-    argocd.argoproj.io/sync-wave: "-5"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

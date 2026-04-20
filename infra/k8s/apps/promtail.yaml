@@ -6,9 +6,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: recess
-  annotations:
-    # After Loki (wave 11) so the endpoint is already accepting writes.
-    argocd.argoproj.io/sync-wave: "12"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

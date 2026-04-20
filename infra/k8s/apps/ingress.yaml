@@ -9,9 +9,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: recess
-  annotations:
-    # After everything is up (observability wave 10-15, cloudflared default).
-    argocd.argoproj.io/sync-wave: "25"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

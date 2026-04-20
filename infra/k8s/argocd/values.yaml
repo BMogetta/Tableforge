@@ -19,13 +19,19 @@ redis-ha:
 # Application reconciliation controller — heaviest component.
 controller:
   replicas: 1
+  # Bumped defaults (op=10, status=20) to reduce serial-queue tail on
+  # ~22 Applications. Reconciles faster when multiple apps queue at once.
+  extraArgs:
+    - --operation-processors=30
+    - --status-processors=50
+    - --self-heal-timeout-seconds=2
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 150m
+      memory: 384Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 1000m
+      memory: 768Mi
 
 # API + web UI.
 server:
@@ -48,12 +54,18 @@ server:
 # burning 2Gi on the repo-server is cheap.
 repoServer:
   replicas: 1
+  # Parallelism-limit default is 0 (unbounded). Set explicit to cap the
+  # number of concurrent helm templates — kube-prometheus-stack takes
+  # ~10s per render, so 4 in parallel fits the 500m CPU limit without
+  # starving the controller.
+  extraArgs:
+    - --parallelism-limit=4
   resources:
     requests:
-      cpu: 50m
+      cpu: 100m
       memory: 256Mi
     limits:
-      cpu: 500m
+      cpu: 1000m
       memory: 2Gi
 
 # ApplicationSet controller (needed for the App-of-Apps root in 5.3.d).

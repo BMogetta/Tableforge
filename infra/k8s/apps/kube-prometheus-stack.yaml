@@ -12,11 +12,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: recess
-  annotations:
-    # Sync after the `secrets` Application so Grafana's admin SealedSecret
-    # has already been materialised in `observability` when the Grafana
-    # Deployment first tries to mount it.
-    argocd.argoproj.io/sync-wave: "10"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
