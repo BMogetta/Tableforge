@@ -68,6 +68,36 @@ serviceAccount:
   create: true
   name: ""
 
+# Security context — hardens every service by default so Polaris passes the
+# "dangerous capabilities" / "privilege escalation" / "runAsNonRoot" checks
+# without per-service boilerplate. Each service's Dockerfile already sets
+# `USER appuser` (uid 1001) or `USER nginx`, so we don't force a uid here
+# — just enforce non-root and drop capabilities.
+#
+# readOnlyRootFilesystem is default false because Nginx (frontend) needs
+# writable /var/cache/nginx and /var/run, and flipping it on per Go service
+# requires confirming nothing writes outside its own dirs. Flip on per
+# service in values/<svc>.yaml when ready.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+# PodDisruptionBudget rendered only when replicaCount >= 2 (single-replica
+# Deployments can't have a PDB with minAvailable: 1 — it would prevent any
+# voluntary eviction and break node drains).
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
 # --- Feature gates (off by default) ------------------------------------------
 
 # Traefik IngressRoute. Flip on in Phase 5.8 when cloudflared lands.
