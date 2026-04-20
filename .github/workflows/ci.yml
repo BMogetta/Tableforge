@@ -159,8 +159,16 @@ jobs:
           cache: true
       - name: Install protoc
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
+          # apt-get gives you whatever the base image ships (3.21.12 on
+          # ubuntu-24.04 today) and the version leaks into the `// protoc vX.Y.Z`
+          # header of every generated .pb.go. Pin it so the file contents
+          # match what devs produce locally — otherwise every CI run reports
+          # Schema Drift on the comment.
+          PROTOC_VERSION=3.12.4
+          curl -sSL -o /tmp/protoc.zip \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+          sudo unzip -o -d /usr/local /tmp/protoc.zip 'bin/*' 'include/*'
+          protoc --version
       - name: Install protoc-gen-go + protoc-gen-go-grpc
         run: |
           # Keep these in sync with the versions developers install locally
