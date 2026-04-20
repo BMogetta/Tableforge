@@ -22,40 +22,42 @@ set -euo pipefail
 REPO="${REPO:-BMogetta/recess}"
 RULESET_NAME="main protection"
 
-# GitHub Actions app integration id. This is the well-known id of the
-# github-actions[bot] app; same across every GitHub-hosted repo. If GitHub
-# ever changes it, look it up with:
-#   gh api 'repos/{repo}/installations' --jq '.installations[] | select(.app_slug=="github-actions") | .app_id'
-GH_ACTIONS_APP_ID=15368
+# Required status checks intentionally OFF for the first pass.
+#
+# Why: ci.yml has paths-ignore so CI skips on values.yaml bumps (release
+# commits). GitHub's "required status check" rule blocks merges when a
+# required check is "missing" — including the skipped-by-paths-ignore
+# case. Enabling required checks plus paths-ignore would either block
+# the release.yml auto-bump flow or force us to re-structure CI with an
+# always-running "CI Success" job that short-circuits on release commits.
+#
+# For a homelab, "PR required" is already the 90% win. Add required
+# status checks later if it ever matters.
 
-# Required status checks. Names here must match the exact job display name
-# in the workflows — not the job id. Keep in sync with .github/workflows/ci.yml.
-REQUIRED_CHECKS=(
-  "CI Success"
-  "CodeQL"
-)
+# Note on bypass_actors:
+#   We don't configure any. Everyone goes through the PR flow — including
+#   release-please (its bot opens PRs, we merge them) and release.yml
+#   (needs to open its own PR for the image.tag bump rather than pushing
+#   direct — see the matching change in .github/workflows/release.yml).
+#
+# Rationale for NO bypass:
+#   - Integration-type bypass expects a numeric GitHub App install ID that
+#     can only be fetched with a GitHub App token (user PATs get 403),
+#     so there's no clean CLI path to resolve it.
+#   - "Everything goes through PR" is architecturally cleaner and gives
+#     one consistent audit trail.
+#   - If you ever need an emergency direct push, disable the ruleset with:
+#       gh api repos/${REPO}/rulesets/<id> -X PUT -f enforcement=disabled
+#     push, then re-enable. One line, no ceremony.
 
 build_payload() {
-  local checks_json
-  checks_json=$(printf '%s\n' "${REQUIRED_CHECKS[@]}" \
-    | jq -R '{context: .}' \
-    | jq -s '.')
-
   jq -n \
     --arg name "$RULESET_NAME" \
-    --argjson app_id "$GH_ACTIONS_APP_ID" \
-    --argjson checks "$checks_json" \
     '{
       name: $name,
       target: "branch",
       enforcement: "active",
-      bypass_actors: [
-        {
-          actor_id: $app_id,
-          actor_type: "Integration",
-          bypass_mode: "always"
-        }
-      ],
+      bypass_actors: [],
       conditions: {
         ref_name: {
           include: ["~DEFAULT_BRANCH"],
@@ -74,13 +76,6 @@ build_payload() {
             require_code_owner_review: false,
             require_last_push_approval: false,
             required_review_thread_resolution: false
-          }
-        },
-        {
-          type: "required_status_checks",
-          parameters: {
-            strict_required_status_checks_policy: true,
-            required_status_checks: $checks
           }
         }
       ]
