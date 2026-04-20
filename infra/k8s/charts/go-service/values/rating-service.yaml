@@ -3,19 +3,15 @@
 
 nameOverride: rating-service
 fullnameOverride: rating-service
-
 image:
   repository: ghcr.io/bmogetta/recess-rating-service
-  tag: latest
-
+  tag: 0.2.0-alpha.1
 service:
   httpPort: 8085
   grpcPort: 9085
-
 env:
   ENV: production
   OTEL_SERVICE_NAME: rating-service
-
 envFromSecret:
   JWT_SECRET:
     secretName: jwt
@@ -26,7 +22,6 @@ envFromSecret:
   REDIS_URL:
     secretName: redis-url
     key: REDIS_URL
-
 resources:
   requests:
     cpu: 25m
