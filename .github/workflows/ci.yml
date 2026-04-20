@@ -168,6 +168,8 @@ jobs:
           curl -sSL -o /tmp/protoc.zip \
             "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
           sudo unzip -o -d /usr/local /tmp/protoc.zip 'bin/*' 'include/*'
+          # The zip stores the binary without the +x bit; restore it.
+          sudo chmod +x /usr/local/bin/protoc
           protoc --version
       - name: Install protoc-gen-go + protoc-gen-go-grpc
         run: |
