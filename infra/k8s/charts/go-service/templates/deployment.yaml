@@ -15,6 +15,10 @@ spec:
         {{- include "go-service.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "go-service.serviceAccountName" . }}
+      # None of our Go services call the Kubernetes API; Nginx doesn't
+      # either. Skipping the SA token mount removes a cluster-privilege
+      # surface area Polaris flags by default.
+      automountServiceAccountToken: false
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
