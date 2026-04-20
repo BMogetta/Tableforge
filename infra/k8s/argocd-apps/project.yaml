@@ -27,6 +27,7 @@ spec:
     - https://prometheus-community.github.io/helm-charts
     - https://grafana.github.io/helm-charts
     - https://open-telemetry.github.io/opentelemetry-helm-charts
+    - https://docs.getunleash.io/helm-charts
 
   destinations:
     # Five namespaces from infra/k8s/namespaces.yaml.

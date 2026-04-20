@@ -1,0 +1,35 @@
+# Grafana dashboards — Phase 6.6.
+# One ConfigMap per dashboard in infra/k8s/observability/grafana-dashboards/;
+# each carries the label `grafana_dashboard: "1"` that the Grafana sidecar
+# picks up (searchNamespace=ALL, configured in the kube-prometheus-stack
+# values).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-dashboards
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  annotations:
+    # After Grafana is up (wave 10); the sidecar mounts these on import.
+    argocd.argoproj.io/sync-wave: "15"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://github.com/BMogetta/recess.git
+    targetRevision: HEAD
+    path: infra/k8s/observability/grafana-dashboards
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

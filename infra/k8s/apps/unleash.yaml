@@ -1,0 +1,81 @@
+# Unleash — feature flag service. Deployed into `recess` so the default
+# UNLEASH_URL (`http://unleash:4242/api`) shared by every Go service
+# resolves without any per-service override. Insecure-api-token mode is
+# fine here: Unleash is reachable only inside the cluster, no external
+# exposure until Phase 5.8.
+#
+# Uses the chart's bundled bitnami/postgresql subchart for simplicity —
+# avoids cross-namespace DSN plumbing against CNPG. The trade-off is a
+# second Postgres process (~100 Mi RSS), which the Pi5 budget absorbs.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: unleash
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: recess
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: recess
+  source:
+    repoURL: https://docs.getunleash.io/helm-charts
+    chart: unleash
+    targetRevision: 5.6.7
+    helm:
+      releaseName: unleash
+      values: |
+        # --- App ---------------------------------------------------------
+        image:
+          tag: 7.5.0
+        replicaCount: 1
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 384Mi
+
+        # Bundled Postgres — deploys a bitnami/postgresql alongside.
+        postgresql:
+          enabled: true
+          auth:
+            existingSecret: ""
+          primary:
+            persistence:
+              enabled: true
+              size: 2Gi
+              storageClass: local-path
+            resources:
+              requests:
+                cpu: 25m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+
+        # --- Service / ingress ------------------------------------------
+        service:
+          type: ClusterIP
+          port: 4242
+        ingress:
+          enabled: false
+
+        # --- Bootstrap token --------------------------------------------
+        # Matches `shared/config/unleash.go` default so services boot
+        # without any additional env var wiring. Rotate by sealing a
+        # SealedSecret and switching the services to it when/if needed.
+        env:
+          - name: INIT_ADMIN_API_TOKENS
+            value: "*:*.unleash-insecure-api-token"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: recess
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
