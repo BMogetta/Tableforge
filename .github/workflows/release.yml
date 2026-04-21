@@ -168,4 +168,4 @@ jobs:
             --body "Automated image.tag bump after successful release build of \`${COMPONENT}\` ${IMAGE_TAG}. Triggers ArgoCD sync." \
             --base main \
             --head "$branch"
-          gh pr merge --auto --squash --delete-branch "$branch"
+          gh pr merge --squash --delete-branch "$branch"
