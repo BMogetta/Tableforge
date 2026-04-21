@@ -3,19 +3,15 @@
 
 nameOverride: notification-service
 fullnameOverride: notification-service
-
 image:
   repository: ghcr.io/bmogetta/recess-notification-service
-  tag: latest
-
+  tag: v0.2.0-alpha.1
 service:
   httpPort: 8086
-
 env:
   ENV: production
   OTEL_SERVICE_NAME: notification-service
   USER_SERVICE_ADDR: user-service:9082
-
 envFromSecret:
   JWT_SECRET:
     secretName: jwt
@@ -26,7 +22,6 @@ envFromSecret:
   REDIS_URL:
     secretName: redis-url
     key: REDIS_URL
-
 resources:
   requests:
     cpu: 25m
