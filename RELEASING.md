@@ -17,18 +17,19 @@ commit to main (feat/fix with component scope)
    release-please creates a tag:  <component>-v<X.Y.Z>
            │
            ▼
-   .github/workflows/release.yml
-     - builds multi-arch image (amd64 + arm64)
+   .github/workflows/release.yml (in recess)
+     - builds arm64 image
      - scans with Trivy (HIGH/CRITICAL fail)
      - pushes vX.Y.Z + vX.Y + latest tags to ghcr.io
      - emits SLSA provenance + SPDX SBOM
      - cosign-signs the image digest
-     - bumps infra/k8s/apps/<component>/values.yaml image.tag
-     - pushes the bump commit to main with [skip ci]
+     - mints a GitHub App install token (recess-deploy-bot)
+     - bumps infra/k8s/charts/go-service/values/<component>.yaml
+       in BMogetta/recess-deploy and pushes directly to its main
            │
            ▼
-   ArgoCD (k3s cluster, Fase 5)
-     - detects the values.yaml change
+   ArgoCD (k3s cluster, watching recess-deploy)
+     - detects the values.yaml change on recess-deploy/main
      - syncs the new tag
      - rolling update on the cluster
 ```
@@ -74,10 +75,9 @@ bump minor (release-please convention for 0.x).
 4. Merging the release PR triggers:
    - release-please pushes a tag `<component>-v<X.Y.Z>`
    - `.github/workflows/release.yml` builds and publishes the image
-   - infra/k8s values.yaml bump commits to main with `[skip ci]`
+   - An image.tag bump commits directly to `recess-deploy/main` with `[skip ci]`
 
-5. If ArgoCD is configured (Fase 5), it syncs automatically. Otherwise the
-   image is published and ready to pull.
+5. ArgoCD picks up the bump on its next poll (~3 min) and syncs the new tag.
 
 ## Mass-merging release PRs
 
@@ -93,8 +93,8 @@ gh pr list --label 'autorelease: pending' --json number --jq '.[].number' \
 
 That merges every currently-pending release PR. Each merge fires its own
 `release.yml` run in parallel, so GHCR sees 9 simultaneous image pushes
-and 9 values.yaml bumps land on main (all with `[skip ci]` so they don't
-retrigger CI).
+and 9 values.yaml bumps land on `recess-deploy/main` (all with
+`[skip ci]` so they don't retrigger CI).
 
 For selective merges, list first and pass explicit numbers:
 
