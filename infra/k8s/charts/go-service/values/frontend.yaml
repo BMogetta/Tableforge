@@ -11,21 +11,16 @@
 
 nameOverride: frontend
 fullnameOverride: frontend
-
 image:
   repository: ghcr.io/bmogetta/recess-frontend
-  tag: latest
-
+  tag: v0.2.0-alpha.1
 service:
   httpPort: 3000
-
 env: {}
 envFromSecret: {}
-
 # Nginx doesn't emit OTLP — skip the chart's default endpoint injection.
 observability:
   otlpEndpoint: ""
-
 # nginx:alpine runs as uid 101, not 1001 like the Go services. Override
 # the chart defaults so kubelet's runAsNonRoot check passes.
 podSecurityContext:
@@ -35,7 +30,6 @@ podSecurityContext:
   fsGroup: 101
   seccompProfile:
     type: RuntimeDefault
-
 containerSecurityContext:
   allowPrivilegeEscalation: false
   # Nginx needs writable /var/cache/nginx, /var/run, /run (it writes a PID
@@ -49,11 +43,9 @@ containerSecurityContext:
   capabilities:
     drop:
       - ALL
-
 # Nginx serves from its own writable rootfs; no /tmp emptyDir needed.
 tmpEmptyDir:
   enabled: false
-
 resources:
   requests:
     cpu: 25m
@@ -61,7 +53,6 @@ resources:
   limits:
     cpu: 200m
     memory: 96Mi
-
 probes:
   # Nginx boots in under a second; both probes converge quickly.
   liveness:
