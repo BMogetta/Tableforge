@@ -4,10 +4,9 @@
 # rather than duplicated.
 #
 # Why a ruleset and not classic branch protection:
-#   - Per-actor bypass list (github-actions[bot] needs to push the
-#     image.tag bump committed by .github/workflows/release.yml — classic
-#     rules can only allow "admin" or "no one", not a specific bot).
 #   - Layerable, dry-runnable, audit-logged.
+#   - First-class support for required signatures + per-check requirements
+#     alongside the PR rule.
 #
 # Prereqs:
 #   - `gh` CLI authenticated (`gh auth login`) with admin access to the repo.
@@ -22,33 +21,24 @@ set -euo pipefail
 REPO="${REPO:-BMogetta/recess}"
 RULESET_NAME="main protection"
 
-# Required status checks intentionally OFF for the first pass.
+# Rules applied:
+#   - deletion / non_fast_forward / required_linear_history
+#   - pull_request (required — 0 approvals needed, same as before P1.5)
+#   - required_signatures (GPG / web-flow signed commits only)
+#   - required_status_checks: CI Success + both CodeQL matrix legs
 #
-# Why: ci.yml has paths-ignore so CI skips on values.yaml bumps (release
-# commits). GitHub's "required status check" rule blocks merges when a
-# required check is "missing" — including the skipped-by-paths-ignore
-# case. Enabling required checks plus paths-ignore would either block
-# the release.yml auto-bump flow or force us to re-structure CI with an
-# always-running "CI Success" job that short-circuits on release commits.
-#
-# For a homelab, "PR required" is already the 90% win. Add required
-# status checks later if it ever matters.
+# Why required checks are safe now: recess no longer hosts cluster
+# manifests (P1.4). Release.yml pushes image.tag bumps to recess-deploy,
+# not here, so there's no auto-bump path that would hit these checks.
+# CI Success is an aggregator job that always runs and passes on
+# release-please PRs (their changes are in paths-ignore scope for push
+# but the aggregator still runs on the PR).
 
 # Note on bypass_actors:
-#   We don't configure any. Everyone goes through the PR flow — including
-#   release-please (its bot opens PRs, we merge them) and release.yml
-#   (needs to open its own PR for the image.tag bump rather than pushing
-#   direct — see the matching change in .github/workflows/release.yml).
-#
-# Rationale for NO bypass:
-#   - Integration-type bypass expects a numeric GitHub App install ID that
-#     can only be fetched with a GitHub App token (user PATs get 403),
-#     so there's no clean CLI path to resolve it.
-#   - "Everything goes through PR" is architecturally cleaner and gives
-#     one consistent audit trail.
-#   - If you ever need an emergency direct push, disable the ruleset with:
-#       gh api repos/${REPO}/rulesets/<id> -X PUT -f enforcement=disabled
-#     push, then re-enable. One line, no ceremony.
+#   Empty list — no bot, no admin bypass. Every change goes through PR.
+#   If you ever need an emergency direct push, disable the ruleset with:
+#     gh api repos/${REPO}/rulesets/<id> -X PUT -f enforcement=disabled
+#   push, then re-enable. One line, no ceremony.
 
 build_payload() {
   jq -n \
@@ -68,6 +58,7 @@ build_payload() {
         { type: "deletion" },
         { type: "non_fast_forward" },
         { type: "required_linear_history" },
+        { type: "required_signatures" },
         {
           type: "pull_request",
           parameters: {
@@ -76,6 +67,17 @@ build_payload() {
             require_code_owner_review: false,
             require_last_push_approval: false,
             required_review_thread_resolution: false
+          }
+        },
+        {
+          type: "required_status_checks",
+          parameters: {
+            strict_required_status_checks_policy: false,
+            required_status_checks: [
+              { context: "CI Success" },
+              { context: "CodeQL: go" },
+              { context: "CodeQL: javascript-typescript" }
+            ]
           }
         }
       ]
