@@ -4,20 +4,16 @@
 
 nameOverride: game-server
 fullnameOverride: game-server
-
 image:
   repository: ghcr.io/bmogetta/recess-game-server
-  tag: latest
-
+  tag: v0.2.0-alpha.1
 service:
   httpPort: 8080
   grpcPort: 9080
-
 env:
   ENV: production
   OTEL_SERVICE_NAME: game-server
   USER_SERVICE_ADDR: user-service:9082
-
 envFromSecret:
   JWT_SECRET:
     secretName: jwt
@@ -28,7 +24,6 @@ envFromSecret:
   REDIS_URL:
     secretName: redis-url
     key: REDIS_URL
-
 resources:
   # Bigger surface area (runtime + lobby + reaper + asynq) than the other
   # services; bump memory headroom accordingly.
@@ -38,7 +33,6 @@ resources:
   limits:
     cpu: 1000m
     memory: 384Mi
-
 metrics:
   enabled: true
   path: /metrics
