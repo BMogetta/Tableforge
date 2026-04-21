@@ -6,11 +6,10 @@ on:
       - '*-v*'
 
 permissions:
-  contents: write
+  contents: read
   packages: write
   id-token: write
   security-events: write
-  pull-requests: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -124,29 +123,38 @@ jobs:
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-${{ steps.tag.outputs.component }}@${DIGEST}
 
-      - name: Checkout main for values bump
+      - name: Mint deploy repo token
+        id: deploy-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: recess-deploy
+
+      - name: Checkout recess-deploy
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          repository: ${{ github.repository_owner }}/recess-deploy
           ref: main
-          path: main-wt
-          token: ${{ secrets.GITHUB_TOKEN }}
+          path: deploy-wt
+          token: ${{ steps.deploy-token.outputs.token }}
 
-      - name: Bump image.tag in infra/k8s via PR
-        working-directory: main-wt
+      - name: Bump image.tag in recess-deploy
+        working-directory: deploy-wt
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_TAG: v${{ steps.tag.outputs.version }}
           COMPONENT: ${{ steps.tag.outputs.component }}
+          APP_SLUG: ${{ steps.deploy-token.outputs.app-slug }}
         run: |
           set -euo pipefail
           values_file="infra/k8s/charts/go-service/values/${COMPONENT}.yaml"
 
           if [ ! -f "$values_file" ]; then
-            echo "::warning title=Values bump skipped::${values_file} does not exist yet (Fase 5 not complete). No cluster sync to trigger."
+            echo "::warning title=Values bump skipped::${values_file} does not exist in recess-deploy."
             exit 0
           fi
 
-          # yq is preinstalled on ubuntu-latest runners.
           yq -i '.image.tag = strenv(IMAGE_TAG)' "$values_file"
 
           if git diff --quiet -- "$values_file"; then
@@ -154,18 +162,10 @@ jobs:
             exit 0
           fi
 
-          git config user.name  'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          bot_id=$(curl -sS "https://api.github.com/users/${APP_SLUG}%5Bbot%5D" | jq -r .id)
+          git config user.name  "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
 
-          branch="chore/bump-${COMPONENT}-${IMAGE_TAG}"
-          git checkout -b "$branch"
           git add "$values_file"
           git commit -m "chore(${COMPONENT}): bump image.tag to ${IMAGE_TAG} [skip ci]"
-          git push -u origin "$branch"
-
-          gh pr create \
-            --title "chore(${COMPONENT}): bump image.tag to ${IMAGE_TAG}" \
-            --body "Automated image.tag bump after successful release build of \`${COMPONENT}\` ${IMAGE_TAG}. Triggers ArgoCD sync." \
-            --base main \
-            --head "$branch"
-          gh pr merge --squash --delete-branch "$branch"
+          git push origin main
