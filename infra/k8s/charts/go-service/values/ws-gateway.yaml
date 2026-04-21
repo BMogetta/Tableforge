@@ -4,14 +4,11 @@
 
 nameOverride: ws-gateway
 fullnameOverride: ws-gateway
-
 image:
   repository: ghcr.io/bmogetta/recess-ws-gateway
-  tag: latest
-
+  tag: v0.2.0-alpha.1
 service:
   httpPort: 8084
-
 env:
   ENV: production
   OTEL_SERVICE_NAME: ws-gateway
@@ -20,7 +17,6 @@ env:
   # but setting them explicitly documents the dependency graph.
   USER_SERVICE_ADDR: user-service:9082
   GAME_SERVER_ADDR: game-server:9080
-
 envFromSecret:
   JWT_SECRET:
     secretName: jwt
@@ -28,7 +24,6 @@ envFromSecret:
   REDIS_URL:
     secretName: redis-url
     key: REDIS_URL
-
 resources:
   requests:
     cpu: 25m
@@ -36,7 +31,6 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
-
 probes:
   # WebSocket upgrade path can be slow; bump liveness to avoid killing
   # during legitimate backpressure.
@@ -48,7 +42,6 @@ probes:
     path: /healthz
     initialDelaySeconds: 5
     periodSeconds: 10
-
 metrics:
   enabled: true
   path: /metrics
