@@ -390,4 +390,14 @@ semver purposes).
 Release-please creates tags like `<component>-v<version>` (e.g., `game-server-v1.2.3`).
 The release workflow parses this tag and builds/publishes
 `ghcr.io/<owner>/recess-<component>:v<version>` (+ `vX.Y` + `latest` tags),
-then bumps `infra/k8s/apps/<component>/values.yaml` so ArgoCD syncs the new tag.
+then mints a GitHub App install token to push an image.tag bump to
+[`BMogetta/recess-deploy`](https://github.com/BMogetta/recess-deploy) so
+ArgoCD syncs the new tag onto the cluster.
+
+## Deployment
+
+This repo holds **source code only**. All k8s manifests, Helm charts,
+ArgoCD Applications, sealed secrets, and cluster bootstrap docs live in
+[`BMogetta/recess-deploy`](https://github.com/BMogetta/recess-deploy).
+The two-repo split keeps GitOps (what the cluster runs) separate from
+source (what the app does).
