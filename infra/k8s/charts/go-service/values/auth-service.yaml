@@ -3,20 +3,16 @@
 
 nameOverride: auth-service
 fullnameOverride: auth-service
-
 image:
   repository: ghcr.io/bmogetta/recess-auth-service
-  tag: latest
-
+  tag: v0.2.0-alpha.1
 service:
   httpPort: 8081
-
 env:
   ENV: production
   OTEL_SERVICE_NAME: auth-service
   # OTLP endpoint is intentionally unset until Phase 6 lands the observability
   # stack; telemetry.Setup fails open and the service boots without it.
-
 envFromSecret:
   JWT_SECRET:
     secretName: jwt
@@ -33,7 +29,6 @@ envFromSecret:
   REDIS_URL:
     secretName: redis-url
     key: REDIS_URL
-
 resources:
   requests:
     cpu: 25m
