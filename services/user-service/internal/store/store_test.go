@@ -104,7 +104,9 @@ func TestDeclineFriendRequest(t *testing.T) {
 	alice := env.seedPlayer(t, "alice")
 	bob := env.seedPlayer(t, "bob")
 
-	env.store.SendFriendRequest(ctx, alice, bob)
+	if _, err := env.store.SendFriendRequest(ctx, alice, bob); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := env.store.DeclineFriendRequest(ctx, alice, bob); err != nil {
 		t.Fatalf("DeclineFriendRequest: %v", err)
@@ -123,8 +125,12 @@ func TestRemoveFriend(t *testing.T) {
 	alice := env.seedPlayer(t, "alice")
 	bob := env.seedPlayer(t, "bob")
 
-	env.store.SendFriendRequest(ctx, alice, bob)
-	env.store.AcceptFriendRequest(ctx, alice, bob)
+	if _, err := env.store.SendFriendRequest(ctx, alice, bob); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.store.AcceptFriendRequest(ctx, alice, bob); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := env.store.RemoveFriend(ctx, bob, alice); err != nil {
 		t.Fatalf("RemoveFriend: %v", err)
@@ -493,7 +499,9 @@ func TestSetPlayerRoleCannotDemoteOwner(t *testing.T) {
 	ctx := context.Background()
 
 	owner := env.seedPlayer(t, "owner")
-	env.pool.Exec(ctx, `UPDATE players SET role = 'owner' WHERE id = $1`, owner)
+	if _, err := env.pool.Exec(ctx, `UPDATE players SET role = 'owner' WHERE id = $1`, owner); err != nil {
+		t.Fatal(err)
+	}
 
 	err := env.store.SetPlayerRole(ctx, owner, store.RolePlayer)
 	if err == nil {

@@ -21,7 +21,9 @@ func TestPublishToPlayer_PublishesCorrectChannel(t *testing.T) {
 	sub := rdb.Subscribe(ctx, channel)
 	defer sub.Close()
 	// Wait for subscription to be ready.
-	sub.Receive(ctx)
+	if _, err := sub.Receive(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	event := sharedws.Event{
 		Type:    sharedws.EventNotificationReceived,

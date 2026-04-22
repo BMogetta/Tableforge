@@ -59,7 +59,7 @@ func main() {
 
 	// ── Redis ─────────────────────────────────────────────────────────────────
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	// ── Wire ──────────────────────────────────────────────────────────────────
 	engine := rating.NewDefaultEngine()

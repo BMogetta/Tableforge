@@ -61,18 +61,22 @@ func TestListPendingReports(t *testing.T) {
 	manager := uuid.New()
 
 	// Seed two reports directly.
-	st.CreateReport(context.Background(), store.CreateReportParams{
+	if _, err := st.CreateReport(context.Background(), store.CreateReportParams{
 		ReporterID: uuid.New(),
 		ReportedID: uuid.New(),
 		Reason:     "spam",
 		Context:    []byte(`{}`),
-	})
-	st.CreateReport(context.Background(), store.CreateReportParams{
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.CreateReport(context.Background(), store.CreateReportParams{
 		ReporterID: uuid.New(),
 		ReportedID: uuid.New(),
 		Reason:     "harassment",
 		Context:    []byte(`{}`),
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	rec := getJSONAs(t, router, "/api/v1/admin/reports", manager, sharedmw.RoleManager)
 

@@ -56,7 +56,7 @@ func main() {
 
 	// ── Redis ─────────────────────────────────────────────────────────────────
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	// ── user-service gRPC client ──────────────────────────────────────────────
 	userServiceAddr := config.Env("USER_SERVICE_ADDR", "user-service:9082")
@@ -68,7 +68,7 @@ func main() {
 		slog.Error("failed to connect to user-service", "error", err)
 		panic(err)
 	}
-	defer userConn.Close()
+	defer func() { _ = userConn.Close() }()
 	userClient := userv1.NewUserServiceClient(userConn)
 	slog.Info("user-service gRPC connected", "addr", userServiceAddr)
 

@@ -17,7 +17,7 @@ func newTestPublisher(t *testing.T) (*Publisher, *redis.Client) {
 	t.Helper()
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	t.Cleanup(func() { _ = rdb.Close() })
 	return NewPublisher(rdb), rdb
 }
 
@@ -88,7 +88,9 @@ func TestPublishPlayerBanned_NoExpiry(t *testing.T) {
 	})
 
 	var evt events.PlayerBanned
-	json.Unmarshal([]byte(msg), &evt)
+	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+		t.Fatal(err)
+	}
 	if evt.ExpiresAt != nil {
 		t.Error("expires_at should be nil for permanent ban")
 	}
@@ -105,7 +107,9 @@ func TestPublishPlayerUnbanned(t *testing.T) {
 	})
 
 	var evt events.PlayerUnbanned
-	json.Unmarshal([]byte(msg), &evt)
+	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+		t.Fatal(err)
+	}
 	if evt.PlayerID != playerID.String() {
 		t.Errorf("player_id mismatch")
 	}
@@ -122,7 +126,9 @@ func TestPublishFriendshipRequested(t *testing.T) {
 	})
 
 	var evt events.FriendshipRequested
-	json.Unmarshal([]byte(msg), &evt)
+	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+		t.Fatal(err)
+	}
 	if evt.RequesterID != "req-id" {
 		t.Errorf("requester_id: got %s", evt.RequesterID)
 	}
@@ -146,7 +152,9 @@ func TestPublishFriendshipAccepted(t *testing.T) {
 	})
 
 	var evt events.FriendshipAccepted
-	json.Unmarshal([]byte(msg), &evt)
+	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+		t.Fatal(err)
+	}
 	if evt.RequesterID != f.RequesterID.String() {
 		t.Errorf("requester_id mismatch")
 	}
@@ -160,7 +168,9 @@ func TestPublishBroadcast(t *testing.T) {
 	})
 
 	var evt events.AdminBroadcastSent
-	json.Unmarshal([]byte(msg), &evt)
+	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+		t.Fatal(err)
+	}
 	if evt.Message != "hello world" {
 		t.Errorf("message: got %q", evt.Message)
 	}
@@ -177,7 +187,9 @@ func TestPublishAchievementUnlocked(t *testing.T) {
 	})
 
 	var evt events.AchievementUnlocked
-	json.Unmarshal([]byte(msg), &evt)
+	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+		t.Fatal(err)
+	}
 	if evt.PlayerID != "player-1" {
 		t.Errorf("player_id: got %s", evt.PlayerID)
 	}

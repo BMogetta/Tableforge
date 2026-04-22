@@ -91,10 +91,12 @@ func TestListAllowedEmails(t *testing.T) {
 	router := newTestRouter(st)
 
 	manager := uuid.New()
-	st.AddAllowedEmail(nil, store.AddAllowedEmailParams{
+	if _, err := st.AddAllowedEmail(nil, store.AddAllowedEmailParams{
 		Email: "a@test.com",
 		Role:  store.RolePlayer,
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	rec := getJSONAs(t, router, "/api/v1/admin/allowed-emails", manager, sharedmw.RoleManager)
 	if rec.Code != http.StatusOK {
@@ -186,10 +188,12 @@ func TestRemoveAllowedEmail(t *testing.T) {
 	router := newTestRouter(st)
 
 	manager := uuid.New()
-	st.AddAllowedEmail(nil, store.AddAllowedEmailParams{
+	if _, err := st.AddAllowedEmail(nil, store.AddAllowedEmailParams{
 		Email: "rm@test.com",
 		Role:  store.RolePlayer,
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	rec := deleteJSONAs(t, router, "/api/v1/admin/allowed-emails/rm@test.com", manager, sharedmw.RoleManager)
 	if rec.Code != http.StatusNoContent {

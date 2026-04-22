@@ -13,7 +13,9 @@ func TestGithubGET_Success(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer test-token" {
 			t.Error("missing or wrong Authorization header")
 		}
-		json.NewEncoder(w).Encode(map[string]string{"login": "alice"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"login": "alice"}); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer srv.Close()
 
@@ -50,7 +52,9 @@ func TestExchangeCode_Success(t *testing.T) {
 		if r.URL.Query().Get("client_id") != "cid" {
 			t.Error("missing client_id param")
 		}
-		json.NewEncoder(w).Encode(map[string]string{"access_token": "tok-xyz"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"access_token": "tok-xyz"}); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer srv.Close()
 
@@ -77,7 +81,9 @@ func TestFetchPrimaryEmail_Logic(t *testing.T) {
 			{Email: "primary@example.com", Primary: true, Verified: true},
 			{Email: "unverified@example.com", Primary: true, Verified: false},
 		}
-		json.NewEncoder(w).Encode(emails)
+		if err := json.NewEncoder(w).Encode(emails); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer srv.Close()
 
@@ -106,12 +112,16 @@ func TestFetchPrimaryEmail_NoPrimary(t *testing.T) {
 		emails := []githubEmail{
 			{Email: "nope@example.com", Primary: false, Verified: true},
 		}
-		json.NewEncoder(w).Encode(emails)
+		if err := json.NewEncoder(w).Encode(emails); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer srv.Close()
 
 	var emails []githubEmail
-	githubGET(context.Background(), "tok", srv.URL, &emails)
+	if err := githubGET(context.Background(), "tok", srv.URL, &emails); err != nil {
+		t.Fatal(err)
+	}
 
 	var found string
 	for _, e := range emails {

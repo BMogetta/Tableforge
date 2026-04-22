@@ -74,7 +74,9 @@ func TestUnmutePlayer(t *testing.T) {
 
 	caller := uuid.New()
 	target := uuid.New()
-	st.MutePlayer(nil, caller, target)
+	if err := st.MutePlayer(nil, caller, target); err != nil {
+		t.Fatal(err)
+	}
 
 	path := fmt.Sprintf("/api/v1/players/%s/mute/%s", caller, target)
 	rec := deleteJSONAs(t, router, path, caller, sharedmw.RolePlayer)
@@ -112,8 +114,12 @@ func TestGetMutes(t *testing.T) {
 	caller := uuid.New()
 	t1 := uuid.New()
 	t2 := uuid.New()
-	st.MutePlayer(nil, caller, t1)
-	st.MutePlayer(nil, caller, t2)
+	if err := st.MutePlayer(nil, caller, t1); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.MutePlayer(nil, caller, t2); err != nil {
+		t.Fatal(err)
+	}
 
 	path := fmt.Sprintf("/api/v1/players/%s/mutes", caller)
 	rec := getJSONAs(t, router, path, caller, sharedmw.RolePlayer)
@@ -134,7 +140,9 @@ func TestGetMutes_ManagerOverride(t *testing.T) {
 
 	player := uuid.New()
 	target := uuid.New()
-	st.MutePlayer(nil, player, target)
+	if err := st.MutePlayer(nil, player, target); err != nil {
+		t.Fatal(err)
+	}
 
 	manager := uuid.New()
 	path := fmt.Sprintf("/api/v1/players/%s/mutes", player)

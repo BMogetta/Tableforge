@@ -600,7 +600,7 @@ func TestMarkDMRead_NotifiesSenderChannel(t *testing.T) {
 	// Wire a real Publisher against miniredis and subscribe to both channels.
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	t.Cleanup(func() { _ = rdb.Close() })
 	pub := NewPublisher(rdb)
 
 	noopAuth := func(next http.Handler) http.Handler { return next }

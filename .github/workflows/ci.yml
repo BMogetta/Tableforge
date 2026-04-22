@@ -149,8 +149,13 @@ jobs:
           cache: true
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
-      - name: Run govulncheck
-        run: govulncheck ./...
+      - name: Run govulncheck across all modules
+        run: |
+          set -e
+          for mod in $(find . -name go.mod -not -path './node_modules/*' -exec dirname {} \;); do
+            echo "=== $mod ==="
+            (cd "$mod" && govulncheck ./...)
+          done
 
   schema-drift:
     name: Schema Drift
