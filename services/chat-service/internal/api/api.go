@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
 	"github.com/recess/services/chat-service/internal/store"
 	"github.com/recess/shared/featureflags"
@@ -33,6 +35,11 @@ func NewRouter(st store.Store, pub *Publisher, authMW func(http.Handler) http.Ha
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
+
+	r.Get("/metrics", promhttp.HandlerFor(
+		prometheus.DefaultGatherer,
+		promhttp.HandlerOpts{},
+	).ServeHTTP)
 
 	// validate wraps schema validation; no-op when schemas is nil (tests).
 	validate := func(name string) func(http.Handler) http.Handler {

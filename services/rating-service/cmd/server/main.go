@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -103,6 +105,10 @@ func main() {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
+	r.Get("/metrics", promhttp.HandlerFor(
+		prometheus.DefaultGatherer,
+		promhttp.HandlerOpts{},
+	).ServeHTTP)
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := rdb.Ping(r.Context()).Err(); err != nil {
 			http.Error(w, "redis not ready", http.StatusServiceUnavailable)
