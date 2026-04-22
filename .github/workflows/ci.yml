@@ -150,6 +150,10 @@ jobs:
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
       - name: Run govulncheck across all modules
+        env:
+          # govulncheck v1.2 chokes on go.work when run per-module —
+          # force module mode so each module is resolved independently.
+          GOWORK: "off"
         run: |
           set -e
           for mod in $(find . -name go.mod -not -path './node_modules/*' -exec dirname {} \;); do

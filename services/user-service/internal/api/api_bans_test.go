@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -26,7 +27,7 @@ func TestIssueBan(t *testing.T) {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	bans, _ := st.ListBans(nil, target)
+	bans, _ := st.ListBans(context.Background(), target)
 	if len(bans) != 1 {
 		t.Fatalf("expected 1 ban, got %d", len(bans))
 	}
@@ -65,7 +66,7 @@ func TestLiftBan(t *testing.T) {
 		"reason": "testing",
 	})
 
-	bans, _ := st.ListBans(nil, target)
+	bans, _ := st.ListBans(context.Background(), target)
 	if len(bans) == 0 {
 		t.Fatal("expected ban to exist")
 	}
@@ -78,7 +79,7 @@ func TestLiftBan(t *testing.T) {
 	}
 
 	// Verify ban was lifted.
-	bans, _ = st.ListBans(nil, target)
+	bans, _ = st.ListBans(context.Background(), target)
 	if bans[0].LiftedAt == nil {
 		t.Fatal("expected ban to be lifted")
 	}

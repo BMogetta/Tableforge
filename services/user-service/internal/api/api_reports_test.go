@@ -84,8 +84,7 @@ func TestListPendingReports(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var reports []store.PlayerReport
-	reports = decodeResponse[[]store.PlayerReport](t, rec)
+	reports := decodeResponse[[]store.PlayerReport](t, rec)
 	if len(reports) != 2 {
 		t.Fatalf("expected 2 reports, got %d", len(reports))
 	}

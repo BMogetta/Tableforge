@@ -70,7 +70,7 @@ func TestPublishPlayerBanned(t *testing.T) {
 	if evt.ExpiresAt == nil {
 		t.Error("expires_at should not be nil")
 	}
-	if evt.Meta.EventID == "" {
+	if evt.EventID == "" {
 		t.Error("meta.event_id should be set")
 	}
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -26,7 +27,7 @@ func TestMutePlayer(t *testing.T) {
 		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	mutes, _ := st.GetMutedPlayers(nil, caller)
+	mutes, _ := st.GetMutedPlayers(context.Background(),caller)
 	if len(mutes) != 1 {
 		t.Fatalf("expected 1 mute, got %d", len(mutes))
 	}
@@ -74,7 +75,7 @@ func TestUnmutePlayer(t *testing.T) {
 
 	caller := uuid.New()
 	target := uuid.New()
-	if err := st.MutePlayer(nil, caller, target); err != nil {
+	if err := st.MutePlayer(context.Background(),caller, target); err != nil {
 		t.Fatal(err)
 	}
 
@@ -85,7 +86,7 @@ func TestUnmutePlayer(t *testing.T) {
 		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	mutes, _ := st.GetMutedPlayers(nil, caller)
+	mutes, _ := st.GetMutedPlayers(context.Background(),caller)
 	if len(mutes) != 0 {
 		t.Fatalf("expected 0 mutes, got %d", len(mutes))
 	}
@@ -114,10 +115,10 @@ func TestGetMutes(t *testing.T) {
 	caller := uuid.New()
 	t1 := uuid.New()
 	t2 := uuid.New()
-	if err := st.MutePlayer(nil, caller, t1); err != nil {
+	if err := st.MutePlayer(context.Background(),caller, t1); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.MutePlayer(nil, caller, t2); err != nil {
+	if err := st.MutePlayer(context.Background(),caller, t2); err != nil {
 		t.Fatal(err)
 	}
 
@@ -140,7 +141,7 @@ func TestGetMutes_ManagerOverride(t *testing.T) {
 
 	player := uuid.New()
 	target := uuid.New()
-	if err := st.MutePlayer(nil, player, target); err != nil {
+	if err := st.MutePlayer(context.Background(),player, target); err != nil {
 		t.Fatal(err)
 	}
 
