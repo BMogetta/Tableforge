@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 )
 
 func (s *pgStore) MutePlayer(ctx context.Context, muterID, mutedID uuid.UUID) error {
@@ -47,36 +46,3 @@ func (s *pgStore) GetMutedPlayers(ctx context.Context, playerID uuid.UUID) ([]Pl
 	return out, rows.Err()
 }
 
-// scanMutes is used internally by the gRPC server to get just the muted IDs.
-func (s *pgStore) getMutedIDs(ctx context.Context, playerID uuid.UUID) ([]string, error) {
-	rows, err := s.db.Query(ctx, `
-		SELECT muted_id FROM users.player_mutes WHERE muter_id = $1
-	`, playerID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var ids []string
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id.String())
-	}
-	return ids, rows.Err()
-}
-
-// scanRows helper for single-column UUID scans.
-func scanUUIDRows(rows pgx.Rows) ([]uuid.UUID, error) {
-	var out []uuid.UUID
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		out = append(out, id)
-	}
-	return out, rows.Err()
-}

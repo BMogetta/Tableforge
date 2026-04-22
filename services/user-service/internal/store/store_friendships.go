@@ -155,18 +155,6 @@ func (s *pgStore) RemoveFriend(ctx context.Context, playerA, playerB uuid.UUID) 
 
 // --- helpers -----------------------------------------------------------------
 
-func scanFriendships(rows pgx.Rows) ([]Friendship, error) {
-	var out []Friendship
-	for rows.Next() {
-		var f Friendship
-		if err := rows.Scan(&f.RequesterID, &f.AddresseeID, &f.Status, &f.Note, &f.CreatedAt, &f.UpdatedAt); err != nil {
-			return nil, err
-		}
-		out = append(out, f)
-	}
-	return out, rows.Err()
-}
-
 func scanFriendshipViews(rows pgx.Rows) ([]FriendshipView, error) {
 	var out []FriendshipView
 	for rows.Next() {
