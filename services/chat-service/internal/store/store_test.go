@@ -208,8 +208,13 @@ func TestMarkDMReadAndUnreadCount(t *testing.T) {
 	alice := env.seedPlayer(t, "alice")
 	bob := env.seedPlayer(t, "bob")
 
-	env.store.SaveDM(ctx, alice, bob, "msg 1")
-	dm2, _ := env.store.SaveDM(ctx, alice, bob, "msg 2")
+	if _, err := env.store.SaveDM(ctx, alice, bob, "msg 1"); err != nil {
+		t.Fatal(err)
+	}
+	dm2, err := env.store.SaveDM(ctx, alice, bob, "msg 2")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	count, err := env.store.GetUnreadDMCount(ctx, bob)
 	if err != nil {
@@ -249,8 +254,12 @@ func TestListDMConversations(t *testing.T) {
 	bob := env.seedPlayer(t, "bob")
 	carol := env.seedPlayer(t, "carol")
 
-	env.store.SaveDM(ctx, alice, bob, "hi bob")
-	env.store.SaveDM(ctx, carol, alice, "hi alice")
+	if _, err := env.store.SaveDM(ctx, alice, bob, "hi bob"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.store.SaveDM(ctx, carol, alice, "hi alice"); err != nil {
+		t.Fatal(err)
+	}
 
 	convos, err := env.store.ListDMConversations(ctx, alice)
 	if err != nil {
@@ -276,8 +285,12 @@ func TestListDMConversationsUnreadCount(t *testing.T) {
 	alice := env.seedPlayer(t, "alice")
 	bob := env.seedPlayer(t, "bob")
 
-	env.store.SaveDM(ctx, bob, alice, "msg 1")
-	env.store.SaveDM(ctx, bob, alice, "msg 2")
+	if _, err := env.store.SaveDM(ctx, bob, alice, "msg 1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.store.SaveDM(ctx, bob, alice, "msg 2"); err != nil {
+		t.Fatal(err)
+	}
 
 	convos, _ := env.store.ListDMConversations(ctx, alice)
 	if len(convos) != 1 {

@@ -14,7 +14,7 @@ func newTestPublisher(t *testing.T) (*Publisher, *redis.Client) {
 	t.Helper()
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	t.Cleanup(func() { _ = rdb.Close() })
 	return NewPublisher(rdb), rdb
 }
 
@@ -74,10 +74,14 @@ func TestPublishPlayerEvent(t *testing.T) {
 	})
 
 	var env filteredEnvelope
-	json.Unmarshal([]byte(msg), &env)
+	if err := json.Unmarshal([]byte(msg), &env); err != nil {
+		t.Fatal(err)
+	}
 
 	var evt event
-	json.Unmarshal(env.Data, &evt)
+	if err := json.Unmarshal(env.Data, &evt); err != nil {
+		t.Fatal(err)
+	}
 	if evt.Type != eventDMReceived {
 		t.Errorf("type: got %q, want %q", evt.Type, eventDMReceived)
 	}

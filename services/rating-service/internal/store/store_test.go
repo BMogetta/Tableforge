@@ -177,10 +177,12 @@ func TestUpsertRatingsWithHistory(t *testing.T) {
 
 	// Verify history was inserted.
 	var count int
-	env.pool.QueryRow(ctx,
+	if err := env.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM ratings.rating_history WHERE player_id = $1 AND game_id = $2`,
 		p1, "tictactoe",
-	).Scan(&count)
+	).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
 	if count != 1 {
 		t.Errorf("expected 1 history entry, got %d", count)
 	}
@@ -220,10 +222,12 @@ func TestUpsertRatings_DuplicateSessionRejected(t *testing.T) {
 	}
 
 	var count int
-	env.pool.QueryRow(ctx,
+	if err := env.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM ratings.rating_history WHERE session_id = $1 AND player_id = $2`,
 		sessionID, p1,
-	).Scan(&count)
+	).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
 	if count != 1 {
 		t.Errorf("expected exactly 1 history row for (session, player), got %d", count)
 	}
@@ -245,13 +249,17 @@ func TestUpsertOverwritesExisting(t *testing.T) {
 
 	p1 := env.seedPlayer(t, "alice")
 
-	env.store.UpsertRatings(ctx, []*store.PlayerRating{
+	if err := env.store.UpsertRatings(ctx, []*store.PlayerRating{
 		{PlayerID: p1, GameID: "tictactoe", MMR: 1500, DisplayRating: 1500, GamesPlayed: 1},
-	}, nil)
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
 
-	env.store.UpsertRatings(ctx, []*store.PlayerRating{
+	if err := env.store.UpsertRatings(ctx, []*store.PlayerRating{
 		{PlayerID: p1, GameID: "tictactoe", MMR: 1600, DisplayRating: 1580, GamesPlayed: 10, WinStreak: 5},
-	}, nil)
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	r, _ := env.store.GetRating(ctx, p1, "tictactoe")
 	if r.MMR != 1600 {
@@ -270,11 +278,13 @@ func TestLeaderboard(t *testing.T) {
 	p2 := env.seedPlayer(t, "bob")
 	p3 := env.seedPlayer(t, "carol")
 
-	env.store.UpsertRatings(ctx, []*store.PlayerRating{
+	if err := env.store.UpsertRatings(ctx, []*store.PlayerRating{
 		{PlayerID: p1, GameID: "tictactoe", MMR: 1600, DisplayRating: 1600, GamesPlayed: 10},
 		{PlayerID: p2, GameID: "tictactoe", MMR: 1500, DisplayRating: 1500, GamesPlayed: 5},
 		{PlayerID: p3, GameID: "tictactoe", MMR: 1550, DisplayRating: 1550, GamesPlayed: 2},
-	}, nil)
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	// minGames=3 should exclude carol (2 games).
 	lb, err := env.store.GetLeaderboard(ctx, "tictactoe", 10, 0, 3, false)
@@ -313,10 +323,12 @@ func TestLeaderboardExcludesBotsByDefault(t *testing.T) {
 		t.Fatalf("seed bot: %v", err)
 	}
 
-	env.store.UpsertRatings(ctx, []*store.PlayerRating{
+	if err := env.store.UpsertRatings(ctx, []*store.PlayerRating{
 		{PlayerID: human, GameID: "tictactoe", MMR: 1600, DisplayRating: 1600, GamesPlayed: 10},
 		{PlayerID: botID, GameID: "tictactoe", MMR: 1800, DisplayRating: 1800, GamesPlayed: 50},
-	}, nil)
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	// Default path (includeBots=false): bot filtered out even though its
 	// rating is higher.
@@ -358,10 +370,12 @@ func TestLeaderboardPagination(t *testing.T) {
 	p1 := env.seedPlayer(t, "alice")
 	p2 := env.seedPlayer(t, "bob")
 
-	env.store.UpsertRatings(ctx, []*store.PlayerRating{
+	if err := env.store.UpsertRatings(ctx, []*store.PlayerRating{
 		{PlayerID: p1, GameID: "tictactoe", MMR: 1600, DisplayRating: 1600, GamesPlayed: 10},
 		{PlayerID: p2, GameID: "tictactoe", MMR: 1500, DisplayRating: 1500, GamesPlayed: 10},
-	}, nil)
+	}, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	// Page 1: limit 1.
 	page1, _ := env.store.GetLeaderboard(ctx, "tictactoe", 1, 0, 0, false)

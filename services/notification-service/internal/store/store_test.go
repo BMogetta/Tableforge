@@ -356,8 +356,12 @@ func TestListIsolationBetweenPlayers(t *testing.T) {
 	defer pool.Close()
 
 	player1, player2 := uuid.New(), uuid.New()
-	pool.Exec(ctx, `INSERT INTO players (id, username) VALUES ($1, $2)`, player1, "p1")
-	pool.Exec(ctx, `INSERT INTO players (id, username) VALUES ($1, $2)`, player2, "p2")
+	if _, err := pool.Exec(ctx, `INSERT INTO players (id, username) VALUES ($1, $2)`, player1, "p1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO players (id, username) VALUES ($1, $2)`, player2, "p2"); err != nil {
+		t.Fatal(err)
+	}
 
 	createNotification(t, s, player1, store.NotificationTypeFriendRequest)
 	createNotification(t, s, player1, store.NotificationTypeBanIssued)

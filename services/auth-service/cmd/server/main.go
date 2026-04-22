@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
 	"github.com/recess/auth-service/internal/consumer"
 	"github.com/recess/auth-service/internal/handler"
@@ -54,7 +56,7 @@ func main() {
 
 	// --- Redis ---------------------------------------------------------------
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	cons := consumer.New(rdb, slog.Default(), st)
 	consErr := make(chan error, 1)
@@ -79,6 +81,11 @@ func main() {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
+
+	r.Get("/metrics", promhttp.HandlerFor(
+		prometheus.DefaultGatherer,
+		promhttp.HandlerOpts{},
+	).ServeHTTP)
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Get("/github", h.HandleGitHubLogin)

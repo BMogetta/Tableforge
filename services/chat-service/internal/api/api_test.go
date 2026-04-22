@@ -173,20 +173,6 @@ func (m *mockUserChecker) AreFriends(_ context.Context, playerAID, playerBID str
 	return m.friends[playerAID+":"+playerBID], nil
 }
 
-// --- stub publisher ----------------------------------------------------------
-
-type stubPublisher struct {
-	roomEvents   []any
-	playerEvents []any
-}
-
-func newStubPublisher() *Publisher {
-	// Publisher requires a redis.Client, but we won't actually publish in tests.
-	// Use nil — the test won't call publish since we override at handler level.
-	// Instead, we use a no-op publisher wrapper.
-	return nil
-}
-
 // --- helpers -----------------------------------------------------------------
 
 func newTestRouter(st store.Store) http.Handler {
@@ -600,7 +586,7 @@ func TestMarkDMRead_NotifiesSenderChannel(t *testing.T) {
 	// Wire a real Publisher against miniredis and subscribe to both channels.
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	t.Cleanup(func() { _ = rdb.Close() })
 	pub := NewPublisher(rdb)
 
 	noopAuth := func(next http.Handler) http.Handler { return next }

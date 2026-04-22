@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -16,10 +17,12 @@ func TestGetProfile(t *testing.T) {
 
 	playerID := uuid.New()
 	bio := "hello world"
-	st.UpsertProfile(nil, store.UpsertProfileParams{
+	if _, err := st.UpsertProfile(context.Background(),store.UpsertProfileParams{
 		PlayerID: playerID,
 		Bio:      &bio,
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	path := fmt.Sprintf("/api/v1/players/%s/profile", playerID)
 	rec := getJSONAs(t, router, path, playerID, sharedmw.RolePlayer)
@@ -92,8 +95,12 @@ func TestListAchievements(t *testing.T) {
 	router := newTestRouter(st)
 
 	playerID := uuid.New()
-	st.UpsertAchievement(nil, playerID, "first_win", 1, 1)
-	st.UpsertAchievement(nil, playerID, "ten_games", 1, 10)
+	if _, err := st.UpsertAchievement(context.Background(),playerID, "first_win", 1, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.UpsertAchievement(context.Background(),playerID, "ten_games", 1, 10); err != nil {
+		t.Fatal(err)
+	}
 
 	path := fmt.Sprintf("/api/v1/players/%s/achievements", playerID)
 	rec := getJSONAs(t, router, path, playerID, sharedmw.RolePlayer)

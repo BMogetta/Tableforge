@@ -339,11 +339,20 @@ func (c *Consumer) seenEvent(ctx context.Context, eventID string) (bool, error) 
 	if eventID == "" || c.rdb == nil {
 		return false, nil
 	}
-	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result()
+	res, err := c.rdb.SetArgs(ctx, dedupeKeyPrefix+eventID, "1", redis.SetArgs{
+		Mode: "NX",
+		TTL:  dedupeTTL,
+	}).Result()
 	if err != nil {
+		// Redis returns Nil when the key already exists (NX failed).
+		if errors.Is(err, redis.Nil) {
+			return true, nil
+		}
 		return false, err
 	}
-	return !ok, nil
+	// Set returned OK — the key was freshly inserted.
+	_ = res
+	return false, nil
 }
 
 // parseSourceEventID turns a string event_id into a pointer for CreateParams.

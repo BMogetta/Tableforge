@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riandyrn/otelchi"
 	"github.com/recess/notification-service/internal/api"
 	"github.com/recess/notification-service/internal/consumer"
@@ -54,7 +56,7 @@ func main() {
 
 	// ── Redis ─────────────────────────────────────────────────────────────────
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	// ── user-service gRPC client ──────────────────────────────────────────────
 	userServiceAddr := config.Env("USER_SERVICE_ADDR", "user-service:9082")
@@ -66,7 +68,7 @@ func main() {
 		slog.Error("failed to connect to user-service", "error", err)
 		panic(err)
 	}
-	defer userConn.Close()
+	defer func() { _ = userConn.Close() }()
 	userClient := userv1.NewUserServiceClient(userConn)
 	slog.Info("user-service gRPC connected", "addr", userServiceAddr)
 
@@ -94,6 +96,10 @@ func main() {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
+	r.Get("/metrics", promhttp.HandlerFor(
+		prometheus.DefaultGatherer,
+		promhttp.HandlerOpts{},
+	).ServeHTTP)
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if err := rdb.Ping(r.Context()).Err(); err != nil {
 			http.Error(w, "redis not ready", http.StatusServiceUnavailable)

@@ -49,7 +49,7 @@ func main() {
 
 	// --- Redis ---------------------------------------------------------------
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	// --- JSON Schema validation ----------------------------------------------
 	schemaReg, err := sharedmw.NewSchemaRegistry()
@@ -65,7 +65,7 @@ func main() {
 		slog.Error("failed to connect to user-service gRPC", "addr", userServiceAddr, "error", err)
 		panic(err)
 	}
-	defer userChecker.Close()
+	defer func() { _ = userChecker.Close() }()
 
 	// --- Feature flags -------------------------------------------------------
 	flags, err := featureflags.Init(config.LoadUnleash(serviceName))

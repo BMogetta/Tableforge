@@ -1,0 +1,14 @@
+version: "2"
+
+linters:
+  settings:
+    errcheck:
+      # Exclude Go-idiomatic deferred cleanup where the error is not
+      # actionable (connection close on shutdown, HTTP response writes in
+      # liveness/readiness probes, tx.Rollback after commit).
+      exclude-functions:
+        - (io.Closer).Close
+        - (*github.com/redis/go-redis/v9.Client).Close
+        - (*github.com/redis/go-redis/v9.PubSub).Close
+        - (github.com/jackc/pgx/v5.Tx).Rollback
+        - (net/http.ResponseWriter).Write

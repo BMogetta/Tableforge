@@ -235,7 +235,7 @@ func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(player)
+	_ = json.NewEncoder(w).Encode(player)
 }
 
 // HandleCapabilities returns the server-computed capability map for the
@@ -349,7 +349,7 @@ func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 func randomState() (string, error) {

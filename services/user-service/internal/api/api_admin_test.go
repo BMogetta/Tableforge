@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -91,10 +92,12 @@ func TestListAllowedEmails(t *testing.T) {
 	router := newTestRouter(st)
 
 	manager := uuid.New()
-	st.AddAllowedEmail(nil, store.AddAllowedEmailParams{
+	if _, err := st.AddAllowedEmail(context.Background(),store.AddAllowedEmailParams{
 		Email: "a@test.com",
 		Role:  store.RolePlayer,
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	rec := getJSONAs(t, router, "/api/v1/admin/allowed-emails", manager, sharedmw.RoleManager)
 	if rec.Code != http.StatusOK {
@@ -131,7 +134,7 @@ func TestAddAllowedEmail(t *testing.T) {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	emails, _ := st.ListAllowedEmails(nil)
+	emails, _ := st.ListAllowedEmails(context.Background())
 	if len(emails) != 1 {
 		t.Fatalf("expected 1 email, got %d", len(emails))
 	}
@@ -186,17 +189,19 @@ func TestRemoveAllowedEmail(t *testing.T) {
 	router := newTestRouter(st)
 
 	manager := uuid.New()
-	st.AddAllowedEmail(nil, store.AddAllowedEmailParams{
+	if _, err := st.AddAllowedEmail(context.Background(),store.AddAllowedEmailParams{
 		Email: "rm@test.com",
 		Role:  store.RolePlayer,
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	rec := deleteJSONAs(t, router, "/api/v1/admin/allowed-emails/rm@test.com", manager, sharedmw.RoleManager)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	emails, _ := st.ListAllowedEmails(nil)
+	emails, _ := st.ListAllowedEmails(context.Background())
 	if len(emails) != 0 {
 		t.Fatalf("expected 0 emails, got %d", len(emails))
 	}
