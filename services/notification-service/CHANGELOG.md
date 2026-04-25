@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/notification-service-v0.2.0-alpha.1...notification-service-v0.3.0-alpha.1) (2026-04-25)
+
+
+### Features
+
+* **observability:** expose /metrics on auth, user, chat, rating, notification   services ([#83](https://github.com/BMogetta/recess/issues/83)) ([9b2c805](https://github.com/BMogetta/recess/commit/9b2c8054b5a4505fec57f70f0be3cd127b3b4bd6))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/notification-service-vv0.1.0-alpha.1...notification-service-vv0.2.0-alpha.1) (2026-04-20)
 
 
