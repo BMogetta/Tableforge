@@ -76,7 +76,7 @@ func handleJoinQueue(svc *queue.Service, flags featureflags.Checker) http.Handle
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("Retry-After", fmt.Sprintf("%d", banned.RetryAfterSecs))
 				w.WriteHeader(http.StatusTooManyRequests)
-				json.NewEncoder(w).Encode(map[string]any{
+				_ = json.NewEncoder(w).Encode(map[string]any{
 					"error":            "queue ban active",
 					"retry_after_secs": banned.RetryAfterSecs,
 				})
@@ -232,7 +232,7 @@ func handleResetPlayer(svc *queue.Service) http.HandlerFunc {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {

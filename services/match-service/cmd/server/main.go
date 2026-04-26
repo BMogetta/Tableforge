@@ -56,7 +56,7 @@ func main() {
 
 	// --- Redis ---------------------------------------------------------------
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	grpcOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -70,7 +70,7 @@ func main() {
 		slog.Error("failed to connect to rating-service", "error", err)
 		panic(err)
 	}
-	defer ratingConn.Close()
+	defer func() { _ = ratingConn.Close() }()
 	ratingClient := ratingv1.NewRatingServiceClient(ratingConn)
 	slog.Info("rating-service gRPC connected", "addr", ratingAddr)
 
@@ -81,7 +81,7 @@ func main() {
 		slog.Error("failed to connect to game-server", "error", err)
 		panic(err)
 	}
-	defer gameConn.Close()
+	defer func() { _ = gameConn.Close() }()
 	lobbyClient := lobbyv1.NewLobbyServiceClient(gameConn)
 	gameClient := gamev1.NewGameServiceClient(gameConn)
 	slog.Info("game-server gRPC connected", "addr", gameServerAddr)
@@ -92,9 +92,9 @@ func main() {
 	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr, Password: redisPass}
 
 	asynqClient := asynq.NewClient(asynqRedis)
-	defer asynqClient.Close()
+	defer func() { _ = asynqClient.Close() }()
 	asynqInspector := asynq.NewInspector(asynqRedis)
-	defer asynqInspector.Close()
+	defer func() { _ = asynqInspector.Close() }()
 
 	// --- Queue service -------------------------------------------------------
 	rankedGameID := config.Env("RANKED_GAME_ID", queue.DefaultRankedGameID)
