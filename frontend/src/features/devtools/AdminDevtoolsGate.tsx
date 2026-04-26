@@ -6,7 +6,9 @@ import { useCapability } from '@/features/auth/useCapability'
  * containing `TanStackRouterDevtoolsInProd` — if it doesn't, the prod
  * bundle loses the ability to debug router state for admins.
  */
-const AdminDevtoolsPanel = lazy(() => import('./AdminDevtoolsPanel'))
+const AdminDevtoolsPanel = lazy(() =>
+  import('./AdminDevtoolsPanel').then(m => ({ default: m.AdminDevtoolsPanel })),
+)
 
 /**
  * Renders the admin devtools panel only when the server says the current

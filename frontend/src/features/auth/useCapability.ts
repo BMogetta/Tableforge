@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { validatedRequest } from '@/lib/api'
 import { keys } from '@/lib/queryClient'
 import {
-  getMeCapabilitiesResponseSchema,
   type GetMeCapabilitiesResponse,
+  getMeCapabilitiesResponseSchema,
 } from '@/lib/schema-generated.zod'
 
 const EMPTY_CAPABILITIES: GetMeCapabilitiesResponse = {
@@ -28,8 +28,7 @@ const EMPTY_CAPABILITIES: GetMeCapabilitiesResponse = {
 export function useCapability() {
   const query = useQuery({
     queryKey: keys.capabilities(),
-    queryFn: () =>
-      validatedRequest(getMeCapabilitiesResponseSchema, '/auth/me/capabilities'),
+    queryFn: () => validatedRequest(getMeCapabilitiesResponseSchema, '/auth/me/capabilities'),
     staleTime: 5 * 60_000,
     retry: false,
   })

@@ -261,9 +261,7 @@ export function NewGamePanel({ gameList, effectiveGame, onGameChange, disabled }
                 {...testId('find-match-btn')}
                 className='btn btn-primary'
                 onClick={() => joinQueue.mutate()}
-                disabled={
-                  disabled || joinQueue.isPending || !effectiveGame || !rankedEnabled
-                }
+                disabled={disabled || joinQueue.isPending || !effectiveGame || !rankedEnabled}
               >
                 {joinQueue.isPending ? t('lobby.joiningMatch') : t('lobby.findMatch')}
               </button>
