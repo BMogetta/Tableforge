@@ -1,7 +1,7 @@
 {
   "services/game-server": "0.2.0-alpha.1",
   "services/auth-service": "0.3.0-alpha.1",
-  "services/user-service": "0.2.0-alpha.1",
+  "services/user-service": "0.3.0-alpha.1",
   "services/chat-service": "0.3.0-alpha.1",
   "services/rating-service": "0.2.0-alpha.1",
   "services/match-service": "0.2.0-alpha.1",
