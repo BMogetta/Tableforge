@@ -57,11 +57,7 @@ export function AchievementGrid({ achievements: progress, isLoading }: Props) {
   return (
     <>
       {trackingPaused && (
-        <div
-          className={styles.pausedBanner}
-          role="status"
-          {...testId('achievements-paused')}
-        >
+        <div className={styles.pausedBanner} role='status' {...testId('achievements-paused')}>
           {t('achievements.paused')}
         </div>
       )}

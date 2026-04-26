@@ -27,19 +27,19 @@
 /* Broadcast severity variants. Info reuses the default interactive palette
    (amber). Warning and error use distinct semantic tokens with stronger
    contrast so they're visibly different from each other and from info. */
-.banner[data-severity='warning'] {
+.banner[data-severity="warning"] {
   background: color-mix(in srgb, var(--color-warning) 35%, transparent);
   border-bottom: 2px solid var(--color-warning);
 }
-.banner[data-severity='warning'] .message {
+.banner[data-severity="warning"] .message {
   color: var(--color-text-primary);
 }
 
-.banner[data-severity='error'] {
+.banner[data-severity="error"] {
   background: color-mix(in srgb, var(--color-danger) 35%, transparent);
   border-bottom: 2px solid var(--color-danger);
 }
-.banner[data-severity='error'] .message {
+.banner[data-severity="error"] .message {
   color: var(--color-text-primary);
 }
 
