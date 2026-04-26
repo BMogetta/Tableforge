@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1-alpha.1](https://github.com/BMogetta/recess/compare/auth-service-v0.3.0-alpha.1...auth-service-v0.3.1-alpha.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* **auth-service:** bump pgx v5.9.1 to v5.9.2 (CVE GHSA-j88v-2chj-qfwx) ([a1bc7e4](https://github.com/BMogetta/recess/commit/a1bc7e4f4b2b507edb894e208bda675415bc8d80))
+
 ## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/auth-service-v0.2.0-alpha.1...auth-service-v0.3.0-alpha.1) (2026-04-25)
 
 
