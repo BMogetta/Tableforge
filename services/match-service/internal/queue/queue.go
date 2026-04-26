@@ -384,7 +384,7 @@ func (s *Service) Decline(ctx context.Context, playerID uuid.UUID, matchID uuid.
 // instance that acquires the lock does work.
 func (s *Service) FindAndPropose(ctx context.Context) {
 	// Acquire distributed lock.
-	ok, err := s.rdb.SetNX(ctx, keyMatchmakeLock, "1", lockTTL).Result()
+	ok, err := s.rdb.SetNX(ctx, keyMatchmakeLock, "1", lockTTL).Result() //nolint:staticcheck // SetNX is the idiomatic atomic lock primitive; SET ... NX would add noise without functional benefit
 	if err != nil || !ok {
 		return // another instance is processing
 	}
