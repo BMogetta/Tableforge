@@ -5,6 +5,11 @@
 # Convention: each service lists its own dir plus every shared/ subtree it actually imports.
 # Keep the lists flat (paths-filter does not flatten nested sequences) and in the same
 # order as the audit in the plan to make drift obvious.
+#
+# Note on shared/db: only `migrations/**` is wired in. The migrator image (Dockerfile,
+# entrypoint.sh, .dockerignore) and seeds/ are k8s-only artifacts that don't affect
+# Go service runtime or testcontainers-based tests, so they're intentionally excluded
+# from the per-service triggers.
 
 game-server:
   - 'services/game-server/**'
@@ -14,7 +19,7 @@ game-server:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
@@ -35,7 +40,7 @@ auth-service:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
@@ -49,7 +54,7 @@ user-service:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
@@ -65,7 +70,7 @@ chat-service:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
@@ -79,7 +84,7 @@ rating-service:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
@@ -95,7 +100,7 @@ match-service:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
@@ -115,7 +120,7 @@ notification-service:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
@@ -131,7 +136,7 @@ ws-gateway:
   - 'shared/telemetry/**'
   - 'shared/testutil/**'
   - 'shared/schemas/**'
-  - 'shared/db/**'
+  - 'shared/db/migrations/**'
   - 'shared/errors/**'
   - 'shared/go.mod'
   - 'shared/go.sum'
