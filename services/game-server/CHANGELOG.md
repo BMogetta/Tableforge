@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/game-server-v0.2.0-alpha.1...game-server-v0.3.0-alpha.1) (2026-04-27)
+
+
+### Features
+
+* **db:** golang-migrate Job + dev/prod seed split ([#101](https://github.com/BMogetta/recess/issues/101)) ([4551387](https://github.com/BMogetta/recess/commit/4551387cd6f2cc9353d968f4cc1a1b7951e1e88b))
+
+
+### Bug Fixes
+
+* **db:** clean up unresolved merge markers in Dockerfile ([#107](https://github.com/BMogetta/recess/issues/107)) ([a78a08b](https://github.com/BMogetta/recess/commit/a78a08b4294a618b7944d54704a8aeb321559bcd))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/game-server-vv0.1.0-alpha.1...game-server-vv0.2.0-alpha.1) (2026-04-20)
 
 
