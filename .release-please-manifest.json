@@ -5,7 +5,7 @@
   "services/chat-service": "0.3.0-alpha.1",
   "services/rating-service": "0.3.0-alpha.1",
   "services/match-service": "0.2.1-alpha.1",
-  "services/notification-service": "0.3.0-alpha.1",
+  "services/notification-service": "0.4.0-alpha.1",
   "services/ws-gateway": "0.2.0-alpha.1",
   "frontend": "0.2.0-alpha.1"
 }
