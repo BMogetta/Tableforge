@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1-alpha.1](https://github.com/BMogetta/recess/compare/frontend-v0.2.0-alpha.1...frontend-v0.2.1-alpha.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* **frontend:** wire VITE_APP_VERSION through to VersionBadge ([#109](https://github.com/BMogetta/recess/issues/109)) ([9078d70](https://github.com/BMogetta/recess/commit/9078d70fd6ce075d191a4b4adc179655a0068ab1))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/frontend-vv0.1.0-alpha.1...frontend-vv0.2.0-alpha.1) (2026-04-20)
 
 
