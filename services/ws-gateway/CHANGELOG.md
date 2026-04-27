@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/ws-gateway-v0.2.0-alpha.1...ws-gateway-v0.3.0-alpha.1) (2026-04-27)
+
+
+### Features
+
+* **db:** golang-migrate Job + dev/prod seed split ([#101](https://github.com/BMogetta/recess/issues/101)) ([4551387](https://github.com/BMogetta/recess/commit/4551387cd6f2cc9353d968f4cc1a1b7951e1e88b))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/ws-gateway-vv0.1.0-alpha.1...ws-gateway-vv0.2.0-alpha.1) (2026-04-20)
 
 
