@@ -178,7 +178,7 @@ func TestCreateRoom(t *testing.T) {
 	}
 
 	var view lobby.RoomView
-	json.NewDecoder(w.Body).Decode(&view)
+	_ = json.NewDecoder(w.Body).Decode(&view)
 	if view.Room.GameID != "chess" {
 		t.Errorf("expected game_id chess, got %s", view.Room.GameID)
 	}
@@ -214,7 +214,7 @@ func TestListRooms(t *testing.T) {
 		Items []lobby.RoomView `json:"items"`
 		Total int              `json:"total"`
 	}
-	json.NewDecoder(w.Body).Decode(&resp)
+	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if len(resp.Items) != 1 {
 		t.Errorf("expected 1 room, got %d", len(resp.Items))
 	}
@@ -233,7 +233,7 @@ func TestJoinRoom(t *testing.T) {
 		"player_id": owner.ID.String(),
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code":      view.Room.Code,
@@ -245,7 +245,7 @@ func TestJoinRoom(t *testing.T) {
 	}
 
 	var joined lobby.RoomView
-	json.NewDecoder(w.Body).Decode(&joined)
+	_ = json.NewDecoder(w.Body).Decode(&joined)
 	if len(joined.Players) != 2 {
 		t.Errorf("expected 2 players, got %d", len(joined.Players))
 	}
@@ -261,7 +261,7 @@ func TestStartGame(t *testing.T) {
 		"player_id": owner.ID.String(),
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code":      view.Room.Code,
@@ -288,7 +288,7 @@ func TestListPlayerSessions_Empty(t *testing.T) {
 	}
 
 	var sessions []store.GameSession
-	json.NewDecoder(w.Body).Decode(&sessions)
+	_ = json.NewDecoder(w.Body).Decode(&sessions)
 	if len(sessions) != 0 {
 		t.Errorf("expected 0 sessions, got %d", len(sessions))
 	}
@@ -305,7 +305,7 @@ func TestListPlayerSessions_WithActive(t *testing.T) {
 		"player_id": owner.ID.String(),
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code":      view.Room.Code,
@@ -322,7 +322,7 @@ func TestListPlayerSessions_WithActive(t *testing.T) {
 	}
 
 	var sessions []store.GameSession
-	json.NewDecoder(w.Body).Decode(&sessions)
+	_ = json.NewDecoder(w.Body).Decode(&sessions)
 	if len(sessions) != 1 {
 		t.Errorf("expected 1 session, got %d", len(sessions))
 	}
@@ -349,7 +349,7 @@ func TestGetPlayerStats(t *testing.T) {
 	}
 
 	var stats store.PlayerStats
-	json.NewDecoder(w.Body).Decode(&stats)
+	_ = json.NewDecoder(w.Body).Decode(&stats)
 	if stats.PlayerID != player.ID {
 		t.Errorf("expected player ID %s, got %s", player.ID, stats.PlayerID)
 	}
@@ -375,7 +375,7 @@ func TestCreateRoom_ActiveSessionBlocked(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -391,7 +391,7 @@ func TestCreateRoom_ActiveSessionBlocked(t *testing.T) {
 	}
 
 	var resp map[string]string
-	json.NewDecoder(w.Body).Decode(&resp)
+	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if resp["error"] != "active session exists" {
 		t.Errorf("expected error 'active session exists', got %q", resp["error"])
 	}
@@ -411,7 +411,7 @@ func TestJoinRoom_ActiveSessionBlocked(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -423,7 +423,7 @@ func TestJoinRoom_ActiveSessionBlocked(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view2 lobby.RoomView
-	json.NewDecoder(createResp2.Body).Decode(&view2)
+	_ = json.NewDecoder(createResp2.Body).Decode(&view2)
 
 	// Bob (who has an active session) tries to join — should be 409.
 	w := postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
@@ -434,7 +434,7 @@ func TestJoinRoom_ActiveSessionBlocked(t *testing.T) {
 	}
 
 	var resp map[string]string
-	json.NewDecoder(w.Body).Decode(&resp)
+	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if resp["error"] != "active session exists" {
 		t.Errorf("expected error 'active session exists', got %q", resp["error"])
 	}
@@ -452,7 +452,7 @@ func TestGetSessionHistory_Empty(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -460,7 +460,7 @@ func TestGetSessionHistory_Empty(t *testing.T) {
 	startResp := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", owner.ID, "player", map[string]string{})
 
 	var session store.GameSession
-	json.NewDecoder(startResp.Body).Decode(&session)
+	_ = json.NewDecoder(startResp.Body).Decode(&session)
 
 	w := getJSON(t, router, "/api/v1/sessions/"+session.ID.String()+"/history")
 
@@ -469,7 +469,7 @@ func TestGetSessionHistory_Empty(t *testing.T) {
 	}
 
 	var moves []store.Move
-	json.NewDecoder(w.Body).Decode(&moves)
+	_ = json.NewDecoder(w.Body).Decode(&moves)
 	if len(moves) != 0 {
 		t.Errorf("expected 0 moves, got %d", len(moves))
 	}

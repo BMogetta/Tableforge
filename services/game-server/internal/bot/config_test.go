@@ -10,10 +10,10 @@ import (
 
 func TestDefaultConfig_UsesMedianProfile(t *testing.T) {
 	// Clear any env vars that might affect the result.
-	os.Unsetenv("BOT_ITERATIONS")
-	os.Unsetenv("BOT_DETERMINIZATIONS")
-	os.Unsetenv("BOT_MAX_THINK_TIME")
-	os.Unsetenv("BOT_EXPLORATION_C")
+	_ = os.Unsetenv("BOT_ITERATIONS")
+	_ = os.Unsetenv("BOT_DETERMINIZATIONS")
+	_ = os.Unsetenv("BOT_MAX_THINK_TIME")
+	_ = os.Unsetenv("BOT_EXPLORATION_C")
 
 	cfg := bot.DefaultConfig()
 
@@ -32,15 +32,15 @@ func TestDefaultConfig_UsesMedianProfile(t *testing.T) {
 }
 
 func TestDefaultConfig_EnvVarsOverride(t *testing.T) {
-	os.Setenv("BOT_ITERATIONS", "999")
-	os.Setenv("BOT_DETERMINIZATIONS", "15")
-	os.Setenv("BOT_MAX_THINK_TIME", "3s")
-	os.Setenv("BOT_EXPLORATION_C", "1.2")
+	_ = os.Setenv("BOT_ITERATIONS", "999")
+	_ = os.Setenv("BOT_DETERMINIZATIONS", "15")
+	_ = os.Setenv("BOT_MAX_THINK_TIME", "3s")
+	_ = os.Setenv("BOT_EXPLORATION_C", "1.2")
 	defer func() {
-		os.Unsetenv("BOT_ITERATIONS")
-		os.Unsetenv("BOT_DETERMINIZATIONS")
-		os.Unsetenv("BOT_MAX_THINK_TIME")
-		os.Unsetenv("BOT_EXPLORATION_C")
+		_ = os.Unsetenv("BOT_ITERATIONS")
+		_ = os.Unsetenv("BOT_DETERMINIZATIONS")
+		_ = os.Unsetenv("BOT_MAX_THINK_TIME")
+		_ = os.Unsetenv("BOT_EXPLORATION_C")
 	}()
 
 	cfg := bot.DefaultConfig()
@@ -60,11 +60,11 @@ func TestDefaultConfig_EnvVarsOverride(t *testing.T) {
 }
 
 func TestDefaultConfig_InvalidEnvVarsIgnored(t *testing.T) {
-	os.Setenv("BOT_ITERATIONS", "not-a-number")
-	os.Setenv("BOT_MAX_THINK_TIME", "not-a-duration")
+	_ = os.Setenv("BOT_ITERATIONS", "not-a-number")
+	_ = os.Setenv("BOT_MAX_THINK_TIME", "not-a-duration")
 	defer func() {
-		os.Unsetenv("BOT_ITERATIONS")
-		os.Unsetenv("BOT_MAX_THINK_TIME")
+		_ = os.Unsetenv("BOT_ITERATIONS")
+		_ = os.Unsetenv("BOT_MAX_THINK_TIME")
 	}()
 
 	cfg := bot.DefaultConfig()
@@ -79,7 +79,7 @@ func TestDefaultConfig_InvalidEnvVarsIgnored(t *testing.T) {
 }
 
 func TestConfigFromProfile_KnownProfiles(t *testing.T) {
-	os.Unsetenv("BOT_MAX_THINK_TIME")
+	_ = os.Unsetenv("BOT_MAX_THINK_TIME")
 
 	profiles := []string{"easy", "medium", "hard", "aggressive"}
 	for _, name := range profiles {

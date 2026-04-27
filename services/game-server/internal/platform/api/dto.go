@@ -73,7 +73,7 @@ type MoveDTO struct {
 func moveToDTO(m store.Move) MoveDTO {
 	var payload interface{}
 	if len(m.Payload) > 0 {
-		json.Unmarshal(m.Payload, &payload)
+		_ = json.Unmarshal(m.Payload, &payload)
 	}
 	var stateAfter string
 	if len(m.StateAfter) > 0 {
@@ -103,7 +103,7 @@ type SessionEventDTO struct {
 func sessionEventToDTO(e events.Event) SessionEventDTO {
 	var payload interface{}
 	if len(e.Payload) > 0 {
-		json.Unmarshal(e.Payload, &payload)
+		_ = json.Unmarshal(e.Payload, &payload)
 	}
 	return SessionEventDTO{
 		ID:         e.ID,

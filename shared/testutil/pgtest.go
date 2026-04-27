@@ -20,17 +20,22 @@ func migrationsDir() string {
 	return filepath.Join(filepath.Dir(file), "..", "db", "migrations")
 }
 
-// Migration identifies a SQL migration file by name (e.g. "001_initial.sql").
+// Migration identifies a SQL migration file by name (e.g. "001_initial.up.sql").
+// Filenames carry the .up.sql suffix to match the golang-migrate format the
+// production migrator Job consumes (see shared/db/Dockerfile + the
+// db-migrations ArgoCD App). docker-compose's postgres entrypoint applies
+// any *.sql in /docker-entrypoint-initdb.d, so the same files are used in
+// every environment without copying.
 type Migration string
 
 const (
-	MigrationInitial      Migration = "001_initial.sql"
-	MigrationUserService  Migration = "002_user_service.sql"
-	MigrationRating       Migration = "003_rating_service.sql"
-	MigrationAdmin        Migration = "004_admin.sql"
-	MigrationRebrand      Migration = "005_rebrand_rootaccess.sql"
-	MigrationAchievements Migration = "006_achievements_update.sql"
-	MigrationBotProfile   Migration = "007_bot_profile.sql"
+	MigrationInitial      Migration = "001_initial.up.sql"
+	MigrationUserService  Migration = "002_user_service.up.sql"
+	MigrationRating       Migration = "003_rating_service.up.sql"
+	MigrationAdmin        Migration = "004_admin.up.sql"
+	MigrationRebrand      Migration = "005_rebrand_rootaccess.up.sql"
+	MigrationAchievements Migration = "006_achievements_update.up.sql"
+	MigrationBotProfile   Migration = "007_bot_profile.up.sql"
 )
 
 // NewTestDB spins up a Postgres container, runs the requested migrations,

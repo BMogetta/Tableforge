@@ -69,14 +69,14 @@ func main() {
 	defer st.Close()
 
 	rdb := sharedredis.Connect(ctx, config.Env("REDIS_URL", "redis://localhost:6379"))
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	userClient, err := userclient.New(userServiceAddr)
 	if err != nil {
 		slog.Error("failed to connect to user-service", "error", err)
 		os.Exit(1)
 	}
-	defer userClient.Close()
+	defer func() { _ = userClient.Close() }()
 	slog.Info("user-service gRPC connected", "addr", userServiceAddr)
 
 	eventStore := events.New(rdb, st)
@@ -95,9 +95,9 @@ func main() {
 	asynqRedis := asynq.RedisClientOpt{Addr: redisAddr, Password: redisPass}
 
 	asynqClient := asynq.NewClient(asynqRedis)
-	defer asynqClient.Close()
+	defer func() { _ = asynqClient.Close() }()
 	asynqInspector := asynq.NewInspector(asynqRedis)
-	defer asynqInspector.Close()
+	defer func() { _ = asynqInspector.Close() }()
 
 	timer := runtime.NewAsynqTimer(asynqClient, asynqInspector)
 	runtimeService.SetTimer(timer)
@@ -186,7 +186,7 @@ func main() {
 		flags,
 	)
 
-	var handler http.Handler = router
+	var handler http.Handler = router //nolint:staticcheck // explicit type documents handler chain
 	if limiter != nil {
 		handler = limiter.Middleware(router)
 	}

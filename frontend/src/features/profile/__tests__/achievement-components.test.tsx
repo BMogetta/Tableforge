@@ -226,9 +226,7 @@ describe('AchievementGrid', () => {
     flagState.achievementsEnabled = false
     try {
       renderGrid([], false)
-      await waitFor(() =>
-        expect(screen.getByTestId('achievements-paused')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByTestId('achievements-paused')).toBeInTheDocument())
       // Grid itself still renders — existing progress stays visible.
       expect(screen.getByTestId('achievement-grid')).toBeInTheDocument()
     } finally {
@@ -241,9 +239,7 @@ describe('AchievementGrid', () => {
     flagState.achievementsEnabled = false
     try {
       renderGrid([], false)
-      await waitFor(() =>
-        expect(screen.getByTestId('achievement-grid')).toBeInTheDocument(),
-      )
+      await waitFor(() => expect(screen.getByTestId('achievement-grid')).toBeInTheDocument())
       // Cold-start: avoid flashing a paused banner even if the flag happens
       // to evaluate OFF before the first fetch.
       expect(screen.queryByTestId('achievements-paused')).not.toBeInTheDocument()

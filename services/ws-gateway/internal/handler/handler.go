@@ -125,7 +125,7 @@ func RoomHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, gc
 		}
 
 		if !spectator && ps != nil {
-			ps.Set(ctx, playerID)
+			_ = ps.Set(ctx, playerID)
 
 			// Publish presence_on to the room channel.
 			h.Publish(ctx, roomID, hub.Event{
@@ -244,7 +244,7 @@ func PlayerHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, 
 			}
 
 			if !spectator && ps != nil {
-				ps.Set(rctx, c.PlayerID)
+				_ = ps.Set(rctx, c.PlayerID)
 				h.Publish(rctx, roomID, hub.Event{
 					Type: sharedws.EventPresenceUpdate,
 					Payload: map[string]any{
@@ -291,7 +291,7 @@ func PlayerHandler(h *hub.Hub, ps *presence.Store, uc userv1.UserServiceClient, 
 				})
 			}
 			if !spectator && ps != nil {
-				ps.Del(context.Background(), c.PlayerID)
+				_ = ps.Del(context.Background(), c.PlayerID)
 				h.Publish(context.Background(), roomID, hub.Event{
 					Type: sharedws.EventPresenceUpdate,
 					Payload: map[string]any{
@@ -355,7 +355,7 @@ func PresenceHandler(ps *presence.Store) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
+		_ = json.NewEncoder(w).Encode(result)
 	}
 }
 

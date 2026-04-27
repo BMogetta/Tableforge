@@ -158,7 +158,7 @@ func TestListAndCountWaitingRooms(t *testing.T) {
 	owner, _ := s.CreatePlayer(ctx, "listowner")
 
 	for i := 0; i < 3; i++ {
-		s.CreateRoom(ctx, store.CreateRoomParams{
+		_, _ = s.CreateRoom(ctx, store.CreateRoomParams{
 			Code: uuid.NewString()[:8], GameID: "chess", OwnerID: owner.ID, MaxPlayers: 2,
 		})
 	}
@@ -186,7 +186,7 @@ func TestListWaitingRooms_Pagination(t *testing.T) {
 
 	owner, _ := s.CreatePlayer(ctx, "pageowner")
 	for i := 0; i < 5; i++ {
-		s.CreateRoom(ctx, store.CreateRoomParams{
+		_, _ = s.CreateRoom(ctx, store.CreateRoomParams{
 			Code: uuid.NewString()[:8], GameID: "chess", OwnerID: owner.ID, MaxPlayers: 2,
 		})
 	}
@@ -252,7 +252,7 @@ func TestDeleteRoom(t *testing.T) {
 	room, _ := s.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "HDEL0001", GameID: "chess", OwnerID: owner.ID, MaxPlayers: 2,
 	})
-	s.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
+	_ = s.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
 
 	if err := s.DeleteRoom(ctx, room.ID); err != nil {
 		t.Fatalf("DeleteRoom: %v", err)
@@ -371,7 +371,7 @@ func TestGetActiveSessionByRoom(t *testing.T) {
 	}
 
 	// After finishing, no active session.
-	s.FinishSession(ctx, session.ID)
+	_ = s.FinishSession(ctx, session.ID)
 	_, err = s.GetActiveSessionByRoom(ctx, room.ID)
 	if err == nil {
 		t.Error("expected error for no active session")
@@ -475,7 +475,7 @@ func TestCountFinishedSessions(t *testing.T) {
 	}
 
 	sess := createSession(t, s, room.ID)
-	s.FinishSession(ctx, sess.ID)
+	_ = s.FinishSession(ctx, sess.ID)
 
 	count, _ = s.CountFinishedSessions(ctx, room.ID)
 	if count != 1 {
@@ -490,10 +490,10 @@ func TestGetLastFinishedSession(t *testing.T) {
 	_, _, room := setupRoom(t, s)
 
 	sess1 := createSession(t, s, room.ID)
-	s.FinishSession(ctx, sess1.ID)
+	_ = s.FinishSession(ctx, sess1.ID)
 
 	sess2 := createSession(t, s, room.ID)
-	s.FinishSession(ctx, sess2.ID)
+	_ = s.FinishSession(ctx, sess2.ID)
 
 	last, err := s.GetLastFinishedSession(ctx, room.ID)
 	if err != nil {
@@ -556,7 +556,7 @@ func TestListSessionsNeedingTimer_ExcludesSuspended(t *testing.T) {
 
 	_, _, room := setupRoom(t, s)
 	sess := createSessionWithTimeout(t, s, room.ID, 30)
-	s.SuspendSession(ctx, sess.ID, "test")
+	_ = s.SuspendSession(ctx, sess.ID, "test")
 
 	sessions, _ := s.ListSessionsNeedingTimer(ctx)
 	for _, gs := range sessions {
@@ -627,7 +627,7 @@ func TestListPlayerHistory(t *testing.T) {
 	owner, guest, room := setupRoom(t, s)
 	session := createSession(t, s, room.ID)
 
-	s.CreateGameResult(ctx, store.CreateGameResultParams{
+	_, _ = s.CreateGameResult(ctx, store.CreateGameResultParams{
 		SessionID: session.ID, GameID: "tictactoe",
 		WinnerID: &owner.ID, EndedBy: store.EndedByNormal,
 		Players: []store.GameResultPlayer{
@@ -652,7 +652,7 @@ func TestListPlayerMatchesAndCount(t *testing.T) {
 	owner, guest, room := setupRoom(t, s)
 	session := createSession(t, s, room.ID)
 
-	s.CreateGameResult(ctx, store.CreateGameResultParams{
+	_, _ = s.CreateGameResult(ctx, store.CreateGameResultParams{
 		SessionID: session.ID, GameID: "tictactoe",
 		WinnerID: &owner.ID, EndedBy: store.EndedByNormal,
 		Players: []store.GameResultPlayer{
@@ -777,8 +777,8 @@ func TestPauseVoteIdempotent(t *testing.T) {
 	owner, _, room := setupRoom(t, s)
 	session := createSession(t, s, room.ID)
 
-	s.VotePause(ctx, session.ID, owner.ID)
-	s.VotePause(ctx, session.ID, owner.ID) // idempotent
+	_, _ = s.VotePause(ctx, session.ID, owner.ID)
+	_, _ = s.VotePause(ctx, session.ID, owner.ID) // idempotent
 
 	count, _ := s.CountPauseVotes(ctx, session.ID)
 	if count != 1 {
@@ -808,7 +808,7 @@ func TestResumeVotes(t *testing.T) {
 		t.Error("expected allVoted=true")
 	}
 
-	s.ClearResumeVotes(ctx, session.ID)
+	_ = s.ClearResumeVotes(ctx, session.ID)
 	count, _ = s.CountResumeVotes(ctx, session.ID)
 	if count != 0 {
 		t.Errorf("expected 0 after clear, got %d", count)
@@ -825,8 +825,8 @@ func TestPauseVotesExcludeBots(t *testing.T) {
 	room, _ := s.CreateRoom(ctx, store.CreateRoomParams{
 		Code: uuid.NewString()[:8], GameID: "tictactoe", OwnerID: human.ID, MaxPlayers: 2,
 	})
-	s.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
-	s.AddPlayerToRoom(ctx, room.ID, bot.ID, 1)
+	_ = s.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
+	_ = s.AddPlayerToRoom(ctx, room.ID, bot.ID, 1)
 
 	session := createSession(t, s, room.ID)
 
@@ -846,7 +846,7 @@ func TestForceCloseSession(t *testing.T) {
 
 	_, _, room := setupRoom(t, s)
 	session := createSession(t, s, room.ID)
-	s.SuspendSession(ctx, session.ID, "test")
+	_ = s.SuspendSession(ctx, session.ID, "test")
 
 	if err := s.ForceCloseSession(ctx, session.ID); err != nil {
 		t.Fatalf("ForceCloseSession: %v", err)
@@ -867,7 +867,7 @@ func TestForceCloseSession_AlreadyFinished(t *testing.T) {
 
 	_, _, room := setupRoom(t, s)
 	session := createSession(t, s, room.ID)
-	s.FinishSession(ctx, session.ID)
+	_ = s.FinishSession(ctx, session.ID)
 
 	err := s.ForceCloseSession(ctx, session.ID)
 	if err == nil {
@@ -914,8 +914,8 @@ func TestReadyVoteIdempotent(t *testing.T) {
 	owner, _, room := setupRoom(t, s)
 	session := createSession(t, s, room.ID)
 
-	s.VoteReady(ctx, session.ID, owner.ID)
-	s.VoteReady(ctx, session.ID, owner.ID)
+	_, _ = s.VoteReady(ctx, session.ID, owner.ID)
+	_, _ = s.VoteReady(ctx, session.ID, owner.ID)
 
 	fetched, _ := s.GetGameSession(ctx, session.ID)
 	if len(fetched.ReadyPlayers) != 1 {
@@ -929,7 +929,7 @@ func TestClearReadyVotes(t *testing.T) {
 
 	owner, _, room := setupRoom(t, s)
 	session := createSession(t, s, room.ID)
-	s.VoteReady(ctx, session.ID, owner.ID)
+	_, _ = s.VoteReady(ctx, session.ID, owner.ID)
 
 	if err := s.ClearReadyVotes(ctx, session.ID); err != nil {
 		t.Fatalf("ClearReadyVotes: %v", err)
@@ -951,8 +951,8 @@ func TestReadyVotesExcludeBots(t *testing.T) {
 	room, _ := s.CreateRoom(ctx, store.CreateRoomParams{
 		Code: uuid.NewString()[:8], GameID: "tictactoe", OwnerID: human.ID, MaxPlayers: 2,
 	})
-	s.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
-	s.AddPlayerToRoom(ctx, room.ID, bot.ID, 1)
+	_ = s.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
+	_ = s.AddPlayerToRoom(ctx, room.ID, bot.ID, 1)
 
 	session := createSession(t, s, room.ID)
 
@@ -993,7 +993,7 @@ func TestBulkCreateAndListSessionEvents(t *testing.T) {
 	}
 
 	// Idempotent — re-insert should not create duplicates.
-	s.BulkCreateSessionEvents(ctx, events)
+	_ = s.BulkCreateSessionEvents(ctx, events)
 	fetched, _ = s.ListSessionEvents(ctx, session.ID)
 	if len(fetched) != 2 {
 		t.Errorf("expected 2 events after idempotent re-insert, got %d", len(fetched))
@@ -1059,7 +1059,7 @@ func TestCleanupOrphanRooms(t *testing.T) {
 	owner, _ := s.CreatePlayer(ctx, "cleanupowner")
 
 	// Create a waiting room with no players (orphan).
-	s.CreateRoom(ctx, store.CreateRoomParams{
+	_, _ = s.CreateRoom(ctx, store.CreateRoomParams{
 		Code: uuid.NewString()[:8], GameID: "chess", OwnerID: owner.ID, MaxPlayers: 2,
 	})
 

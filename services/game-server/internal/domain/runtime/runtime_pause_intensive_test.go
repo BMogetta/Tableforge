@@ -53,7 +53,7 @@ func makeSession(t *testing.T, fs *testutil.FakeStore, players ...store.Player) 
 		Code: uuid.NewString()[:8], GameID: "tictactoe", OwnerID: players[0].ID, MaxPlayers: len(players),
 	})
 	for i, p := range players {
-		fs.AddPlayerToRoom(ctx, room.ID, p.ID, i)
+		_ = fs.AddPlayerToRoom(ctx, room.ID, p.ID, i)
 	}
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(players[0].ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
@@ -68,7 +68,7 @@ func makeSessionWithTimeout(t *testing.T, fs *testutil.FakeStore, timeout int, p
 		Code: uuid.NewString()[:8], GameID: "tictactoe", OwnerID: players[0].ID, MaxPlayers: len(players),
 	})
 	for i, p := range players {
-		fs.AddPlayerToRoom(ctx, room.ID, p.ID, i)
+		_ = fs.AddPlayerToRoom(ctx, room.ID, p.ID, i)
 	}
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(players[0].ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
@@ -87,7 +87,7 @@ func TestPauseResumePause_FullCycle(t *testing.T) {
 	session := makeSessionWithTimeout(t, fs, 30, p1, p2)
 
 	// Pause: both vote.
-	svc.VotePause(ctx, session.ID, p1.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p1.ID)
 	result, _ := svc.VotePause(ctx, session.ID, p2.ID)
 	if !result.AllVoted {
 		t.Fatal("expected pause consensus")
@@ -99,7 +99,7 @@ func TestPauseResumePause_FullCycle(t *testing.T) {
 	}
 
 	// Resume: both vote.
-	svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 	result, _ = svc.VoteResume(ctx, session.ID, p2.ID)
 	if !result.AllVoted {
 		t.Fatal("expected resume consensus")
@@ -121,7 +121,7 @@ func TestPauseResumePause_FullCycle(t *testing.T) {
 	}
 
 	// Second pause cycle.
-	svc.VotePause(ctx, session.ID, p1.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p1.ID)
 	result, _ = svc.VotePause(ctx, session.ID, p2.ID)
 	if !result.AllVoted {
 		t.Fatal("expected second pause consensus")
@@ -142,8 +142,8 @@ func TestPause_VoteCountResetAfterConsensus(t *testing.T) {
 	session := makeSession(t, fs, p1, p2)
 
 	// Achieve pause consensus.
-	svc.VotePause(ctx, session.ID, p1.ID)
-	svc.VotePause(ctx, session.ID, p2.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p1.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p2.ID)
 
 	// Vote count should be 0 after clear (consensus clears votes).
 	count := len(fs.PauseVoteMap[session.ID])
@@ -159,10 +159,10 @@ func TestResume_VoteCountResetAfterConsensus(t *testing.T) {
 	p1, _ := fs.CreatePlayer(ctx, "resreset1")
 	p2, _ := fs.CreatePlayer(ctx, "resreset2")
 	session := makeSession(t, fs, p1, p2)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
-	svc.VoteResume(ctx, session.ID, p1.ID)
-	svc.VoteResume(ctx, session.ID, p2.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p2.ID)
 
 	count := len(fs.ResumeVoteMap[session.ID])
 	if count != 0 {
@@ -178,7 +178,7 @@ func TestPause_MoveBlockedDuringSuspend(t *testing.T) {
 	session := makeSession(t, fs, p1)
 
 	// Pause with single player.
-	svc.VotePause(ctx, session.ID, p1.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p1.ID)
 
 	// Move should be blocked.
 	_, err := svc.ApplyMove(ctx, session.ID, p1.ID, map[string]any{"cell": 0})
@@ -195,8 +195,8 @@ func TestResume_MoveAllowedAfterResume(t *testing.T) {
 	session := makeSession(t, fs, p1)
 
 	// Pause and resume.
-	svc.VotePause(ctx, session.ID, p1.ID)
-	svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 
 	// Move should work.
 	_, err := svc.ApplyMove(ctx, session.ID, p1.ID, map[string]any{"cell": 0})
@@ -235,7 +235,7 @@ func TestResume_DuplicateVoteDoesNotDoubleCount(t *testing.T) {
 	p1, _ := fs.CreatePlayer(ctx, "resdup1")
 	p2, _ := fs.CreatePlayer(ctx, "resdup2")
 	session := makeSession(t, fs, p1, p2)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
 	r1, _ := svc.VoteResume(ctx, session.ID, p1.ID)
 	r2, _ := svc.VoteResume(ctx, session.ID, p1.ID)
@@ -286,7 +286,7 @@ func TestResume_BotExcludedFromVoteCount(t *testing.T) {
 	bp := makeBotPlayer(t, bot.ID)
 	svc.RegisterBot(bp)
 
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
 	result, err := svc.VoteResume(ctx, session.ID, human.ID)
 	if err != nil {
@@ -330,7 +330,7 @@ func TestPause_CancelsTimer(t *testing.T) {
 	p1, _ := fs.CreatePlayer(ctx, "timerpause1")
 	session := makeSessionWithTimeout(t, fs, 60, p1)
 
-	svc.VotePause(ctx, session.ID, p1.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p1.ID)
 
 	if len(timer.Cancelled) == 0 {
 		t.Fatal("expected timer cancel on pause")
@@ -348,7 +348,7 @@ func TestPause_NoCancelWhenNoConsensus(t *testing.T) {
 	p2, _ := fs.CreatePlayer(ctx, "nocancel2")
 	session := makeSessionWithTimeout(t, fs, 60, p1, p2)
 
-	svc.VotePause(ctx, session.ID, p1.ID)
+	_, _ = svc.VotePause(ctx, session.ID, p1.ID)
 
 	if len(timer.Cancelled) != 0 {
 		t.Error("should not cancel timer without consensus")
@@ -361,9 +361,9 @@ func TestResume_ReschedulesWithPenalty(t *testing.T) {
 
 	p1, _ := fs.CreatePlayer(ctx, "penalty1")
 	session := makeSessionWithTimeout(t, fs, 60, p1)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
-	svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 
 	if len(timer.ScheduledIn) != 1 {
 		t.Fatalf("expected 1 ScheduleIn, got %d", len(timer.ScheduledIn))
@@ -380,9 +380,9 @@ func TestResume_NoTimerWhenNoTimeout(t *testing.T) {
 
 	p1, _ := fs.CreatePlayer(ctx, "notimer1")
 	session := makeSession(t, fs, p1) // no timeout
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
-	svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 
 	if len(timer.ScheduledIn) != 0 {
 		t.Error("should not schedule timer when session has no timeout")
@@ -395,9 +395,9 @@ func TestResume_LastMoveAtAdjusted(t *testing.T) {
 
 	p1, _ := fs.CreatePlayer(ctx, "lastmove1")
 	session := makeSessionWithTimeout(t, fs, 60, p1)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
-	svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 
 	gs, _ := fs.GetGameSession(ctx, session.ID)
 	elapsed := time.Since(gs.LastMoveAt)
@@ -445,7 +445,7 @@ func TestResume_CannotPauseSuspendedSession(t *testing.T) {
 
 	p1, _ := fs.CreatePlayer(ctx, "alrpaused1")
 	session := makeSession(t, fs, p1)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
 	_, err := svc.VotePause(ctx, session.ID, p1.ID)
 	if err != runtime.ErrAlreadyPaused {
@@ -459,7 +459,7 @@ func TestPauseResume_FinishedSessionBlocksBoth(t *testing.T) {
 
 	p1, _ := fs.CreatePlayer(ctx, "fin1")
 	session := makeSession(t, fs, p1)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, err := svc.VotePause(ctx, session.ID, p1.ID)
 	if err != runtime.ErrGameOver {
@@ -467,7 +467,7 @@ func TestPauseResume_FinishedSessionBlocksBoth(t *testing.T) {
 	}
 
 	// Manually set suspended to test resume on finished+suspended.
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 	_, err = svc.VoteResume(ctx, session.ID, p1.ID)
 	if err != runtime.ErrGameOver {
 		t.Errorf("VoteResume on finished: expected ErrGameOver, got %v", err)
@@ -505,9 +505,9 @@ func TestResume_PenaltyCalculation_ShortTimeout(t *testing.T) {
 
 	p1, _ := fs.CreatePlayer(ctx, "shortpen1")
 	session := makeSessionWithTimeout(t, fs, 10, p1)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
-	svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 
 	if len(timer.ScheduledIn) != 1 {
 		t.Fatal("expected timer schedule")
@@ -524,9 +524,9 @@ func TestResume_PenaltyCalculation_LargeTimeout(t *testing.T) {
 
 	p1, _ := fs.CreatePlayer(ctx, "largepen1")
 	session := makeSessionWithTimeout(t, fs, 300, p1)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
-	svc.VoteResume(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 
 	expected := time.Duration(float64(300)*0.4) * time.Second // 120s
 	if timer.ScheduledIn[0].Delay != expected {
@@ -545,8 +545,8 @@ func TestPauseResumeMultipleCycles_TimerConsistency(t *testing.T) {
 	session := makeSessionWithTimeout(t, fs, 60, p1)
 
 	for i := 0; i < 3; i++ {
-		svc.VotePause(ctx, session.ID, p1.ID)
-		svc.VoteResume(ctx, session.ID, p1.ID)
+		_, _ = svc.VotePause(ctx, session.ID, p1.ID)
+		_, _ = svc.VoteResume(ctx, session.ID, p1.ID)
 	}
 
 	// Should have 3 cancels (one per pause) and 3 ScheduleIn (one per resume).

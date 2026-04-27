@@ -311,7 +311,7 @@ func TestJoinQueue_Banned(t *testing.T) {
 
 	playerID := uuid.New()
 	banKey := "queue:ban:" + playerID.String()
-	mr.Set(banKey, "1")
+	_ = mr.Set(banKey, "1")
 	mr.SetTTL(banKey, 120*time.Second)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/queue", nil)
@@ -404,7 +404,7 @@ func TestAcceptMatch_NotParticipant(t *testing.T) {
 
 	// Inject pending match directly via miniredis
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 	rdb.HSet(context.Background(), "queue:pending:"+matchID.String(), map[string]any{
 		"player_a": playerA.String(), "player_b": playerB.String(),
 		"accepted_a": "0", "accepted_b": "0",
@@ -455,7 +455,7 @@ func TestDeclineMatch_NotParticipant(t *testing.T) {
 	outsider := uuid.New()
 
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 	rdb.HSet(context.Background(), "queue:pending:"+matchID.String(), map[string]any{
 		"player_a": playerA.String(), "player_b": playerB.String(),
 		"accepted_a": "0", "accepted_b": "0",
@@ -542,7 +542,7 @@ func TestResetPlayer_ClearsBanAndDeclines(t *testing.T) {
 
 	playerID := uuid.New()
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	ctx := context.Background()
 	rdb.Set(ctx, "queue:ban:"+playerID.String(), "1", 5*time.Minute)

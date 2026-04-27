@@ -124,7 +124,6 @@
   gap: var(--space-2);
 }
 
-
 /* Queue status card — shown while searching for a match */
 .queueStatus {
   padding: var(--space-4);

@@ -29,15 +29,15 @@ func TestGetSessionAndState_FinishedWithResult(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "STAT0001", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{"board": "empty"}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
 
 	// Finish session and create a game result
-	fs.FinishSession(ctx, session.ID)
-	fs.CreateGameResult(ctx, store.CreateGameResultParams{
+	_ = fs.FinishSession(ctx, session.ID)
+	_, _ = fs.CreateGameResult(ctx, store.CreateGameResultParams{
 		SessionID: session.ID,
 		GameID:    "tictactoe",
 		WinnerID:  &p1.ID,
@@ -72,7 +72,7 @@ func TestGetSessionAndState_ActiveSession_NoResult(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "STAT0002", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -94,11 +94,11 @@ func TestApplyMove_Suspended(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "SUSP0001", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.SuspendSession(ctx, session.ID, "pause_vote")
+	_ = fs.SuspendSession(ctx, session.ID, "pause_vote")
 
 	_, err := svc.ApplyMove(ctx, session.ID, p1.ID, map[string]any{})
 	if !errors.Is(err, runtime.ErrSuspended) {

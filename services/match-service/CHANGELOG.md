@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1-alpha.1](https://github.com/BMogetta/recess/compare/match-service-v0.2.0-alpha.1...match-service-v0.2.1-alpha.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* **match-service:** bump otelgrpc 0.60 to 0.68 and clear lint ([a5759eb](https://github.com/BMogetta/recess/commit/a5759ebd0668dda416e47943b28555f497301138))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/match-service-vv0.1.0-alpha.1...match-service-vv0.2.0-alpha.1) (2026-04-20)
 
 

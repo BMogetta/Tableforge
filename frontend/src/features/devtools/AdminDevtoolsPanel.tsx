@@ -34,7 +34,7 @@ function WsCapture() {
   return null
 }
 
-export default function AdminDevtoolsPanel() {
+export function AdminDevtoolsPanel() {
   const router = useRouter()
 
   return (

@@ -153,7 +153,7 @@ func (c *Consumer) seenEvent(ctx context.Context, eventID string) (bool, error) 
 	if eventID == "" || c.rdb == nil {
 		return false, nil
 	}
-	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result()
+	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result() //nolint:staticcheck // SetNX is the idiomatic atomic primitive; SET ... NX would add noise without functional benefit
 	if err != nil {
 		return false, err
 	}

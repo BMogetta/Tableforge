@@ -18,7 +18,7 @@ vi.mock('@/features/auth/useCapability', () => ({
 // a trivial marker so the test just verifies the Suspense resolves when the
 // gate opens. The real panel is exercised in E2E.
 vi.mock('../AdminDevtoolsPanel', () => ({
-  default: () => <div data-testid="admin-devtools-panel">panel</div>,
+  AdminDevtoolsPanel: () => <div data-testid='admin-devtools-panel'>panel</div>,
 }))
 
 describe('AdminDevtoolsGate', () => {
