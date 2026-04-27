@@ -7,8 +7,13 @@ RUN npm ci
 COPY . .
 ARG VITE_TEST_MODE=false
 ENV VITE_TEST_MODE=$VITE_TEST_MODE
-ARG APP_VERSION=unknown
-ENV APP_VERSION=$APP_VERSION
+# Vite only inlines env vars prefixed with VITE_ at build time. The previous
+# ARG/ENV pair was named APP_VERSION (no prefix) → Vite ignored it → the
+# bundle contained `import.meta.env.VITE_APP_VERSION = undefined` and the
+# VersionBadge component fell back to "unknown" in every deployed image.
+# Renamed to match the prefix Vite recognises.
+ARG VITE_APP_VERSION=unknown
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
 RUN npm run build
 
 FROM nginx:alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
