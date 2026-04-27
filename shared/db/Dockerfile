@@ -14,11 +14,16 @@
 # `migrate up` is idempotent (tracks state in `schema_migrations` table),
 # so re-runs on every sync are safe no-ops when there's nothing pending.
 
+<<<<<<< fix/db-migrate-arm64
 # Stage 1: extract migrate binary. Multi-arch image — let buildkit resolve
 # the manifest matching $TARGETPLATFORM (arm64 on the Pi). Pinning to
 # $BUILDPLATFORM here was a bug: it pulled the runner-native amd64 binary
 # even when targeting arm64, producing "exec format error" at runtime.
 FROM migrate/migrate:v4.19.1@sha256:cc4ad8e19d66791e3689405d9a028ce6e9614f32032db14acda1469f7201d6e4 AS migrate-bin
+=======
+# Stage 1: extract migrate binary from official image (multi-arch).
+FROM --platform=$BUILDPLATFORM migrate/migrate:v4.19.1@sha256:cc4ad8e19d66791e3689405d9a028ce6e9614f32032db14acda1469f7201d6e4 AS migrate-bin
+>>>>>>> main
 
 # Stage 2: minimal runtime with psql + the migrate binary.
 FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
