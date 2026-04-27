@@ -12,8 +12,7 @@
 
 export const flagsConfig = {
   url: import.meta.env.VITE_UNLEASH_URL ?? 'http://unleash.localhost/api/frontend',
-  clientKey:
-    import.meta.env.VITE_UNLEASH_CLIENT_KEY ?? '*:*.unleash-insecure-api-token',
+  clientKey: import.meta.env.VITE_UNLEASH_CLIENT_KEY ?? '*:*.unleash-insecure-api-token',
   appName: 'frontend',
   environment: import.meta.env.VITE_UNLEASH_ENV ?? 'development',
   refreshInterval: 15,

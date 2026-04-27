@@ -17,7 +17,7 @@ func newTestStore(t *testing.T) (*Store, *redis.Client, *miniredis.Miniredis, *t
 	t.Helper()
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	t.Cleanup(func() { _ = rdb.Close() })
 	fs := testutil.NewFakeStore()
 	s := New(rdb, fs)
 	return s, rdb, mr, fs

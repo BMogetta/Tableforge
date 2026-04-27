@@ -12,7 +12,9 @@ const gatewayState: {
   emit: (event: { type: string; payload: unknown }) => void
 } = {
   handlers: new Set(),
-  emit: e => gatewayState.handlers.forEach(h => h(e)),
+  emit: e => {
+    for (const h of gatewayState.handlers) h(e)
+  },
 }
 
 vi.mock('@/stores/socketStore', () => ({

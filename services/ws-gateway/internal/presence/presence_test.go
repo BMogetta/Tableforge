@@ -21,7 +21,7 @@ func TestKey(t *testing.T) {
 
 func TestListOnline_Empty(t *testing.T) {
 	s := &Store{} // rdb is nil but won't be called for empty slice
-	result, err := s.ListOnline(nil, []uuid.UUID{})
+	result, err := s.ListOnline(context.TODO(), []uuid.UUID{})
 	if err != nil {
 		t.Fatalf("ListOnline empty: %v", err)
 	}

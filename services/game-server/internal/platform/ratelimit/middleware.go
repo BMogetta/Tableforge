@@ -84,7 +84,7 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 		if !allowed {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusTooManyRequests)
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"error":    "rate limit exceeded",
 				"reset_at": reset,
 			})

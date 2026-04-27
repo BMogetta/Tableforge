@@ -72,8 +72,8 @@ func makeActiveSession(t *testing.T, fs *testutil.FakeStore, playerID uuid.UUID)
 		OwnerID:    owner.ID,
 		MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, playerID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, playerID, 1)
 
 	// Use the real tictactoe game to generate a valid initial state.
 	game := &tictactoe.TicTacToe{}
@@ -148,7 +148,7 @@ func TestMaybeFireBot_NoopWhenSessionFinished(t *testing.T) {
 	session := makeActiveSession(t, fs, botID)
 
 	// Mark session as finished before firing bot.
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	bp := makeBotPlayer(t, botID)
 	svc.RegisterBot(bp)
@@ -171,7 +171,7 @@ func TestMaybeFireBot_NoopWhenSessionSuspended(t *testing.T) {
 	botID := uuid.New()
 	session := makeActiveSession(t, fs, botID)
 
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
 	bp := makeBotPlayer(t, botID)
 	svc.RegisterBot(bp)
@@ -200,8 +200,8 @@ func TestMaybeFireBot_NoopWhenNotBotsTurn(t *testing.T) {
 		OwnerID:    owner.ID,
 		MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, botID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, botID, 1)
 
 	// Current player is otherPlayerID, not botID.
 	state := engine.GameState{

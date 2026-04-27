@@ -131,7 +131,7 @@ func main() {
 			os.Exit(2)
 		}
 		rdb = redis.NewClient(opt)
-		defer rdb.Close()
+		defer func() { _ = rdb.Close() }()
 		if err := rdb.Ping(ctx).Err(); err != nil {
 			log.Error("redis ping failed", "error", err)
 			os.Exit(1)
@@ -252,7 +252,7 @@ func resolveBotIDs(ctx context.Context, dbURL string, specs []botSpec) (map[stri
 	if err != nil {
 		return nil, fmt.Errorf("pg connect: %w", err)
 	}
-	defer conn.Close(ctx)
+	defer func() { _ = conn.Close(ctx) }()
 
 	usernames := make([]string, len(specs))
 	for i, s := range specs {

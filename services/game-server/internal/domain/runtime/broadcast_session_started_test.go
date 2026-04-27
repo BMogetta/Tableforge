@@ -57,7 +57,7 @@ func (g *filterGame) FilterState(state engine.GameState, playerID engine.PlayerI
 func TestBroadcastSessionStarted_FiltersStatePerPlayer(t *testing.T) {
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	t.Cleanup(func() { _ = rdb.Close() })
 
 	hub := ws.NewHubWithRedis(rdb)
 	fs := testutil.NewFakeStore()

@@ -90,7 +90,7 @@ func TestEnqueue_Banned(t *testing.T) {
 
 	playerID := uuid.New()
 	// Set a ban key in Redis
-	mr.Set(banKey(playerID), "1")
+	_ = mr.Set(banKey(playerID), "1")
 	mr.SetTTL(banKey(playerID), 120*time.Second)
 
 	_, err := svc.Enqueue(ctx, playerID)
@@ -244,7 +244,7 @@ func TestBanStatus_Banned(t *testing.T) {
 	ctx := context.Background()
 
 	playerID := uuid.New()
-	mr.Set(banKey(playerID), "1")
+	_ = mr.Set(banKey(playerID), "1")
 	mr.SetTTL(banKey(playerID), 60*time.Second)
 
 	ban, err := svc.BanStatus(ctx, playerID)
@@ -264,7 +264,7 @@ func TestBanStatus_ExpiredBan(t *testing.T) {
 	ctx := context.Background()
 
 	playerID := uuid.New()
-	mr.Set(banKey(playerID), "1")
+	_ = mr.Set(banKey(playerID), "1")
 	mr.SetTTL(banKey(playerID), 1*time.Second)
 	// Fast-forward miniredis so the key expires
 	mr.FastForward(2 * time.Second)
@@ -631,12 +631,12 @@ func TestFindAndPropose_LockContention(t *testing.T) {
 	ctx := context.Background()
 
 	// Simulate another instance holding the lock
-	svc.rdb.SetNX(ctx, keyMatchmakeLock, "1", lockTTL)
+	svc.rdb.SetNX(ctx, keyMatchmakeLock, "1", lockTTL) //nolint:staticcheck,errcheck // intentional: pre-seed lock for contention test
 
 	p1 := uuid.New()
 	p2 := uuid.New()
-	svc.Enqueue(ctx, p1)
-	svc.Enqueue(ctx, p2)
+	_, _ = svc.Enqueue(ctx, p1)
+	_, _ = svc.Enqueue(ctx, p2)
 
 	// Should return immediately without processing
 	svc.FindAndPropose(ctx)

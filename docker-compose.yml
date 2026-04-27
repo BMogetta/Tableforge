@@ -41,6 +41,9 @@ services:
       RECESS_DB_PASSWORD: ${RECESS_DB_PASSWORD}
       UNLEASH_DB_PASSWORD: ${UNLEASH_DB_PASSWORD}
       CLAUDE_MCP_RO_PASSWORD: ${CLAUDE_MCP_RO_PASSWORD:-claude_ro}
+      # Read by 999_apply_dev_seed.sh in /docker-entrypoint-initdb.d to
+      # decide whether to load shared/db/seeds/dev.sql at first boot.
+      TEST_MODE: ${TEST_MODE:-false}
     # Loopback-only on a high port for local MCP/CLI access. Does not cross
     # cloudflared (tunnel only forwards traefik:80). High port avoids
     # clashing with any host-side postgres on the usual 5432.
@@ -51,6 +54,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./shared/db/migrations:/docker-entrypoint-initdb.d
+      # Mount seeds read-only; 999_apply_dev_seed.sh psql-applies /seeds/dev.sql
+      # when TEST_MODE=true. Prod seed lives here too but only the migrator Job
+      # in k8s applies it (this container never reads prod.sql).
+      - ./shared/db/seeds:/seeds:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

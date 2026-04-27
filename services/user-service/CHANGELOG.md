@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/user-service-v0.2.0-alpha.1...user-service-v0.3.0-alpha.1) (2026-04-26)
+
+
+### Features
+
+* **observability:** expose /metrics on auth, user, chat, rating, notification   services ([#83](https://github.com/BMogetta/recess/issues/83)) ([9b2c805](https://github.com/BMogetta/recess/commit/9b2c8054b5a4505fec57f70f0be3cd127b3b4bd6))
+
+
+### Bug Fixes
+
+* **user-service:** bump pgx v5.9.1 to v5.9.2 (CVE GHSA-j88v-2chj-qfwx) ([680d210](https://github.com/BMogetta/recess/commit/680d2104c4f2669ece6eeec3c95ac96824801f66))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/user-service-vv0.1.0-alpha.1...user-service-vv0.2.0-alpha.1) (2026-04-20)
 
 

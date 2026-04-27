@@ -22,7 +22,7 @@ func newTestEnv(t *testing.T) testEnv {
 		testutil.MigrationInitial,
 		testutil.MigrationRating,
 		testutil.MigrationBotProfile,
-		testutil.Migration("008_rating_history_unique.sql"),
+		testutil.Migration("008_rating_history_unique.up.sql"),
 	)
 
 	s, err := store.New(context.Background(), dsn)

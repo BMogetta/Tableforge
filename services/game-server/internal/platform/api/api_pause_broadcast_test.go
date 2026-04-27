@@ -29,7 +29,7 @@ import (
 func TestVotePause_BroadcastSuspendedAtMatchesSession(t *testing.T) {
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	t.Cleanup(func() { rdb.Close() })
+	t.Cleanup(func() { _ = rdb.Close() })
 	hub := ws.NewHubWithRedis(rdb)
 
 	fs := newFakeStore()

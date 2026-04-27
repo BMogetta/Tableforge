@@ -18,6 +18,8 @@ import (
 
 // deleteJSONWithBody sends a DELETE request with a JSON body and returns the response.
 // Used for unmute, which requires player_id in the body.
+//
+//nolint:unused // kept alongside deleteJSONWithBodyAs for future unauthenticated DELETE tests
 func deleteJSONWithBody(t *testing.T, router http.Handler, path string, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	b, _ := json.Marshal(body)
@@ -42,6 +44,8 @@ func deleteJSONWithBodyAs(t *testing.T, router http.Handler, path string, player
 
 // setupRoomWithBot creates a room, adds a bot to it, and returns the room view
 // and bot player. The caller is the owner (alice).
+//
+//nolint:unused // kept for future bot-room test scenarios
 func setupRoomWithBot(t *testing.T, router http.Handler, s *fakeStore) (string, store.Player) {
 	t.Helper()
 	ctx := context.Background()
@@ -59,7 +63,7 @@ func setupRoomWithBot(t *testing.T, router http.Handler, s *fakeStore) (string, 
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	addResp := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
 		"profile": "easy",
@@ -69,7 +73,7 @@ func setupRoomWithBot(t *testing.T, router http.Handler, s *fakeStore) (string, 
 	}
 
 	var botPlayer store.Player
-	json.NewDecoder(addResp.Body).Decode(&botPlayer)
+	_ = json.NewDecoder(addResp.Body).Decode(&botPlayer)
 
 	return view.Room.ID, botPlayer
 }
@@ -86,7 +90,7 @@ func TestListBotProfiles(t *testing.T) {
 	}
 
 	var profiles []map[string]any
-	json.NewDecoder(w.Body).Decode(&profiles)
+	_ = json.NewDecoder(w.Body).Decode(&profiles)
 
 	if len(profiles) == 0 {
 		t.Fatal("expected at least one profile")
@@ -106,7 +110,7 @@ func TestListBotProfiles_OrderedEasyFirst(t *testing.T) {
 
 	w := getJSON(t, router, "/api/v1/bots/profiles")
 	var profiles []map[string]any
-	json.NewDecoder(w.Body).Decode(&profiles)
+	_ = json.NewDecoder(w.Body).Decode(&profiles)
 
 	if len(profiles) == 0 {
 		t.Fatal("expected profiles")
@@ -131,7 +135,7 @@ func TestAddBot_Success(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
 		"profile": "easy",
@@ -142,7 +146,7 @@ func TestAddBot_Success(t *testing.T) {
 	}
 
 	var botPlayer store.Player
-	json.NewDecoder(w.Body).Decode(&botPlayer)
+	_ = json.NewDecoder(w.Body).Decode(&botPlayer)
 
 	if !botPlayer.IsBot {
 		t.Error("expected is_bot to be true")
@@ -165,7 +169,7 @@ func TestAddBot_DefaultsToMediumProfile(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	// No profile specified — should default to medium.
 	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{})
@@ -188,7 +192,7 @@ func TestAddBot_InvalidProfile(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
 		"profile": "godmode",
@@ -213,7 +217,7 @@ func TestAddBot_NonOwnerForbidden(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", guest.ID, "player", map[string]string{
 		"profile": "easy",
@@ -254,7 +258,7 @@ func TestAddBot_UnknownGame(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots", owner.ID, "player", map[string]string{
 		"profile": "easy",
@@ -281,11 +285,11 @@ func TestRemoveBot_Success(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	// Add a bot directly via the store so we bypass the adapter check.
 	botPlayer, _ := s.CreateBotPlayer(ctx, "bot:easy:test1234")
-	s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), botPlayer.ID, 1)
+	_ = s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), botPlayer.ID, 1)
 
 	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
 		owner.ID, "player", nil,
@@ -310,10 +314,10 @@ func TestRemoveBot_NonOwnerForbidden(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	botPlayer, _ := s.CreateBotPlayer(ctx, "bot:easy:test5678")
-	s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), botPlayer.ID, 1)
+	_ = s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), botPlayer.ID, 1)
 
 	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+botPlayer.ID.String(),
 		guest.ID, "player", nil,
@@ -338,9 +342,9 @@ func TestRemoveBot_NotABot(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
-	s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), human.ID, 1)
+	_ = s.AddPlayerToRoom(ctx, mustParseUUID(t, view.Room.ID), human.ID, 1)
 
 	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/"+human.ID.String(),
 		owner.ID, "player", nil,
@@ -364,7 +368,7 @@ func TestRemoveBot_NotInRoom(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	// Create bot but don't add to room.
 	botPlayer, _ := s.CreateBotPlayer(ctx, "bot:easy:notinroom")
@@ -391,7 +395,7 @@ func TestRemoveBot_InvalidBotID(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"room"`
 	}
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := deleteJSONWithBodyAs(t, router, "/api/v1/rooms/"+view.Room.ID+"/bots/not-a-uuid",
 		owner.ID, "player", nil,

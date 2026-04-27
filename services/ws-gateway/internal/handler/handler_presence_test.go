@@ -60,7 +60,7 @@ func TestPresenceHandler_MixedValidInvalid(t *testing.T) {
 	h, ps := newPresenceHandler(t)
 
 	id := uuid.New()
-	ps.Set(context.Background(), id)
+	_ = ps.Set(context.Background(), id)
 
 	req := httptest.NewRequest("GET", "/api/v1/presence?ids=invalid,"+id.String(), nil)
 	w := httptest.NewRecorder()
@@ -87,7 +87,7 @@ func TestPresenceHandler_OnlineOffline(t *testing.T) {
 
 	online := uuid.New()
 	offline := uuid.New()
-	ps.Set(context.Background(), online)
+	_ = ps.Set(context.Background(), online)
 
 	ids := online.String() + "," + offline.String()
 	req := httptest.NewRequest("GET", "/api/v1/presence?ids="+ids, nil)
@@ -99,7 +99,7 @@ func TestPresenceHandler_OnlineOffline(t *testing.T) {
 	}
 
 	var result map[string]bool
-	json.NewDecoder(w.Body).Decode(&result)
+	_ = json.NewDecoder(w.Body).Decode(&result)
 
 	if !result[online.String()] {
 		t.Error("expected online player to be true")
@@ -118,7 +118,7 @@ func TestPresenceHandler_CapsAt100(t *testing.T) {
 		ids[i] = uuid.New().String()
 	}
 	first := uuid.MustParse(ids[0])
-	ps.Set(context.Background(), first)
+	_ = ps.Set(context.Background(), first)
 
 	req := httptest.NewRequest("GET", "/api/v1/presence?ids="+strings.Join(ids, ","), nil)
 	w := httptest.NewRecorder()
@@ -129,7 +129,7 @@ func TestPresenceHandler_CapsAt100(t *testing.T) {
 	}
 
 	var result map[string]bool
-	json.NewDecoder(w.Body).Decode(&result)
+	_ = json.NewDecoder(w.Body).Decode(&result)
 
 	if len(result) != 100 {
 		t.Errorf("expected 100 entries (capped), got %d", len(result))
@@ -154,7 +154,7 @@ func TestPresenceHandler_WhitespaceInIDs(t *testing.T) {
 	h, ps := newPresenceHandler(t)
 
 	id := uuid.New()
-	ps.Set(context.Background(), id)
+	_ = ps.Set(context.Background(), id)
 
 	// IDs with extra whitespace around them (URL-encoded spaces).
 	req := httptest.NewRequest("GET", "/api/v1/presence?ids=%20"+id.String()+"%20", nil)
@@ -166,7 +166,7 @@ func TestPresenceHandler_WhitespaceInIDs(t *testing.T) {
 	}
 
 	var result map[string]bool
-	json.NewDecoder(w.Body).Decode(&result)
+	_ = json.NewDecoder(w.Body).Decode(&result)
 	if !result[id.String()] {
 		t.Error("expected trimmed UUID to resolve as online")
 	}

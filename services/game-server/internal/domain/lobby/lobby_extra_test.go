@@ -107,9 +107,9 @@ func TestJoinRoom_RoomNotWaiting(t *testing.T) {
 	third := createPlayer(t, s, "carol")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 	// Start the game to transition the room out of waiting.
-	svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
+	_, _ = svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 
 	_, err := svc.JoinRoom(context.Background(), view.Room.Code, third.ID)
 	if err != lobby.ErrRoomNotWaiting {
@@ -125,7 +125,7 @@ func TestLeaveRoom_OwnerLeaves_TransfersOwnership(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	result, err := svc.LeaveRoom(context.Background(), view.Room.ID, owner.ID)
 	if err != nil {
@@ -165,7 +165,7 @@ func TestLeaveRoom_NonOwner_NoOwnerChange(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	result, err := svc.LeaveRoom(context.Background(), view.Room.ID, guest.ID)
 	if err != nil {
@@ -195,8 +195,8 @@ func TestLeaveRoom_RoomNotWaiting(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
-	svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 
 	_, err := svc.LeaveRoom(context.Background(), view.Room.ID, guest.ID)
 	if err != lobby.ErrRoomNotWaiting {
@@ -253,11 +253,11 @@ func TestListWaitingRooms_OnlyWaiting(t *testing.T) {
 
 	// Create two rooms (different owners so nobody is blocked by IsPlayerInActiveRoom).
 	view1, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.CreateRoom(context.Background(), "chess", other.ID, nil)
+	_, _ = svc.CreateRoom(context.Background(), "chess", other.ID, nil)
 
 	// Start game in first room (transitions to in_progress).
-	svc.JoinRoom(context.Background(), view1.Room.Code, guest.ID)
-	svc.StartGame(context.Background(), view1.Room.ID, owner.ID, store.SessionModeCasual)
+	_, _ = svc.JoinRoom(context.Background(), view1.Room.Code, guest.ID)
+	_, _ = svc.StartGame(context.Background(), view1.Room.ID, owner.ID, store.SessionModeCasual)
 
 	rooms, _, err := svc.ListWaitingRooms(context.Background(), 100, 0)
 	if err != nil {
@@ -276,7 +276,7 @@ func TestListWaitingRooms_PrivateRoomCodeRedacted(t *testing.T) {
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
 
 	// Set room to private.
-	s.SetRoomSetting(context.Background(), view.Room.ID, "room_visibility", "private")
+	_ = s.SetRoomSetting(context.Background(), view.Room.ID, "room_visibility", "private")
 
 	rooms, _, err := svc.ListWaitingRooms(context.Background(), 100, 0)
 	if err != nil {
@@ -362,8 +362,8 @@ func TestUpdateRoomSetting_RoomNotWaiting(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
-	svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 
 	err := svc.UpdateRoomSetting(context.Background(), view.Room.ID, owner.ID, "room_visibility", "private")
 	if err != lobby.ErrRoomNotWaiting {
@@ -425,7 +425,7 @@ func TestStartGame_SessionHasCorrectMode(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	session, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 	if err != nil {
@@ -442,7 +442,7 @@ func TestStartGame_SessionHasState(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	session, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 	if err != nil {
