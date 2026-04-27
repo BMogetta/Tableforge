@@ -2,7 +2,10 @@ import { useClipboard } from '@/hooks/useClipboard'
 import { testId } from '@/utils/testId'
 import styles from './VersionBadge.module.css'
 
-const VERSION = import.meta.env.VITE_APP_VERSION
+// Fallback to 'dev' when VITE_APP_VERSION is unset (vite dev server, npm
+// test, locally-built images without the --build-arg). The Dockerfile +
+// release.yml inject the real release tag for production images.
+const VERSION = import.meta.env.VITE_APP_VERSION ?? 'dev'
 
 export function VersionBadge() {
   const { copy, copied } = useClipboard(1200)

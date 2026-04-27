@@ -77,6 +77,13 @@ jobs:
           push: false
           load: true
           tags: recess-${{ steps.tag.outputs.component }}:scan
+          # Pass the release version through to the build. Only the
+          # frontend Dockerfile declares this ARG (Vite bakes it into the
+          # bundle as VITE_APP_VERSION → VersionBadge); Go service
+          # Dockerfiles ignore the unknown ARG silently, so it's safe
+          # to pass unconditionally.
+          build-args: |
+            VITE_APP_VERSION=v${{ steps.tag.outputs.version }}
           cache-from: type=gha,scope=${{ steps.tag.outputs.component }}
           cache-to: type=gha,mode=max,scope=${{ steps.tag.outputs.component }}
 
@@ -111,6 +118,8 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-${{ steps.tag.outputs.component }}:v${{ steps.tag.outputs.version }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-${{ steps.tag.outputs.component }}:v${{ steps.tag.outputs.major_minor }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-${{ steps.tag.outputs.component }}:latest
+          build-args: |
+            VITE_APP_VERSION=v${{ steps.tag.outputs.version }}
           cache-from: type=gha,scope=${{ steps.tag.outputs.component }}
           cache-to: type=gha,mode=max,scope=${{ steps.tag.outputs.component }}
 
