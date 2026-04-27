@@ -21,8 +21,8 @@ func TestSurrender_Success(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "SURR0001", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -72,11 +72,11 @@ func TestSurrender_GameOver(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "SURR0003", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, err := svc.Surrender(ctx, session.ID, p1.ID)
 	if !errors.Is(err, runtime.ErrGameOver) {
@@ -93,7 +93,7 @@ func TestSurrender_NotParticipant(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "SURR0004", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -112,11 +112,11 @@ func TestSurrender_AllowedWhenSuspended(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "SURR0005", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.SuspendSession(ctx, session.ID, "test")
+	_ = fs.SuspendSession(ctx, session.ID, "test")
 
 	result, err := svc.Surrender(ctx, session.ID, p1.ID)
 	if err != nil {
@@ -145,7 +145,7 @@ func TestVoteRematch_NotFinished(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REMA0001", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -165,11 +165,11 @@ func TestVoteRematch_NotParticipant(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REMA0002", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, _, _, _, _, err := svc.VoteRematch(ctx, session.ID, outsider.ID)
 	if !errors.Is(err, runtime.ErrNotParticipant) {
@@ -185,11 +185,11 @@ func TestVoteRematch_SinglePlayer_Consensus(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REMA0003", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, total, roomID, unanimous, mode, err := svc.VoteRematch(ctx, session.ID, p1.ID)
 	if err != nil {
@@ -221,12 +221,12 @@ func TestVoteRematch_RejectsRanked(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REMA0099", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeRanked)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, _, _, unanimous, mode, err := svc.VoteRematch(ctx, session.ID, p1.ID)
 	if !errors.Is(err, runtime.ErrRematchNotAllowedRanked) {
@@ -250,12 +250,12 @@ func TestVoteRematch_TwoPlayers_PartialThenConsensus(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REMA0004", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	// First vote — not unanimous
 	_, total, _, unanimous, _, err := svc.VoteRematch(ctx, session.ID, p1.ID)

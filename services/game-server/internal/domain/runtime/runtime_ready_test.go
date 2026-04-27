@@ -20,7 +20,7 @@ func TestVoteReady_SinglePlayerReachesConsensus(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0001", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -49,8 +49,8 @@ func TestVoteReady_TwoPlayersRequireBothVotes(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0002", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -84,13 +84,13 @@ func TestVoteReady_IdempotentVote(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0003", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
 
-	svc.VoteReady(ctx, session.ID, p1.ID)
+	_, _ = svc.VoteReady(ctx, session.ID, p1.ID)
 	result, err := svc.VoteReady(ctx, session.ID, p1.ID)
 	if err != nil {
 		t.Fatalf("VoteReady idempotent: %v", err)
@@ -112,7 +112,7 @@ func TestVoteReady_ErrNotParticipant(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0004", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -131,11 +131,11 @@ func TestVoteReady_ErrGameOver(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0005", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, err := svc.VoteReady(ctx, session.ID, p1.ID)
 	if err != runtime.ErrGameOver {
@@ -154,8 +154,8 @@ func TestStartSession_BotAutoConfirms(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0006", GameID: "tictactoe", OwnerID: human.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, botPlayer.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, botPlayer.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(human.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -199,8 +199,8 @@ func TestStartSession_AllBotsAutoConfirmReachesConsensus(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0007", GameID: "tictactoe", OwnerID: bot1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, bot1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, bot2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, bot1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, bot2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(bot1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -239,8 +239,8 @@ func TestStartSession_HumanVsBotDoesNotAutoStart(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "REDY0008", GameID: "tictactoe", OwnerID: human.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, botPlayer.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, human.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, botPlayer.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(human.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)

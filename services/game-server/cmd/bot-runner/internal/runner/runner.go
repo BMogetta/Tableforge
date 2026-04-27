@@ -145,7 +145,7 @@ func (r *Runner) Run(ctx context.Context, numGames int) error {
 	if err != nil {
 		return fmt.Errorf("dial player ws: %w", err)
 	}
-	defer playerWS.Close()
+	defer func() { _ = playerWS.Close() }()
 
 	for i := 0; numGames == 0 || i < numGames; i++ {
 		if ctx.Err() != nil {
@@ -237,7 +237,7 @@ func (r *Runner) RunBackfill(ctx context.Context, rdb *redis.Client) error {
 				if err != nil {
 					return fmt.Errorf("dial player ws: %w", err)
 				}
-				defer playerWS.Close()
+				defer func() { _ = playerWS.Close() }()
 				return r.playOneBackfill(ctx, playerWS, gameLog)
 			}(); err != nil {
 				gameLog.Error("backfill game failed", "error", err)
@@ -304,7 +304,7 @@ func (r *Runner) playOne(ctx context.Context, playerWS *websocket.Conn, log *slo
 	if err != nil {
 		return fmt.Errorf("dial room ws: %w", err)
 	}
-	defer roomWS.Close()
+	defer func() { _ = roomWS.Close() }()
 
 	return r.playGame(ctx, roomWS, mr.SessionID, log)
 }

@@ -402,6 +402,11 @@ func TestApplyMove_InvalidMove_ReturnsOriginal(t *testing.T) {
 // Integration — bot vs bot
 // ---------------------------------------------------------------------------
 
+// 30s was too tight on shared CI runners — this test completes in ~4s on
+// dev hardware but the rootaccess bot's decision loop is CPU-bound and
+// runs ~8x slower on GitHub-hosted Linux runners (~30s+). Set to 120s to
+// give 4x headroom on top of the worst observed CI time. If the test
+// stalls past 120s, that's a real bug (infinite loop), not slowness.
 func TestBotVsBot_CompletesGame(t *testing.T) {
 	adapter := botadapter.New()
 	cfg, _ := bot.ConfigFromProfile("easy")
@@ -466,7 +471,7 @@ func TestBotVsBot_CompletesGame(t *testing.T) {
 		if err != nil {
 			t.Errorf("bot-vs-bot error: %v", err)
 		}
-	case <-time.After(30 * time.Second):
-		t.Fatal("bot-vs-bot timed out after 30s")
+	case <-time.After(120 * time.Second):
+		t.Fatal("bot-vs-bot timed out after 120s")
 	}
 }

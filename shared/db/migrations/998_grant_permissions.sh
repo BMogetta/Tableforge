@@ -1,9 +1,11 @@
 #!/bin/bash
 set -e
 
-# Runs after all SQL migrations (sorted after 006, before 999_seed).
-# Grants the application user ownership of all objects created by the
-# postgres superuser during migration.
+# Runs after all SQL migrations (sorted after 009 *.up.sql, before
+# 999_apply_dev_seed.sh). Grants the application user ownership of all
+# objects created by the postgres superuser during migration.
+# docker-compose only — k8s never sees this file (.sh files excluded
+# from the migrator image via shared/db/.dockerignore).
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname recess <<-EOSQL
     -- Grant schema usage

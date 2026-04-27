@@ -78,7 +78,7 @@ func (svc *Service) StartSession(ctx context.Context, session store.GameSession,
 		hasHuman := false
 		for _, p := range players {
 			if svc.isBot(ctx, p.PlayerID) {
-				svc.store.VoteReady(ctx, session.ID, p.PlayerID)
+				_, _ = svc.store.VoteReady(ctx, session.ID, p.PlayerID)
 			} else {
 				hasHuman = true
 			}

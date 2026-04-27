@@ -38,7 +38,7 @@ func TestListGames(t *testing.T) {
 	}
 
 	var games []map[string]any
-	json.NewDecoder(w.Body).Decode(&games)
+	_ = json.NewDecoder(w.Body).Decode(&games)
 	if len(games) == 0 {
 		t.Fatal("expected at least one game")
 	}
@@ -65,7 +65,7 @@ func TestListGames_FlagDisabled_HidesGame(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 	var games []map[string]any
-	json.NewDecoder(w.Body).Decode(&games)
+	_ = json.NewDecoder(w.Body).Decode(&games)
 
 	ids := make(map[string]bool)
 	for _, g := range games {
@@ -91,7 +91,7 @@ func TestListGames_AllFlagsDisabled_ReturnsEmpty(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 	var games []map[string]any
-	json.NewDecoder(w.Body).Decode(&games)
+	_ = json.NewDecoder(w.Body).Decode(&games)
 	if len(games) != 0 {
 		t.Errorf("expected empty list when all games disabled, got %d: %v", len(games), games)
 	}
@@ -107,7 +107,7 @@ func TestGetRoom_Success(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := getJSON(t, router, "/api/v1/rooms/"+view.Room.ID.String(), owner.ID)
 
@@ -116,7 +116,7 @@ func TestGetRoom_Success(t *testing.T) {
 	}
 
 	var got lobby.RoomView
-	json.NewDecoder(w.Body).Decode(&got)
+	_ = json.NewDecoder(w.Body).Decode(&got)
 	if got.Room.ID != view.Room.ID {
 		t.Errorf("expected room ID %s, got %s", view.Room.ID, got.Room.ID)
 	}
@@ -165,7 +165,7 @@ func TestJoinRoom_RoomFull(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -188,7 +188,7 @@ func TestJoinRoom_AlreadyInRoom(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/join", owner.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -210,7 +210,7 @@ func TestLeaveRoom_Success(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -232,7 +232,7 @@ func TestLeaveRoom_OwnerTransfersOwnership(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -259,7 +259,7 @@ func TestLeaveRoom_LastPlayerClosesRoom(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/leave", owner.ID, "player", map[string]string{})
 
@@ -317,7 +317,7 @@ func TestStartGame_NotOwner(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -338,7 +338,7 @@ func TestStartGame_NotEnoughPlayers(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := postJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/start", owner.ID, "player", map[string]string{})
 
@@ -357,7 +357,7 @@ func TestUpdateRoomSetting_Success(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := putJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/settings/room_visibility", owner.ID, "player", map[string]string{
 		"value": "private",
@@ -383,7 +383,7 @@ func TestUpdateRoomSetting_NotOwner(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	postJSONAs(t, router, "/api/v1/rooms/join", guest.ID, "player", map[string]string{
 		"code": view.Room.Code,
@@ -406,7 +406,7 @@ func TestUpdateRoomSetting_UnknownKey(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := putJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/settings/nonexistent_setting", owner.ID, "player", map[string]string{
 		"value": "something",
@@ -425,7 +425,7 @@ func TestUpdateRoomSetting_InvalidValue(t *testing.T) {
 		"game_id": "chess",
 	})
 	var view lobby.RoomView
-	json.NewDecoder(createResp.Body).Decode(&view)
+	_ = json.NewDecoder(createResp.Body).Decode(&view)
 
 	w := putJSONAs(t, router, "/api/v1/rooms/"+view.Room.ID.String()+"/settings/room_visibility", owner.ID, "player", map[string]string{
 		"value": "invalid_value",
@@ -462,7 +462,7 @@ func TestListPlayerMatches_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(w.Body).Decode(&resp)
+	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if _, ok := resp["total"]; !ok {
 		t.Error("expected 'total' field in response")
 	}
@@ -506,7 +506,7 @@ func TestGetSession_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(w.Body).Decode(&resp)
+	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if resp["session"] == nil {
 		t.Error("expected 'session' field in response")
 	}
@@ -581,7 +581,7 @@ func TestSurrender_Success(t *testing.T) {
 	}
 
 	var resp map[string]any
-	json.NewDecoder(w.Body).Decode(&resp)
+	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if resp["is_over"] != true {
 		t.Error("expected is_over=true after surrender")
 	}
@@ -751,7 +751,7 @@ func TestHealthz(t *testing.T) {
 	}
 
 	var resp map[string]string
-	json.NewDecoder(w.Body).Decode(&resp)
+	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if resp["status"] != "ok" {
 		t.Errorf("expected status ok, got %s", resp["status"])
 	}

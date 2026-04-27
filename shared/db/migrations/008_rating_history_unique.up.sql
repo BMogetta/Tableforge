@@ -1,5 +1,5 @@
 -- =============================================================================
--- 008_rating_history_unique.sql
+-- 008_rating_history_unique.up.sql
 --
 -- Enforce one rating_history row per (session, player) so that re-delivered
 -- game.session.finished events cannot double-apply deltas. The column is

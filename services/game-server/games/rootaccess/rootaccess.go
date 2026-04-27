@@ -1120,6 +1120,7 @@ func cardNamesToStrings(cards []CardName) []string {
 	return out
 }
 
+//nolint:unused // kept for future card-name conversions
 func cardNamesFromStrings(ss []string) []CardName {
 	out := make([]CardName, len(ss))
 	for i, s := range ss {
@@ -1158,6 +1159,7 @@ func containsString(ss []string, s string) bool {
 	return false
 }
 
+//nolint:unused // kept for future card-handling helpers
 func otherCardInHand(hand []string, played CardName) CardName {
 	for _, c := range hand {
 		if c != string(played) {

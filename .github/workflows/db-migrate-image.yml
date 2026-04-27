@@ -1,0 +1,72 @@
+name: DB Migrate Image
+
+# Builds and pushes the recess-db-migrate image whenever shared/db/**
+# changes on main. The image is consumed by the ArgoCD-managed Job at
+# recess-deploy/infra/k8s/data/db-migrations/job.yaml (sync-wave: -10).
+#
+# Tagging: `:latest` for ArgoCD (with imagePullPolicy: Always so each sync
+# pulls the current rolling tag) + `:sha-<short>` for forensic traceability.
+# release-please does not manage this image (different cadence — it changes
+# only when the schema does, not on per-service feature work).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'shared/db/**'
+      - '.github/workflows/db-migrate-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v3.9.0
+      - uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image owner
+        run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Compute short sha
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v6.9.0
+        with:
+          context: ./shared/db
+          file: shared/db/Dockerfile
+          platforms: linux/arm64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-db-migrate:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-db-migrate:sha-${{ steps.sha.outputs.short }}
+
+      - uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v3.9.2
+
+      - name: Sign image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/recess-db-migrate@${DIGEST}

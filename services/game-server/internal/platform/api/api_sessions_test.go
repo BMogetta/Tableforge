@@ -38,7 +38,7 @@ func setupActiveSession(t *testing.T, router http.Handler, s *fakeStore) (owner,
 	requireStatus(t, createResp, http.StatusCreated, "create room")
 
 	var roomView map[string]any
-	json.Unmarshal(createResp.Body.Bytes(), &roomView)
+	_ = json.Unmarshal(createResp.Body.Bytes(), &roomView)
 
 	// Navegación segura del mapa para evitar panics
 	room, ok := roomView["room"].(map[string]any)
@@ -63,7 +63,7 @@ func setupActiveSession(t *testing.T, router http.Handler, s *fakeStore) (owner,
 	requireStatus(t, startResp, http.StatusOK, "start game")
 
 	var sessionData map[string]any
-	json.Unmarshal(startResp.Body.Bytes(), &sessionData)
+	_ = json.Unmarshal(startResp.Body.Bytes(), &sessionData)
 
 	sID, ok := sessionData["id"].(string)
 	if !ok {
@@ -143,7 +143,7 @@ func TestVotePause_AllVoted_Suspends(t *testing.T) {
 	}
 
 	var result map[string]any
-	json.NewDecoder(w.Body).Decode(&result)
+	_ = json.NewDecoder(w.Body).Decode(&result)
 	if !result["all_voted"].(bool) {
 		t.Error("expected all_voted=true after all players voted")
 	}
@@ -172,7 +172,7 @@ func TestVotePause_GameOver(t *testing.T) {
 	owner, _, sessionID := setupActiveSession(t, router, s)
 
 	id := findSessionID(t, s, sessionID)
-	s.FinishSession(context.Background(), id)
+	_ = s.FinishSession(context.Background(), id)
 
 	w := postJSONAs(t, router, "/api/v1/sessions/"+sessionID+"/pause", uuid.MustParse(owner.id), "player", nil)
 
@@ -232,7 +232,7 @@ func TestVoteResume_AllVoted_Resumes(t *testing.T) {
 	}
 
 	var result map[string]any
-	json.NewDecoder(w.Body).Decode(&result)
+	_ = json.NewDecoder(w.Body).Decode(&result)
 	if !result["all_voted"].(bool) {
 		t.Error("expected all_voted=true after all players voted to resume")
 	}
@@ -276,7 +276,7 @@ func TestVoteResume_GameOver(t *testing.T) {
 	owner, _, sessionID := setupSuspendedSession(t, router, s)
 
 	id := findSessionID(t, s, sessionID)
-	s.FinishSession(context.Background(), id)
+	_ = s.FinishSession(context.Background(), id)
 
 	w := postJSONAs(t, router, "/api/v1/sessions/"+sessionID+"/resume", uuid.MustParse(owner.id), "player", nil)
 

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 009_notifications_source_event_id.sql
+-- 009_notifications_source_event_id.up.sql
 --
 -- Dedupe notifications by the Redis event that spawned them so re-delivered
 -- friendship.requested / friendship.accepted / player.banned /
