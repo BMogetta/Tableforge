@@ -147,29 +147,29 @@ type report struct {
 func (r *report) String() string {
 	var sb strings.Builder
 	sb.WriteString("=== Simulation Report ===\n")
-	sb.WriteString(fmt.Sprintf("Players: %d | Matches: %d | Mode: %dv%d",
+	fmt.Fprintf(&sb, "Players: %d | Matches: %d | Mode: %dv%d",
 		r.cfg.numPlayers, r.matchesPlayed,
-		r.cfg.playersPerTeam, r.cfg.playersPerTeam))
+		r.cfg.playersPerTeam, r.cfg.playersPerTeam)
 	if r.cfg.teamsPerMatch > 2 {
-		sb.WriteString(fmt.Sprintf(" x%d teams", r.cfg.teamsPerMatch))
+		fmt.Fprintf(&sb, " x%d teams", r.cfg.teamsPerMatch)
 	}
-	sb.WriteString(fmt.Sprintf("\nNoise factor: %.0f\n", r.cfg.noiseFactor))
-	sb.WriteString(fmt.Sprintf("Elapsed: %s\n\n", r.elapsed.Round(time.Millisecond)))
+	fmt.Fprintf(&sb, "\nNoise factor: %.0f\n", r.cfg.noiseFactor)
+	fmt.Fprintf(&sb, "Elapsed: %s\n\n", r.elapsed.Round(time.Millisecond))
 
-	sb.WriteString(fmt.Sprintf("MMR Error  — avg: %.1f  median: %.1f  max: %.1f\n",
-		r.avgMMRError, r.medianMMRError, r.maxMMRError))
-	sb.WriteString(fmt.Sprintf("Rating σ   — %.1f  (true skill σ = %.1f)\n",
-		r.ratingStdDev, r.cfg.trueSkillStdDev))
-	sb.WriteString(fmt.Sprintf("Match quality avg: %.3f\n", r.avgMatchQuality))
-	sb.WriteString(fmt.Sprintf(
+	fmt.Fprintf(&sb, "MMR Error  — avg: %.1f  median: %.1f  max: %.1f\n",
+		r.avgMMRError, r.medianMMRError, r.maxMMRError)
+	fmt.Fprintf(&sb, "Rating σ   — %.1f  (true skill σ = %.1f)\n",
+		r.ratingStdDev, r.cfg.trueSkillStdDev)
+	fmt.Fprintf(&sb, "Match quality avg: %.3f\n", r.avgMatchQuality)
+	fmt.Fprintf(&sb,
 		"Win-rate by true-skill quartile: Q1=%.2f  Q2=%.2f  Q3=%.2f  Q4=%.2f\n",
 		r.winRateByQuartile[0], r.winRateByQuartile[1],
-		r.winRateByQuartile[2], r.winRateByQuartile[3]))
+		r.winRateByQuartile[2], r.winRateByQuartile[3])
 
 	if len(r.convergenceByGame) > 0 {
 		sb.WriteString("Convergence (avg MMR error every 100 matches):\n")
 		for i, v := range r.convergenceByGame {
-			sb.WriteString(fmt.Sprintf("  %5d matches: %.1f\n", (i+1)*100, v))
+			fmt.Fprintf(&sb, "  %5d matches: %.1f\n", (i+1)*100, v)
 		}
 	}
 	return sb.String()

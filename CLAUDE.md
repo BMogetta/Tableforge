@@ -127,7 +127,7 @@ See `shared/contracts.md` for the complete service contract map and versioning r
 - `shared/redis/` — Redis client wrapper
 - `shared/telemetry/` — OTel setup (traces, metrics, logs)
 - `shared/config/` — Environment variable loader
-- `shared/db/migrations/` — SQL migrations (applied in order: 001, 002, 003, then 999_seed in test mode)
+- `shared/db/migrations/` — SQL migrations as `NNN_name.up.sql` (golang-migrate format, applied by the `db-migrations` ArgoCD Job in k8s and by the postgres entrypoint in docker-compose). `shared/db/seeds/dev.sql` (test fixtures) and `prod.sql` (real owners) are split.
 - `shared/errors/` — Shared API error types
 
 ### Frontend (`frontend/`)

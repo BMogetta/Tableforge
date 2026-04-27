@@ -191,7 +191,7 @@ func TestHandleTurnTimeout_LoseTurn(t *testing.T) {
 	}
 
 	var state engine.GameState
-	json.Unmarshal(updated.State, &state)
+	_ = json.Unmarshal(updated.State, &state)
 	if state.CurrentPlayerID == pids[0] {
 		t.Error("expected current player to change after lose_turn timeout")
 	}

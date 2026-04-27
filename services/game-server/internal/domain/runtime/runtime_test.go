@@ -271,7 +271,6 @@ func TestApplyMove_InvalidMove(t *testing.T) {
 
 	// Inline rejecting game
 	var rejectErr = errors.New("move rejected")
-	type badGame struct{ stubGame }
 
 	svc := runtime.New(s, &fakeRegistry{&stubGame{}}, nil, nil, nil)
 

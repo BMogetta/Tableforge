@@ -16,7 +16,7 @@ func TestVotePause_SinglePlayerReachesConsensus(t *testing.T) {
 	ctx := context.Background()
 
 	p1 := uuid.New()
-	session := makeActiveSession(t, fs, p1)
+	_ = makeActiveSession(t, fs, p1)
 
 	// makeActiveSession adds alice (owner) + p1. We need a 1-player room
 	// for immediate consensus, so create a dedicated setup.
@@ -24,10 +24,10 @@ func TestVotePause_SinglePlayerReachesConsensus(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "PAUS0001", GameID: "tictactoe", OwnerID: owner.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, owner.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(owner.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
-	session, _ = fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
+	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
 
 	result, err := svc.VotePause(ctx, session.ID, owner.ID)
 	if err != nil {
@@ -56,8 +56,8 @@ func TestVotePause_TwoPlayersRequireBothVotes(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "PAUS0002", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -97,11 +97,11 @@ func TestVotePause_ErrAlreadyPaused(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "PAUS0003", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.SuspendSession(ctx, session.ID, "already_paused")
+	_ = fs.SuspendSession(ctx, session.ID, "already_paused")
 
 	_, err := svc.VotePause(ctx, session.ID, p1.ID)
 	if err != runtime.ErrAlreadyPaused {
@@ -118,7 +118,7 @@ func TestVotePause_ErrNotParticipant(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "PAUS0004", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -137,11 +137,11 @@ func TestVotePause_ErrGameOver(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "PAUS0005", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, err := svc.VotePause(ctx, session.ID, p1.ID)
 	if err != runtime.ErrGameOver {
@@ -159,11 +159,11 @@ func TestVoteResume_ResumesAfterConsensus(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "RESU0001", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.SuspendSession(ctx, session.ID, "pause_vote")
+	_ = fs.SuspendSession(ctx, session.ID, "pause_vote")
 
 	result, err := svc.VoteResume(ctx, session.ID, p1.ID)
 	if err != nil {
@@ -187,7 +187,7 @@ func TestVoteResume_ErrNotSuspended(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "RESU0002", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -208,11 +208,11 @@ func TestVoteResume_ErrNotParticipant(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "RESU0003", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.SuspendSession(ctx, session.ID, "pause_vote")
+	_ = fs.SuspendSession(ctx, session.ID, "pause_vote")
 
 	_, err := svc.VoteResume(ctx, session.ID, outsider.ID)
 	if err != runtime.ErrNotParticipant {
@@ -228,11 +228,11 @@ func TestVoteResume_ErrGameOver(t *testing.T) {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: "RESU0004", GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	_, err := svc.VoteResume(ctx, session.ID, p1.ID)
 	if err != runtime.ErrGameOver {

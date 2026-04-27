@@ -113,8 +113,8 @@ func makeTestSession(t *testing.T, fs *testutil.FakeStore) store.GameSession {
 	room, _ := fs.CreateRoom(ctx, store.CreateRoomParams{
 		Code: uuid.NewString()[:8], GameID: "tictactoe", OwnerID: p1.ID, MaxPlayers: 2,
 	})
-	fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
-	fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p1.ID, 0)
+	_ = fs.AddPlayerToRoom(ctx, room.ID, p2.ID, 1)
 	state := engine.GameState{CurrentPlayerID: engine.PlayerID(p1.ID.String()), Data: map[string]any{}}
 	stateBytes, _ := json.Marshal(state)
 	session, _ := fs.CreateGameSession(ctx, room.ID, "tictactoe", stateBytes, nil, store.SessionModeCasual)
@@ -127,7 +127,7 @@ func TestOnTimeout_SkipsFinishedSession(t *testing.T) {
 	h, fs := newTimerHandlersForTest(t)
 	ctx := context.Background()
 	session := makeTestSession(t, fs)
-	fs.FinishSession(ctx, session.ID)
+	_ = fs.FinishSession(ctx, session.ID)
 
 	// Should be a no-op — session is already finished.
 	h.onTimeout(session.ID)
@@ -142,7 +142,7 @@ func TestOnTimeout_SkipsSuspendedSession(t *testing.T) {
 	h, fs := newTimerHandlersForTest(t)
 	ctx := context.Background()
 	session := makeTestSession(t, fs)
-	fs.SuspendSession(ctx, session.ID, "pause_vote")
+	_ = fs.SuspendSession(ctx, session.ID, "pause_vote")
 
 	// Should be a no-op — session is suspended.
 	h.onTimeout(session.ID)
@@ -166,7 +166,7 @@ func TestOnReadyTimeout_SkipsSuspendedSession(t *testing.T) {
 	h, fs := newTimerHandlersForTest(t)
 	ctx := context.Background()
 	session := makeTestSession(t, fs)
-	fs.SuspendSession(ctx, session.ID, "pause_vote")
+	_ = fs.SuspendSession(ctx, session.ID, "pause_vote")
 
 	// Should be a no-op — session is suspended.
 	h.onReadyTimeout(session.ID)

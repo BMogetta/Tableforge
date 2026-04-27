@@ -16,7 +16,7 @@ import (
 
 func newTestStore(t *testing.T) (*store.Store, uuid.UUID) {
 	t.Helper()
-	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.Migration("009_notifications_source_event_id.sql"))
+	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.Migration("009_notifications_source_event_id.up.sql"))
 
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {
@@ -344,7 +344,7 @@ func TestCreateWithActionExpiry(t *testing.T) {
 }
 
 func TestListIsolationBetweenPlayers(t *testing.T) {
-	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.Migration("009_notifications_source_event_id.sql"))
+	dsn := testutil.NewTestDB(t, testutil.MigrationInitial, testutil.Migration("009_notifications_source_event_id.up.sql"))
 
 	s, err := store.New(context.Background(), dsn)
 	if err != nil {

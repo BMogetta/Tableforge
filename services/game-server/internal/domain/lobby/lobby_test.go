@@ -88,7 +88,7 @@ func TestJoinRoom_Full(t *testing.T) {
 	extra := createPlayer(t, s, "carol")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	_, err := svc.JoinRoom(context.Background(), view.Room.Code, extra.ID)
 	if err != lobby.ErrRoomFull {
@@ -116,7 +116,7 @@ func TestLeaveRoom_Success(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	if _, err := svc.LeaveRoom(context.Background(), view.Room.ID, guest.ID); err != nil {
 		t.Fatalf("LeaveRoom: %v", err)
@@ -136,7 +136,7 @@ func TestStartGame_Success(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	session, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 	if err != nil {
@@ -159,7 +159,7 @@ func TestStartGame_NotOwner(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
 
 	_, err := svc.StartGame(context.Background(), view.Room.ID, guest.ID, store.SessionModeCasual)
 	if err != lobby.ErrNotOwner {
@@ -185,8 +185,8 @@ func TestStartGame_AlreadyStarted(t *testing.T) {
 	guest := createPlayer(t, s, "bob")
 
 	view, _ := svc.CreateRoom(context.Background(), "chess", owner.ID, nil)
-	svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
-	svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
+	_, _ = svc.JoinRoom(context.Background(), view.Room.Code, guest.ID)
+	_, _ = svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 
 	_, err := svc.StartGame(context.Background(), view.Room.ID, owner.ID, store.SessionModeCasual)
 	if err != lobby.ErrRoomNotWaiting {

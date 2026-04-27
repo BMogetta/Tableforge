@@ -143,16 +143,16 @@ func (c *Client) ReadPump() {
 		if !c.Spectator {
 			c.hub.UnsubscribePlayer(c.PlayerID, c)
 		}
-		c.conn.Close()
+		_ = c.conn.Close()
 		if !c.Spectator && c.presence != nil {
-			c.presence.Del(context.Background(), c.PlayerID)
+			_ = c.presence.Del(context.Background(), c.PlayerID)
 		}
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
@@ -201,7 +201,7 @@ func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.conn.Close()
+		_ = c.conn.Close()
 	}()
 
 	var heartbeat *time.Ticker
@@ -218,9 +218,9 @@ func (c *Client) WritePump() {
 
 		select {
 		case msg, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
@@ -229,7 +229,7 @@ func (c *Client) WritePump() {
 			}
 
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
