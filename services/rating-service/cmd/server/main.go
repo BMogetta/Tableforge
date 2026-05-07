@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -64,7 +65,11 @@ func main() {
 	// ── Wire ──────────────────────────────────────────────────────────────────
 	engine := rating.NewDefaultEngine()
 	svc := service.New(st, engine, slog.Default())
-	cons := consumer.New(rdb, svc, slog.Default())
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "rating-service"
+	}
+	cons := consumer.New(rdb, svc, slog.Default(), hostname)
 	grpcH := grpchandler.New(st)
 
 	// ── gRPC server ───────────────────────────────────────────────────────────

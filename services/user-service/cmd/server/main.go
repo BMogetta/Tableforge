@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -122,7 +123,11 @@ func main() {
 	}()
 
 	// --- Achievement consumer ------------------------------------------------
-	achievementConsumer := consumer.New(rdb, st, pub, slog.Default(), flags)
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "user-service"
+	}
+	achievementConsumer := consumer.New(rdb, st, pub, slog.Default(), flags, hostname)
 	go func() {
 		if err := achievementConsumer.Run(ctx); err != nil {
 			slog.Error("achievement consumer error", "error", err)
