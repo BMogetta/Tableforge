@@ -1,9 +1,14 @@
-// Package consumer subscribes to Redis events that trigger notification creation.
+// Package consumer reads events that trigger notification creation.
 //
-// Subscribed channels:
+// Two transports run concurrently:
 //
-//   - friendship.accepted  → notify the requester that their request was accepted
-//   - player.banned        → notify the banned player
+//   - Pub/Sub (friendship.requested, friendship.accepted, achievement.unlocked).
+//     Will migrate to Asynq in P3.6 Phase 3b — the consuming side is
+//     point-to-point so a task queue is the right fit.
+//
+//   - Streams (player.banned). Migrated in P3.6 Phase 2 because three
+//     services consume this event (auth, match, notification); Streams
+//     consumer groups give natural fan-out without re-publishing.
 package consumer
 
 import (
@@ -12,20 +17,25 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"github.com/recess/shared/events"
-	sharedws "github.com/recess/shared/ws"
+
 	"github.com/recess/notification-service/internal/store"
+	"github.com/recess/shared/events"
+	"github.com/recess/shared/streams"
+	sharedws "github.com/recess/shared/ws"
 )
 
 const (
 	channelFriendshipRequested = "friendship.requested"
 	channelFriendshipAccepted  = "friendship.accepted"
-	channelPlayerBanned        = "player.banned"
 	channelAchievementUnlocked = "achievement.unlocked"
+
+	streamPlayerBanned = "player.banned"
+	consumerGroup      = "notification-service"
 
 	dedupeKeyPrefix = "dedup:notification-service:"
 	dedupeTTL       = 24 * time.Hour
@@ -41,26 +51,73 @@ type Publisher interface {
 	PublishToPlayer(ctx context.Context, playerID uuid.UUID, event sharedws.Event)
 }
 
-// Consumer subscribes to event channels and creates notifications.
+// Consumer drives notification creation off both Pub/Sub and Streams.
 type Consumer struct {
-	rdb   *redis.Client
-	store NotificationCreator
-	pub   Publisher
-	log   *slog.Logger
+	rdb       *redis.Client
+	store     NotificationCreator
+	pub       Publisher
+	log       *slog.Logger
+	banWorker *streams.Worker
 }
 
-func New(rdb *redis.Client, st NotificationCreator, pub Publisher, log *slog.Logger) *Consumer {
-	return &Consumer{rdb: rdb, store: st, pub: pub, log: log}
+func New(rdb *redis.Client, st NotificationCreator, pub Publisher, log *slog.Logger, consumerName string) *Consumer {
+	c := &Consumer{rdb: rdb, store: st, pub: pub, log: log}
+	if rdb != nil {
+		c.banWorker = streams.NewWorker(
+			rdb,
+			streamPlayerBanned,
+			consumerGroup,
+			consumerName,
+			c.handlePlayerBanned,
+			streams.WithLogger(log),
+		)
+	}
+	return c
 }
 
-// Run blocks until ctx is cancelled.
+// Run blocks until ctx is cancelled. Launches the legacy Pub/Sub loop and
+// the player.banned Streams worker concurrently.
 func (c *Consumer) Run(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned, channelAchievementUnlocked)
+	if c.banWorker == nil {
+		return c.runPubSub(ctx)
+	}
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 2)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := c.runPubSub(ctx); err != nil {
+			errCh <- fmt.Errorf("pubsub: %w", err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := c.banWorker.Run(ctx); err != nil {
+			errCh <- fmt.Errorf("ban worker: %w", err)
+		}
+	}()
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Consumer) runPubSub(ctx context.Context) error {
+	sub := c.rdb.Subscribe(ctx, channelFriendshipRequested, channelFriendshipAccepted, channelAchievementUnlocked)
 	defer sub.Close()
 
 	ch := sub.Channel()
 	c.log.Info("subscribed to Redis channels",
-		"channels", []string{channelFriendshipRequested, channelFriendshipAccepted, channelPlayerBanned, channelAchievementUnlocked},
+		"channels", []string{channelFriendshipRequested, channelFriendshipAccepted, channelAchievementUnlocked},
 	)
 
 	for {
@@ -71,7 +128,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 			if !ok {
 				return errors.New("redis subscription channel closed unexpectedly")
 			}
-			if err := c.handle(ctx, msg); err != nil {
+			if err := c.handlePubSub(ctx, msg); err != nil {
 				c.log.Error("failed to handle event",
 					"channel", msg.Channel,
 					"error", err,
@@ -81,14 +138,12 @@ func (c *Consumer) Run(ctx context.Context) error {
 	}
 }
 
-func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
+func (c *Consumer) handlePubSub(ctx context.Context, msg *redis.Message) error {
 	switch msg.Channel {
 	case channelFriendshipRequested:
 		return c.handleFriendshipRequested(ctx, msg.Payload)
 	case channelFriendshipAccepted:
 		return c.handleFriendshipAccepted(ctx, msg.Payload)
-	case channelPlayerBanned:
-		return c.handlePlayerBanned(ctx, msg.Payload)
 	case channelAchievementUnlocked:
 		return c.handleAchievementUnlocked(ctx, msg.Payload)
 	default:
@@ -210,9 +265,9 @@ func (c *Consumer) handleFriendshipAccepted(ctx context.Context, payload string)
 	return nil
 }
 
-func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error {
+func (c *Consumer) handlePlayerBanned(ctx context.Context, payload []byte) error {
 	var evt events.PlayerBanned
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		return fmt.Errorf("unmarshal PlayerBanned: %w", err)
 	}
 

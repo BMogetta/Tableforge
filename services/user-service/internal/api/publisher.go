@@ -10,24 +10,36 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/recess/services/user-service/internal/store"
 	"github.com/recess/shared/events"
+	"github.com/recess/shared/streams"
 )
 
 const (
-	channelPlayerBanned         = "player.banned"
-	channelPlayerUnbanned       = "player.unbanned"
-	channelFriendshipRequested  = "friendship.requested"
-	channelFriendshipAccepted   = "friendship.accepted"
-	channelBroadcastSent        = "admin.broadcast.sent"
-	channelAchievementUnlocked  = "achievement.unlocked"
+	channelPlayerUnbanned      = "player.unbanned"
+	channelFriendshipRequested = "friendship.requested"
+	channelFriendshipAccepted  = "friendship.accepted"
+	channelBroadcastSent       = "admin.broadcast.sent"
+	channelAchievementUnlocked = "achievement.unlocked"
+
+	// streamPlayerBanned is the Streams stream name. Migrated from Pub/Sub
+	// in P3.6 Phase 2 so auth/match/notification can scale horizontally.
+	streamPlayerBanned = "player.banned"
 )
 
-// Publisher publishes user-service domain events to Redis Pub/Sub.
+// Publisher publishes user-service domain events. player.banned uses Redis
+// Streams (consumer groups) so multiple replicas of the consuming services
+// don't double-process bans. Remaining channels still use Pub/Sub and will
+// migrate to Asynq in P3.6 Phase 3.
 type Publisher struct {
-	rdb *redis.Client
+	rdb      *redis.Client
+	producer *streams.Producer
 }
 
 func NewPublisher(rdb *redis.Client) *Publisher {
-	return &Publisher{rdb: rdb}
+	var prod *streams.Producer
+	if rdb != nil {
+		prod = streams.NewProducer(rdb)
+	}
+	return &Publisher{rdb: rdb, producer: prod}
 }
 
 func (p *Publisher) PublishPlayerBanned(ctx context.Context, ban store.Ban) {
@@ -48,7 +60,12 @@ func (p *Publisher) PublishPlayerBanned(ctx context.Context, ban store.Ban) {
 		Reason:    reason,
 		ExpiresAt: expiresAt,
 	}
-	p.publish(ctx, channelPlayerBanned, evt)
+	if p.producer == nil {
+		return
+	}
+	if _, err := p.producer.Publish(ctx, streamPlayerBanned, evt); err != nil {
+		slog.Error("failed to xadd player.banned", "error", err)
+	}
 }
 
 func (p *Publisher) PublishPlayerUnbanned(ctx context.Context, banID, playerID, liftedBy uuid.UUID) {

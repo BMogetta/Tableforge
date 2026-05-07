@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+
 	"github.com/recess/notification-service/internal/store"
 	"github.com/recess/shared/events"
 	"github.com/recess/shared/testutil"
@@ -31,8 +32,6 @@ func (m *mockStore) Create(_ context.Context, p store.CreateParams) (store.Notif
 	if m.seen == nil {
 		m.seen = make(map[string]bool)
 	}
-	// Mirror the DB UNIQUE(player_id, source_event_id) WHERE source_event_id
-	// IS NOT NULL so consumer tests exercise the dedupe short-circuit.
 	if p.SourceEventID != nil {
 		key := p.PlayerID.String() + ":" + p.SourceEventID.String()
 		if m.seen[key] {
@@ -65,7 +64,7 @@ func newTestConsumerWithRedis(t *testing.T, st *mockStore, pub *mockPublisher) *
 	return &Consumer{rdb: rdb, store: st, pub: pub, log: slog.Default()}
 }
 
-// --- friendship.requested ----------------------------------------------------
+// --- friendship.requested (still Pub/Sub) ------------------------------------
 
 func TestHandleFriendshipRequested_CreatesNotification(t *testing.T) {
 	st := &mockStore{result: store.Notification{ID: uuid.New()}}
@@ -74,14 +73,14 @@ func TestHandleFriendshipRequested_CreatesNotification(t *testing.T) {
 
 	addresseeID := uuid.New()
 	evt := events.FriendshipRequested{
-		RequesterID:      uuid.NewString(),
+		RequesterID:       uuid.NewString(),
 		RequesterUsername: "alice",
-		AddresseeID:      addresseeID.String(),
+		AddresseeID:       addresseeID.String(),
 	}
 	payload, _ := json.Marshal(evt)
 	msg := &redis.Message{Channel: channelFriendshipRequested, Payload: string(payload)}
 
-	if err := c.handle(context.Background(), msg); err != nil {
+	if err := c.handlePubSub(context.Background(), msg); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
 
@@ -108,7 +107,7 @@ func TestHandleFriendshipRequested_CreatesNotification(t *testing.T) {
 func TestHandleFriendshipRequested_InvalidJSON(t *testing.T) {
 	c := newTestConsumer(&mockStore{}, &mockPublisher{})
 	msg := &redis.Message{Channel: channelFriendshipRequested, Payload: "bad"}
-	if err := c.handle(context.Background(), msg); err == nil {
+	if err := c.handlePubSub(context.Background(), msg); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -118,12 +117,12 @@ func TestHandleFriendshipRequested_InvalidAddresseeID(t *testing.T) {
 	evt := events.FriendshipRequested{AddresseeID: "bad"}
 	payload, _ := json.Marshal(evt)
 	msg := &redis.Message{Channel: channelFriendshipRequested, Payload: string(payload)}
-	if err := c.handle(context.Background(), msg); err == nil {
+	if err := c.handlePubSub(context.Background(), msg); err == nil {
 		t.Fatal("expected error for invalid addressee_id")
 	}
 }
 
-// --- friendship.accepted -----------------------------------------------------
+// --- friendship.accepted (still Pub/Sub) -------------------------------------
 
 func TestHandleFriendshipAccepted_CreatesNotification(t *testing.T) {
 	st := &mockStore{result: store.Notification{ID: uuid.New()}}
@@ -140,11 +139,10 @@ func TestHandleFriendshipAccepted_CreatesNotification(t *testing.T) {
 	payload, _ := json.Marshal(evt)
 	msg := &redis.Message{Channel: channelFriendshipAccepted, Payload: string(payload)}
 
-	if err := c.handle(context.Background(), msg); err != nil {
+	if err := c.handlePubSub(context.Background(), msg); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
 
-	// Notification goes to the requester (the one who sent the original request).
 	if st.params.PlayerID != requesterID {
 		t.Errorf("expected notification for requester %s, got %s", requesterID, st.params.PlayerID)
 	}
@@ -159,12 +157,12 @@ func TestHandleFriendshipAccepted_CreatesNotification(t *testing.T) {
 func TestHandleFriendshipAccepted_InvalidJSON(t *testing.T) {
 	c := newTestConsumer(&mockStore{}, &mockPublisher{})
 	msg := &redis.Message{Channel: channelFriendshipAccepted, Payload: "bad"}
-	if err := c.handle(context.Background(), msg); err == nil {
+	if err := c.handlePubSub(context.Background(), msg); err == nil {
 		t.Fatal("expected error")
 	}
 }
 
-// --- player.banned -----------------------------------------------------------
+// --- player.banned (now Streams; handler called directly with bytes) ---------
 
 func TestHandlePlayerBanned_CreatesNotification(t *testing.T) {
 	st := &mockStore{result: store.Notification{ID: uuid.New()}}
@@ -179,9 +177,8 @@ func TestHandlePlayerBanned_CreatesNotification(t *testing.T) {
 		ExpiresAt: &expiry,
 	}
 	payload, _ := json.Marshal(evt)
-	msg := &redis.Message{Channel: channelPlayerBanned, Payload: string(payload)}
 
-	if err := c.handle(context.Background(), msg); err != nil {
+	if err := c.handlePlayerBanned(context.Background(), payload); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
 
@@ -208,9 +205,8 @@ func TestHandlePlayerBanned_PermanentBan(t *testing.T) {
 		ExpiresAt: nil,
 	}
 	payload, _ := json.Marshal(evt)
-	msg := &redis.Message{Channel: channelPlayerBanned, Payload: string(payload)}
 
-	if err := c.handle(context.Background(), msg); err != nil {
+	if err := c.handlePlayerBanned(context.Background(), payload); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
 
@@ -224,8 +220,7 @@ func TestHandlePlayerBanned_PermanentBan(t *testing.T) {
 
 func TestHandlePlayerBanned_InvalidJSON(t *testing.T) {
 	c := newTestConsumer(&mockStore{}, &mockPublisher{})
-	msg := &redis.Message{Channel: channelPlayerBanned, Payload: "bad"}
-	if err := c.handle(context.Background(), msg); err == nil {
+	if err := c.handlePlayerBanned(context.Background(), []byte("bad")); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -234,8 +229,7 @@ func TestHandlePlayerBanned_InvalidPlayerID(t *testing.T) {
 	c := newTestConsumer(&mockStore{}, &mockPublisher{})
 	evt := events.PlayerBanned{PlayerID: "bad"}
 	payload, _ := json.Marshal(evt)
-	msg := &redis.Message{Channel: channelPlayerBanned, Payload: string(payload)}
-	if err := c.handle(context.Background(), msg); err == nil {
+	if err := c.handlePlayerBanned(context.Background(), payload); err == nil {
 		t.Fatal("expected error for invalid player_id")
 	}
 }
@@ -258,10 +252,10 @@ func TestHandle_DedupesByEventID(t *testing.T) {
 	payload, _ := json.Marshal(evt)
 	msg := &redis.Message{Channel: channelFriendshipRequested, Payload: string(payload)}
 
-	if err := c.handle(context.Background(), msg); err != nil {
+	if err := c.handlePubSub(context.Background(), msg); err != nil {
 		t.Fatalf("first handle: %v", err)
 	}
-	if err := c.handle(context.Background(), msg); err != nil {
+	if err := c.handlePubSub(context.Background(), msg); err != nil {
 		t.Fatalf("second handle: %v", err)
 	}
 
@@ -270,12 +264,12 @@ func TestHandle_DedupesByEventID(t *testing.T) {
 	}
 }
 
-// --- unknown channel ---------------------------------------------------------
+// --- unknown channel (Pub/Sub dispatcher) ------------------------------------
 
 func TestHandle_UnknownChannel(t *testing.T) {
 	c := newTestConsumer(&mockStore{}, &mockPublisher{})
 	msg := &redis.Message{Channel: "unknown.channel", Payload: "{}"}
-	if err := c.handle(context.Background(), msg); err == nil {
+	if err := c.handlePubSub(context.Background(), msg); err == nil {
 		t.Fatal("expected error for unknown channel")
 	}
 }
