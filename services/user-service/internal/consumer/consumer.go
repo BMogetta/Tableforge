@@ -1,26 +1,34 @@
-// Package consumer subscribes to Redis events for achievement tracking.
+// Package consumer reads game events for achievement tracking.
+//
+// game.session.finished is consumed via Redis Streams (consumer group
+// "user-service") so multiple replicas can run without re-evaluating
+// the same session N times.
 package consumer
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+
 	"github.com/recess/services/user-service/internal/store"
 	"github.com/recess/shared/achievements"
 	"github.com/recess/shared/events"
 	"github.com/recess/shared/featureflags"
+	"github.com/recess/shared/streams"
 )
 
-const channelSessionFinished = "game.session.finished"
+const (
+	streamGameSessionFinished = "game.session.finished"
+	consumerGroup             = "user-service"
+)
 
 // FlagAchievementsEnabled gates achievement evaluation. When OFF, the consumer
-// still drains the subscription (so Redis doesn't back up) but skips any
-// progress updates. Existing rows in the DB stay visible.
+// still drains the stream (so backlog doesn't grow) but skips any progress
+// updates. Existing rows in the DB stay visible.
 const FlagAchievementsEnabled = "achievements-enabled"
 
 // AchievementPublisher publishes achievement unlock events.
@@ -28,49 +36,41 @@ type AchievementPublisher interface {
 	PublishAchievementUnlocked(ctx context.Context, playerID, achievementKey string, tier int, tierName string)
 }
 
-// Consumer subscribes to game events and evaluates achievements.
+// Consumer reads game.session.finished and evaluates achievements.
 type Consumer struct {
-	rdb   *redis.Client
-	store store.Store
-	pub   AchievementPublisher
-	log   *slog.Logger
-	flags featureflags.Checker
+	worker *streams.Worker
+	store  store.Store
+	pub    AchievementPublisher
+	log    *slog.Logger
+	flags  featureflags.Checker
 }
 
 // New constructs a Consumer. flags may be nil — evaluation treats an absent
-// client as "flag unknown" and uses the default-on behavior.
-func New(rdb *redis.Client, st store.Store, pub AchievementPublisher, log *slog.Logger, flags featureflags.Checker) *Consumer {
-	return &Consumer{rdb: rdb, store: st, pub: pub, log: log, flags: flags}
+// client as "flag unknown" and uses the default-on behavior. consumerName
+// is the per-instance identity (typically the pod hostname) so XAUTOCLAIM
+// can tell replicas apart.
+func New(rdb *redis.Client, st store.Store, pub AchievementPublisher, log *slog.Logger, flags featureflags.Checker, consumerName string) *Consumer {
+	c := &Consumer{store: st, pub: pub, log: log, flags: flags}
+	c.worker = streams.NewWorker(
+		rdb,
+		streamGameSessionFinished,
+		consumerGroup,
+		consumerName,
+		c.handle,
+		streams.WithLogger(log),
+	)
+	return c
 }
 
 // Run blocks until ctx is cancelled.
 func (c *Consumer) Run(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelSessionFinished)
-	defer sub.Close()
-
-	ch := sub.Channel()
-	c.log.Info("achievement consumer subscribed", "channel", channelSessionFinished)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case msg, ok := <-ch:
-			if !ok {
-				return errors.New("redis subscription channel closed unexpectedly")
-			}
-			if err := c.handleSessionFinished(ctx, msg.Payload); err != nil {
-				c.log.Error("failed to handle game.session.finished",
-					"error", err,
-				)
-			}
-		}
-	}
+	c.log.Info("achievement consumer starting", "stream", streamGameSessionFinished, "group", consumerGroup)
+	return c.worker.Run(ctx)
 }
 
-func (c *Consumer) handleSessionFinished(ctx context.Context, payload string) error {
+func (c *Consumer) handle(ctx context.Context, payload []byte) error {
 	var evt events.GameSessionFinished
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		return fmt.Errorf("unmarshal GameSessionFinished: %w", err)
 	}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/recess/game-server/internal/platform/store"
 	"github.com/recess/game-server/internal/platform/ws"
 	sharedEvents "github.com/recess/shared/events"
+	"github.com/recess/shared/streams"
 )
 
 var (
@@ -41,21 +42,27 @@ type Service struct {
 	registry engine.Registry
 	timer    Timer
 	events   *events.Store
-	rdb      *redis.Client
+	producer *streams.Producer
 	bots     *botRegistry
 	log      *slog.Logger
 }
 
-// New creates a new runtime Service.
+// New creates a new runtime Service. rdb is optional — pass nil in tests
+// that don't exercise event publishing. When non-nil, a Streams Producer
+// is wired so publishGameFinished can XADD game.session.finished.
 func New(st store.Store, registry engine.Registry, ev *events.Store, rdb *redis.Client, log *slog.Logger) *Service {
 	if log == nil {
 		log = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
+	var prod *streams.Producer
+	if rdb != nil {
+		prod = streams.NewProducer(rdb)
 	}
 	return &Service{
 		store:    st,
 		registry: registry,
 		events:   ev,
-		rdb:      rdb,
+		producer: prod,
 		bots:     newBotRegistry(),
 		log:      log,
 	}
@@ -730,11 +737,12 @@ func (svc *Service) VoteRematch(ctx context.Context, sessionID, playerID uuid.UU
 
 // --- Rating ------------------------------------------------------------------
 
-const channelGameSessionFinished = "game.session.finished"
+const streamGameSessionFinished = "game.session.finished"
 
-// publishGameFinished publishes a game.session.finished event to Redis.
-// rating-service consumes this to update ELO. Errors are logged, never returned —
-// a publish failure must not roll back a completed match.
+// publishGameFinished XADDs a game.session.finished event to the Streams
+// stream. rating-service and user-service consumer groups consume this.
+// Errors are logged, never returned — a publish failure must not roll
+// back a completed match.
 func (svc *Service) publishGameFinished(
 	ctx context.Context,
 	session store.GameSession,
@@ -769,20 +777,15 @@ func (svc *Service) publishGameFinished(
 		Players:      sessionPlayers,
 	}
 
-	payload, err := json.Marshal(evt)
+	// Tests construct Service without a Redis client (producer == nil) —
+	// nothing to publish in that case.
+	if svc.producer == nil {
+		return
+	}
+
+	id, err := svc.producer.Publish(ctx, streamGameSessionFinished, evt)
 	if err != nil {
-		svc.log.Error("publishGameFinished: marshal", "session_id", session.ID, "error", err)
-		return
-	}
-
-	// Some tests construct Service without a Redis client; keep this nil-safe
-	// so the guard removal (now every mode publishes) doesn't regress them.
-	if svc.rdb == nil {
-		return
-	}
-
-	if err := svc.rdb.Publish(ctx, channelGameSessionFinished, payload).Err(); err != nil {
-		svc.log.Error("publishGameFinished: redis publish", "session_id", session.ID, "error", err)
+		svc.log.Error("publishGameFinished: streams xadd", "session_id", session.ID, "error", err)
 		return
 	}
 
@@ -790,6 +793,7 @@ func (svc *Service) publishGameFinished(
 		"session_id", session.ID,
 		"mode", session.Mode,
 		"players", len(players),
+		"stream_id", id,
 	)
 }
 

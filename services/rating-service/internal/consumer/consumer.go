@@ -1,75 +1,65 @@
+// Package consumer reads game.session.finished from a Redis Stream and
+// forwards each event to a Processor.
+//
+// Stream: game.session.finished. Consumer group: "rating-service" — one
+// per service, so multiple replicas split the stream cleanly.
 package consumer
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/redis/go-redis/v9"
+
 	"github.com/recess/shared/events"
+	"github.com/recess/shared/streams"
 )
 
-const channelGameSessionFinished = "game.session.finished"
+const (
+	streamGameSessionFinished = "game.session.finished"
+	consumerGroup             = "rating-service"
+)
 
 // Processor handles game session finished events.
 type Processor interface {
 	ProcessGameFinished(ctx context.Context, evt events.GameSessionFinished) error
 }
 
-// Consumer subscribes to game.session.finished and forwards events to a Processor.
+// Consumer wraps a streams.Worker scoped to game.session.finished + the
+// rating-service consumer group.
 type Consumer struct {
-	rdb *redis.Client
-	svc Processor
-	log *slog.Logger
+	worker *streams.Worker
+	svc    Processor
+	log    *slog.Logger
 }
 
-func New(rdb *redis.Client, svc Processor, log *slog.Logger) *Consumer {
-	return &Consumer{rdb: rdb, svc: svc, log: log}
+// New constructs a Consumer. consumerName is the per-instance identity
+// (typically the pod hostname) used by XAUTOCLAIM to tell replicas apart.
+func New(rdb *redis.Client, svc Processor, log *slog.Logger, consumerName string) *Consumer {
+	c := &Consumer{svc: svc, log: log}
+	c.worker = streams.NewWorker(
+		rdb,
+		streamGameSessionFinished,
+		consumerGroup,
+		consumerName,
+		c.handle,
+		streams.WithLogger(log),
+	)
+	return c
 }
 
-// Run blocks until ctx is cancelled. It reconnects automatically on transient errors.
+// Run blocks until ctx is cancelled. The underlying worker bootstraps the
+// consumer group idempotently and runs both consume + claim loops.
 func (c *Consumer) Run(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelGameSessionFinished)
-	defer sub.Close()
-
-	ch := sub.Channel()
-	c.log.Info("subscribed to Redis channel", "channel", channelGameSessionFinished)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-
-		case msg, ok := <-ch:
-			if !ok {
-				// Channel closed — Redis connection dropped.
-				return errors.New("redis subscription channel closed unexpectedly")
-			}
-			if err := c.handle(ctx, msg); err != nil {
-				// Log and continue: a single bad message must not kill the consumer.
-				c.log.Error("failed to handle event",
-					"channel", msg.Channel,
-					"error", err,
-				)
-			}
-		}
-	}
+	c.log.Info("rating consumer starting", "stream", streamGameSessionFinished, "group", consumerGroup)
+	return c.worker.Run(ctx)
 }
 
-func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
-	switch msg.Channel {
-	case channelGameSessionFinished:
-		return c.handleGameSessionFinished(ctx, msg.Payload)
-	default:
-		return fmt.Errorf("unknown channel: %s", msg.Channel)
-	}
-}
-
-func (c *Consumer) handleGameSessionFinished(ctx context.Context, payload string) error {
+func (c *Consumer) handle(ctx context.Context, payload []byte) error {
 	var evt events.GameSessionFinished
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		return fmt.Errorf("unmarshal GameSessionFinished: %w", err)
 	}
 
