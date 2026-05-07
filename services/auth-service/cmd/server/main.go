@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -58,7 +59,11 @@ func main() {
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer func() { _ = rdb.Close() }()
 
-	cons := consumer.New(rdb, slog.Default(), st)
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "auth-service"
+	}
+	cons := consumer.New(rdb, slog.Default(), st, hostname)
 	consErr := make(chan error, 1)
 	go func() {
 		consErr <- cons.Run(ctx)

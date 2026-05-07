@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -77,7 +78,11 @@ func main() {
 	pub := publisher.New(rdb, log)
 	executor := api.NewGRPCExecutor(userClient)
 	handler := api.New(st, pub, executor, log)
-	cons := consumer.New(rdb, st, pub, log)
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "notification-service"
+	}
+	cons := consumer.New(rdb, st, pub, log, hostname)
 
 	// ── Feature flags ─────────────────────────────────────────────────────────
 	flags, err := featureflags.Init(config.LoadUnleash(serviceName))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -125,7 +126,11 @@ func main() {
 	}()
 
 	// --- Event consumer (player.banned) --------------------------------------
-	cons := consumer.New(rdb, queueSvc, slog.Default())
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "match-service"
+	}
+	cons := consumer.New(rdb, queueSvc, slog.Default(), hostname)
 	consErr := make(chan error, 1)
 	go func() {
 		consErr <- cons.Run(ctx)

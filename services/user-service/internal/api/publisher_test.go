@@ -38,6 +38,26 @@ func subscribe(t *testing.T, rdb *redis.Client, channel string, fn func()) strin
 	return msg.Payload
 }
 
+// readStreamLast reads the most recent entry from a stream and returns its
+// JSON payload. player.banned is a Stream as of P3.6 Phase 2; subscribing
+// over Pub/Sub would never receive anything.
+func readStreamLast(t *testing.T, rdb *redis.Client, stream string) string {
+	t.Helper()
+	entries, err := rdb.XRange(context.Background(), stream, "-", "+").Result()
+	if err != nil {
+		t.Fatalf("xrange %s: %v", stream, err)
+	}
+	if len(entries) == 0 {
+		t.Fatalf("no entries in stream %s", stream)
+	}
+	last := entries[len(entries)-1]
+	payload, ok := last.Values["payload"].(string)
+	if !ok {
+		t.Fatalf("missing payload field in stream %s", stream)
+	}
+	return payload
+}
+
 func TestPublishPlayerBanned(t *testing.T) {
 	pub, rdb := newTestPublisher(t)
 	expires := time.Now().Add(24 * time.Hour)
@@ -50,12 +70,10 @@ func TestPublishPlayerBanned(t *testing.T) {
 		ExpiresAt: &expires,
 	}
 
-	msg := subscribe(t, rdb, channelPlayerBanned, func() {
-		pub.PublishPlayerBanned(context.Background(), ban)
-	})
+	pub.PublishPlayerBanned(context.Background(), ban)
 
 	var evt events.PlayerBanned
-	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+	if err := json.Unmarshal([]byte(readStreamLast(t, rdb, streamPlayerBanned)), &evt); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
 	if evt.PlayerID != ban.PlayerID.String() {
@@ -83,12 +101,10 @@ func TestPublishPlayerBanned_NoExpiry(t *testing.T) {
 		BannedBy: uuid.New(),
 	}
 
-	msg := subscribe(t, rdb, channelPlayerBanned, func() {
-		pub.PublishPlayerBanned(context.Background(), ban)
-	})
+	pub.PublishPlayerBanned(context.Background(), ban)
 
 	var evt events.PlayerBanned
-	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+	if err := json.Unmarshal([]byte(readStreamLast(t, rdb, streamPlayerBanned)), &evt); err != nil {
 		t.Fatal(err)
 	}
 	if evt.ExpiresAt != nil {

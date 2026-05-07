@@ -1,8 +1,7 @@
-// Package consumer subscribes to Redis events that require match-service action.
+// Package consumer reads player.banned from a Redis Stream and removes
+// the banned player from the matchmaking queue.
 //
-// Subscribed channels:
-//
-//   - player.banned → remove the player from the matchmaking queue if present
+// Stream: player.banned. Consumer group: "match-service".
 package consumer
 
 import (
@@ -15,13 +14,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+
 	sharedevents "github.com/recess/shared/events"
+	"github.com/recess/shared/streams"
 )
 
 const (
-	channelPlayerBanned = "player.banned"
-	dedupeKeyPrefix     = "dedup:match-service:"
-	dedupeTTL           = 24 * time.Hour
+	streamPlayerBanned = "player.banned"
+	consumerGroup      = "match-service"
+	dedupeKeyPrefix    = "dedup:match-service:"
+	dedupeTTL          = 24 * time.Hour
 )
 
 // Dequeuer is the minimal queue interface the consumer needs.
@@ -29,52 +31,36 @@ type Dequeuer interface {
 	Dequeue(ctx context.Context, playerID uuid.UUID) (bool, error)
 }
 
-// Consumer subscribes to event channels and acts on match-relevant events.
+// Consumer reads player.banned events and removes the player from the queue.
 type Consumer struct {
-	rdb   *redis.Client
-	queue Dequeuer
-	log   *slog.Logger
+	rdb    *redis.Client
+	worker *streams.Worker
+	queue  Dequeuer
+	log    *slog.Logger
 }
 
-func New(rdb *redis.Client, queue Dequeuer, log *slog.Logger) *Consumer {
-	return &Consumer{rdb: rdb, queue: queue, log: log}
+func New(rdb *redis.Client, queue Dequeuer, log *slog.Logger, consumerName string) *Consumer {
+	c := &Consumer{rdb: rdb, queue: queue, log: log}
+	c.worker = streams.NewWorker(
+		rdb,
+		streamPlayerBanned,
+		consumerGroup,
+		consumerName,
+		c.handle,
+		streams.WithLogger(log),
+	)
+	return c
 }
 
 // Run blocks until ctx is cancelled.
 func (c *Consumer) Run(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelPlayerBanned)
-	defer sub.Close()
-
-	ch := sub.Channel()
-	c.log.Info("subscribed to Redis channels", "channels", []string{channelPlayerBanned})
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case msg, ok := <-ch:
-			if !ok {
-				return errors.New("redis subscription channel closed unexpectedly")
-			}
-			if err := c.handle(ctx, msg); err != nil {
-				c.log.Error("failed to handle event", "channel", msg.Channel, "error", err)
-			}
-		}
-	}
+	c.log.Info("match consumer starting", "stream", streamPlayerBanned, "group", consumerGroup)
+	return c.worker.Run(ctx)
 }
 
-func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
-	switch msg.Channel {
-	case channelPlayerBanned:
-		return c.handlePlayerBanned(ctx, msg.Payload)
-	default:
-		return fmt.Errorf("unknown channel: %s", msg.Channel)
-	}
-}
-
-func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error {
+func (c *Consumer) handle(ctx context.Context, payload []byte) error {
 	var evt sharedevents.PlayerBanned
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		return fmt.Errorf("unmarshal PlayerBanned: %w", err)
 	}
 
@@ -102,14 +88,18 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error
 }
 
 // seenEvent returns true if the event was already processed within the 24h
-// dedupe window; otherwise records the event and returns false. An empty
-// event_id is treated as unseen (best-effort).
+// dedupe window; otherwise records the event and returns false. Defense in
+// depth on top of Streams' at-least-once semantics.
 func (c *Consumer) seenEvent(ctx context.Context, eventID string) (bool, error) {
 	if eventID == "" || c.rdb == nil {
 		return false, nil
 	}
 	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result() //nolint:staticcheck // SetNX is the idiomatic atomic check-and-set; SET ... NX requires building SetArgs which adds noise without functional benefit
 	if err != nil {
+		// Defensive: redis.Nil shouldn't happen on SetNX but handle it just in case.
+		if errors.Is(err, redis.Nil) {
+			return true, nil
+		}
 		return false, err
 	}
 	return !ok, nil

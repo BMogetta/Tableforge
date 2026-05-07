@@ -1,24 +1,30 @@
-// Package consumer subscribes to Redis events that trigger auth-side actions.
+// Package consumer reads player.banned from a Redis Stream and revokes
+// the affected sessions.
 //
-// Subscribed channels:
+// Stream: player.banned. Consumer group: "auth-service".
 //
-//   - player.banned → clear session cookie (force logout) + publish player.session.revoked
+// On each ban event:
+//  1. Revoke all refresh sessions for the player (DB).
+//  2. Publish player.session.revoked over Pub/Sub so ws-gateway closes
+//     the live WebSocket. (session.revoked moves to Asynq in P3.6 Phase 3c.)
 package consumer
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+
 	sharedevents "github.com/recess/shared/events"
+	"github.com/recess/shared/streams"
 )
 
 const (
-	channelPlayerBanned   = "player.banned"
+	streamPlayerBanned    = "player.banned"
+	consumerGroup         = "auth-service"
 	channelSessionRevoked = "player.session.revoked"
 )
 
@@ -27,52 +33,36 @@ type SessionRevoker interface {
 	RevokeAllSessions(ctx context.Context, playerID uuid.UUID) error
 }
 
-// Consumer subscribes to event channels and reacts to auth-relevant events.
+// Consumer reads player.banned and reacts on the auth side.
 type Consumer struct {
 	rdb     *redis.Client
+	worker  *streams.Worker
 	log     *slog.Logger
 	revoker SessionRevoker
 }
 
-func New(rdb *redis.Client, log *slog.Logger, revoker SessionRevoker) *Consumer {
-	return &Consumer{rdb: rdb, log: log, revoker: revoker}
+func New(rdb *redis.Client, log *slog.Logger, revoker SessionRevoker, consumerName string) *Consumer {
+	c := &Consumer{rdb: rdb, log: log, revoker: revoker}
+	c.worker = streams.NewWorker(
+		rdb,
+		streamPlayerBanned,
+		consumerGroup,
+		consumerName,
+		c.handle,
+		streams.WithLogger(log),
+	)
+	return c
 }
 
 // Run blocks until ctx is cancelled.
 func (c *Consumer) Run(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelPlayerBanned)
-	defer sub.Close()
-
-	ch := sub.Channel()
-	c.log.Info("subscribed to Redis channels", "channels", []string{channelPlayerBanned})
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case msg, ok := <-ch:
-			if !ok {
-				return errors.New("redis subscription channel closed unexpectedly")
-			}
-			if err := c.handle(ctx, msg); err != nil {
-				c.log.Error("failed to handle event", "channel", msg.Channel, "error", err)
-			}
-		}
-	}
+	c.log.Info("auth consumer starting", "stream", streamPlayerBanned, "group", consumerGroup)
+	return c.worker.Run(ctx)
 }
 
-func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
-	switch msg.Channel {
-	case channelPlayerBanned:
-		return c.handlePlayerBanned(ctx, msg.Payload)
-	default:
-		return fmt.Errorf("unknown channel: %s", msg.Channel)
-	}
-}
-
-func (c *Consumer) handlePlayerBanned(ctx context.Context, payload string) error {
+func (c *Consumer) handle(ctx context.Context, payload []byte) error {
 	var evt sharedevents.PlayerBanned
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		return fmt.Errorf("unmarshal PlayerBanned: %w", err)
 	}
 
