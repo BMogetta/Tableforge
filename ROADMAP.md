@@ -254,6 +254,26 @@ Define SLIs/SLOs in Prometheus recording rules, alert on burn rate.
       latency) — verify alerts fire + system self-heals.
 - **Depends on:** P2.3 (so alerts actually fire when chaos happens).
 
+### P3.6 — Hybrid Pub/Sub → Streams + Asynq refactor
+Replace `redis.Subscribe` service-level consumers (block horizontal scaling — fan-out
+duplicates events across replicas). Hybrid migration: **Streams** for fan-out events,
+**Asynq** for point-to-point. Per-connection WS hubs stay as Pub/Sub. See memory
+`project_pubsub_streams_asynq_plan.md` for full decision log + per-channel mapping.
+
+Pinned decisions: stream names = current channel names; consumer group = service name;
+`MAXLEN ~ 10000` per stream; keep `event_id` + `processed_events` table for at-least-once
+defense in depth.
+
+- [ ] **Phase 0** — `shared/streams/` package (Producer, ConsumerGroup, Worker, PEL claim, DLQ) + testcontainers tests.
+- [ ] **Phase 1** — `game.session.finished` → Streams (lockstep: game-server publisher + rating-service + user-service consumers, bump replicaCount: 2).
+- [ ] **Phase 2** — `player.banned` → Streams (lockstep: auth-service + match-service + notification-service, bump replicaCount: 2).
+- [ ] **Phase 3a** — `bot.activate` → Asynq (match-service → game-server/bot-runner).
+- [ ] **Phase 3b** — `friendship.requested/accepted` + `achievement.unlocked` → Asynq (notification-service consumer).
+- [ ] **Phase 3c** — `session.revoked` + `broadcast.sent` → Asynq (ws-gateway service-level consumer).
+- [ ] **Phase 4** — Cleanup: legacy channel consts removed, consumer-lag + PEL-size metrics, Asynqmon UI deployed at `asynqmon.bmogetta.com`, `CLAUDE.md` § Communication Patterns + `shared/contracts.md` updated, memory `project_redis_pubsub_scaling.md` superseded.
+- **Depends on:** none — already running on what it replaces. Unblocks horizontal scaling for 6 services currently pinned at replicaCount=1.
+- **Parallelizable with:** anything outside the affected services.
+
 ---
 
 ## P4 — Polish, research, and deliverables (anytime)
