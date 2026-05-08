@@ -20,17 +20,21 @@ Frontend  ←──── REST/JSON ──────►  API Gateway (Traefik)
                     │
               rating-service (gRPC :9085)
          ─────────────────────────────────────────────
-                   Redis Pub/Sub (async events)
+                       Async transports
          ─────────────────────────────────────────────
-               │                │                │
-       notification-service  ws-gateway    rating-service
+   Streams (fan-out)   Asynq (point-to-point)   Pub/Sub (replica fan-out + per-connection)
+        │                       │                            │
+   rating, user           bot-runner, notification     ws-gateway (service + per-conn)
 ```
 
-**Three communication layers:**
+**Communication layers:**
 
 1. **REST/JSON over HTTP** — frontend ↔ services via Traefik. Never between services.
 2. **gRPC + Protobuf** — synchronous calls where the caller needs a response to continue.
-3. **Redis Pub/Sub + JSON** — async events where the publisher doesn't need to wait.
+3. **Async events** — three transports, picked per use case (see "Async event contracts" below):
+   - **Redis Streams** — fan-out events (one publisher → multiple consuming services), each service uses its own consumer group, each event consumed once across the group's replicas.
+   - **Asynq** — point-to-point tasks (one publisher → one consuming service), with built-in retry, scheduling, DLQ.
+   - **Redis Pub/Sub** — fan-out where every consumer **replica** needs the message (per-connection WS hubs, ws-gateway service consumer); also legacy / unwired channels.
 
 ---
 
@@ -133,99 +137,122 @@ directly. Synchronous because the upgrade decision depends on it.
 
 ## Async event contracts
 
-All events flow through Redis Pub/Sub. Channel naming: `{domain}.{entity}.{verb}`.
-Every event carries `event_id` (UUID) for idempotency, `occurred_at`, and `version`.
+All event payloads carry `event_id` (UUID) for idempotency, `occurred_at`, and `version`.
+Transport is chosen per event based on the consumer topology — see the legend
+above and the per-event tables below.
 
-### `game.session.finished`
+### Redis Streams (fan-out events)
+
+Stream name = event name. Each consuming service uses a consumer group whose
+name equals the service name (e.g., `rating-service`). Each event is delivered
+once across the group's replicas; each group sees every event independently.
+Producer + Worker helpers live in `shared/streams/`.
+
+#### `game.session.finished`
 **Publisher:** game-server
-**Consumers:**
+**Stream:** `game.session.finished`
+**Consumer groups:**
 
-| Consumer | Action |
+| Group | Action |
 |---|---|
-| rating-service | Update `ratings` + `rating_history` (ranked only) |
-| match-service | Unblock room, allow rematch queue re-entry |
+| `rating-service` | Update `ratings` + `rating_history` (ranked only) |
+| `user-service` | Evaluate achievement progress, persist + publish `achievement.unlocked` |
 
 **Payload:** session_id, room_id, game_id, mode, ended_by, winner_id,
-is_draw, duration_secs, players[]
+is_draw, duration_secs, move_count, players[]
 
----
-
-### `match.found`
-**Publisher:** match-service
-**Consumers:** ws-gateway → delivers `match_found` WS event to both players
-
-**Payload:** match_id, room_id, room_code, game_id, player_a_id, player_b_id, mmr_a, mmr_b
-
----
-
-### `match.cancelled`
-**Publisher:** match-service
-**Consumers:** ws-gateway → delivers `match_cancelled` WS event
-
-**Payload:** match_id, player_a_id, player_b_id, reason
-
----
-
-### `match.ready`
-**Publisher:** match-service (after both players accept + StartSession succeeds)
-**Consumers:** ws-gateway → delivers `match_ready` WS event with session_id
-
-**Payload:** match_id, session_id, room_id, room_code, player_a_id, player_b_id
-
----
-
-### `player.banned`
+#### `player.banned`
 **Publisher:** user-service
-**Consumers:**
+**Stream:** `player.banned`
+**Consumer groups:**
 
-| Consumer | Action |
+| Group | Action |
 |---|---|
-| auth-service | Revoke active session, publish `player.session.revoked` |
-| match-service | Remove from queue if present |
-| game-server | Forfeit any active ranked sessions |
-| notification-service | Create `ban_issued` in-app notification |
+| `auth-service` | Revoke active session, then publish `player.session.revoked` (Pub/Sub) |
+| `match-service` | Remove the player from the matchmaking queue if present |
+| `notification-service` | Create `ban_issued` in-app notification |
 
 **Payload:** player_id, ban_id, banned_by, reason, expires_at
 
 ---
 
-### `player.unbanned`
-**Publisher:** user-service
-**Consumers:** none currently
+### Asynq (point-to-point tasks)
 
----
+Task type identifies the work; queue scopes the worker pool. Asynq provides
+retry with exponential backoff, scheduling, retention, and a DLQ — Asynqmon
+exposes operational visibility.
 
-### `friendship.accepted`
-**Publisher:** user-service
-**Consumers:** notification-service → `friend_request_accepted` in-app notification to requester
-
-**Payload:** requester_id, addressee_id, addressee_username
-
-> `addressee_username` is included in the event so notification-service
-> does not need a gRPC round-trip to user-service to compose the message.
-
----
-
-### `player.session.revoked`
-**Publisher:** auth-service
-**Consumers:** ws-gateway → closes the WebSocket connection for that session
-
-**Payload:** player_id, session_id, reason ("logout" | "superseded" | "banned")
-
----
-
-### `bot.activate`
+#### `bot:activate:<botID>`
 **Publisher:** match-service (backfill detector, when a lone human has
-waited past `BACKFILL_THRESHOLD_SECS`)
-**Consumers:** bot-runner in `--mode=backfill` → the selected bot joins
-the ranked queue so the human gets a match.
-
+waited past `BACKFILL_THRESHOLD_SECS`).
+**Queue:** `bot-activate`. **Task type:** `bot:activate:<bot-uuid>` (per-bot).
+**Consumer:** bot-runner in `--mode=backfill` — each bot's runner registers
+a handler under its own task type, so only the selected bot fires.
+**Retention:** 2 minutes. **Retry:** 0 (one-shot).
 **Payload:** `{"player_id": "<bot-uuid>"}`
 
-> Unlike the other events on this map, `bot.activate` is a thin
-> pub/sub signal (no `event_id` envelope) because bot-runner is a
-> sidecar that shares state with match-service via Redis sets
-> (`bot:known`, `bot:available`), not a durable consumer.
+#### `notification:friendship-requested`
+**Publisher:** user-service (on friend request created).
+**Queue:** `notification`. **Consumer:** notification-service.
+**Action:** create `friend_request` notification + WS push to addressee.
+**Payload:** requester_id, requester_username, addressee_id
+
+#### `notification:friendship-accepted`
+**Publisher:** user-service (on friend request accepted).
+**Queue:** `notification`. **Consumer:** notification-service.
+**Action:** create `friend_request_accepted` notification + WS push to requester.
+**Payload:** requester_id, addressee_id, addressee_username
+
+> `addressee_username` is in the payload so notification-service doesn't
+> need a gRPC round-trip to user-service to compose the message.
+
+#### `notification:achievement-unlocked`
+**Publisher:** user-service (after evaluating achievement progress).
+**Queue:** `notification`. **Consumer:** notification-service.
+**Action:** create `achievement_unlocked` notification + WS push to player.
+**Payload:** player_id, achievement_key, tier, tier_name
+
+#### Other Asynq tasks
+- `match:expiry` — match-service internal: expires unconfirmed matches
+- `runtime:turn-timeout`, `runtime:ready-timeout` — game-server internal: turn timers
+
+---
+
+### Redis Pub/Sub (fan-out across consumer replicas, or per-connection)
+
+Pub/Sub is at-most-once and broadcasts to every subscriber. Used in two cases:
+
+1. **ws-gateway service consumer** — each replica owns local WebSocket connections,
+   so every replica must see each event (only the right one acts).
+2. **Per-connection delivery** (`room.{roomID}`, `player.{playerID}`) — each pod
+   subscribes per active connection; messages reach the pod hosting that
+   connection.
+
+Pub/Sub consumers in this repo MUST be naturally idempotent or fan-out-safe.
+A global SETNX dedupe across replicas would break the fan-out semantic.
+
+#### `player.session.revoked`
+**Publisher:** auth-service (on session revoke — logout, superseded login,
+or downstream of `player.banned`).
+**Consumer:** ws-gateway service consumer → close the WebSocket connection
+for that session. Every ws-gateway replica subscribes; only the pod hosting
+the player's connection has anything to disconnect.
+**Payload:** player_id, session_id, reason ("logout" | "superseded" | "banned")
+
+#### `admin.broadcast.sent`
+**Publisher:** user-service (admin sends a broadcast).
+**Consumer:** ws-gateway service consumer → broadcast to all clients connected
+to that replica. Every ws-gateway replica must broadcast independently.
+**Payload:** message, broadcast_type ("info" | "warning"), sent_by
+
+#### `player.unbanned`
+**Publisher:** user-service. **Consumer:** none currently. Reserved for future.
+
+#### Per-connection channels (`room.{roomID}`, `player.{playerID}`)
+**Publishers:** game-server hub, ws-gateway hub, match-service queue
+(match_found / match_ready / match_cancelled), chat-service publisher
+(room messages, DMs), notification-service publisher (notification pushes).
+**Consumer:** ws-gateway hub — per-active-connection subscriptions only.
 
 ---
 
@@ -251,7 +278,10 @@ recess/
       lobby/v1/    lobby.proto  + lobby.pb.go  + lobby_grpc.pb.go
       game/v1/     game.proto   + game.pb.go   + game_grpc.pb.go
     events/
-      events.go          ← async event structs (Redis Pub/Sub)
+      events.go          ← async event structs (used as Streams payloads,
+                            Asynq task payloads, and Pub/Sub messages)
+    streams/
+      *.go               ← Redis Streams Producer + Worker (fan-out events)
     ws/
       ws.go              ← client-facing WS event types
     middleware/
@@ -287,10 +317,14 @@ protoc \
 ## Event versioning rules
 
 1. **Adding a field** — safe. Consumers that don't know the field ignore it.
-2. **Renaming a field** — breaking. Add a new channel version (`game.session.finished.v2`),
-   run both in parallel until all consumers migrate, then deprecate v1.
+2. **Renaming a field** — breaking. Add a new stream/queue version
+   (`game.session.finished.v2` for Streams; new task type for Asynq), run
+   both in parallel until all consumers migrate, then retire v1.
 3. **Removing a field** — breaking. Same process as rename.
 4. **Never reuse a field name with a different type.**
+5. **Changing the transport** (Pub/Sub → Streams → Asynq) — coordinated
+   migration, lockstep across publisher and all consumers in a single PR
+   per channel. See P3.6 in `ROADMAP.md` for the playbook.
 
 For Protobuf: field numbers are the contract, not names. Never reuse a
 field number. Adding fields with new numbers is always safe.
