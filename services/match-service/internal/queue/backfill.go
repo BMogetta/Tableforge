@@ -37,8 +37,10 @@
 // idle and eligible for activation; a bot removes itself from the set while
 // it is playing and re-adds on completion.
 //
-// Activation is broadcast on the `bot.activate` pub/sub channel. The payload
-// is `{"player_id": "<uuid>"}` — bot-runner instances filter by their own ID.
+// Activation is published as an Asynq task targeted at one specific bot
+// (task type "bot:activate:<botID>", queue "bot-activate"). bot-runner
+// registers a handler per local bot, so the task only fires when the bot
+// is actually present. Migrated from Pub/Sub in P3.6 Phase 3a.
 //
 // # Race model
 //
@@ -57,6 +59,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	ratingv1 "github.com/recess/shared/proto/rating/v1"
 )
@@ -74,10 +77,21 @@ const (
 	// eligible to be injected into the queue.
 	keyBotAvailable = "bot:available"
 
-	// ChannelBotActivate is the pub/sub channel the detector publishes on.
-	// Payload: {"player_id": "<uuid>"}.
-	ChannelBotActivate = "bot.activate"
+	// QueueBotActivate is the Asynq queue carrying bot activation tasks.
+	// Each task's type is BotActivateTaskType(botID) so the per-bot handler
+	// in bot-runner only fires for that specific bot.
+	QueueBotActivate = "bot-activate"
+
+	// taskTypeBotActivatePrefix is the literal prefix all bot-activate task
+	// types share. The full type is taskTypeBotActivatePrefix + botID.
+	taskTypeBotActivatePrefix = "bot:activate:"
 )
+
+// BotActivateTaskType returns the Asynq task type used to activate a
+// specific bot. bot-runner registers a handler under this exact string.
+func BotActivateTaskType(botID uuid.UUID) string {
+	return taskTypeBotActivatePrefix + botID.String()
+}
 
 // ---------------------------------------------------------------------------
 // Config
@@ -208,11 +222,22 @@ func (s *Service) BackfillScan(ctx context.Context) {
 		return
 	}
 
-	// Publish activation. If the publish fails we re-add the bot so a later
-	// tick can retry — otherwise the bot would be stuck off-queue.
+	// Enqueue activation as an Asynq task targeted at this specific bot.
+	// If the enqueue fails we re-add the bot so a later tick can retry —
+	// otherwise the bot would be stuck off-queue.
+	if s.asynqClient == nil {
+		slog.Error("backfill: asynq client not configured")
+		_ = s.rdb.SAdd(ctx, keyBotAvailable, botID.String()).Err()
+		return
+	}
 	payload, _ := json.Marshal(activatePayload{PlayerID: botID.String()})
-	if err := s.rdb.Publish(ctx, ChannelBotActivate, payload).Err(); err != nil {
-		slog.Error("backfill: publish activate", "bot", botID, "error", err)
+	task := asynq.NewTask(BotActivateTaskType(botID), payload)
+	if _, err := s.asynqClient.Enqueue(task,
+		asynq.Queue(QueueBotActivate),
+		asynq.MaxRetry(0),
+		asynq.Retention(2*time.Minute),
+	); err != nil {
+		slog.Error("backfill: enqueue activate", "bot", botID, "error", err)
 		_ = s.rdb.SAdd(ctx, keyBotAvailable, botID.String()).Err()
 		return
 	}

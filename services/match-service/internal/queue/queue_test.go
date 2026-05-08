@@ -8,6 +8,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/recess/shared/domain/matchmaking"
 	ratingv1 "github.com/recess/shared/proto/rating/v1"
@@ -34,16 +35,21 @@ func (c *customRatingClient) GetRating(_ context.Context, _ *ratingv1.GetRatingR
 	return &ratingv1.GetRatingResponse{Mmr: c.mmr}, nil
 }
 
-// newQueueTestService creates a Service backed by miniredis with a stub rating client.
+// newQueueTestService creates a Service backed by miniredis with a stub rating
+// client. The asynq client is wired against the same miniredis so tests that
+// exercise enqueue paths (matchmaking expiry, bot.activate) work end-to-end.
 func newQueueTestService(t *testing.T, ratingClient ratingv1.RatingServiceClient) (*Service, *miniredis.Miniredis) {
 	t.Helper()
 	rdb, mr := testutil.NewTestRedis(t)
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = asynqClient.Close() })
 
 	svc := &Service{
 		rdb:          rdb,
 		ratingClient: ratingClient,
 		rankedGameID: DefaultRankedGameID,
 		queueCfg:     matchmaking.DefaultQueueConfig(),
+		asynqClient:  asynqClient,
 	}
 	return svc, mr
 }

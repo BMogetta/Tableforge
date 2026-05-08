@@ -12,6 +12,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	ratingv1 "github.com/recess/shared/proto/rating/v1"
 	"google.golang.org/grpc"
@@ -61,6 +62,7 @@ func newBackfillTestService(t *testing.T, rc ratingv1.RatingServiceClient, cfg B
 	return svc, svc.rdb, mr
 }
 
+
 // enqueuePlayer wires queue:ranked + queue:meta directly so tests can control
 // joinedAt precisely. Bypasses svc.Enqueue (which consults rating-service and
 // uses time.Now) to keep the setup deterministic.
@@ -90,43 +92,50 @@ func registerBot(t *testing.T, rdb *redis.Client, botID uuid.UUID) {
 	}
 }
 
-// runScanWithSubscriber starts a subscriber goroutine that reports the first
-// activation it sees (or "" on timeout), runs BackfillScan, then returns what
-// the subscriber captured. Ensures the subscriber is ready before the scan
-// publishes.
-func runScanWithSubscriber(t *testing.T, svc *Service, rdb *redis.Client, timeout time.Duration) string {
+// runScanWithSubscriber runs BackfillScan and returns the player_id of the
+// first bot-activate task the publisher enqueued (or "" if none).
+//
+// The legacy name and the (rdb, timeout) parameters are kept to minimize
+// churn at every call site — Asynq Enqueue is synchronous since Phase 3a, so
+// the timeout is unused and rdb is only used to derive the miniredis Addr
+// for an Inspector connection.
+func runScanWithSubscriber(t *testing.T, svc *Service, rdb *redis.Client, _ time.Duration) string {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	sub := rdb.Subscribe(ctx, ChannelBotActivate)
-	defer sub.Close()
-	if _, err := sub.Receive(ctx); err != nil {
-		t.Fatalf("subscribe confirm: %v", err)
-	}
-
-	result := make(chan string, 1)
-	go func() {
-		ch := sub.Channel()
-		select {
-		case msg := <-ch:
-			var p activatePayload
-			_ = json.Unmarshal([]byte(msg.Payload), &p)
-			result <- p.PlayerID
-		case <-ctx.Done():
-			result <- ""
-		}
-	}()
-
 	svc.BackfillScan(context.Background())
+	return firstActivatedBotViaRDB(t, rdb)
+}
 
-	// Give the subscriber a brief window to receive anything the scan published.
-	select {
-	case got := <-result:
-		return got
-	case <-time.After(timeout):
+// firstActivatedBotViaRDB drains pending bot-activate tasks from the
+// Asynq queue using a fresh Inspector wired to the same Redis the service uses.
+// Returns "" if no task was enqueued (including the case where the queue
+// has not yet been created — Asynq lazy-creates queues on first Enqueue).
+func firstActivatedBotViaRDB(t *testing.T, rdb *redis.Client) string {
+	t.Helper()
+	insp := asynq.NewInspector(asynq.RedisClientOpt{
+		Addr:     rdb.Options().Addr,
+		Password: rdb.Options().Password,
+		DB:       rdb.Options().DB,
+	})
+	defer func() { _ = insp.Close() }()
+
+	tasks, err := insp.ListPendingTasks(QueueBotActivate)
+	if err != nil {
+		if errors.Is(err, asynq.ErrQueueNotFound) {
+			return ""
+		}
+		t.Fatalf("inspector list pending: %v", err)
+	}
+	if len(tasks) == 0 {
 		return ""
 	}
+	var p activatePayload
+	if err := json.Unmarshal(tasks[0].Payload, &p); err != nil {
+		t.Fatalf("unmarshal pending payload: %v", err)
+	}
+	if err := insp.DeleteTask(QueueBotActivate, tasks[0].ID); err != nil {
+		t.Fatalf("delete pending task: %v", err)
+	}
+	return p.PlayerID
 }
 
 func testBackfillCfg(threshold time.Duration, maxActive int) BackfillConfig {
@@ -432,34 +441,35 @@ func TestBackfillScan_ActivationPayloadShape(t *testing.T) {
 	enqueuePlayer(t, rdb, human, 1000, time.Now().Add(-1*time.Minute))
 	registerBot(t, rdb, bot)
 
-	// Capture raw payload to verify JSON shape.
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-	sub := rdb.Subscribe(ctx, ChannelBotActivate)
-	defer sub.Close()
-	if _, err := sub.Receive(ctx); err != nil {
-		t.Fatalf("subscribe: %v", err)
-	}
-
-	payloadCh := make(chan string, 1)
-	go func() {
-		select {
-		case msg := <-sub.Channel():
-			payloadCh <- msg.Payload
-		case <-ctx.Done():
-			payloadCh <- ""
-		}
-	}()
-
 	svc.BackfillScan(context.Background())
 
-	raw := <-payloadCh
-	if raw == "" {
-		t.Fatal("no payload received")
+	insp := asynq.NewInspector(asynq.RedisClientOpt{
+		Addr:     rdb.Options().Addr,
+		Password: rdb.Options().Password,
+		DB:       rdb.Options().DB,
+	})
+	defer func() { _ = insp.Close() }()
+
+	tasks, err := insp.ListPendingTasks(QueueBotActivate)
+	if err != nil {
+		t.Fatalf("list pending: %v", err)
 	}
-	// Must decode cleanly and carry the expected field.
+	if len(tasks) != 1 {
+		t.Fatalf("expected exactly 1 pending task, got %d", len(tasks))
+	}
+	got := tasks[0]
+
+	wantType := BotActivateTaskType(bot)
+	if got.Type != wantType {
+		t.Errorf("task type = %q, want %q", got.Type, wantType)
+	}
+	if got.Queue != QueueBotActivate {
+		t.Errorf("queue = %q, want %q", got.Queue, QueueBotActivate)
+	}
+
+	raw := string(got.Payload)
 	var decoded map[string]any
-	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+	if err := json.Unmarshal(got.Payload, &decoded); err != nil {
 		t.Fatalf("not valid JSON: %v — raw: %q", err, raw)
 	}
 	if decoded["player_id"] != bot.String() {
@@ -540,50 +550,22 @@ func TestBackfillScan_TwoScansInRow_OnlyOneActivation(t *testing.T) {
 	enqueuePlayer(t, rdb, human, 1000, time.Now().Add(-1*time.Minute))
 	registerBot(t, rdb, bot)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	sub := rdb.Subscribe(ctx, ChannelBotActivate)
-	defer sub.Close()
-	if _, err := sub.Receive(ctx); err != nil {
-		t.Fatalf("subscribe: %v", err)
+	svc.BackfillScan(context.Background())
+	svc.BackfillScan(context.Background())
+
+	insp := asynq.NewInspector(asynq.RedisClientOpt{
+		Addr:     rdb.Options().Addr,
+		Password: rdb.Options().Password,
+		DB:       rdb.Options().DB,
+	})
+	defer func() { _ = insp.Close() }()
+
+	tasks, err := insp.ListPendingTasks(QueueBotActivate)
+	if err != nil {
+		t.Fatalf("list pending: %v", err)
 	}
-
-	var activations []string
-	var mu sync.Mutex
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		ch := sub.Channel()
-		for {
-			select {
-			case msg, ok := <-ch:
-				if !ok {
-					return
-				}
-				var p activatePayload
-				_ = json.Unmarshal([]byte(msg.Payload), &p)
-				mu.Lock()
-				activations = append(activations, p.PlayerID)
-				mu.Unlock()
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	svc.BackfillScan(context.Background())
-	svc.BackfillScan(context.Background())
-
-	// Let the subscriber drain.
-	time.Sleep(150 * time.Millisecond)
-	cancel()
-	<-done
-
-	mu.Lock()
-	count := len(activations)
-	mu.Unlock()
-	if count != 1 {
-		t.Errorf("expected 1 activation across two scans, got %d: %v", count, activations)
+	if len(tasks) != 1 {
+		t.Errorf("expected 1 activation across two scans, got %d", len(tasks))
 	}
 }
 
@@ -690,7 +672,8 @@ func TestBackfillScan_RedisNamesAreStable(t *testing.T) {
 	}{
 		{"keyBotKnown", "bot:known", keyBotKnown},
 		{"keyBotAvailable", "bot:available", keyBotAvailable},
-		{"ChannelBotActivate", "bot.activate", ChannelBotActivate},
+		{"QueueBotActivate", "bot-activate", QueueBotActivate},
+		{"taskTypeBotActivatePrefix", "bot:activate:", taskTypeBotActivatePrefix},
 	}
 	for _, c := range cases {
 		if c.got != c.want {
