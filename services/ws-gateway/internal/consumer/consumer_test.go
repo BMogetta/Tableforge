@@ -8,14 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	sharedevents "github.com/recess/shared/events"
-	"github.com/recess/shared/testutil"
 )
-
-func newTestConsumerWithRedis(t *testing.T, disc Disconnector, bc Broadcaster) *Consumer {
-	t.Helper()
-	rdb, _ := testutil.NewTestRedis(t)
-	return New(rdb, disc, bc, slog.Default())
-}
 
 // --- mock disconnector -------------------------------------------------------
 
@@ -287,9 +280,12 @@ func TestHandle_MultipleUnknownChannels(t *testing.T) {
 	}
 }
 
-func TestHandleSessionRevoked_DedupesByEventID(t *testing.T) {
+// Same event delivered twice triggers the handler twice — there is NO global
+// dedupe by design (see package doc). DisconnectPlayer is naturally idempotent
+// so a redelivery on the same pod just no-ops the second call.
+func TestHandleSessionRevoked_RedeliveryFiresEachTime(t *testing.T) {
 	disc := &mockDisconnector{}
-	c := newTestConsumerWithRedis(t, disc, &mockBroadcaster{})
+	c := New(nil, disc, &mockBroadcaster{}, slog.Default())
 
 	playerID := uuid.New()
 	evt := sharedevents.PlayerSessionRevoked{
@@ -308,14 +304,18 @@ func TestHandleSessionRevoked_DedupesByEventID(t *testing.T) {
 		t.Fatalf("second handle: %v", err)
 	}
 
-	if len(disc.disconnected) != 1 {
-		t.Errorf("expected 1 disconnect on redelivery, got %d", len(disc.disconnected))
+	// Both calls fire — the hub mock records both; the real hub.DisconnectPlayer
+	// is a no-op for an absent player so production behavior is harmless.
+	if len(disc.disconnected) != 2 {
+		t.Errorf("expected handler to fire twice without global dedupe, got %d disconnects", len(disc.disconnected))
 	}
 }
 
-func TestHandleBroadcastSent_DedupesByEventID(t *testing.T) {
+// Same broadcast delivered twice fires the handler twice. The dedupe was
+// removed so multi-replica fan-out works (see package doc).
+func TestHandleBroadcastSent_RedeliveryFiresEachTime(t *testing.T) {
 	bc := &mockBroadcaster{}
-	c := newTestConsumerWithRedis(t, &mockDisconnector{}, bc)
+	c := New(nil, &mockDisconnector{}, bc, slog.Default())
 
 	evt := sharedevents.AdminBroadcastSent{
 		Meta:          sharedevents.Meta{EventID: uuid.NewString()},
@@ -333,8 +333,8 @@ func TestHandleBroadcastSent_DedupesByEventID(t *testing.T) {
 		t.Fatalf("second handle: %v", err)
 	}
 
-	if len(bc.messages) != 1 {
-		t.Errorf("expected 1 broadcast on redelivery, got %d", len(bc.messages))
+	if len(bc.messages) != 2 {
+		t.Errorf("expected handler to fire twice without global dedupe, got %d broadcasts", len(bc.messages))
 	}
 }
 

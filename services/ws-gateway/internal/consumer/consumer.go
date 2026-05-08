@@ -4,6 +4,37 @@
 //
 //   - player.session.revoked  → disconnect the player's WebSocket connection
 //   - admin.broadcast.sent    → fan out broadcast message to all connected clients
+//
+// # Why Pub/Sub here (and not Streams or Asynq)
+//
+// ws-gateway is a stateful service: each replica owns the WebSocket
+// connections it accepted. Both events above need to reach EVERY replica:
+//
+//   - session.revoked: only the replica hosting the target connection can
+//     close it. With one Asynq queue, only one replica sees the task — and
+//     it might not be the one hosting the connection. Pub/Sub fans out to
+//     all replicas; the right one acts, the rest no-op (DisconnectPlayer
+//     of an absent player is a no-op).
+//
+//   - broadcast.sent: each replica must broadcast to ITS clients. With one
+//     Asynq queue, only one replica fires → half the user base never sees
+//     the message. Pub/Sub fan-out is the correct semantic.
+//
+// This is the inverse of the rdb.Subscribe-blocks-scaling problem the rest
+// of P3.6 fixed: there, fan-out duplicated DB writes; here, fan-out is
+// the goal.
+//
+// # No global dedupe
+//
+// A previous version of this consumer used a Redis SETNX dedupe keyed by
+// event_id. With multiple replicas, that broke fan-out: the first replica
+// to receive any event marked it "seen" and the others skipped — so the
+// pod hosting the target connection might silently drop the disconnect,
+// and only one pod would broadcast (instead of all). The dedupe was
+// removed in P3.6 Phase 3c. The handlers below are naturally idempotent
+// (DisconnectPlayer is a no-op for an absent player; duplicate broadcasts
+// are noisy but not destructive), and Pub/Sub itself is at-most-once, so
+// duplicates require an unusual publisher-side bug to even occur.
 package consumer
 
 import (
@@ -12,7 +43,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -23,9 +53,6 @@ import (
 const (
 	channelSessionRevoked = "player.session.revoked"
 	channelBroadcastSent  = "admin.broadcast.sent"
-
-	dedupeKeyPrefix = "dedup:ws-gateway:"
-	dedupeTTL       = 24 * time.Hour
 )
 
 // Disconnector is the interface used to close player WS connections.
@@ -84,7 +111,7 @@ func (c *Consumer) handle(ctx context.Context, msg *redis.Message) error {
 	}
 }
 
-func (c *Consumer) handleSessionRevoked(ctx context.Context, payload string) error {
+func (c *Consumer) handleSessionRevoked(_ context.Context, payload string) error {
 	var evt sharedevents.PlayerSessionRevoked
 	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
 		return fmt.Errorf("unmarshal PlayerSessionRevoked: %w", err)
@@ -93,13 +120,6 @@ func (c *Consumer) handleSessionRevoked(ctx context.Context, payload string) err
 	playerID, err := uuid.Parse(evt.PlayerID)
 	if err != nil {
 		return fmt.Errorf("invalid player_id: %w", err)
-	}
-
-	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
-		c.log.Warn("ws: dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
-	} else if seen {
-		c.log.Info("ws: skipping duplicate session.revoked", "event_id", evt.EventID, "player_id", playerID)
-		return nil
 	}
 
 	c.hub.DisconnectPlayer(playerID)
@@ -111,17 +131,10 @@ func (c *Consumer) handleSessionRevoked(ctx context.Context, payload string) err
 	return nil
 }
 
-func (c *Consumer) handleBroadcastSent(ctx context.Context, payload string) error {
+func (c *Consumer) handleBroadcastSent(_ context.Context, payload string) error {
 	var evt sharedevents.AdminBroadcastSent
 	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
 		return fmt.Errorf("unmarshal AdminBroadcastSent: %w", err)
-	}
-
-	if seen, err := c.seenEvent(ctx, evt.EventID); err != nil {
-		c.log.Warn("ws: dedupe check failed, processing event", "event_id", evt.EventID, "error", err)
-	} else if seen {
-		c.log.Info("ws: skipping duplicate admin.broadcast.sent", "event_id", evt.EventID)
-		return nil
 	}
 
 	wsEvent := sharedws.Event{
@@ -143,19 +156,4 @@ func (c *Consumer) handleBroadcastSent(ctx context.Context, payload string) erro
 		"event_id", evt.EventID,
 	)
 	return nil
-}
-
-// seenEvent returns true if the event was already processed within the 24h
-// dedupe window; otherwise records the event and returns false. An empty
-// event_id or nil Redis client is treated as unseen so invocations without a
-// wired Redis (unit tests, bootstrap) still proceed. Redis errors fail open.
-func (c *Consumer) seenEvent(ctx context.Context, eventID string) (bool, error) {
-	if eventID == "" || c.rdb == nil {
-		return false, nil
-	}
-	ok, err := c.rdb.SetNX(ctx, dedupeKeyPrefix+eventID, "1", dedupeTTL).Result() //nolint:staticcheck // SetNX is the idiomatic atomic primitive; SET ... NX would add noise without functional benefit
-	if err != nil {
-		return false, err
-	}
-	return !ok, nil
 }

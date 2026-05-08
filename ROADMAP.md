@@ -264,13 +264,13 @@ Pinned decisions: stream names = current channel names; consumer group = service
 `MAXLEN ~ 10000` per stream; keep `event_id` + `processed_events` table for at-least-once
 defense in depth.
 
-- [ ] **Phase 0** — `shared/streams/` package (Producer, ConsumerGroup, Worker, PEL claim, DLQ) + testcontainers tests.
-- [ ] **Phase 1** — `game.session.finished` → Streams (lockstep: game-server publisher + rating-service + user-service consumers, bump replicaCount: 2).
-- [ ] **Phase 2** — `player.banned` → Streams (lockstep: auth-service + match-service + notification-service, bump replicaCount: 2).
-- [ ] **Phase 3a** — `bot.activate` → Asynq (match-service → game-server/bot-runner).
-- [ ] **Phase 3b** — `friendship.requested/accepted` + `achievement.unlocked` → Asynq (notification-service consumer).
-- [ ] **Phase 3c** — `session.revoked` + `broadcast.sent` → Asynq (ws-gateway service-level consumer).
-- [ ] **Phase 4** — Cleanup: legacy channel consts removed, consumer-lag + PEL-size metrics, Asynqmon UI deployed at `asynqmon.bmogetta.com`, `CLAUDE.md` § Communication Patterns + `shared/contracts.md` updated, memory `project_redis_pubsub_scaling.md` superseded.
+- [x] **Phase 0** — `shared/streams/` package (Producer, ConsumerGroup, Worker, PEL claim, DLQ) + testcontainers tests.
+- [x] **Phase 1** — `game.session.finished` → Streams (lockstep: game-server publisher + rating-service + user-service consumers, bump replicaCount: 2).
+- [x] **Phase 2** — `player.banned` → Streams (lockstep: auth-service + match-service + notification-service, bump replicaCount: 2).
+- [x] **Phase 3a** — `bot.activate` → Asynq (match-service → game-server/bot-runner).
+- [x] **Phase 3b** — `friendship.requested/accepted` + `achievement.unlocked` → Asynq (notification-service consumer).
+- [x] **Phase 3c** — ws-gateway service consumer **stays on Pub/Sub** (`session.revoked`, `broadcast.sent`). Both events require fan-out to every ws-gateway replica — Asynq with a single queue would deliver to only one pod, breaking either the disconnect targeting or the broadcast reach. Removed the global SETNX dedupe that broke fan-out semantics; handlers are now naturally idempotent. CLAUDE.md § Communication Patterns updated to document the rule.
+- [ ] **Phase 4** — Cleanup: legacy channel consts removed, consumer-lag + PEL-size metrics, Asynqmon UI deployed at `asynqmon.bmogetta.com`, `shared/contracts.md` updated, memory `project_redis_pubsub_scaling.md` superseded, replicaCount bumps land in `recess-deploy`.
 - **Depends on:** none — already running on what it replaces. Unblocks horizontal scaling for 6 services currently pinned at replicaCount=1.
 - **Parallelizable with:** anything outside the affected services.
 

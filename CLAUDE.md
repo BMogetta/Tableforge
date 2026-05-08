@@ -104,20 +104,32 @@ Recess is a **microservices monorepo**. All services live under `services/` and 
 
 game-server exposes gRPC on `:9080` implementing `lobby.v1.LobbyService` (CreateRankedRoom) and `game.v1.GameService` (StartSession, IsParticipant). match-service is the sole caller.
 
-All traffic from the frontend goes through **Traefik** (reverse proxy). There is no direct service-to-service HTTP — inter-service calls use gRPC (synchronous) or Redis Pub/Sub (async).
+All traffic from the frontend goes through **Traefik** (reverse proxy). There is no direct service-to-service HTTP — inter-service calls use gRPC (synchronous) or one of three async transports.
 
 ### Communication Patterns
 
 - **gRPC + Protobuf** — synchronous calls where the caller needs a response (e.g., game-server → rating-service to fetch MMR before matchmaking). Proto definitions live in `shared/proto/`.
-- **Redis Pub/Sub** — asynchronous events. Channel naming: `{domain}.{entity}.{verb}` (e.g., `game.session.finished`). All events carry an `event_id` UUID for idempotency. Event structures defined in `shared/events/`.
+
+- **Redis Streams** — async fan-out events: one publisher, multiple consuming services, each service consumes once across its replicas via a consumer group. Used for `game.session.finished` (rating + user) and `player.banned` (auth + match + notification). Stream name = event name; one consumer group per consuming service. Producer + consumer helpers in `shared/streams/`.
+
+- **Asynq** — async point-to-point tasks: one producer, one consuming service. Used for game-server timers (turn timeouts), match-service expiry, `bot:activate:{botID}` (match → bot-runner), `notification:friendship-*` / `notification:achievement-unlocked` (user → notification). Built-in retry, scheduling, DLQ. Tasks live on per-service queues (`match`, `bot-activate`, `notification`).
+
+- **Redis Pub/Sub** — async fan-out where every consumer **replica** must see every message:
+  - Per-connection WS hubs (`room.{roomID}`, `player.{playerID}`) — only the pod hosting the connection has a relevant subscription, so fan-out is naturally targeted.
+  - ws-gateway service consumer (`player.session.revoked`, `admin.broadcast.sent`) — every ws-gateway replica must receive each event so the right pod can disconnect a player or each pod can broadcast to its own clients. Streams or Asynq with a single consumer group/queue would deliver to only one pod, which is wrong here.
+  - Other channels still on Pub/Sub for legacy reasons (`player.unbanned`, no consumer wired today): no functional need to migrate.
+
+  Pub/Sub consumers in this repo MUST be naturally idempotent or fan-out-safe — a global SETNX dedupe across replicas breaks the fan-out semantic.
+
 - **REST/JSON** — frontend ↔ services only, never service-to-service.
 
-See `shared/contracts.md` for the complete service contract map and versioning rules.
+All async events carry an `event_id` UUID for idempotency. Event structs live in `shared/events/`. See `shared/contracts.md` for the complete contract map and versioning rules.
 
 ### Shared Module (`shared/`)
 
 - `shared/proto/` — Protobuf definitions + generated Go stubs (rating, user, lobby, game)
-- `shared/events/` — Redis Pub/Sub event structs
+- `shared/events/` — Async event structs (Streams payloads, Asynq task payloads, Pub/Sub messages)
+- `shared/streams/` — Redis Streams Producer + Worker (consumer group + claim loop + DLQ)
 - `shared/domain/rating/` — ELO/MMR engine (shared between game-server and rating-service)
 - `shared/domain/matchmaking/` — matchmaker algorithm (shared between match-service and simulate tool)
 - `shared/middleware/` — JWT auth, OpenTelemetry HTTP middleware, JSON Schema request validation
