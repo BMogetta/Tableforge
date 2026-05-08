@@ -61,6 +61,7 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 
@@ -113,9 +114,10 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	// Backfill mode needs a shared Redis client so every bot can write to
-	// bot:known/bot:available and subscribe to bot.activate.
+	// Backfill mode needs a shared Redis client (for bot:known / bot:available)
+	// and an Asynq RedisClientOpt (for the bot-activate queue subscription).
 	var rdb *redis.Client
+	var asynqOpts asynq.RedisClientOpt
 	if *mode == "backfill" {
 		url := *redisURL
 		if url == "" {
@@ -136,6 +138,7 @@ func main() {
 			log.Error("redis ping failed", "error", err)
 			os.Exit(1)
 		}
+		asynqOpts = asynq.RedisClientOpt{Addr: opt.Addr, Password: opt.Password, DB: opt.DB}
 	}
 
 	// Resolve any specs that carry a username into UUIDs via DB lookup.
@@ -202,7 +205,7 @@ func main() {
 			var err error
 			switch *mode {
 			case "backfill":
-				err = r.RunBackfill(ctx, rdb)
+				err = r.RunBackfill(ctx, rdb, asynqOpts)
 			default:
 				err = r.Run(ctx, *numGames)
 			}

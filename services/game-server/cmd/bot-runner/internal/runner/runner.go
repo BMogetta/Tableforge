@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/recess/game-server/cmd/bot-runner/internal/client"
@@ -25,13 +26,18 @@ import (
 	"github.com/recess/game-server/internal/domain/engine"
 )
 
-// Redis keys and channel mirrored from match-service/internal/queue/backfill.go.
-// Duplicated as constants here rather than importing the match-service package
-// to keep bot-runner free of match-service dependencies.
+// Redis keys and Asynq routing mirrored from match-service/internal/queue/backfill.go.
+// Duplicated here rather than importing the match-service package so bot-runner
+// stays free of match-service dependencies.
 const (
-	keyBotKnown        = "bot:known"
-	keyBotAvailable    = "bot:available"
-	channelBotActivate = "bot.activate"
+	keyBotKnown     = "bot:known"
+	keyBotAvailable = "bot:available"
+
+	// queueBotActivate is the Asynq queue carrying activation tasks. A
+	// task's type is botActivateTaskType(botID), so each bot only consumes
+	// the activations targeted at it.
+	queueBotActivate          = "bot-activate"
+	taskTypeBotActivatePrefix = "bot:activate:"
 
 	// backfillJoinTimeout bounds how long a backfill bot stays in the queue
 	// after activation before it withdraws. If a second human arrived between
@@ -39,6 +45,10 @@ const (
 	// bot would otherwise sit there forever.
 	backfillJoinTimeout = 45 * time.Second
 )
+
+func botActivateTaskType(botID string) string {
+	return taskTypeBotActivatePrefix + botID
+}
 
 // activateMessage is the payload the match-service publishes on
 // bot.activate. Mirrors queue.activatePayload.
@@ -165,15 +175,16 @@ func (r *Runner) Run(ctx context.Context, numGames int) error {
 }
 
 // RunBackfill authenticates once, registers the bot in bot:known + bot:available,
-// subscribes to the bot.activate channel, and plays a match every time the
-// match-service picks this bot to fill in for a lonely human.
+// and runs an Asynq server that plays a match every time the match-service
+// picks this bot to fill in for a lonely human.
 //
 // Between matches the bot sits idle in bot:available so the detector can pick
 // a different bot for parallel activations. The bot never self-queues — if the
 // activation signal never arrives, RunBackfill blocks until ctx is cancelled.
 //
 // The caller owns rdb; it should be a shared *redis.Client passed from main.
-func (r *Runner) RunBackfill(ctx context.Context, rdb *redis.Client) error {
+// asynqOpts wires the same Redis as a separate connection pool for Asynq.
+func (r *Runner) RunBackfill(ctx context.Context, rdb *redis.Client, asynqOpts asynq.RedisClientOpt) error {
 	if err := r.client.Login(ctx); err != nil {
 		return fmt.Errorf("login: %w", err)
 	}
@@ -205,53 +216,85 @@ func (r *Runner) RunBackfill(ctx context.Context, rdb *redis.Client) error {
 		}
 	}()
 
-	sub := rdb.Subscribe(ctx, channelBotActivate)
-	defer sub.Close()
-	ch := sub.Channel()
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(botActivateTaskType(botID), func(taskCtx context.Context, task *asynq.Task) error {
+		return r.handleActivate(taskCtx, rdb, task)
+	})
 
-	r.log.Info("awaiting activation", "channel", channelBotActivate)
+	srv := asynq.NewServer(asynqOpts, asynq.Config{
+		Queues:      map[string]int{queueBotActivate: 1},
+		Concurrency: 1, // one match at a time per bot
+		Logger:      asynqSlogAdapter{log: r.log},
+	})
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case msg, ok := <-ch:
-			if !ok {
-				return fmt.Errorf("subscription channel closed")
-			}
-			var am activateMessage
-			if err := json.Unmarshal([]byte(msg.Payload), &am); err != nil {
-				continue
-			}
-			if am.PlayerID != botID {
-				continue // another bot was picked
-			}
-			r.log.Info("activated — joining queue")
+	r.log.Info("awaiting activation", "queue", queueBotActivate, "task_type", botActivateTaskType(botID))
 
-			gameLog := r.log.With("trigger", "backfill")
-			// Dial player WS per activation — keeping it open between
-			// activations lets intermediaries close it on idle, which then
-			// surfaces as match_found: unexpected EOF right after join.
-			if err := func() error {
-				playerWS, err := r.client.DialPlayerWS(ctx)
-				if err != nil {
-					return fmt.Errorf("dial player ws: %w", err)
-				}
-				defer func() { _ = playerWS.Close() }()
-				return r.playOneBackfill(ctx, playerWS, gameLog)
-			}(); err != nil {
-				gameLog.Error("backfill game failed", "error", err)
-			}
+	srvErr := make(chan error, 1)
+	go func() { srvErr <- srv.Run(mux) }()
 
-			// Back into the available pool regardless of outcome — a failed
-			// game should not evict the bot permanently. The detector's
-			// SREM-on-claim already guarantees we won't be re-selected mid-game.
-			if err := rdb.SAdd(ctx, keyBotAvailable, botID).Err(); err != nil {
-				r.log.Error("re-add bot:available", "error", err)
-			}
-		}
+	select {
+	case <-ctx.Done():
+		srv.Shutdown()
+		<-srvErr
+		return ctx.Err()
+	case err := <-srvErr:
+		return err
 	}
 }
+
+// handleActivate is the per-bot Asynq handler. The task type is unique to
+// this bot, so receiving the task is itself the signal — we still verify
+// the payload's player_id as defense in depth in case routing ever drifts.
+func (r *Runner) handleActivate(ctx context.Context, rdb *redis.Client, task *asynq.Task) error {
+	botID := r.bot.ID.String()
+
+	var am activateMessage
+	if err := json.Unmarshal(task.Payload(), &am); err != nil {
+		return fmt.Errorf("unmarshal activate: %w", err)
+	}
+	if am.PlayerID != botID {
+		r.log.Warn("activate task targeted at different bot, ignoring",
+			"task_player_id", am.PlayerID, "bot_id", botID)
+		return nil
+	}
+
+	r.log.Info("activated — joining queue")
+	gameLog := r.log.With("trigger", "backfill")
+
+	// Dial player WS per activation — keeping it open between activations
+	// lets intermediaries close it on idle, which then surfaces as
+	// match_found: unexpected EOF right after join.
+	if err := func() error {
+		playerWS, err := r.client.DialPlayerWS(ctx)
+		if err != nil {
+			return fmt.Errorf("dial player ws: %w", err)
+		}
+		defer func() { _ = playerWS.Close() }()
+		return r.playOneBackfill(ctx, playerWS, gameLog)
+	}(); err != nil {
+		gameLog.Error("backfill game failed", "error", err)
+	}
+
+	// Back into the available pool regardless of outcome — a failed game
+	// should not evict the bot permanently. The detector's SREM-on-claim
+	// already guarantees we won't be re-selected mid-game.
+	if err := rdb.SAdd(ctx, keyBotAvailable, botID).Err(); err != nil {
+		r.log.Error("re-add bot:available", "error", err)
+	}
+
+	// Always ack — Asynq retries would re-trigger an already-played match.
+	// The publisher set MaxRetry(0) anyway; this is belt-and-suspenders.
+	return nil
+}
+
+// asynqSlogAdapter bridges Asynq's Logger interface to slog.
+type asynqSlogAdapter struct{ log *slog.Logger }
+
+func (a asynqSlogAdapter) Debug(args ...any) { a.log.Debug(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Info(args ...any)  { a.log.Info(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Warn(args ...any)  { a.log.Warn(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Error(args ...any) { a.log.Error(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Fatal(args ...any) { a.log.Error(fmt.Sprint(args...)) }
 
 // playOneBackfill wraps playOne with a bounded wait for match_found. If the
 // timeout fires, the bot leaves the queue so it doesn't sit forever when a
