@@ -3,25 +3,32 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+
 	"github.com/recess/services/user-service/internal/store"
 	"github.com/recess/shared/events"
 )
 
-func newTestPublisher(t *testing.T) (*Publisher, *redis.Client) {
+func newTestPublisher(t *testing.T) (*Publisher, *redis.Client, *miniredis.Miniredis) {
 	t.Helper()
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	t.Cleanup(func() { _ = rdb.Close() })
-	return NewPublisher(rdb), rdb
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = asynqClient.Close() })
+	return NewPublisher(rdb, asynqClient), rdb, mr
 }
 
-// subscribe listens on channel, calls fn (which publishes), and returns the first message.
+// subscribe listens on a Pub/Sub channel, calls fn (which publishes), and
+// returns the first message. Used for channels still on Pub/Sub
+// (player.unbanned, admin.broadcast.sent).
 func subscribe(t *testing.T, rdb *redis.Client, channel string, fn func()) string {
 	t.Helper()
 	ctx := context.Background()
@@ -58,8 +65,30 @@ func readStreamLast(t *testing.T, rdb *redis.Client, stream string) string {
 	return payload
 }
 
+// firstEnqueuedTask reads the first pending Asynq task on the given queue
+// for the given task type. Returns the raw payload bytes.
+func firstEnqueuedTask(t *testing.T, mr *miniredis.Miniredis, queue, taskType string) []byte {
+	t.Helper()
+	insp := asynq.NewInspector(asynq.RedisClientOpt{Addr: mr.Addr()})
+	defer func() { _ = insp.Close() }()
+	tasks, err := insp.ListPendingTasks(queue)
+	if err != nil {
+		if errors.Is(err, asynq.ErrQueueNotFound) {
+			t.Fatalf("queue %q not found — task was never enqueued", queue)
+		}
+		t.Fatalf("list pending: %v", err)
+	}
+	for _, task := range tasks {
+		if task.Type == taskType {
+			return task.Payload
+		}
+	}
+	t.Fatalf("no task of type %q found in queue %q (saw %d tasks)", taskType, queue, len(tasks))
+	return nil
+}
+
 func TestPublishPlayerBanned(t *testing.T) {
-	pub, rdb := newTestPublisher(t)
+	pub, rdb, _ := newTestPublisher(t)
 	expires := time.Now().Add(24 * time.Hour)
 	reason := "cheating"
 	ban := store.Ban{
@@ -94,7 +123,7 @@ func TestPublishPlayerBanned(t *testing.T) {
 }
 
 func TestPublishPlayerBanned_NoExpiry(t *testing.T) {
-	pub, rdb := newTestPublisher(t)
+	pub, rdb, _ := newTestPublisher(t)
 	ban := store.Ban{
 		ID:       uuid.New(),
 		PlayerID: uuid.New(),
@@ -113,7 +142,7 @@ func TestPublishPlayerBanned_NoExpiry(t *testing.T) {
 }
 
 func TestPublishPlayerUnbanned(t *testing.T) {
-	pub, rdb := newTestPublisher(t)
+	pub, rdb, _ := newTestPublisher(t)
 	banID := uuid.New()
 	playerID := uuid.New()
 	liftedBy := uuid.New()
@@ -135,14 +164,13 @@ func TestPublishPlayerUnbanned(t *testing.T) {
 }
 
 func TestPublishFriendshipRequested(t *testing.T) {
-	pub, rdb := newTestPublisher(t)
+	pub, _, mr := newTestPublisher(t)
 
-	msg := subscribe(t, rdb, channelFriendshipRequested, func() {
-		pub.PublishFriendshipRequested(context.Background(), "req-id", "alice", "addr-id")
-	})
+	pub.PublishFriendshipRequested(context.Background(), "req-id", "alice", "addr-id")
 
+	payload := firstEnqueuedTask(t, mr, QueueNotification, TaskFriendshipRequested)
 	var evt events.FriendshipRequested
-	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		t.Fatal(err)
 	}
 	if evt.RequesterID != "req-id" {
@@ -157,18 +185,17 @@ func TestPublishFriendshipRequested(t *testing.T) {
 }
 
 func TestPublishFriendshipAccepted(t *testing.T) {
-	pub, rdb := newTestPublisher(t)
+	pub, _, mr := newTestPublisher(t)
 	f := store.Friendship{
 		RequesterID: uuid.New(),
 		AddresseeID: uuid.New(),
 	}
 
-	msg := subscribe(t, rdb, channelFriendshipAccepted, func() {
-		pub.PublishFriendshipAccepted(context.Background(), f)
-	})
+	pub.PublishFriendshipAccepted(context.Background(), f)
 
+	payload := firstEnqueuedTask(t, mr, QueueNotification, TaskFriendshipAccepted)
 	var evt events.FriendshipAccepted
-	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		t.Fatal(err)
 	}
 	if evt.RequesterID != f.RequesterID.String() {
@@ -177,7 +204,7 @@ func TestPublishFriendshipAccepted(t *testing.T) {
 }
 
 func TestPublishBroadcast(t *testing.T) {
-	pub, rdb := newTestPublisher(t)
+	pub, rdb, _ := newTestPublisher(t)
 
 	msg := subscribe(t, rdb, channelBroadcastSent, func() {
 		pub.PublishBroadcast(context.Background(), "hello world", "info", "admin-id")
@@ -196,14 +223,13 @@ func TestPublishBroadcast(t *testing.T) {
 }
 
 func TestPublishAchievementUnlocked(t *testing.T) {
-	pub, rdb := newTestPublisher(t)
+	pub, _, mr := newTestPublisher(t)
 
-	msg := subscribe(t, rdb, channelAchievementUnlocked, func() {
-		pub.PublishAchievementUnlocked(context.Background(), "player-1", "first_win", 1, "Bronze")
-	})
+	pub.PublishAchievementUnlocked(context.Background(), "player-1", "first_win", 1, "Bronze")
 
+	payload := firstEnqueuedTask(t, mr, QueueNotification, TaskAchievementUnlocked)
 	var evt events.AchievementUnlocked
-	if err := json.Unmarshal([]byte(msg), &evt); err != nil {
+	if err := json.Unmarshal(payload, &evt); err != nil {
 		t.Fatal(err)
 	}
 	if evt.PlayerID != "player-1" {

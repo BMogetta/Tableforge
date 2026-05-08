@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
+	"github.com/hibiken/asynq"
 
 	"github.com/recess/notification-service/internal/store"
 	"github.com/recess/shared/events"
@@ -43,7 +43,7 @@ func newExtraConsumer(st *extraMockStore, pub *extraMockPublisher) *Consumer {
 	return &Consumer{store: st, pub: pub, log: slog.Default()}
 }
 
-// --- achievement.unlocked (still Pub/Sub) ------------------------------------
+// --- achievement.unlocked (Asynq) --------------------------------------------
 
 func TestHandleAchievementUnlocked(t *testing.T) {
 	st := &extraMockStore{result: store.Notification{ID: uuid.New()}}
@@ -58,9 +58,9 @@ func TestHandleAchievementUnlocked(t *testing.T) {
 		TierName:       "Gold",
 	}
 	payload, _ := json.Marshal(evt)
-	msg := &redis.Message{Channel: channelAchievementUnlocked, Payload: string(payload)}
+	task := asynq.NewTask(taskAchievementUnlocked, payload)
 
-	if err := c.handlePubSub(context.Background(), msg); err != nil {
+	if err := c.handleAchievementUnlocked(context.Background(), task); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
 
@@ -77,8 +77,8 @@ func TestHandleAchievementUnlocked(t *testing.T) {
 
 func TestHandleAchievementUnlocked_InvalidJSON(t *testing.T) {
 	c := newExtraConsumer(&extraMockStore{}, &extraMockPublisher{})
-	msg := &redis.Message{Channel: channelAchievementUnlocked, Payload: "bad json"}
-	if err := c.handlePubSub(context.Background(), msg); err == nil {
+	task := asynq.NewTask(taskAchievementUnlocked, []byte("bad json"))
+	if err := c.handleAchievementUnlocked(context.Background(), task); err == nil {
 		t.Fatal("expected error for invalid JSON")
 	}
 }
@@ -87,8 +87,8 @@ func TestHandleAchievementUnlocked_InvalidPlayerID(t *testing.T) {
 	c := newExtraConsumer(&extraMockStore{}, &extraMockPublisher{})
 	evt := events.AchievementUnlocked{PlayerID: "bad-uuid"}
 	payload, _ := json.Marshal(evt)
-	msg := &redis.Message{Channel: channelAchievementUnlocked, Payload: string(payload)}
-	if err := c.handlePubSub(context.Background(), msg); err == nil {
+	task := asynq.NewTask(taskAchievementUnlocked, payload)
+	if err := c.handleAchievementUnlocked(context.Background(), task); err == nil {
 		t.Fatal("expected error for invalid player_id")
 	}
 }
@@ -148,24 +148,14 @@ func TestHandlePlayerBanned_WithExpiry(t *testing.T) {
 	}
 }
 
-// --- unknown channel ---------------------------------------------------------
-
-func TestHandle_UnknownChannel_Extra(t *testing.T) {
-	c := newExtraConsumer(&extraMockStore{}, &extraMockPublisher{})
-	msg := &redis.Message{Channel: "some.unknown.channel", Payload: "{}"}
-	if err := c.handlePubSub(context.Background(), msg); err == nil {
-		t.Fatal("expected error for unknown channel")
-	}
-}
-
 // --- friendship.accepted invalid IDs -----------------------------------------
 
 func TestHandleFriendshipAccepted_InvalidRequesterID(t *testing.T) {
 	c := newExtraConsumer(&extraMockStore{}, &extraMockPublisher{})
 	evt := events.FriendshipAccepted{RequesterID: "bad", AddresseeID: uuid.NewString()}
 	payload, _ := json.Marshal(evt)
-	msg := &redis.Message{Channel: channelFriendshipAccepted, Payload: string(payload)}
-	if err := c.handlePubSub(context.Background(), msg); err == nil {
+	task := asynq.NewTask(taskFriendshipAccepted, payload)
+	if err := c.handleFriendshipAccepted(context.Background(), task); err == nil {
 		t.Fatal("expected error for invalid requester_id")
 	}
 }
@@ -174,8 +164,8 @@ func TestHandleFriendshipAccepted_InvalidAddresseeID(t *testing.T) {
 	c := newExtraConsumer(&extraMockStore{}, &extraMockPublisher{})
 	evt := events.FriendshipAccepted{RequesterID: uuid.NewString(), AddresseeID: "bad"}
 	payload, _ := json.Marshal(evt)
-	msg := &redis.Message{Channel: channelFriendshipAccepted, Payload: string(payload)}
-	if err := c.handlePubSub(context.Background(), msg); err == nil {
+	task := asynq.NewTask(taskFriendshipAccepted, payload)
+	if err := c.handleFriendshipAccepted(context.Background(), task); err == nil {
 		t.Fatal("expected error for invalid addressee_id")
 	}
 }
