@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hibiken/asynq"
+
 	"github.com/recess/services/user-service/internal/api"
 	"github.com/recess/services/user-service/internal/consumer"
 	usgrpc "github.com/recess/services/user-service/internal/grpc"
@@ -62,7 +64,15 @@ func main() {
 	rdb := sharedredis.MustConnect(ctx, config.MustEnv("REDIS_URL"))
 	defer func() { _ = rdb.Close() }()
 
-	pub := api.NewPublisher(rdb)
+	// --- Asynq client (notification queue producer) --------------------------
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
+		Addr:     rdb.Options().Addr,
+		Password: rdb.Options().Password,
+		DB:       rdb.Options().DB,
+	})
+	defer func() { _ = asynqClient.Close() }()
+
+	pub := api.NewPublisher(rdb, asynqClient)
 
 	// --- JSON Schema validation ----------------------------------------------
 	schemaReg, err := sharedmw.NewSchemaRegistry()

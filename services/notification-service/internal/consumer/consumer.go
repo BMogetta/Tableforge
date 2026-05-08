@@ -2,13 +2,14 @@
 //
 // Two transports run concurrently:
 //
-//   - Pub/Sub (friendship.requested, friendship.accepted, achievement.unlocked).
-//     Will migrate to Asynq in P3.6 Phase 3b — the consuming side is
-//     point-to-point so a task queue is the right fit.
-//
 //   - Streams (player.banned). Migrated in P3.6 Phase 2 because three
 //     services consume this event (auth, match, notification); Streams
 //     consumer groups give natural fan-out without re-publishing.
+//
+//   - Asynq (friendship.requested, friendship.accepted, achievement.unlocked).
+//     Migrated in P3.6 Phase 3b — these are point-to-point (only
+//     notification-service consumes them), so a task queue with built-in
+//     retry/DLQ/observability is the right fit.
 package consumer
 
 import (
@@ -21,6 +22,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/recess/notification-service/internal/store"
@@ -30,12 +32,14 @@ import (
 )
 
 const (
-	channelFriendshipRequested = "friendship.requested"
-	channelFriendshipAccepted  = "friendship.accepted"
-	channelAchievementUnlocked = "achievement.unlocked"
-
 	streamPlayerBanned = "player.banned"
 	consumerGroup      = "notification-service"
+
+	queueNotification = "notification"
+
+	taskFriendshipRequested = "notification:friendship-requested"
+	taskFriendshipAccepted  = "notification:friendship-accepted"
+	taskAchievementUnlocked = "notification:achievement-unlocked"
 
 	dedupeKeyPrefix = "dedup:notification-service:"
 	dedupeTTL       = 24 * time.Hour
@@ -51,13 +55,16 @@ type Publisher interface {
 	PublishToPlayer(ctx context.Context, playerID uuid.UUID, event sharedws.Event)
 }
 
-// Consumer drives notification creation off both Pub/Sub and Streams.
+// Consumer drives notification creation off both Streams (player.banned)
+// and Asynq (friendship.*, achievement.unlocked).
 type Consumer struct {
-	rdb       *redis.Client
-	store     NotificationCreator
-	pub       Publisher
-	log       *slog.Logger
-	banWorker *streams.Worker
+	rdb        *redis.Client
+	store      NotificationCreator
+	pub        Publisher
+	log        *slog.Logger
+	banWorker  *streams.Worker
+	asynqOpts  asynq.RedisClientOpt
+	asynqReady bool
 }
 
 func New(rdb *redis.Client, st NotificationCreator, pub Publisher, log *slog.Logger, consumerName string) *Consumer {
@@ -71,27 +78,43 @@ func New(rdb *redis.Client, st NotificationCreator, pub Publisher, log *slog.Log
 			c.handlePlayerBanned,
 			streams.WithLogger(log),
 		)
+		c.asynqOpts = asynq.RedisClientOpt{
+			Addr:     rdb.Options().Addr,
+			Password: rdb.Options().Password,
+			DB:       rdb.Options().DB,
+		}
+		c.asynqReady = true
 	}
 	return c
 }
 
-// Run blocks until ctx is cancelled. Launches the legacy Pub/Sub loop and
-// the player.banned Streams worker concurrently.
+// Run blocks until ctx is cancelled. Launches the player.banned Streams worker
+// and the notification-queue Asynq server concurrently.
 func (c *Consumer) Run(ctx context.Context) error {
-	if c.banWorker == nil {
-		return c.runPubSub(ctx)
+	if !c.asynqReady {
+		// Tests that pass nil rdb only exercise the per-handler logic.
+		return nil
 	}
+
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(taskFriendshipRequested, c.handleFriendshipRequested)
+	mux.HandleFunc(taskFriendshipAccepted, c.handleFriendshipAccepted)
+	mux.HandleFunc(taskAchievementUnlocked, c.handleAchievementUnlocked)
+
+	srv := asynq.NewServer(c.asynqOpts, asynq.Config{
+		Queues:      map[string]int{queueNotification: 1},
+		Concurrency: 5,
+		Logger:      asynqSlogAdapter{log: c.log},
+	})
+
+	c.log.Info("notification consumer starting",
+		"stream", streamPlayerBanned,
+		"group", consumerGroup,
+		"queue", queueNotification,
+	)
 
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := c.runPubSub(ctx); err != nil {
-			errCh <- fmt.Errorf("pubsub: %w", err)
-		}
-	}()
 
 	wg.Add(1)
 	go func() {
@@ -101,6 +124,16 @@ func (c *Consumer) Run(ctx context.Context) error {
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := srv.Run(mux); err != nil {
+			errCh <- fmt.Errorf("asynq server: %w", err)
+		}
+	}()
+
+	<-ctx.Done()
+	srv.Shutdown()
 	wg.Wait()
 	close(errCh)
 	for err := range errCh {
@@ -111,49 +144,9 @@ func (c *Consumer) Run(ctx context.Context) error {
 	return nil
 }
 
-func (c *Consumer) runPubSub(ctx context.Context) error {
-	sub := c.rdb.Subscribe(ctx, channelFriendshipRequested, channelFriendshipAccepted, channelAchievementUnlocked)
-	defer sub.Close()
-
-	ch := sub.Channel()
-	c.log.Info("subscribed to Redis channels",
-		"channels", []string{channelFriendshipRequested, channelFriendshipAccepted, channelAchievementUnlocked},
-	)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case msg, ok := <-ch:
-			if !ok {
-				return errors.New("redis subscription channel closed unexpectedly")
-			}
-			if err := c.handlePubSub(ctx, msg); err != nil {
-				c.log.Error("failed to handle event",
-					"channel", msg.Channel,
-					"error", err,
-				)
-			}
-		}
-	}
-}
-
-func (c *Consumer) handlePubSub(ctx context.Context, msg *redis.Message) error {
-	switch msg.Channel {
-	case channelFriendshipRequested:
-		return c.handleFriendshipRequested(ctx, msg.Payload)
-	case channelFriendshipAccepted:
-		return c.handleFriendshipAccepted(ctx, msg.Payload)
-	case channelAchievementUnlocked:
-		return c.handleAchievementUnlocked(ctx, msg.Payload)
-	default:
-		return fmt.Errorf("unknown channel: %s", msg.Channel)
-	}
-}
-
-func (c *Consumer) handleFriendshipRequested(ctx context.Context, payload string) error {
+func (c *Consumer) handleFriendshipRequested(ctx context.Context, task *asynq.Task) error {
 	var evt events.FriendshipRequested
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(task.Payload(), &evt); err != nil {
 		return fmt.Errorf("unmarshal FriendshipRequested: %w", err)
 	}
 
@@ -207,9 +200,9 @@ func (c *Consumer) handleFriendshipRequested(ctx context.Context, payload string
 	return nil
 }
 
-func (c *Consumer) handleFriendshipAccepted(ctx context.Context, payload string) error {
+func (c *Consumer) handleFriendshipAccepted(ctx context.Context, task *asynq.Task) error {
 	var evt events.FriendshipAccepted
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(task.Payload(), &evt); err != nil {
 		return fmt.Errorf("unmarshal FriendshipAccepted: %w", err)
 	}
 
@@ -330,9 +323,9 @@ func (c *Consumer) handlePlayerBanned(ctx context.Context, payload []byte) error
 	return nil
 }
 
-func (c *Consumer) handleAchievementUnlocked(ctx context.Context, payload string) error {
+func (c *Consumer) handleAchievementUnlocked(ctx context.Context, task *asynq.Task) error {
 	var evt events.AchievementUnlocked
-	if err := json.Unmarshal([]byte(payload), &evt); err != nil {
+	if err := json.Unmarshal(task.Payload(), &evt); err != nil {
 		return fmt.Errorf("unmarshal AchievementUnlocked: %w", err)
 	}
 
@@ -423,3 +416,12 @@ func parseSourceEventID(eventID string) *uuid.UUID {
 	}
 	return &id
 }
+
+// asynqSlogAdapter bridges Asynq's Logger interface to slog.
+type asynqSlogAdapter struct{ log *slog.Logger }
+
+func (a asynqSlogAdapter) Debug(args ...any) { a.log.Debug(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Info(args ...any)  { a.log.Info(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Warn(args ...any)  { a.log.Warn(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Error(args ...any) { a.log.Error(fmt.Sprint(args...)) }
+func (a asynqSlogAdapter) Fatal(args ...any) { a.log.Error(fmt.Sprint(args...)) }

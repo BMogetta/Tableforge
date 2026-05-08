@@ -7,39 +7,52 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+
 	"github.com/recess/services/user-service/internal/store"
 	"github.com/recess/shared/events"
 	"github.com/recess/shared/streams"
 )
 
 const (
-	channelPlayerUnbanned      = "player.unbanned"
-	channelFriendshipRequested = "friendship.requested"
-	channelFriendshipAccepted  = "friendship.accepted"
-	channelBroadcastSent       = "admin.broadcast.sent"
-	channelAchievementUnlocked = "achievement.unlocked"
+	channelPlayerUnbanned = "player.unbanned"
+	channelBroadcastSent  = "admin.broadcast.sent"
 
 	// streamPlayerBanned is the Streams stream name. Migrated from Pub/Sub
 	// in P3.6 Phase 2 so auth/match/notification can scale horizontally.
 	streamPlayerBanned = "player.banned"
+
+	// QueueNotification is the Asynq queue carrying notification-service
+	// tasks (friendship.*, achievement.unlocked). Migrated from Pub/Sub
+	// in P3.6 Phase 3b.
+	QueueNotification = "notification"
+
+	TaskFriendshipRequested = "notification:friendship-requested"
+	TaskFriendshipAccepted  = "notification:friendship-accepted"
+	TaskAchievementUnlocked = "notification:achievement-unlocked"
 )
 
-// Publisher publishes user-service domain events. player.banned uses Redis
-// Streams (consumer groups) so multiple replicas of the consuming services
-// don't double-process bans. Remaining channels still use Pub/Sub and will
-// migrate to Asynq in P3.6 Phase 3.
+// Publisher publishes user-service domain events. Routing per event:
+//
+//   - player.banned        → Streams (consumer groups: auth, match, notification)
+//   - friendship.requested → Asynq queue "notification" (notification-service)
+//   - friendship.accepted  → Asynq queue "notification" (notification-service)
+//   - achievement.unlocked → Asynq queue "notification" (notification-service)
+//   - admin.broadcast.sent → Pub/Sub (ws-gateway; moves to Asynq in 3c)
+//   - player.unbanned      → Pub/Sub (no consumer wired today)
 type Publisher struct {
-	rdb      *redis.Client
-	producer *streams.Producer
+	rdb         *redis.Client
+	producer    *streams.Producer
+	asynqClient *asynq.Client
 }
 
-func NewPublisher(rdb *redis.Client) *Publisher {
+func NewPublisher(rdb *redis.Client, asynqClient *asynq.Client) *Publisher {
 	var prod *streams.Producer
 	if rdb != nil {
 		prod = streams.NewProducer(rdb)
 	}
-	return &Publisher{rdb: rdb, producer: prod}
+	return &Publisher{rdb: rdb, producer: prod, asynqClient: asynqClient}
 }
 
 func (p *Publisher) PublishPlayerBanned(ctx context.Context, ban store.Ban) {
@@ -80,12 +93,12 @@ func (p *Publisher) PublishPlayerUnbanned(ctx context.Context, banID, playerID, 
 
 func (p *Publisher) PublishFriendshipRequested(ctx context.Context, requesterID, requesterUsername, addresseeID string) {
 	evt := events.FriendshipRequested{
-		Meta:             newMeta(),
-		RequesterID:      requesterID,
+		Meta:              newMeta(),
+		RequesterID:       requesterID,
 		RequesterUsername: requesterUsername,
-		AddresseeID:      addresseeID,
+		AddresseeID:       addresseeID,
 	}
-	p.publish(ctx, channelFriendshipRequested, evt)
+	p.enqueue(ctx, TaskFriendshipRequested, evt)
 }
 
 func (p *Publisher) PublishFriendshipAccepted(ctx context.Context, f store.Friendship) {
@@ -94,7 +107,7 @@ func (p *Publisher) PublishFriendshipAccepted(ctx context.Context, f store.Frien
 		RequesterID: f.RequesterID.String(),
 		AddresseeID: f.AddresseeID.String(),
 	}
-	p.publish(ctx, channelFriendshipAccepted, evt)
+	p.enqueue(ctx, TaskFriendshipAccepted, evt)
 }
 
 func (p *Publisher) PublishBroadcast(ctx context.Context, message, broadcastType, sentBy string) {
@@ -115,7 +128,7 @@ func (p *Publisher) PublishAchievementUnlocked(ctx context.Context, playerID, ac
 		Tier:           tier,
 		TierName:       tierName,
 	}
-	p.publish(ctx, channelAchievementUnlocked, evt)
+	p.enqueue(ctx, TaskAchievementUnlocked, evt)
 }
 
 func (p *Publisher) publish(ctx context.Context, channel string, evt any) {
@@ -124,8 +137,30 @@ func (p *Publisher) publish(ctx context.Context, channel string, evt any) {
 		slog.Error("failed to marshal event", "channel", channel, "error", err)
 		return
 	}
+	if p.rdb == nil {
+		return
+	}
 	if err := p.rdb.Publish(ctx, channel, b).Err(); err != nil {
 		slog.Error("failed to publish event", "channel", channel, "error", err)
+	}
+}
+
+func (p *Publisher) enqueue(_ context.Context, taskType string, evt any) {
+	b, err := json.Marshal(evt)
+	if err != nil {
+		slog.Error("failed to marshal event", "task_type", taskType, "error", err)
+		return
+	}
+	if p.asynqClient == nil {
+		return
+	}
+	task := asynq.NewTask(taskType, b)
+	if _, err := p.asynqClient.Enqueue(task,
+		asynq.Queue(QueueNotification),
+		asynq.MaxRetry(5),
+		asynq.Retention(24*time.Hour),
+	); err != nil {
+		slog.Error("failed to enqueue task", "task_type", taskType, "error", err)
 	}
 }
 
