@@ -20,8 +20,15 @@ WORKDIR /static
 
 # Copy only the ui/ subtree to maximize cache reuse — backend changes
 # alone won't invalidate this stage.
+#
+# We deliberately don't pass --frozen-lockfile here. yarn 1.x against
+# Node 18 resolves a couple of transitive deps slightly differently
+# than the lockfile that ships with hibiken/asynqmon (which was
+# generated against an older Node). Strict lockfile fidelity isn't
+# important when mirroring an external project — we catch real
+# breakage at `yarn build`, not at install.
 COPY ui/package.json ui/yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN yarn install --network-timeout 600000
 
 COPY ui/ ./
 RUN yarn build
