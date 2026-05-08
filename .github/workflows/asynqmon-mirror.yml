@@ -2,9 +2,16 @@ name: Asynqmon ARM64 mirror
 
 # hibiken/asynqmon publishes amd64-only Docker images. The Pi 5 cluster
 # is arm64, so the upstream image fails to pull. This workflow rebuilds
-# upstream's source for arm64 and pushes the resulting image to GHCR
-# (ghcr.io/<owner>/recess-asynqmon). recess-deploy points its asynqmon
-# Deployment at our mirror image, with a comment noting the source.
+# upstream's source for arm64 using our custom multi-arch Dockerfile
+# (.github/docker/asynqmon.Dockerfile) and pushes the resulting image
+# to GHCR (ghcr.io/<owner>/recess-asynqmon). recess-deploy points its
+# asynqmon Deployment at our mirror image.
+#
+# Why a custom Dockerfile and not upstream's: upstream hardcodes
+# GOARCH=amd64 and uses an alpine+npm combo old enough that the React
+# frontend yarn build fails. Our Dockerfile uses node:18-alpine for the
+# frontend and TARGETOS/TARGETARCH for the Go build stage so buildx can
+# emit arm64 binaries.
 #
 # Trigger model:
 #   - manual (workflow_dispatch) with a version input — pin to a specific
@@ -56,11 +63,19 @@ jobs:
           # the upstream tag is v0.7.2). Both tags get pushed.
           echo "tag=${VERSION#v}" >> "$GITHUB_OUTPUT"
 
+      # Two checkouts: this repo holds our custom Dockerfile;
+      # hibiken/asynqmon@<tag> is the actual source we build against.
+      - name: Checkout recess (for custom Dockerfile)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: recess
+
       - name: Checkout hibiken/asynqmon
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: hibiken/asynqmon
           ref: ${{ steps.version.outputs.version }}
+          path: asynqmon
 
       - uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
         with:
@@ -79,8 +94,10 @@ jobs:
         id: build
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v6.9.0
         with:
-          context: .
-          file: Dockerfile
+          # Build context = the asynqmon source tree.
+          # Dockerfile = our custom multi-arch one from the recess repo.
+          context: ./asynqmon
+          file: ./recess/.github/docker/asynqmon.Dockerfile
           platforms: linux/arm64
           push: true
           provenance: mode=max
