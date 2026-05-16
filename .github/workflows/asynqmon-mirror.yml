@@ -31,10 +31,13 @@ on:
         description: 'hibiken/asynqmon git tag to mirror (e.g. v0.7.2)'
         required: true
         default: 'v0.7.2'
-  schedule:
-    # First of every month at 04:00 UTC. Stays in cache for the rest of
-    # the month; no per-day churn.
-    - cron: '0 4 1 * *'
+  # Cron disabled until the build is known-green end to end. The mirror
+  # currently fails at yarn build with openssl-legacy issues — see
+  # P3.6 Phase 4 in ROADMAP.md. Re-enable the schedule block below once
+  # a manual run succeeds; pinning the version + monthly base-image
+  # refresh is still the long-term plan.
+  # schedule:
+  #   - cron: '0 4 1 * *'
 
 permissions:
   contents: read
