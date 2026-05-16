@@ -366,8 +366,8 @@ PR, and its own tag — bumped only by commits that scope to that component.
 
 ### Commit message scope
 
-Use conventional-commit format with a **component scope** matching the release-please
-config (`release-please-config.json`). Valid scopes:
+Use conventional-commit format with a **component scope** matching the per-component
+release-please configs (`<component>/release-please-config.json`). Valid scopes:
 
 | Scope | Bumps |
 |---|---|
