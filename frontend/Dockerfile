@@ -1,6 +1,6 @@
 # Builder runs on the native build host (amd64 in CI); output is static
 # assets, arch-independent, so no cross-compile flags needed beyond pinning.
-FROM --platform=$BUILDPLATFORM node:22-alpine@sha256:8ea2348b068a9544dae7317b4f3aafcdc032df1647bb7d768a05a5cad1a7683f AS builder
+FROM --platform=$BUILDPLATFORM node:26-alpine@sha256:e71ac5e964b9201072425d59d2e876359efa25dc96bb1768cb73295728d6e4ea AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
