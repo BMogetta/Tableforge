@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1-alpha.1](https://github.com/BMogetta/recess/compare/chat-service-v0.3.0-alpha.1...chat-service-v0.3.1-alpha.1) (2026-05-16)
+
+
+### Refactors
+
+* split release-please into per-component configs ([#158](https://github.com/BMogetta/recess/issues/158)) ([87f91d4](https://github.com/BMogetta/recess/commit/87f91d467b2269ae3d24f0b55d007c2541333311))
+
 ## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/chat-service-v0.2.0-alpha.1...chat-service-v0.3.0-alpha.1) (2026-04-25)
 
 
