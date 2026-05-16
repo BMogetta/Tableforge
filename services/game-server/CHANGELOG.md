@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/game-server-v0.2.1-alpha.1...game-server-v0.3.0-alpha.1) (2026-05-16)
+
+
+### Features
+
+* **asynq:** migrate bot.activate to Asynq (P3.6 Phase 3a) ([#130](https://github.com/BMogetta/recess/issues/130)) ([2ddf92d](https://github.com/BMogetta/recess/commit/2ddf92dbaf9b94d3630c05a746536047785867af))
+* **streams:** migrate game.session.finished to Streams (P3.6 Phase 1) ([#125](https://github.com/BMogetta/recess/issues/125)) ([6900806](https://github.com/BMogetta/recess/commit/69008068252adc646a474be33b8d25fcb048d893))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/game-server-vv0.1.0-alpha.1...game-server-vv0.2.0-alpha.1) (2026-04-20)
 
 
