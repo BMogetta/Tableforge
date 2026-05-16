@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0-alpha.1](https://github.com/BMogetta/recess/compare/notification-service-v0.3.0-alpha.1...notification-service-v0.4.0-alpha.1) (2026-05-16)
+
+
+### Features
+
+* **asynq:** migrate notification channels to Asynq (P3.6 Phase 3b) ([#131](https://github.com/BMogetta/recess/issues/131)) ([7430c8a](https://github.com/BMogetta/recess/commit/7430c8a0a0343a985c282ee0b4b5a2b3f7965e06))
+* **db:** golang-migrate Job + dev/prod seed split ([#101](https://github.com/BMogetta/recess/issues/101)) ([4551387](https://github.com/BMogetta/recess/commit/4551387cd6f2cc9353d968f4cc1a1b7951e1e88b))
+* **streams:** migrate player.banned to Streams (P3.6 Phase 2) ([#127](https://github.com/BMogetta/recess/issues/127)) ([71a5598](https://github.com/BMogetta/recess/commit/71a5598639432e01b6b5ab00b9175be282e22a3d))
+
 ## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/notification-service-v0.2.0-alpha.1...notification-service-v0.3.0-alpha.1) (2026-04-25)
 
 
