@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2-alpha.1](https://github.com/BMogetta/recess/compare/ws-gateway-v0.2.1-alpha.1...ws-gateway-v0.2.2-alpha.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **ws-gateway:** unblock multi-replica scaling (P3.6 Phase 3c) ([#134](https://github.com/BMogetta/recess/issues/134)) ([6589fe2](https://github.com/BMogetta/recess/commit/6589fe285b09d096d8b97c5f7fce3cb22871bbbf))
+
+
+### Refactors
+
+* split release-please into per-component configs ([#158](https://github.com/BMogetta/recess/issues/158)) ([87f91d4](https://github.com/BMogetta/recess/commit/87f91d467b2269ae3d24f0b55d007c2541333311))
+
 ## [0.2.0-alpha.1](https://github.com/BMogetta/recess/compare/ws-gateway-vv0.1.0-alpha.1...ws-gateway-vv0.2.0-alpha.1) (2026-04-20)
 
 
