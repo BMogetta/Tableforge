@@ -12,8 +12,8 @@ on:
     # not this repo, so no path filter is needed for them.
     paths-ignore:
       - '**/CHANGELOG.md'
-      - '.release-please-manifest.json'
-      - 'release-please-config.json'
+      - '**/.release-please-manifest.json'
+      - '**/release-please-config.json'
 
 concurrency:
   group: ci-${{ github.ref }}

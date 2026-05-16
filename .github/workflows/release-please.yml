@@ -8,13 +8,25 @@ permissions:
   contents: write
   pull-requests: write
 
-concurrency:
-  group: release-please-main
-  cancel-in-progress: false
-
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+          - { dir: services/game-server,         name: game-server }
+          - { dir: services/auth-service,        name: auth-service }
+          - { dir: services/user-service,        name: user-service }
+          - { dir: services/chat-service,        name: chat-service }
+          - { dir: services/rating-service,      name: rating-service }
+          - { dir: services/match-service,       name: match-service }
+          - { dir: services/notification-service, name: notification-service }
+          - { dir: services/ws-gateway,          name: ws-gateway }
+          - { dir: frontend,                     name: frontend }
+    concurrency:
+      group: release-please-${{ matrix.component.name }}
+      cancel-in-progress: false
     steps:
       # Tags pushed via the default GITHUB_TOKEN do not fire downstream
       # workflows (well-known GitHub limitation). Mint a token from the
@@ -32,5 +44,5 @@ jobs:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ steps.app-token.outputs.token }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+          config-file: ${{ matrix.component.dir }}/release-please-config.json
+          manifest-file: ${{ matrix.component.dir }}/.release-please-manifest.json

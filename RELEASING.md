@@ -48,11 +48,28 @@ commit to main (feat/fix with component scope)
 | ws-gateway | `ws-gateway` | `ws-gateway-vX.Y.Z` |
 | frontend | `frontend` | `frontend-vX.Y.Z` |
 
+## Architecture
+
+Each component has its own isolated release-please config and manifest under
+its own directory:
+
+```
+services/<component>/release-please-config.json
+services/<component>/.release-please-manifest.json
+frontend/release-please-config.json
+frontend/.release-please-manifest.json
+```
+
+The `release-please.yml` workflow runs one job per component (matrix), each
+operating only on its own files. **PRs are 100% independent** — merging one
+never blocks or invalidates another, so release PRs are mergeable in parallel
+in any order.
+
 ## Initial versions
 
-The manifest (`.release-please-manifest.json`) seeds every component at
-`0.1.0-alpha.1`. The first conventional commit with a component scope after
-that point triggers release-please to open a release PR.
+Each component's manifest (`<component>/.release-please-manifest.json`) seeds
+that component independently. The first conventional commit with a component
+scope after that point triggers release-please to open a release PR.
 
 Until the repo reaches v1 for a component, breaking changes using `!` still
 bump minor (release-please convention for 0.x).
@@ -140,7 +157,8 @@ Never use `:latest` in k8s manifests — it defeats the whole point of pinning.
 ## Throwaway-history note
 
 This repo is throwaway at the git level. When the clean repo is forked, the
-final files (this doc, `release-please-config.json`, `.release-please-manifest.json`,
-workflows) come along, but the intermediate commit history does not. The first
-push of the clean repo re-seeds release-please at `0.1.0-alpha.1` for every
-component and starts accumulating real history from there.
+final files (this doc, per-component `release-please-config.json` and
+`.release-please-manifest.json` under each component directory, workflows)
+come along, but the intermediate commit history does not. The first push of
+the clean repo re-seeds release-please from each manifest and starts
+accumulating real history from there.
