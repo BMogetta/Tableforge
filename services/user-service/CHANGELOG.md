@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0-alpha.1](https://github.com/BMogetta/recess/compare/user-service-v0.3.0-alpha.1...user-service-v0.4.0-alpha.1) (2026-05-16)
+
+
+### Features
+
+* **asynq:** migrate notification channels to Asynq (P3.6 Phase 3b) ([#131](https://github.com/BMogetta/recess/issues/131)) ([7430c8a](https://github.com/BMogetta/recess/commit/7430c8a0a0343a985c282ee0b4b5a2b3f7965e06))
+* **streams:** migrate game.session.finished to Streams (P3.6 Phase 1) ([#125](https://github.com/BMogetta/recess/issues/125)) ([6900806](https://github.com/BMogetta/recess/commit/69008068252adc646a474be33b8d25fcb048d893))
+* **streams:** migrate player.banned to Streams (P3.6 Phase 2) ([#127](https://github.com/BMogetta/recess/issues/127)) ([71a5598](https://github.com/BMogetta/recess/commit/71a5598639432e01b6b5ab00b9175be282e22a3d))
+
 ## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/user-service-v0.2.0-alpha.1...user-service-v0.3.0-alpha.1) (2026-04-26)
 
 
