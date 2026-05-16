@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/match-service-v0.2.1-alpha.1...match-service-v0.3.0-alpha.1) (2026-05-16)
+
+
+### Features
+
+* **asynq:** migrate bot.activate to Asynq (P3.6 Phase 3a) ([#130](https://github.com/BMogetta/recess/issues/130)) ([2ddf92d](https://github.com/BMogetta/recess/commit/2ddf92dbaf9b94d3630c05a746536047785867af))
+* **streams:** migrate player.banned to Streams (P3.6 Phase 2) ([#127](https://github.com/BMogetta/recess/issues/127)) ([71a5598](https://github.com/BMogetta/recess/commit/71a5598639432e01b6b5ab00b9175be282e22a3d))
+
+
+### Refactors
+
+* split release-please into per-component configs ([#158](https://github.com/BMogetta/recess/issues/158)) ([87f91d4](https://github.com/BMogetta/recess/commit/87f91d467b2269ae3d24f0b55d007c2541333311))
+
 ## [0.2.1-alpha.1](https://github.com/BMogetta/recess/compare/match-service-v0.2.0-alpha.1...match-service-v0.2.1-alpha.1) (2026-04-26)
 
 
