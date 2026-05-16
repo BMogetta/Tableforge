@@ -3,15 +3,14 @@ module github.com/recess/auth-service
 go 1.25.0
 
 require (
-	github.com/alicebob/miniredis/v2 v2.37.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/recess/shared v0.0.0
-	github.com/redis/go-redis/v9 v9.18.0
-	github.com/riandyrn/otelchi v0.12.2
+	github.com/redis/go-redis/v9 v9.19.0
+	github.com/riandyrn/otelchi v0.12.3
 )
 
 require (
@@ -21,6 +20,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.11.4 // indirect
 	github.com/Unleash/unleash-client-go/v4 v4.5.0 // indirect
+	github.com/alicebob/miniredis/v2 v2.38.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
@@ -29,7 +29,6 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/docker v25.0.3+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
