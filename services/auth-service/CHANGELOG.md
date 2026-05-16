@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0-alpha.1](https://github.com/BMogetta/recess/compare/auth-service-v0.3.1-alpha.1...auth-service-v0.4.0-alpha.1) (2026-05-16)
+
+
+### Features
+
+* **streams:** migrate player.banned to Streams (P3.6 Phase 2) ([#127](https://github.com/BMogetta/recess/issues/127)) ([71a5598](https://github.com/BMogetta/recess/commit/71a5598639432e01b6b5ab00b9175be282e22a3d))
+
+
+### Refactors
+
+* split release-please into per-component configs ([#158](https://github.com/BMogetta/recess/issues/158)) ([87f91d4](https://github.com/BMogetta/recess/commit/87f91d467b2269ae3d24f0b55d007c2541333311))
+
 ## [0.3.1-alpha.1](https://github.com/BMogetta/recess/compare/auth-service-v0.3.0-alpha.1...auth-service-v0.3.1-alpha.1) (2026-04-26)
 
 
