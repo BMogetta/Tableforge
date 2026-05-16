@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0-alpha.1](https://github.com/BMogetta/recess/compare/rating-service-v0.3.0-alpha.1...rating-service-v0.4.0-alpha.1) (2026-05-16)
+
+
+### Features
+
+* **db:** golang-migrate Job + dev/prod seed split ([#101](https://github.com/BMogetta/recess/issues/101)) ([4551387](https://github.com/BMogetta/recess/commit/4551387cd6f2cc9353d968f4cc1a1b7951e1e88b))
+* **streams:** migrate game.session.finished to Streams (P3.6 Phase 1) ([#125](https://github.com/BMogetta/recess/issues/125)) ([6900806](https://github.com/BMogetta/recess/commit/69008068252adc646a474be33b8d25fcb048d893))
+
 ## [0.3.0-alpha.1](https://github.com/BMogetta/recess/compare/rating-service-v0.2.0-alpha.1...rating-service-v0.3.0-alpha.1) (2026-04-26)
 
 
